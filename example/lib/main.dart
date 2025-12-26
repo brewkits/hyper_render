@@ -20,6 +20,13 @@ const kOptimizedTextStyle = TextStyle(
 );
 
 void main() {
+  // Ensure Flutter binding is initialized before accessing PaintingBinding
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Increase image cache size for better performance with multiple images
+  // Default: maximumSize = 1000 images, maximumSizeBytes = 50 MB
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 150 << 20; // 150 MB for demo images
+
   runApp(const HyperRenderDemoApp());
 }
 
@@ -1431,7 +1438,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   static const List<Map<String, String>> testCases = [
     {
       'name': 'Float Layout',
-      'description': 'Text wrapping around floated images',
+      'description': 'Text wrapping around floated images (HyperRender exclusive)',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
   <img src="https://picsum.photos/100/100?random=50" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px;" />
@@ -1446,8 +1453,35 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
 ''',
     },
     {
+      'name': 'Table with Colspan/Rowspan',
+      'description': 'Complex table layout with spanning cells',
+      'html': '''
+<div style="font-family: sans-serif;">
+  <table border="1" style="border-collapse: collapse; width: 100%;">
+    <tr style="background: #f5f5f5;">
+      <th colspan="2">User Info</th>
+      <th rowspan="2">Status</th>
+    </tr>
+    <tr style="background: #f5f5f5;">
+      <th>Name</th>
+      <th>Email</th>
+    </tr>
+    <tr>
+      <td>John Doe</td>
+      <td>john@example.com</td>
+      <td rowspan="2" style="text-align: center; color: green;">Active</td>
+    </tr>
+    <tr>
+      <td>Jane Smith</td>
+      <td>jane@example.com</td>
+    </tr>
+  </table>
+</div>
+''',
+    },
+    {
       'name': 'Ruby Annotation',
-      'description': 'Furigana for Japanese/Chinese text',
+      'description': 'Furigana for Japanese text (HyperRender most accurate)',
       'html': '''
 <div style="font-family: sans-serif; line-height: 2;">
   <p style="font-size: 22px;">
@@ -1460,8 +1494,21 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
 ''',
     },
     {
+      'name': 'Multiple Floats',
+      'description': 'Left and right floats in same paragraph',
+      'html': '''
+<div style="font-family: sans-serif; line-height: 1.6;">
+  <img src="https://picsum.photos/80/80?random=1" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 50%;" />
+  <img src="https://picsum.photos/80/80?random=2" style="float: right; width: 80px; height: 80px; margin: 0 0 8px 12px; border-radius: 50%;" />
+  <p>
+    This paragraph has images floating on <strong>both sides</strong>. The text should wrap between them naturally, creating a magazine-style layout. This is a challenging layout scenario that tests the rendering engine's float handling capabilities. Additional text to make the wrapping more visible.
+  </p>
+</div>
+''',
+    },
+    {
       'name': 'Inline Background',
-      'description': 'Background wrapping across lines',
+      'description': 'Background wrapping across lines (HyperRender exclusive)',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.8;">
   <p>
@@ -1475,25 +1522,61 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
 ''',
     },
     {
-      'name': 'Complex Styles',
-      'description': 'Multiple CSS properties combined',
+      'name': 'CSS Specificity',
+      'description': 'Cascade and inheritance test',
+      'html': '''
+<div style="font-family: sans-serif; color: #333;">
+  <style>
+    p { color: blue; }
+    .special { color: red; }
+    #unique { color: green; }
+  </style>
+  <p>Normal paragraph (should be blue)</p>
+  <p class="special">Class paragraph (should be red)</p>
+  <p id="unique">ID paragraph (should be green)</p>
+  <p style="color: purple;">Inline style (should be purple)</p>
+</div>
+''',
+    },
+    {
+      'name': 'Selection Stress',
+      'description': 'Large text for selection testing',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
-  <h2 style="color: #1976D2; border-left: 4px solid #1976D2; padding-left: 12px;">Styled Heading</h2>
-  <p style="margin: 16px 0;">
-    Text with <strong style="color: #E91E63;">bold pink</strong>,
-    <em style="color: #4CAF50;">italic green</em>, and
-    <u style="text-decoration-color: #FF9800;">orange underline</u>.
-  </p>
-  <blockquote style="border-left: 4px solid #9C27B0; padding-left: 16px; margin: 16px 0; font-style: italic; color: #555;">
-    This is a styled blockquote with left border and padding.
-  </blockquote>
+  <p><strong>Try selecting this text!</strong> The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.</p>
+  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+  <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+  <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+  <p><em>Flutter_html often crashes on SelectionArea with complex content</em></p>
+</div>
+''',
+    },
+    {
+      'name': 'Wide Table Scroll',
+      'description': 'Very wide table (tests horizontal scroll)',
+      'html': '''
+<div style="font-family: sans-serif;">
+  <p style="font-size: 12px; color: #666; margin-bottom: 8px;">This table is wider than screen - try scrolling horizontally</p>
+  <table border="1" style="border-collapse: collapse;">
+    <tr style="background: #f5f5f5;">
+      <th>Column 1</th><th>Column 2</th><th>Column 3</th><th>Column 4</th>
+      <th>Column 5</th><th>Column 6</th><th>Column 7</th><th>Column 8</th>
+    </tr>
+    <tr>
+      <td>Data 1.1</td><td>Data 1.2</td><td>Data 1.3</td><td>Data 1.4</td>
+      <td>Data 1.5</td><td>Data 1.6</td><td>Data 1.7</td><td>Data 1.8</td>
+    </tr>
+    <tr>
+      <td>Data 2.1</td><td>Data 2.2</td><td>Data 2.3</td><td>Data 2.4</td>
+      <td>Data 2.5</td><td>Data 2.6</td><td>Data 2.7</td><td>Data 2.8</td>
+    </tr>
+  </table>
 </div>
 ''',
     },
     {
       'name': 'Nested Lists',
-      'description': 'Ordered and unordered lists',
+      'description': 'Multi-level ordered and unordered lists',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
   <ul>
@@ -1518,6 +1601,31 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
 
   int _currentTestIndex = 0;
   final Map<String, Duration> _renderTimes = {};
+
+  String _getExpectedBehavior(int index) {
+    switch (index) {
+      case 0: // Float Layout
+        return '✅ HyperRender: Text wraps around image | ❌ Others: Image appears above text';
+      case 1: // Table colspan/rowspan
+        return '✅ All libraries: Proper colspan/rowspan with width: 100% (fits screen)';
+      case 2: // Ruby Annotation
+        return '✅ HyperRender: Perfect alignment | ✅ fwfh: Good | ❌ flutter_html: Not supported';
+      case 3: // Multiple Floats
+        return '✅ HyperRender: Text wraps between images | ❌ Others: Images stack vertically';
+      case 4: // Inline Background
+        return '✅ HyperRender: Background wraps across lines | ❌ Others: Background is rectangular block';
+      case 5: // CSS Specificity
+        return '✅ HyperRender, fwfh: Correct cascade order | ❌ flutter_html: May ignore <style> tag';
+      case 6: // Selection Stress
+        return '✅ HyperRender, fwfh: Smooth selection | ❌ flutter_html: May crash with SelectionArea';
+      case 7: // Wide Table Scroll
+        return '✅ HyperRender: Auto-scales down to fit | ✅ fwfh: May scroll or wrap | ❌ flutter_html: May overflow';
+      case 8: // Nested Lists
+        return '✅ All libraries: Should render correctly with proper indentation';
+      default:
+        return 'Compare rendering across libraries';
+    }
+  }
 
   @override
   void initState() {
@@ -1567,7 +1675,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
                         items: testCases.asMap().entries.map((e) {
                           return DropdownMenuItem(
                             value: e.key,
-                            child: Text(e.value['name']!),
+                            child: Text('${e.key + 1}/${testCases.length}: ${e.value['name']!}'),
                           );
                         }).toList(),
                         onChanged: (v) => setState(() => _currentTestIndex = v!),
@@ -1575,9 +1683,31 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
                     ),
                   ],
                 ),
+                const SizedBox(height: 4),
                 Text(
                   testCase['description']!,
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _getExpectedBehavior(_currentTestIndex),
+                          style: TextStyle(fontSize: 11, color: Colors.blue.shade900),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1629,6 +1759,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
           child: HyperViewer(
             html: html,
             mode: HyperRenderMode.sync,
+            selectable: true, // Enable text selection for testing
           ),
         );
       },
@@ -1693,13 +1824,16 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   }
 
   Widget _buildFeatureTable() {
+    // Format: (Feature, HyperRender, flutter_html, fwfh, fwfh_core)
     const features = [
       ('Float Layout', true, false, false, false),
+      ('Table colspan/rowspan', true, false, true, true),
       ('Ruby Annotation', true, false, true, true),
-      ('Text Selection', true, true, true, true),
-      ('Inline Background Wrap', true, false, false, false),
+      ('Multiple Floats', true, false, false, false),
+      ('Inline Bg Wrap', true, false, false, false),
+      ('CSS Specificity', true, false, true, true),
+      ('Selection (No Crash)', true, false, true, true),
       ('Custom Widgets', true, true, true, true),
-      ('CSS Cascade', true, false, true, true),
     ];
 
     return Table(

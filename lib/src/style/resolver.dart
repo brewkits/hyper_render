@@ -77,10 +77,23 @@ class StyleResolver {
       color: const Color(0xFF0000EE),
       textDecoration: TextDecoration.underline,
     ),
-    'code': ComputedStyle(fontFamily: 'monospace'),
+    'code': ComputedStyle(
+      fontFamily: 'Courier New',
+      backgroundColor: const Color(0xFFEEEEEE),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      borderRadius: BorderRadius.circular(3),
+      fontSize: 14,
+    ),
     'pre': ComputedStyle(
       display: DisplayType.block,
-      fontFamily: 'monospace',
+      fontFamily: 'Courier New',
+      whiteSpace: 'pre',
+      backgroundColor: const Color(0xFFF5F5F5),
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      borderRadius: BorderRadius.circular(4),
+      fontSize: 14,
+      lineHeight: 1.5,
     ),
     'blockquote': ComputedStyle(
       display: DisplayType.block,
@@ -583,6 +596,17 @@ class StyleResolver {
         if (color != null) {
           style.color = color;
           style.markExplicitlySet('color');
+        }
+        break;
+
+      case 'background':
+        // Shorthand for background-color (simplified - only parse color)
+        // Full background syntax: background: color image position/size repeat attachment
+        // For now, just try to parse as color
+        final color = _parseColor(value);
+        if (color != null) {
+          style.backgroundColor = color;
+          style.markExplicitlySet('background-color');
         }
         break;
 
