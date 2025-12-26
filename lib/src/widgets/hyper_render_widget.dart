@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/image_provider.dart';
 import '../core/render_hyper_box.dart';
 import '../core/render_table.dart';
 import '../model/computed_style.dart';
@@ -47,6 +48,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// Custom widget builder for embedded content (images, videos, etc.)
   final HyperWidgetBuilder? widgetBuilder;
 
+  /// Custom image loader for loading images
+  /// If not provided, uses the default NetworkImage-based loader
+  final HyperImageLoader? imageLoader;
+
   /// Whether text selection is enabled
   final bool selectable;
 
@@ -60,6 +65,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.baseStyle = const TextStyle(fontSize: 16, color: Color(0xFF000000)),
     this.onLinkTap,
     this.widgetBuilder,
+    this.imageLoader,
     this.selectable = true,
   }) : super(children: _buildChildren(document, widgetBuilder));
 
@@ -127,13 +133,42 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       final src = node.src;
       if (src == null || src.isEmpty) return null;
 
+      // Use intrinsic dimensions if available, otherwise fallback to CSS style dimensions
+      final width = node.intrinsicWidth ?? node.style.width;
+      final height = node.intrinsicHeight ?? node.style.height;
+
       return ClipRRect(
         borderRadius: BorderRadius.circular(8.0),
         child: Image.network(
           src,
-          width: node.intrinsicWidth,
-          height: node.intrinsicHeight,
+          width: width,
+          height: height,
           fit: BoxFit.cover,
+          // Cache with smaller size for better performance
+          cacheWidth: width != null ? (width * 2).toInt() : null, // 2x for retina
+          cacheHeight: height != null ? (height * 2).toInt() : null,
+          // Add loading builder for better UX
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              width: width ?? 100,
+              height: height ?? 100,
+              color: const Color(0xFFF5F5F5),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+            );
+          },
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
             if (wasSynchronouslyLoaded) return child;
             return AnimatedOpacity(
@@ -149,7 +184,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
               height: node.intrinsicHeight ?? 100,
               color: const Color(0xFFE0E0E0),
               child: const Center(
-                child: Icon(Icons.broken_image, size: 32),
+                child: Icon(Icons.broken_image, size: 32, color: Color(0xFF9E9E9E)),
               ),
             );
           },
@@ -178,9 +213,27 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
 
   static Widget? _buildDefaultTableWidget(TableNode node) {
     // Use the SmartTableWrapper for intelligent table rendering
+    // Auto-detect strategy based on CSS width:
+    // - If width is 100%, use fitWidth (table wraps to screen like fwfh)
+    // - Otherwise, use autoScale (table scales down if too wide)
+    TableStrategy strategy = TableStrategy.autoScale;
+
+    // Check if table has width: 100% in inline style or width attribute
+    final styleAttr = node.attributes['style'];
+    final widthAttr = node.attributes['width'];
+
+    final hasPercentWidth = (styleAttr?.contains('width') == true &&
+                            styleAttr!.contains('%')) ||
+                            (widthAttr?.contains('%') ?? false);
+
+    if (hasPercentWidth) {
+      // Use fitWidth for percentage widths (wraps to device width)
+      strategy = TableStrategy.fitWidth;
+    }
+
     return SmartTableWrapper(
       tableNode: node,
-      strategy: TableStrategy.horizontalScroll,
+      strategy: strategy,
       minScaleFactor: 0.6,
     );
   }
@@ -191,6 +244,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       document: document,
       baseStyle: baseStyle,
       onLinkTap: onLinkTap,
+      imageLoader: imageLoader,
       selectable: selectable,
     );
   }
@@ -205,6 +259,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     }
     if (renderObject.onLinkTap != onLinkTap) {
       renderObject.onLinkTap = onLinkTap;
+    }
+    if (renderObject.imageLoader != imageLoader) {
+      renderObject.imageLoader = imageLoader;
     }
     if (renderObject.selectable != selectable) {
       renderObject.selectable = selectable;
