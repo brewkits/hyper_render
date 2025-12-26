@@ -1,0 +1,91 @@
+name: hyper_render
+description: "The Universal Content Engine for Flutter - A high-performance rendering engine for HTML, Markdown, and Quill Delta with perfect text selection, advanced CSS support, and CJK typography."
+version: 0.1.0
+homepage: https://github.com/user/hyper_render
+repository: https://github.com/user/hyper_render
+issue_tracker: https://github.com/user/hyper_render/issues
+
+# Topics for pub.dev discovery
+topics:
+  - html
+  - rendering
+  - richtext
+  - quill
+  - css
+
+environment:
+  sdk: ^3.10.3
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ============================================
+  # CORE DEPENDENCIES (Keep minimal for light core)
+  # Reference: doc3.md Section 9.1
+  # ============================================
+
+  # HTML Parser - Dart team maintained
+  # Converts HTML string to DOM tree
+  html: ^0.15.6
+
+  # CSS Parser - Dart team maintained
+  # Parse CSS for style resolution (cascade, specificity)
+  csslib: ^1.0.0
+
+  # Character handling for CJK/Emoji
+  # Critical for Japanese text selection & line-breaking
+  # Reference: doc1.txt - "characters package"
+  characters: ^1.4.0
+
+  # Advanced data structures
+  # Used for CSS specificity calculation (Priority Queue)
+  # Reference: doc1.txt - "collection package"
+  collection: ^1.18.0
+
+  # Matrix transforms for CSS transform property
+  # Reference: doc1.txt - "vector_math package"
+  vector_math: ^2.1.4
+
+  # Lazy rendering optimization
+  # Reference: doc3.md Section 9.1
+  visibility_detector: ^0.4.0+2
+
+  # Markdown Parser - Dart team maintained
+  # Converts Markdown to HTML for rendering
+  markdown: ^7.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Linting
+  flutter_lints: ^6.0.0
+
+  # Mocking for tests
+  # Reference: doc3.md Section 9.1
+  mockito: ^5.4.4
+
+  # Build runner for mockito code generation
+  build_runner: ^2.4.8
+
+# ============================================
+# EXTENSION PACKAGES (Separate packages - future)
+# Reference: doc1.txt - "Core + Extensions" strategy
+# ============================================
+# hyper_render_media: Audio/Video support
+#   - cached_network_image: ^3.3.1
+#   - video_player: ^2.8.2
+#   - audioplayers: ^6.0.0
+#
+# hyper_render_svg: SVG support
+#   - flutter_svg: ^2.0.10
+#
+# hyper_render_quill: Quill Delta adapter
+#   - flutter_quill_delta
+#
+# hyper_render_js: JavaScript execution
+#   - flutter_js: ^0.8.1
+
+flutter:

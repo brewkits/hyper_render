@@ -1,0 +1,484 @@
+import 'package:flutter/painting.dart';
+
+import 'computed_style.dart';
+
+/// Node type in the Unified Document Tree (UDT)
+///
+/// Reference: doc1.txt - "Mỗi Node trong UDT sẽ có: Type (Block/Inline), Attributes (Styles), và Children"
+enum NodeType {
+  /// Document root
+  document,
+
+  /// Block-level element (div, p, h1-h6, table, etc.)
+  block,
+
+  /// Inline element (span, a, strong, em, etc.)
+  inline,
+
+  /// Text content
+  text,
+
+  /// Atomic/replaced element (img, video, audio, etc.)
+  atomic,
+
+  /// Table element
+  table,
+
+  /// Table row
+  tableRow,
+
+  /// Table cell (td, th)
+  tableCell,
+
+  /// Ruby annotation (for Japanese)
+  ruby,
+
+  /// Ruby text (rt)
+  rubyText,
+
+  /// Line break (br)
+  lineBreak,
+}
+
+/// Base class for all nodes in the Unified Document Tree (UDT)
+///
+/// The UDT is the "source of truth" - all input formats (HTML, Delta, Markdown)
+/// are converted to UDT before rendering.
+///
+/// Reference: doc1.txt - "Unified Document Tree (UDT)"
+/// Reference: doc3.md - Section 2 "Core Architecture"
+abstract class UDTNode {
+  /// Node type
+  final NodeType type;
+
+  /// Original HTML tag name (if from HTML)
+  final String? tagName;
+
+  /// HTML attributes (id, class, etc.)
+  final Map<String, String> attributes;
+
+  /// Computed style (resolved from CSS cascade)
+  ComputedStyle style;
+
+  /// Parent node (null for root)
+  UDTNode? parent;
+
+  /// Child nodes
+  final List<UDTNode> children;
+
+  /// Layout result - position relative to parent
+  /// Set by Layout Engine after performLayout()
+  Rect? layoutRect;
+
+  /// Unique identifier for this node (for hit testing, selection)
+  final String id;
+
+  /// Counter for generating unique IDs
+  static int _idCounter = 0;
+
+  UDTNode({
+    required this.type,
+    this.tagName,
+    Map<String, String>? attributes,
+    ComputedStyle? style,
+    List<UDTNode>? children,
+    String? id,
+  })  : attributes = attributes ?? {},
+        style = style ?? ComputedStyle(),
+        children = children ?? [],
+        id = id ?? 'node_${_idCounter++}';
+
+  /// Add a child node
+  void appendChild(UDTNode child) {
+    child.parent = this;
+    children.add(child);
+  }
+
+  /// Remove a child node
+  bool removeChild(UDTNode child) {
+    final removed = children.remove(child);
+    if (removed) {
+      child.parent = null;
+    }
+    return removed;
+  }
+
+  /// Get all text content recursively
+  String get textContent {
+    if (this is TextNode) {
+      return (this as TextNode).text;
+    }
+    return children.map((child) => child.textContent).join();
+  }
+
+  /// Check if this node is block-level
+  bool get isBlock =>
+      type == NodeType.block ||
+      type == NodeType.table ||
+      type == NodeType.tableRow ||
+      style.display == DisplayType.block;
+
+  /// Check if this node is inline
+  bool get isInline =>
+      type == NodeType.inline ||
+      type == NodeType.text ||
+      style.display == DisplayType.inline ||
+      style.display == DisplayType.inlineBlock;
+
+  /// Traverse the tree (pre-order)
+  void traverse(void Function(UDTNode node) visitor) {
+    visitor(this);
+    for (final child in children) {
+      child.traverse(visitor);
+    }
+  }
+
+  /// Find node by ID
+  UDTNode? findById(String targetId) {
+    if (id == targetId) return this;
+    for (final child in children) {
+      final found = child.findById(targetId);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
+  /// Get CSS class list
+  List<String> get classList {
+    final classAttr = attributes['class'];
+    if (classAttr == null || classAttr.isEmpty) return [];
+    return classAttr.split(RegExp(r'\s+'));
+  }
+
+  /// Get CSS ID
+  String? get cssId => attributes['id'];
+
+  @override
+  String toString() => 'UDTNode($type, tag=$tagName, children=${children.length})';
+}
+
+/// Document root node
+class DocumentNode extends UDTNode {
+  DocumentNode({
+    List<UDTNode>? children,
+  }) : super(
+          type: NodeType.document,
+          tagName: 'document',
+          children: children,
+        );
+}
+
+/// Block-level element node (div, p, h1-h6, blockquote, etc.)
+///
+/// Reference: doc1.txt - "Block Formatting Context (BFC)"
+class BlockNode extends UDTNode {
+  BlockNode({
+    required String tagName,
+    Map<String, String>? attributes,
+    ComputedStyle? style,
+    List<UDTNode>? children,
+  }) : super(
+          type: NodeType.block,
+          tagName: tagName,
+          attributes: attributes,
+          style: style ?? ComputedStyle(display: DisplayType.block),
+          children: children,
+        );
+
+  /// Factory for common block elements with default styles
+  factory BlockNode.h1({List<UDTNode>? children}) => BlockNode(
+        tagName: 'h1',
+        style: ComputedStyle(
+          display: DisplayType.block,
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          margin: const EdgeInsets.symmetric(vertical: 21.44),
+        ),
+        children: children,
+      );
+
+  factory BlockNode.h2({List<UDTNode>? children}) => BlockNode(
+        tagName: 'h2',
+        style: ComputedStyle(
+          display: DisplayType.block,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          margin: const EdgeInsets.symmetric(vertical: 19.92),
+        ),
+        children: children,
+      );
+
+  factory BlockNode.p({List<UDTNode>? children}) => BlockNode(
+        tagName: 'p',
+        style: ComputedStyle(
+          display: DisplayType.block,
+          margin: const EdgeInsets.symmetric(vertical: 16),
+        ),
+        children: children,
+      );
+
+  factory BlockNode.div({List<UDTNode>? children}) => BlockNode(
+        tagName: 'div',
+        children: children,
+      );
+
+  factory BlockNode.blockquote({List<UDTNode>? children}) => BlockNode(
+        tagName: 'blockquote',
+        style: ComputedStyle(
+          display: DisplayType.block,
+          margin: const EdgeInsets.fromLTRB(40, 16, 40, 16),
+        ),
+        children: children,
+      );
+}
+
+/// Inline element node (span, a, strong, em, etc.)
+///
+/// Reference: doc1.txt - "Inline Formatting Context (IFC)"
+class InlineNode extends UDTNode {
+  InlineNode({
+    required String tagName,
+    Map<String, String>? attributes,
+    ComputedStyle? style,
+    List<UDTNode>? children,
+  }) : super(
+          type: NodeType.inline,
+          tagName: tagName,
+          attributes: attributes,
+          style: style ?? ComputedStyle(display: DisplayType.inline),
+          children: children,
+        );
+
+  /// Factory for common inline elements with default styles
+  factory InlineNode.span({List<UDTNode>? children}) => InlineNode(
+        tagName: 'span',
+        children: children,
+      );
+
+  factory InlineNode.strong({List<UDTNode>? children}) => InlineNode(
+        tagName: 'strong',
+        style: ComputedStyle(fontWeight: FontWeight.bold),
+        children: children,
+      );
+
+  factory InlineNode.em({List<UDTNode>? children}) => InlineNode(
+        tagName: 'em',
+        style: ComputedStyle(fontStyle: FontStyle.italic),
+        children: children,
+      );
+
+  factory InlineNode.a({
+    required String href,
+    List<UDTNode>? children,
+  }) =>
+      InlineNode(
+        tagName: 'a',
+        attributes: {'href': href},
+        style: ComputedStyle(
+          color: const Color(0xFF0000EE),
+          textDecoration: TextDecoration.underline,
+        ),
+        children: children,
+      );
+
+  factory InlineNode.code({List<UDTNode>? children}) => InlineNode(
+        tagName: 'code',
+        style: ComputedStyle(fontFamily: 'monospace'),
+        children: children,
+      );
+
+  factory InlineNode.u({List<UDTNode>? children}) => InlineNode(
+        tagName: 'u',
+        style: ComputedStyle(textDecoration: TextDecoration.underline),
+        children: children,
+      );
+
+  factory InlineNode.s({List<UDTNode>? children}) => InlineNode(
+        tagName: 's',
+        style: ComputedStyle(textDecoration: TextDecoration.lineThrough),
+        children: children,
+      );
+}
+
+/// Text content node
+///
+/// Represents raw text content without any HTML tags
+class TextNode extends UDTNode {
+  /// The text content
+  final String text;
+
+  TextNode(this.text, {ComputedStyle? style})
+      : super(
+          type: NodeType.text,
+          tagName: '#text',
+          style: style,
+        );
+
+  @override
+  String get textContent => text;
+
+  @override
+  String toString() => 'TextNode("${text.length > 20 ? '${text.substring(0, 20)}...' : text}")';
+}
+
+/// Line break node (br)
+class LineBreakNode extends UDTNode {
+  LineBreakNode()
+      : super(
+          type: NodeType.lineBreak,
+          tagName: 'br',
+        );
+}
+
+/// Atomic/replaced element node (img, video, audio, iframe)
+///
+/// These elements have intrinsic dimensions and are treated as
+/// single units during layout (like a large character)
+///
+/// Reference: doc1.txt - "Atomic Fragment"
+class AtomicNode extends UDTNode {
+  /// Source URL for media elements
+  final String? src;
+
+  /// Alt text for images
+  final String? alt;
+
+  /// Intrinsic width (from attribute or natural size)
+  final double? intrinsicWidth;
+
+  /// Intrinsic height (from attribute or natural size)
+  final double? intrinsicHeight;
+
+  AtomicNode({
+    required String tagName,
+    this.src,
+    this.alt,
+    this.intrinsicWidth,
+    this.intrinsicHeight,
+    Map<String, String>? attributes,
+    ComputedStyle? style,
+  }) : super(
+          type: NodeType.atomic,
+          tagName: tagName,
+          attributes: attributes,
+          style: style ?? ComputedStyle(display: DisplayType.inlineBlock),
+        );
+
+  /// Factory for image element
+  factory AtomicNode.img({
+    required String src,
+    String? alt,
+    double? width,
+    double? height,
+  }) =>
+      AtomicNode(
+        tagName: 'img',
+        src: src,
+        alt: alt,
+        intrinsicWidth: width,
+        intrinsicHeight: height,
+        attributes: {
+          'src': src,
+          if (alt != null) 'alt': alt,
+        },
+      );
+
+  /// Factory for video element
+  factory AtomicNode.video({
+    required String src,
+    double? width,
+    double? height,
+  }) =>
+      AtomicNode(
+        tagName: 'video',
+        src: src,
+        intrinsicWidth: width,
+        intrinsicHeight: height,
+        attributes: {'src': src},
+      );
+}
+
+/// Ruby annotation node (for Japanese Furigana)
+///
+/// Reference: doc3.md - Section "Requirement 4: Japanese Ruby/Furigana Support"
+class RubyNode extends UDTNode {
+  /// Base text (Kanji)
+  final String baseText;
+
+  /// Ruby text (Furigana)
+  final String rubyText;
+
+  RubyNode({
+    required this.baseText,
+    required this.rubyText,
+    ComputedStyle? style,
+  }) : super(
+          type: NodeType.ruby,
+          tagName: 'ruby',
+          style: style,
+        );
+
+  @override
+  String get textContent => baseText;
+}
+
+/// Table node
+///
+/// Reference: doc3.md - Section "Requirement 2: Table Horizontal Scroll"
+class TableNode extends UDTNode {
+  TableNode({
+    Map<String, String>? attributes,
+    ComputedStyle? style,
+    List<UDTNode>? children,
+  }) : super(
+          type: NodeType.table,
+          tagName: 'table',
+          attributes: attributes,
+          style: style ?? ComputedStyle(display: DisplayType.table),
+          children: children,
+        );
+}
+
+/// Table row node
+class TableRowNode extends UDTNode {
+  TableRowNode({
+    Map<String, String>? attributes,
+    ComputedStyle? style,
+    List<UDTNode>? children,
+  }) : super(
+          type: NodeType.tableRow,
+          tagName: 'tr',
+          attributes: attributes,
+          style: style ?? ComputedStyle(display: DisplayType.tableRow),
+          children: children,
+        );
+}
+
+/// Table cell node (td or th)
+class TableCellNode extends UDTNode {
+  /// Whether this is a header cell (th)
+  final bool isHeader;
+
+  TableCellNode({
+    this.isHeader = false,
+    Map<String, String>? attributes,
+    ComputedStyle? style,
+    List<UDTNode>? children,
+  }) : super(
+          type: NodeType.tableCell,
+          tagName: isHeader ? 'th' : 'td',
+          attributes: attributes,
+          style: style ??
+              ComputedStyle(
+                display: DisplayType.tableCell,
+                fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
+              ),
+          children: children,
+        );
+
+  /// Get colspan value
+  int get colspan => int.tryParse(attributes['colspan'] ?? '1') ?? 1;
+
+  /// Get rowspan value
+  int get rowspan => int.tryParse(attributes['rowspan'] ?? '1') ?? 1;
+}

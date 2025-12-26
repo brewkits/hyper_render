@@ -1,0 +1,31 @@
+name: example
+description: "Example app for hyper_render - The Universal Content Engine for Flutter"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Reference to parent package
+  hyper_render:
+    path: ../
+
+  # Competitor libraries for comparison
+  flutter_html: ^3.0.0-beta.2
+  flutter_widget_from_html: ^0.17.1
+  flutter_widget_from_html_core: ^0.17.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
