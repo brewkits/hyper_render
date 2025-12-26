@@ -81,12 +81,19 @@ Interactive demo application showcasing all features of HyperRender - The Univer
 
 12. **Library Comparison** - HyperRender vs Competitors
    - Side-by-side comparison with flutter_html, FWFH
-   - 5 interactive test cases
-   - Feature support matrix
+   - 9 interactive test cases covering:
+     • Float Layout (HyperRender exclusive)
+     • Table colspan/rowspan with width: 100% (fits screen)
+     • Ruby Annotation (HyperRender most accurate)
+     • Multiple floats (left + right in same paragraph)
+     • Inline background wrapping (HyperRender exclusive)
+     • CSS cascade and specificity
+     • Selection stress test (crash-free validation)
+     • Wide table with horizontal scroll (auto-scale)
+     • Nested lists
+   - Feature support matrix with 8 features
+   - Real-time expected behavior indicators
    - Build time measurement
-   - Float Layout (HyperRender exclusive)
-   - Ruby Annotation comparison
-   - Complex styles handling
 
 13. **Stress Test** - Performance testing
     - Configurable page count (10 - 1,000 pages)

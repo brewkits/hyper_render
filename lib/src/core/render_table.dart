@@ -432,9 +432,26 @@ class _TableLayout extends StatelessWidget {
       }
 
       if (!cell.isPrimary) {
-        // This cell is covered by a spanning cell from above
-        // Skip it (the spanning cell handles the height)
-        colIdx++;
+        // This cell is covered by a spanning cell from above (rowspan)
+        // We need to add a spacer to maintain column alignment
+        // Use the colspan of the primary cell to determine flex
+        final primaryColspan = cell.colspan;
+
+        // Add vertical border before spacer (except first)
+        if (widgets.isNotEmpty) {
+          widgets.add(Container(
+            width: borderWidth,
+            color: borderColor,
+          ));
+        }
+
+        // Add invisible spacer with same flex as the primary cell
+        widgets.add(Expanded(
+          flex: primaryColspan,
+          child: const SizedBox.shrink(),
+        ));
+
+        colIdx += primaryColspan;
         continue;
       }
 

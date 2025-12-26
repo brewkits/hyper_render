@@ -128,8 +128,14 @@ export 'src/core/render_hyper_box.dart'
         HyperLinkTapCallback,
         HyperWidgetBuilder,
         HyperTextSelection,
-        ImageLoadState,
         ImageLoadCallback;
+
+export 'src/core/image_provider.dart'
+    show
+        HyperImageLoader,
+        ImageLoadState,
+        CachedImage,
+        defaultImageLoader;
 
 export 'src/widgets/hyper_render_widget.dart' show HyperRenderWidget;
 

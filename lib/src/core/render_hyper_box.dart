@@ -10,6 +10,7 @@ import 'package:flutter/widgets.dart';
 import '../model/computed_style.dart';
 import '../model/fragment.dart';
 import '../model/node.dart';
+import 'image_provider.dart';
 import 'kinsoku_processor.dart';
 
 /// Callback for handling link taps
@@ -20,9 +21,6 @@ typedef HyperWidgetBuilder = Widget? Function(UDTNode node);
 
 /// Callback when image loading state changes
 typedef ImageLoadCallback = void Function(String src, ImageLoadState state);
-
-/// Image loading state
-enum ImageLoadState { loading, loaded, error }
 
 /// Parent data for children of RenderHyperBox
 class HyperBoxParentData extends ContainerBoxParentData<RenderBox> {
@@ -86,14 +84,6 @@ class _BlockDecoration {
   });
 }
 
-/// Cached image info
-class _CachedImage {
-  final ui.Image? image;
-  final ImageLoadState state;
-  final String? error;
-
-  _CachedImage({this.image, required this.state, this.error});
-}
 
 /// LRU Cache for TextPainter to prevent memory leak
 ///
@@ -197,6 +187,9 @@ class RenderHyperBox extends RenderBox
   /// Link tap callback
   HyperLinkTapCallback? _onLinkTap;
 
+  /// Custom image loader (defaults to defaultImageLoader if not provided)
+  HyperImageLoader? _imageLoader;
+
   /// Whether text selection is enabled
   bool _selectable;
 
@@ -235,7 +228,7 @@ class RenderHyperBox extends RenderBox
   List<_BlockDecoration> _blockDecorations = [];
 
   /// Image cache
-  final Map<String, _CachedImage> _imageCache = {};
+  final Map<String, CachedImage> _imageCache = {};
 
   /// Current text selection
   HyperTextSelection? _selection;
@@ -258,10 +251,12 @@ class RenderHyperBox extends RenderBox
     TextStyle baseStyle =
         const TextStyle(fontSize: 16, color: Color(0xFF000000)),
     HyperLinkTapCallback? onLinkTap,
+    HyperImageLoader? imageLoader,
     bool selectable = true,
   })  : _document = document,
         _baseStyle = baseStyle,
         _onLinkTap = onLinkTap,
+        _imageLoader = imageLoader,
         _selectable = selectable;
 
   // ============================================
@@ -297,6 +292,17 @@ class RenderHyperBox extends RenderBox
       _selection = null;
     }
     markNeedsPaint();
+  }
+
+  HyperImageLoader? get imageLoader => _imageLoader;
+  set imageLoader(HyperImageLoader? value) {
+    if (_imageLoader == value) return;
+    _imageLoader = value;
+    // Clear image cache and reload with new loader
+    _imageCache.clear();
+    if (attached) {
+      _loadImages();
+    }
   }
 
   HyperTextSelection? get selection => _selection;
@@ -381,33 +387,33 @@ class RenderHyperBox extends RenderBox
   }
 
   void _loadImage(String src) {
-    _imageCache[src] = _CachedImage(state: ImageLoadState.loading);
+    _imageCache[src] = CachedImage(state: ImageLoadState.loading);
 
-    // Use NetworkImage to load
-    final imageProvider = NetworkImage(src);
-    final imageStream = imageProvider.resolve(ImageConfiguration.empty);
+    // Use the provided loader or fall back to default
+    final loader = _imageLoader ?? defaultImageLoader;
 
-    imageStream.addListener(ImageStreamListener(
-      (ImageInfo info, bool synchronousCall) {
+    loader(
+      src,
+      (ui.Image image) {
+        // On successful load
         if (!attached) return;
-        _imageCache[src] = _CachedImage(
-          image: info.image,
+        _imageCache[src] = CachedImage(
+          image: image,
           state: ImageLoadState.loaded,
         );
-        if (!synchronousCall) {
-          markNeedsLayout();
-          markNeedsPaint();
-        }
+        markNeedsLayout();
+        markNeedsPaint();
       },
-      onError: (exception, stackTrace) {
+      (Object error) {
+        // On error
         if (!attached) return;
-        _imageCache[src] = _CachedImage(
+        _imageCache[src] = CachedImage(
           state: ImageLoadState.error,
-          error: exception.toString(),
+          error: error.toString(),
         );
         markNeedsPaint();
       },
-    ));
+    );
   }
 
   // ============================================
@@ -824,11 +830,22 @@ class RenderHyperBox extends RenderBox
       height = node.intrinsicHeight ?? defaultFloatSize;
     }
 
-    _fragments.add(Fragment.atomic(
-      sourceNode: node,
-      style: node.style,
-      size: Size(width, height),
-    ));
+    // Check if this atomic element should float
+    if (node.style.float != HyperFloat.none) {
+      // Create float fragment instead of regular atomic fragment
+      _fragments.add(_FloatFragment(
+        sourceNode: node,
+        style: node.style,
+        floatDirection: node.style.float,
+      ));
+    } else {
+      // Regular non-floating atomic element
+      _fragments.add(Fragment.atomic(
+        sourceNode: node,
+        style: node.style,
+        size: Size(width, height),
+      ));
+    }
   }
 
   void _tokenizeRuby(RubyNode node) {
@@ -1346,10 +1363,30 @@ class RenderHyperBox extends RenderBox
   void _layoutFloat(Fragment fragment, double currentY) {
     if (fragment is! _FloatFragment) return;
 
-    // Use style width/height if available, otherwise use default
-    // This allows CSS to control float dimensions
-    final width = fragment.style.width ?? defaultFloatSize;
-    final height = fragment.style.height ?? defaultFloatSize;
+    double width;
+    double height;
+
+    // Try to get size from the actual child widget (for images, etc.)
+    final child = _findChildForFragment(fragment);
+    if (child != null) {
+      // Layout the child to get its actual size
+      child.layout(BoxConstraints(maxWidth: _maxWidth), parentUsesSize: true);
+      width = child.size.width;
+      height = child.size.height;
+    } else {
+      // Fallback to CSS style or default size
+      width = fragment.style.width ?? defaultFloatSize;
+      height = fragment.style.height ?? defaultFloatSize;
+    }
+
+    // Get margin from CSS style for proper text spacing
+    final margin = fragment.style.margin;
+
+    // Apply default margin if none specified for better text spacing
+    const defaultFloatMargin = 8.0;
+    final rightMargin = margin.right > 0 ? margin.right : defaultFloatMargin;
+    final leftMargin = margin.left > 0 ? margin.left : defaultFloatMargin;
+    final bottomMargin = margin.bottom > 0 ? margin.bottom : defaultFloatMargin;
 
     Rect floatRect;
 
@@ -1361,7 +1398,14 @@ class RenderHyperBox extends RenderBox
         }
       }
 
-      floatRect = Rect.fromLTWH(left, currentY, width, height);
+      // Float rect includes margin on right and bottom for text spacing
+      // Left and top margins are handled by positioning
+      floatRect = Rect.fromLTWH(
+        left,
+        currentY,
+        width + rightMargin,  // Add right margin so text doesn't stick
+        height + bottomMargin, // Add bottom margin for vertical spacing
+      );
       _leftFloats.add(_FloatArea(rect: floatRect, direction: HyperFloat.left));
     } else {
       double right = _maxWidth;
@@ -1371,13 +1415,25 @@ class RenderHyperBox extends RenderBox
         }
       }
 
-      floatRect = Rect.fromLTWH(right - width, currentY, width, height);
+      // Float rect includes margin on left and bottom for text spacing
+      floatRect = Rect.fromLTWH(
+        right - width - leftMargin, // Add left margin so text doesn't stick
+        currentY,
+        width + leftMargin,   // Total width including margin
+        height + bottomMargin,
+      );
       _rightFloats
           .add(_FloatArea(rect: floatRect, direction: HyperFloat.right));
     }
 
     fragment.measuredSize = Size(width, height);
-    fragment.offset = floatRect.topLeft;
+    // Child widget position is at top-left of float rect (excludes margin)
+    if (fragment.floatDirection == HyperFloat.left) {
+      fragment.offset = floatRect.topLeft;
+    } else {
+      // For right float, offset child by left margin to position image correctly
+      fragment.offset = Offset(floatRect.left + leftMargin, floatRect.top);
+    }
   }
 
   /// Step 4: Position fragments within lines (baseline alignment)
@@ -1453,7 +1509,18 @@ class RenderHyperBox extends RenderBox
         if (decoratedNode != null) {
           final rect = fragment.rect;
           if (rect != null) {
-            rectsMap[decoratedNode]!.add(rect);
+            // Expand rect by padding from the decorated node's style
+            final (style, _, _) = decoratedRanges[decoratedNode]!;
+            final padding = style.padding;
+
+            final expandedRect = Rect.fromLTWH(
+              rect.left - padding.left,
+              rect.top - padding.top,
+              rect.width + padding.left + padding.right,
+              rect.height + padding.top + padding.bottom,
+            );
+
+            rectsMap[decoratedNode]!.add(expandedRect);
           }
         }
       }
