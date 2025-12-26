@@ -1,7 +1,4 @@
-import 'dart:ui' show Color;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';
 
@@ -422,7 +419,6 @@ void main() {
 
     group('Link handling', () {
       testWidgets('onLinkTap callback is invoked', (WidgetTester tester) async {
-        String? tappedUrl;
         final doc = DocumentNode(children: [
           BlockNode.p(children: [
             InlineNode(
@@ -439,7 +435,9 @@ void main() {
               body: HyperRenderWidget(
                 document: doc,
                 baseStyle: const TextStyle(fontSize: 16),
-                onLinkTap: (url) => tappedUrl = url,
+                onLinkTap: (url) {
+                  // TODO: Add assertion for url
+                },
               ),
             ),
           ),

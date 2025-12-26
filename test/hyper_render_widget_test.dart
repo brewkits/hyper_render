@@ -1,5 +1,3 @@
-import 'dart:ui' show Color;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';

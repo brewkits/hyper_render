@@ -1,7 +1,4 @@
-import 'dart:ui' show Color;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';
 
@@ -254,8 +251,6 @@ void main() {
 
   group('onLinkTap Handler', () {
     testWidgets('link tap callback receives correct URL', (WidgetTester tester) async {
-      String? tappedUrl;
-
       // Create a link that fills the entire area
       final doc = DocumentNode(children: [
         BlockNode.p(children: [
@@ -280,7 +275,7 @@ void main() {
                   document: doc,
                   baseStyle: const TextStyle(fontSize: 16),
                   onLinkTap: (url) {
-                    tappedUrl = url;
+                    // TODO: Add assertion for url
                   },
                 ),
               ),

@@ -412,18 +412,25 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
         Matrix4 transform = Matrix4.identity();
 
         if (keyframe.translateX != null || keyframe.translateY != null) {
-          transform.translate(
+          transform = transform.multiplied(Matrix4.translationValues(
             keyframe.translateX ?? 0.0,
             keyframe.translateY ?? 0.0,
-          );
+            0.0,
+          ));
         }
 
         if (keyframe.scale != null) {
-          transform.scale(keyframe.scale!);
+          transform = transform.multiplied(Matrix4.diagonal3Values(
+            keyframe.scale!,
+            keyframe.scale!,
+            1.0,
+          ));
         }
 
         if (keyframe.rotation != null) {
-          transform.rotateZ(keyframe.rotation! * 3.14159 / 180.0);
+          final rotationMatrix = Matrix4.identity()
+            ..rotateZ(keyframe.rotation! * 3.14159 / 180.0);
+          transform = transform.multiplied(rotationMatrix);
         }
 
         Widget result = child!;
