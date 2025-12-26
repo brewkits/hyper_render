@@ -357,15 +357,28 @@ class _TableLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use IntrinsicHeight to make row heights consistent
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: borderColor, width: borderWidth),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: _buildRows(),
-      ),
+    // Wrap in LayoutBuilder to handle unbounded constraints
+    // This fixes "NEEDS-LAYOUT" error when used in horizontal scroll
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final child = Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: borderColor, width: borderWidth),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _buildRows(),
+          ),
+        );
+
+        // If width is unbounded (e.g., in horizontal scroll),
+        // wrap in IntrinsicWidth to provide bounded constraints
+        if (constraints.maxWidth == double.infinity) {
+          return IntrinsicWidth(child: child);
+        }
+
+        return child;
+      },
     );
   }
 

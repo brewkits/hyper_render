@@ -24,6 +24,16 @@ class HyperViewer extends StatefulWidget {
   final HyperWidgetBuilder? widgetBuilder;
   final WidgetBuilder? placeholderBuilder;
 
+  /// Enable pinch-to-zoom and pan gestures
+  /// Wraps content in InteractiveViewer for zoom/pan support
+  final bool enableZoom;
+
+  /// Minimum scale for zoom (default: 0.5)
+  final double minScale;
+
+  /// Maximum scale for zoom (default: 4.0)
+  final double maxScale;
+
   const HyperViewer({
     super.key,
     required this.html,
@@ -32,6 +42,9 @@ class HyperViewer extends StatefulWidget {
     this.onLinkTap,
     this.widgetBuilder,
     this.placeholderBuilder,
+    this.enableZoom = false,
+    this.minScale = 0.5,
+    this.maxScale = 4.0,
   });
 
   @override
@@ -92,7 +105,11 @@ class _HyperViewerState extends State<HyperViewer> {
   // Hàm static để chạy trong Isolate (không được dính context)
   static List<DocumentNode> _parseAndChunk(String html) {
     final adapter = HtmlAdapter();
-    final sections = adapter.parseToSections(html, chunkSize: 3000); // 3000 chars per chunk
+    // Increased chunkSize from 3000 to 12000 for better performance:
+    // - 800K HTML → ~67 sections (vs 267 sections with 3000)
+    // - Less overhead from style resolution
+    // - ListView.builder still virtualizes efficiently
+    final sections = adapter.parseToSections(html, chunkSize: 12000);
 
     // Resolve styles luôn trong isolate để main thread nhẹ gánh
     final resolver = StyleResolver();
@@ -111,10 +128,17 @@ class _HyperViewerState extends State<HyperViewer> {
     }
 
     // Case 1: Virtualized List (cho văn bản dài)
+    // Note: Zoom is NOT supported in virtualized mode due to:
+    // 1. Conflicting scroll gestures between InteractiveViewer and ListView
+    // 2. Unbounded constraints issues
+    // 3. Performance considerations with large documents
     if (_sections != null) {
       return ListView.builder(
-        // Quan trọng: cacheExtent giúp render trước vài pixel để scroll mượt
-        cacheExtent: 500,
+        // Increased cacheExtent to 1500 for smoother scrolling with large documents:
+        // - Pre-renders ~1-2 screens ahead/behind
+        // - Reduces visible lag during fast scrolling
+        // - Trade-off: slightly higher memory usage
+        cacheExtent: 1500,
         physics: const BouncingScrollPhysics(),
         itemCount: _sections!.length,
         itemBuilder: (context, index) {
@@ -130,14 +154,30 @@ class _HyperViewerState extends State<HyperViewer> {
 
     // Case 2: Single Widget (cho văn bản ngắn)
     if (_syncDocument != null) {
+      final content = HyperRenderWidget(
+        document: _syncDocument!,
+        selectable: widget.selectable,
+        onLinkTap: widget.onLinkTap,
+        widgetBuilder: widget.widgetBuilder,
+      );
+
+      // Wrap with zoom if enabled (only for sync mode)
+      if (widget.enableZoom) {
+        return InteractiveViewer(
+          minScale: widget.minScale,
+          maxScale: widget.maxScale,
+          boundaryMargin: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: content,
+          ),
+        );
+      }
+
+      // No zoom - standard scroll view
       return SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        child: HyperRenderWidget(
-          document: _syncDocument!,
-          selectable: widget.selectable,
-          onLinkTap: widget.onLinkTap,
-          widgetBuilder: widget.widgetBuilder,
-        ),
+        child: content,
       );
     }
 

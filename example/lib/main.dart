@@ -147,6 +147,39 @@ class DemoHomePage extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const TableDemo()),
             ),
           ),
+          _buildDemoCard(
+            context,
+            icon: Icons.code,
+            title: 'Code Blocks',
+            subtitle: 'Syntax highlighting with <pre><code> elements',
+            color: Colors.deepPurple,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CodeBlockDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.broken_image,
+            title: 'Image Handling',
+            subtitle: 'Automatic loading/error states for images',
+            color: Colors.cyan,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ImageHandlingDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.zoom_in,
+            title: 'Zoom & Pan',
+            subtitle: 'Pinch-to-zoom and pan gestures with InteractiveViewer',
+            color: Colors.lightBlue,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ZoomDemo()),
+            ),
+          ),
           const SizedBox(height: 16),
           _buildSectionHeader(context, 'Comparison & Stress Test'),
           _buildDemoCard(
@@ -969,7 +1002,411 @@ class TableDemo extends StatelessWidget {
       appBar: AppBar(title: const Text('Table Demo')),
       body: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: HyperViewer(html: html),
+        child: HyperViewer(html: html, selectable: true),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// CODE BLOCK DEMO
+// =============================================================================
+
+class CodeBlockDemo extends StatelessWidget {
+  const CodeBlockDemo({super.key});
+
+  static const html = '''
+<div style="font-family: sans-serif; line-height: 1.8; max-width: 800px;">
+  <h2 style="color: #673AB7;">Code Blocks Demo</h2>
+  <p>Demonstrate <code style="background: #F5F5F5; padding: 2px 6px; border-radius: 3px; font-family: monospace;">pre</code> and <code style="background: #F5F5F5; padding: 2px 6px; border-radius: 3px; font-family: monospace;">code</code> elements for displaying code snippets.</p>
+
+  <h3 style="color: #512DA8; margin-top: 24px;">Dart Code Example</h3>
+  <pre style="background: #282c34; color: #abb2bf; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'HyperRender Demo',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+        ),
+        useMaterial3: true,
+      ),
+      home: const HomePage(),
+    );
+  }
+}</code></pre>
+
+  <h3 style="color: #512DA8; margin-top: 24px;">HTML Example</h3>
+  <pre style="background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;HyperRender&lt;/title&gt;
+  &lt;style&gt;
+    body {
+      font-family: sans-serif;
+      line-height: 1.6;
+    }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Welcome to HyperRender&lt;/h1&gt;
+  &lt;p&gt;The Universal Content Engine&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+  <h3 style="color: #512DA8; margin-top: 24px;">JavaScript Example</h3>
+  <pre style="background: #f6f8fa; color: #24292e; padding: 16px; border-radius: 8px; border: 1px solid #e1e4e8; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>function fibonacci(n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+// Generate Fibonacci sequence
+const sequence = Array.from(
+  { length: 10 },
+  (_, i) => fibonacci(i)
+);
+
+console.log(sequence);
+// Output: [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]</code></pre>
+
+  <h3 style="color: #512DA8; margin-top: 24px;">Python Example</h3>
+  <pre style="background: #263238; color: #EEFFFF; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>def quick_sort(arr):
+    """QuickSort algorithm implementation"""
+    if len(arr) <= 1:
+        return arr
+
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+
+    return quick_sort(left) + middle + quick_sort(right)
+
+# Test the function
+numbers = [3, 6, 8, 10, 1, 2, 1]
+sorted_numbers = quick_sort(numbers)
+print(sorted_numbers)  # [1, 1, 2, 3, 6, 8, 10]</code></pre>
+
+  <h3 style="color: #512DA8; margin-top: 24px;">Inline Code</h3>
+  <p>
+    You can also use inline code like
+    <code style="background: #f5f5f5; color: #c7254e; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 14px;">const variable = "value";</code>
+    within a paragraph. Use
+    <code style="background: #f5f5f5; color: #c7254e; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 14px;">npm install</code>
+    to install packages, or run
+    <code style="background: #f5f5f5; color: #c7254e; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 14px;">flutter pub get</code>
+    for Flutter projects.
+  </p>
+
+  <h3 style="color: #512DA8; margin-top: 24px;">Terminal/Shell Commands</h3>
+  <pre style="background: #000000; color: #00ff00; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>\$ flutter create my_app
+\$ cd my_app
+\$ flutter run
+
+Launching lib/main.dart on Chrome in debug mode...
+[✓] Built build/web/main.dart.js
+  Serving DevTools at http://127.0.0.1:9100
+
+[✓] Success! Your app is running at:
+   http://localhost:12345</code></pre>
+
+  <div style="background: #e8f5e9; padding: 16px; border-left: 4px solid #4caf50; margin-top: 24px; border-radius: 4px;">
+    <p style="margin: 0; font-weight: bold; color: #2e7d32;">💡 Pro Tip</p>
+    <p style="margin: 8px 0 0 0;">Code blocks with <code style="background: #fff; padding: 2px 6px; border-radius: 3px; font-family: monospace;">pre + code</code> preserve whitespace and formatting, making them perfect for displaying code snippets in documentation, tutorials, and technical blogs.</p>
+  </div>
+</div>
+''';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Code Blocks Demo')),
+      body: const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: HyperViewer(html: html, selectable: true),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// IMAGE HANDLING DEMO
+// =============================================================================
+
+class ImageHandlingDemo extends StatelessWidget {
+  const ImageHandlingDemo({super.key});
+
+  static const html = '''
+<div style="font-family: sans-serif; line-height: 1.8; max-width: 800px;">
+  <h2 style="color: #00ACC1;">Image Handling Demo</h2>
+  <p>HyperRender automatically handles image loading, error states, and placeholders.</p>
+
+  <h3 style="color: #00838F; margin-top: 24px;">✅ Successfully Loaded Images</h3>
+  <p>These images load successfully and display normally:</p>
+  <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+    <img src="https://picsum.photos/200/150?random=1"
+         style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+         alt="Random image 1">
+    <img src="https://picsum.photos/200/150?random=2"
+         style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+         alt="Random image 2">
+    <img src="https://picsum.photos/200/150?random=3"
+         style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+         alt="Random image 3">
+  </div>
+
+  <h3 style="color: #00838F; margin-top: 24px;">⏳ Loading State</h3>
+  <p>While images are loading, HyperRender shows an elegant skeleton placeholder with a gradient shimmer effect:</p>
+  <ul>
+    <li>Subtle gradient background (light gray)</li>
+    <li>Image icon in the center</li>
+    <li>Rounded corners matching the final image</li>
+    <li>Border to indicate placeholder state</li>
+  </ul>
+
+  <h3 style="color: #00838F; margin-top: 24px;">❌ Error State</h3>
+  <p>When an image fails to load (404, network error, etc.), HyperRender displays a broken image placeholder:</p>
+
+  <div style="background: #fff3e0; padding: 16px; border-left: 4px solid #ff9800; margin: 16px 0; border-radius: 4px;">
+    <p style="margin: 0; font-weight: bold; color: #e65100;">⚠️ The image below will fail to load</p>
+    <p style="margin: 8px 0 0 0;">This demonstrates the automatic error handling:</p>
+  </div>
+
+  <img src="https://example.com/nonexistent-image-404.jpg"
+       style="width: 200px; height: 150px; border-radius: 8px; margin: 16px 0;"
+       alt="This image will show error placeholder">
+
+  <p>The error placeholder shows:</p>
+  <ul>
+    <li>Light gray background</li>
+    <li>Broken image icon with red diagonal line</li>
+    <li>Maintains specified dimensions</li>
+    <li>Rounded corners for consistency</li>
+  </ul>
+
+  <h3 style="color: #00838F; margin-top: 24px;">🎨 Mixed Content Example</h3>
+  <p>Here's a real-world example mixing successful and failed images:</p>
+
+  <div style="border: 1px solid #e0e0e0; padding: 16px; border-radius: 8px; margin-top: 16px;">
+    <h4 style="color: #424242; margin-top: 0;">Article with Images</h4>
+
+    <img src="https://picsum.photos/300/200?random=4"
+         style="float: left; margin: 0 16px 16px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+         alt="Article thumbnail">
+
+    <p>This paragraph has a successfully loaded image floated to the left. The text wraps around it naturally, demonstrating HyperRender's float layout capability combined with proper image handling.</p>
+
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+
+    <div style="clear: both;"></div>
+
+    <img src="https://invalid-domain-that-does-not-exist.com/image.jpg"
+         style="float: right; margin: 0 0 16px 16px; width: 200px; height: 150px; border-radius: 8px;"
+         alt="This will show error placeholder">
+
+    <p>This paragraph has an image that fails to load, floated to the right. Even with the error, the layout remains intact and the error placeholder takes the specified dimensions.</p>
+
+    <p>The placeholder prevents layout shift and provides visual feedback that content is missing.</p>
+
+    <div style="clear: both;"></div>
+  </div>
+
+  <h3 style="color: #00838F; margin-top: 24px;">📱 Responsive Images</h3>
+  <p>Images adapt to available width while maintaining aspect ratio:</p>
+
+  <img src="https://picsum.photos/800/400?random=5"
+       style="width: 100%; max-width: 600px; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"
+       alt="Responsive wide image">
+
+  <div style="background: #e8f5e9; padding: 16px; border-left: 4px solid #4caf50; margin-top: 24px; border-radius: 4px;">
+    <p style="margin: 0; font-weight: bold; color: #2e7d32;">✨ Automatic Benefits</p>
+    <p style="margin: 8px 0 0 0;">
+      • No manual error handling needed<br>
+      • Consistent placeholder UI across all images<br>
+      • Prevents layout shift during loading<br>
+      • Works with floats, inline, and block images<br>
+      • Maintains specified dimensions
+    </p>
+  </div>
+</div>
+''';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Image Handling Demo')),
+      body: const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: HyperViewer(html: html, selectable: true),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// ZOOM & PAN DEMO
+// =============================================================================
+
+class ZoomDemo extends StatelessWidget {
+  const ZoomDemo({super.key});
+
+  static const html = '''
+<div style="font-family: sans-serif; line-height: 1.8; max-width: 800px;">
+  <h2 style="color: #0288D1;">Zoom & Pan Demo</h2>
+  <p>Use pinch-to-zoom or trackpad gestures to zoom in/out. Pan by dragging while zoomed.</p>
+
+  <div style="background: #E1F5FE; padding: 16px; border-left: 4px solid #0288D1; margin: 16px 0; border-radius: 4px;">
+    <p style="margin: 0; font-weight: bold; color: #01579B;">🔍 Zoom Controls</p>
+    <p style="margin: 8px 0 0 0;">
+      • <strong>Mobile:</strong> Pinch with two fingers to zoom in/out<br>
+      • <strong>Desktop:</strong> Ctrl + Mouse Wheel to zoom<br>
+      • <strong>Trackpad:</strong> Pinch gesture (two fingers)<br>
+      • <strong>Pan:</strong> Drag with one finger/mouse while zoomed
+    </p>
+  </div>
+
+  <h3 style="color: #0277BD; margin-top: 24px;">Try Zooming on This Content</h3>
+
+  <img src="https://picsum.photos/600/400?random=10"
+       style="width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin: 16px 0;"
+       alt="High resolution test image">
+
+  <h3 style="color: #0277BD; margin-top: 24px;">Small Text Test</h3>
+  <p style="font-size: 12px;">
+    This paragraph uses smaller font size (12px). Zoom in to read it comfortably.
+    Zoom functionality is especially useful for:
+  </p>
+  <ul style="font-size: 12px;">
+    <li>Reading fine print or detailed text</li>
+    <li>Viewing high-resolution images up close</li>
+    <li>Inspecting code blocks or technical diagrams</li>
+    <li>Accessibility for users with visual impairments</li>
+  </ul>
+
+  <h3 style="color: #0277BD; margin-top: 24px;">Code Block with Small Font</h3>
+  <pre style="background: #263238; color: #EEFFFF; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.4;"><code>// Zoom in to read this small code
+class HyperViewer extends StatefulWidget {
+  final bool enableZoom;
+  final double minScale;
+  final double maxScale;
+
+  const HyperViewer({
+    this.enableZoom = false,
+    this.minScale = 0.5,
+    this.maxScale = 4.0,
+  });
+}</code></pre>
+
+  <h3 style="color: #0277BD; margin-top: 24px;">Float Layout with Zoom</h3>
+  <img src="https://picsum.photos/200/200?random=11"
+       style="float: left; margin: 0 16px 16px 0; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+       alt="Circular image">
+  <p>
+    Zoom functionality works perfectly with float layouts. This circular image is floated to the left,
+    and you can zoom in to see details while the text wrapping is preserved.
+  </p>
+  <p>
+    The zoom feature uses Flutter's InteractiveViewer widget, which provides smooth pinch-to-zoom
+    and pan gestures across all platforms. It's integrated seamlessly with HyperRender's custom
+    rendering engine.
+  </p>
+  <div style="clear: both;"></div>
+
+  <h3 style="color: #0277BD; margin-top: 24px;">Usage Example</h3>
+  <pre style="background: #f5f5f5; padding: 16px; border-radius: 8px; border: 1px solid #e0e0e0; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px;"><code>HyperViewer(
+  html: htmlContent,
+  enableZoom: true,      // Enable zoom
+  minScale: 0.5,         // Min zoom level
+  maxScale: 4.0,         // Max zoom level
+  selectable: true,      // Works with selection!
+)</code></pre>
+
+  <div style="background: #E8F5E9; padding: 16px; border-left: 4px solid #4CAF50; margin-top: 24px; border-radius: 4px;">
+    <p style="margin: 0; font-weight: bold; color: #2E7D32;">✨ Key Features</p>
+    <p style="margin: 8px 0 0 0;">
+      • Smooth pinch-to-zoom on all platforms<br>
+      • Configurable min/max scale levels<br>
+      • Works with text selection<br>
+      • Compatible with float layouts<br>
+      • Pan to navigate while zoomed<br>
+      • Zero performance impact when disabled
+    </p>
+  </div>
+
+  <h3 style="color: #0277BD; margin-top: 24px;">Table with Zoom</h3>
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+    <thead>
+      <tr style="background: #0277BD; color: white;">
+        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Feature</th>
+        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Mobile</th>
+        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Desktop</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Zoom In</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Pinch out (2 fingers)</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Ctrl + Mouse Wheel Up</td>
+      </tr>
+      <tr style="background: #f5f5f5;">
+        <td style="border: 1px solid #ddd; padding: 8px;">Zoom Out</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Pinch in (2 fingers)</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Ctrl + Mouse Wheel Down</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">Pan</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Drag with 1 finger</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Click and drag</td>
+      </tr>
+      <tr style="background: #f5f5f5;">
+        <td style="border: 1px solid #ddd; padding: 8px;">Reset</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Double tap</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">Double click</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="font-size: 12px; color: #666; margin-top: 32px;">
+    Zoom in on this tiny text to test accessibility. Users with visual impairments can benefit greatly
+    from zoom functionality when reading small print or detailed content.
+  </p>
+</div>
+''';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Zoom & Pan Demo'),
+        actions: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Center(
+              child: Text(
+                'Pinch to Zoom',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: HyperViewer(
+          html: html,
+          selectable: true,
+          enableZoom: true,
+          minScale: 0.5,
+          maxScale: 4.0,
+        ),
       ),
     );
   }
@@ -1588,6 +2025,24 @@ class _StressTestDemoState extends State<StressTestDemo> {
           html: content,
           mode: HyperRenderMode.auto,
           selectable: true,
+          placeholderBuilder: (context) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  'Parsing ${(_characterCount ?? 0) ~/ 1000}K characters...',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'This may take a few seconds for large documents',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
         );
       case 'flutter_html':
         return SingleChildScrollView(
