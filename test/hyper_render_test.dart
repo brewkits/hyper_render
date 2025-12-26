@@ -1,5 +1,3 @@
-import 'dart:ui' show Color, Size;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';
@@ -112,7 +110,7 @@ void main() {
       resolver.resolveStyles(doc);
 
       final span = doc.children[0];
-      expect(span.style.color?.value, equals(0xFFFF0000));
+      expect(span.style.color, equals(const Color(0xFFFF0000)));
     });
 
     test('applies inline styles', () {

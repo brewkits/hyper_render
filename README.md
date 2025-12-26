@@ -17,7 +17,7 @@ Current Flutter HTML libraries have significant limitations:
 |---------|-------------|------|-----------------|
 | SelectionArea crashes | Yes | Sometimes | **Never** |
 | Table overflow | Often | Sometimes | **Smooth scroll** |
-| CSS Support | ~60% | ~70% | **98%** |
+| CSS Support | ~60% | ~70% | **30+ properties** |
 | CJK/Ruby | Poor | Medium | **Perfect** |
 | Quill Delta | No | No | **Native (Alpha)** |
 | Performance | Medium | Good | **Excellent** |
@@ -200,11 +200,11 @@ Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTIN
 
 ## Success Metrics
 
-- SelectionArea: Works on HTML > 10,000 chars without crash
-- Table: 50-column table scrolls at 60fps
-- CSS: Supports 90% of common properties
-- Performance: Parse + render 5KB HTML in < 100ms
-- Memory: < 10MB for 50KB HTML document
+- **Text Selection**: Crash-free selection on large documents (10,000+ chars with view virtualization)
+- **Table Rendering**: Horizontal scroll support with colspan/rowspan, auto-scale for wide tables
+- **CSS Coverage**: 30+ essential properties (text styling, box model, layout, floats)
+- **Performance**: Isolate-based parsing + view virtualization for smooth 60fps scrolling
+- **Memory**: LRU caching (2,000-entry limit) prevents memory leaks in large documents
 
 ## License
 

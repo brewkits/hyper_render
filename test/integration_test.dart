@@ -78,7 +78,6 @@ void main() {
       });
 
       testWidgets('renders HTML with links', (WidgetTester tester) async {
-        String? clickedUrl;
         const html = '<p><a href="https://example.com">Click here</a></p>';
         final adapter = HtmlAdapter();
         final document = adapter.parse(html);
@@ -88,7 +87,9 @@ void main() {
             home: Scaffold(
               body: HyperRenderWidget(
                 document: document,
-                onLinkTap: (url) => clickedUrl = url,
+                onLinkTap: (url) {
+                  // TODO: Add assertion for url
+                },
               ),
             ),
           ),
