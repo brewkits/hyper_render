@@ -1,5 +1,3 @@
-import 'dart:ui' show Color;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -340,8 +338,6 @@ void main() {
     group('Custom context menu', () {
       testWidgets('uses custom context menu builder',
           (WidgetTester tester) async {
-        var customMenuBuilt = false;
-
         final doc = DocumentNode(children: [
           BlockNode.p(children: [TextNode('Hello World')]),
         ]);
@@ -352,7 +348,6 @@ void main() {
               body: HyperSelectionOverlay(
                 document: doc,
                 contextMenuBuilder: (context, state) {
-                  customMenuBuilt = true;
                   return Container(
                     padding: const EdgeInsets.all(8),
                     color: Colors.white,

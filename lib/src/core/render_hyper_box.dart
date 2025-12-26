@@ -2,7 +2,6 @@ import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -1532,6 +1531,7 @@ class RenderHyperBox extends RenderBox
 
     while (child != null) {
       final parentData = child.parentData as HyperBoxParentData;
+      bool wasLaidOut = false;
 
       if (parentData.isFloat) {
         // Float children use floatRect from float layout
@@ -1551,17 +1551,17 @@ class RenderHyperBox extends RenderBox
             parentUsesSize: true,
           );
           parentData.offset = parentData.floatRect!.topLeft;
+          wasLaidOut = true;
         }
       } else if (parentData.fragment != null) {
         final fragment = parentData.fragment!;
-        // Skip if already laid out (e.g., tables are laid out during line layout)
-        if (!child.hasSize) {
-          child.layout(
-            BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
-            parentUsesSize: true,
-          );
-        }
+        // Always layout to ensure parent data is properly cleaned
+        child.layout(
+          BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
+          parentUsesSize: true,
+        );
         parentData.offset = fragment.offset ?? Offset.zero;
+        wasLaidOut = true;
       } else if (parentData.sourceNode != null) {
         // Fallback: try to find fragment by source node
         final fragment = _findFragmentForNode(parentData.sourceNode!);
@@ -1572,7 +1572,15 @@ class RenderHyperBox extends RenderBox
             parentUsesSize: true,
           );
           parentData.offset = fragment.offset ?? Offset.zero;
+          wasLaidOut = true;
         }
+      }
+
+      // CRITICAL: Ensure every child is laid out, even orphaned ones
+      // This prevents parent data from staying dirty and causing assertion errors
+      if (!wasLaidOut) {
+        child.layout(BoxConstraints.tight(Size.zero), parentUsesSize: false);
+        parentData.offset = Offset.zero;
       }
 
       child = parentData.nextSibling;
