@@ -1025,10 +1025,10 @@ class CodeBlockDemo extends StatelessWidget {
   static const html = '''
 <div style="font-family: sans-serif; line-height: 1.8; max-width: 800px;">
   <h2 style="color: #673AB7;">Code Blocks Demo</h2>
-  <p>Demonstrate <code style="background: #F5F5F5; padding: 2px 6px; border-radius: 3px; font-family: monospace;">pre</code> and <code style="background: #F5F5F5; padding: 2px 6px; border-radius: 3px; font-family: monospace;">code</code> elements for displaying code snippets.</p>
+  <p>Demonstrate <code>pre</code> and <code>code</code> elements with <strong>syntax highlighting</strong> powered by highlight.js.</p>
 
   <h3 style="color: #512DA8; margin-top: 24px;">Dart Code Example</h3>
-  <pre style="background: #282c34; color: #abb2bf; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>void main() {
+  <pre><code class="language-dart">void main() {
   runApp(const MyApp());
 }
 
@@ -1051,7 +1051,7 @@ class MyApp extends StatelessWidget {
 }</code></pre>
 
   <h3 style="color: #512DA8; margin-top: 24px;">HTML Example</h3>
-  <pre style="background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>&lt;!DOCTYPE html&gt;
+  <pre><code class="language-html">&lt;!DOCTYPE html&gt;
 &lt;html lang="en"&gt;
 &lt;head&gt;
   &lt;meta charset="UTF-8"&gt;
@@ -1070,7 +1070,7 @@ class MyApp extends StatelessWidget {
 &lt;/html&gt;</code></pre>
 
   <h3 style="color: #512DA8; margin-top: 24px;">JavaScript Example</h3>
-  <pre style="background: #f6f8fa; color: #24292e; padding: 16px; border-radius: 8px; border: 1px solid #e1e4e8; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>function fibonacci(n) {
+  <pre><code class="language-javascript">function fibonacci(n) {
   if (n <= 1) return n;
   return fibonacci(n - 1) + fibonacci(n - 2);
 }
@@ -1085,15 +1085,15 @@ console.log(sequence);
 // Output: [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]</code></pre>
 
   <h3 style="color: #512DA8; margin-top: 24px;">Python Example</h3>
-  <pre style="background: #263238; color: #EEFFFF; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>def quick_sort(arr):
+  <pre><code class="language-python">def quick_sort(arr):
     """QuickSort algorithm implementation"""
     if len(arr) <= 1:
         return arr
 
     pivot = arr[len(arr) // 2]
-    left = [x for x in arr if x < pivot]
+    left = [x for x in arr if x &lt; pivot]
     middle = [x for x in arr if x == pivot]
-    right = [x for x in arr if x > pivot]
+    right = [x for x in arr if x &gt; pivot]
 
     return quick_sort(left) + middle + quick_sort(right)
 
@@ -1102,32 +1102,39 @@ numbers = [3, 6, 8, 10, 1, 2, 1]
 sorted_numbers = quick_sort(numbers)
 print(sorted_numbers)  # [1, 1, 2, 3, 6, 8, 10]</code></pre>
 
+  <h3 style="color: #512DA8; margin-top: 24px;">JSON Example</h3>
+  <pre><code class="language-json">{
+  "name": "hyper_render",
+  "version": "1.0.0",
+  "description": "Universal Content Engine",
+  "dependencies": {
+    "flutter": ">=3.10.0",
+    "flutter_highlight": "^0.7.0"
+  },
+  "features": ["HTML", "Markdown", "Delta"]
+}</code></pre>
+
+  <h3 style="color: #512DA8; margin-top: 24px;">Shell Commands</h3>
+  <pre><code class="language-bash"># Create a new Flutter app
+flutter create my_app
+cd my_app
+
+# Run the app
+flutter run
+
+# Build for production
+flutter build apk --release</code></pre>
+
   <h3 style="color: #512DA8; margin-top: 24px;">Inline Code</h3>
   <p>
-    You can also use inline code like
-    <code style="background: #f5f5f5; color: #c7254e; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 14px;">const variable = "value";</code>
-    within a paragraph. Use
-    <code style="background: #f5f5f5; color: #c7254e; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 14px;">npm install</code>
-    to install packages, or run
-    <code style="background: #f5f5f5; color: #c7254e; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 14px;">flutter pub get</code>
-    for Flutter projects.
+    You can also use inline code like <code>const variable = "value";</code>
+    within a paragraph. Use <code>npm install</code> to install packages,
+    or run <code>flutter pub get</code> for Flutter projects.
   </p>
 
-  <h3 style="color: #512DA8; margin-top: 24px;">Terminal/Shell Commands</h3>
-  <pre style="background: #000000; color: #00ff00; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"><code>\$ flutter create my_app
-\$ cd my_app
-\$ flutter run
-
-Launching lib/main.dart on Chrome in debug mode...
-[✓] Built build/web/main.dart.js
-  Serving DevTools at http://127.0.0.1:9100
-
-[✓] Success! Your app is running at:
-   http://localhost:12345</code></pre>
-
   <div style="background: #e8f5e9; padding: 16px; border-left: 4px solid #4caf50; margin-top: 24px; border-radius: 4px;">
-    <p style="margin: 0; font-weight: bold; color: #2e7d32;">💡 Pro Tip</p>
-    <p style="margin: 8px 0 0 0;">Code blocks with <code style="background: #fff; padding: 2px 6px; border-radius: 3px; font-family: monospace;">pre + code</code> preserve whitespace and formatting, making them perfect for displaying code snippets in documentation, tutorials, and technical blogs.</p>
+    <p style="margin: 0; font-weight: bold; color: #2e7d32;">💡 Syntax Highlighting</p>
+    <p style="margin: 8px 0 0 0;">Code blocks now support <strong>180+ languages</strong> with automatic syntax highlighting. Just add <code>class="language-xxx"</code> to your code tags!</p>
   </div>
 </div>
 ''';

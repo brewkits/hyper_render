@@ -5,6 +5,7 @@ import '../core/render_hyper_box.dart';
 import '../core/render_table.dart';
 import '../model/computed_style.dart';
 import '../model/node.dart';
+import 'code_block_widget.dart';
 
 /// HyperRenderWidget - MultiChildRenderObjectWidget for custom HTML rendering
 ///
@@ -93,7 +94,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       if (childWidget == null && node is AtomicNode && node.tagName == 'img') {
         childWidget = _buildDefaultAtomicWidget(node);
       }
-      
+
       if (childWidget != null) {
         children.add(_HyperFloatChildWidget(
           node: node,
@@ -101,7 +102,15 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
           child: childWidget,
         ));
       }
-    } 
+    }
+    // Is it a code block (<pre> with optional <code> child)?
+    else if (_isCodeBlock(node)) {
+      childWidget = widgetBuilder?.call(node);
+      childWidget ??= _buildCodeBlockWidget(node);
+      if (childWidget != null) {
+        children.add(_HyperChildWidget(node: node, child: childWidget));
+      }
+    }
     // Is it a non-floating atomic element or table?
     else if (node.type == NodeType.atomic) {
       final atomicNode = node as AtomicNode;
@@ -124,6 +133,67 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (childWidget == null) {
       for (final child in node.children) {
         _collectAtomicChildren(child, children, widgetBuilder);
+      }
+    }
+  }
+
+  /// Check if node is a code block (<pre> element)
+  static bool _isCodeBlock(UDTNode node) {
+    final tagName = node.tagName?.toLowerCase();
+    return tagName == 'pre' && node.type == NodeType.block;
+  }
+
+  /// Build CodeBlockWidget for <pre> elements with syntax highlighting
+  static Widget? _buildCodeBlockWidget(UDTNode node) {
+    // Extract code content and language
+    String codeContent = '';
+    String? language;
+
+    // Check if pre has a <code> child
+    for (final child in node.children) {
+      if (child.tagName?.toLowerCase() == 'code') {
+        // Get language from class attribute
+        final classAttr = child.attributes['class'];
+        language = detectLanguageFromClass(classAttr);
+
+        // Extract text content from code element
+        codeContent = _extractTextContent(child);
+        break;
+      }
+    }
+
+    // If no <code> child, extract text directly from <pre>
+    if (codeContent.isEmpty) {
+      codeContent = _extractTextContent(node);
+      // Try to get language from pre's class
+      final classAttr = node.attributes['class'];
+      language ??= detectLanguageFromClass(classAttr);
+    }
+
+    if (codeContent.isEmpty) return null;
+
+    return CodeBlockWidget(
+      code: codeContent,
+      language: language,
+      theme: CodeTheme.vs2015,
+      showCopyButton: true,
+      showLineNumbers: false,
+    );
+  }
+
+  /// Extract text content from a node tree
+  static String _extractTextContent(UDTNode node) {
+    final buffer = StringBuffer();
+    _collectText(node, buffer);
+    return buffer.toString();
+  }
+
+  static void _collectText(UDTNode node, StringBuffer buffer) {
+    if (node is TextNode) {
+      buffer.write(node.text);
+    } else {
+      for (final child in node.children) {
+        _collectText(child, buffer);
       }
     }
   }

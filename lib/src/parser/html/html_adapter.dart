@@ -24,21 +24,23 @@ class HtmlAdapter {
     ),
     'pre': ComputedStyle(
       display: DisplayType.block,
-      fontFamily: 'Courier New',
+      fontFamily: 'monospace',
       whiteSpace: 'pre',
-      backgroundColor: const Color(0xFFF5F5F5),
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      borderRadius: BorderRadius.circular(4),
-      fontSize: 14,
-      lineHeight: 1.5,
+      backgroundColor: const Color(0xFF1E1E1E), // Dark background like VS Code
+      color: const Color(0xFFD4D4D4), // Light text
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      borderRadius: BorderRadius.circular(8),
+      fontSize: 13,
+      lineHeight: 1.6,
     ),
     'code': ComputedStyle(
-      fontFamily: 'Courier New',
-      backgroundColor: const Color(0xFFEEEEEE),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      borderRadius: BorderRadius.circular(3),
-      fontSize: 14,
+      fontFamily: 'monospace',
+      backgroundColor: const Color(0xFFE8E8E8), // Light gray background
+      color: const Color(0xFFE91E63), // Pink/magenta for inline code
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      borderRadius: BorderRadius.circular(4),
+      fontSize: 13,
     ),
     'a': ComputedStyle(color: Colors.blue, textDecoration: TextDecoration.underline),
     'mark': ComputedStyle(backgroundColor: const Color(0xFFFFFF00)), // Yellow highlight
