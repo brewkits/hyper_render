@@ -8,6 +8,8 @@ import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart
     as fwfh_core;
 import 'package:hyper_render/hyper_render.dart';
 
+import 'html_preview_helper.dart';
+
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
 /// - height: 1.6 (generous line spacing for readability)
@@ -493,11 +495,14 @@ class FloatLayoutDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Float Layout Demo')),
-      body: const Padding(
+    return DemoScaffold(
+      title: 'Float Layout Demo',
+      html: html,
+      child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: HyperViewer(html: html, selectable: true),
+        child: SingleChildScrollView(
+          child: HyperViewer(html: html, selectable: true),
+        ),
       ),
     );
   }
@@ -552,11 +557,14 @@ class SelectionDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Text Selection Demo')),
-      body: const Padding(
+    return DemoScaffold(
+      title: 'Text Selection Demo',
+      html: html,
+      child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: HyperViewer(html: html, selectable: true),
+        child: SingleChildScrollView(
+          child: HyperViewer(html: html, selectable: true),
+        ),
       ),
     );
   }
@@ -824,11 +832,14 @@ class InlineDecorationDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Inline Decoration Demo')),
-      body: const Padding(
+    return DemoScaffold(
+      title: 'Inline Decoration Demo',
+      html: html,
+      child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: HyperViewer(html: html, selectable: true),
+        child: SingleChildScrollView(
+          child: HyperViewer(html: html, selectable: true),
+        ),
       ),
     );
   }
@@ -898,11 +909,14 @@ class RealContentDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Real Content Demo')),
-      body: const Padding(
+    return DemoScaffold(
+      title: 'Real Content Demo',
+      html: html,
+      child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: HyperViewer(html: html, selectable: true),
+        child: SingleChildScrollView(
+          child: HyperViewer(html: html, selectable: true),
+        ),
       ),
     );
   }
@@ -1005,11 +1019,14 @@ class TableDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Table Demo')),
-      body: const Padding(
+    return DemoScaffold(
+      title: 'Table Demo',
+      html: html,
+      child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: HyperViewer(html: html, selectable: true),
+        child: SingleChildScrollView(
+          child: HyperViewer(html: html, selectable: true),
+        ),
       ),
     );
   }
@@ -1141,11 +1158,14 @@ flutter build apk --release</code></pre>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Code Blocks Demo')),
-      body: const Padding(
+    return DemoScaffold(
+      title: 'Code Blocks Demo',
+      html: html,
+      child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: HyperViewer(html: html, selectable: true),
+        child: SingleChildScrollView(
+          child: HyperViewer(html: html, selectable: true),
+        ),
       ),
     );
   }
@@ -1255,11 +1275,14 @@ class ImageHandlingDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Image Handling Demo')),
-      body: const Padding(
+    return DemoScaffold(
+      title: 'Image Handling Demo',
+      html: html,
+      child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: HyperViewer(html: html, selectable: true),
+        child: SingleChildScrollView(
+          child: HyperViewer(html: html, selectable: true),
+        ),
       ),
     );
   }

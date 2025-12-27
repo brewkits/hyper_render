@@ -171,3 +171,34 @@ export 'src/core/render_formula.dart'
 
 export 'src/widgets/code_block_widget.dart'
     show CodeBlockWidget, CodeTheme, detectLanguageFromClass;
+
+// ============================================
+// Public API - Plugin Interfaces
+// ============================================
+
+export 'src/interfaces/content_parser.dart'
+    show
+        ContentParser,
+        ContentType,
+        ParseResult,
+        ExtendedContentParser,
+        PlainTextParser;
+
+export 'src/interfaces/css_parser.dart'
+    show CssParserInterface, ParsedCssRule, SimpleInlineStyleParser;
+
+export 'src/interfaces/code_highlighter.dart'
+    show CodeHighlighter, PlainTextHighlighter;
+
+// ============================================
+// Public API - Default Plugin Implementations
+// ============================================
+
+export 'src/plugins/default_html_parser.dart' show DefaultHtmlParser;
+
+export 'src/plugins/default_markdown_parser.dart' show DefaultMarkdownParser;
+
+export 'src/plugins/default_css_parser.dart' show DefaultCssParser;
+
+export 'src/plugins/default_code_highlighter.dart'
+    show DefaultCodeHighlighter, HighlightTheme;

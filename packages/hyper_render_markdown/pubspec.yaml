@@ -1,0 +1,32 @@
+name: hyper_render_markdown
+description: "Markdown parsing plugin for HyperRender. Converts Markdown to rendered content."
+version: 2.0.0
+homepage: https://github.com/user/hyper_render
+repository: https://github.com/user/hyper_render
+
+topics:
+  - markdown
+  - parsing
+  - rendering
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core package (zero deps)
+  hyper_render_core:
+    path: ../hyper_render_core
+
+  # Markdown parsing - Dart team maintained
+  markdown: ^7.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:

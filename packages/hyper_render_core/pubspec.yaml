@@ -1,0 +1,28 @@
+name: hyper_render_core
+description: "Core rendering engine for HyperRender - Zero external dependencies. Contains interfaces, models, and core rendering logic."
+version: 2.0.0
+homepage: https://github.com/user/hyper_render
+repository: https://github.com/user/hyper_render
+
+topics:
+  - html
+  - rendering
+  - richtext
+  - css
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # NOTE: This is the CORE package with ZERO external dependencies
+  # All parsing/highlighting is done via plugin interfaces
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
