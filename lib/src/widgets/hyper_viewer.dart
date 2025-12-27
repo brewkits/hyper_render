@@ -105,11 +105,12 @@ class _HyperViewerState extends State<HyperViewer> {
   // Hàm static để chạy trong Isolate (không được dính context)
   static List<DocumentNode> _parseAndChunk(String html) {
     final adapter = HtmlAdapter();
-    // Increased chunkSize from 3000 to 12000 for better performance:
-    // - 800K HTML → ~67 sections (vs 267 sections with 3000)
-    // - Less overhead from style resolution
+    // Increased chunkSize from 12000 to 25000 for better performance:
+    // - 800K HTML → ~32 sections (vs 67 sections with 12000)
+    // - Larger sections mean fewer layout passes
     // - ListView.builder still virtualizes efficiently
-    final sections = adapter.parseToSections(html, chunkSize: 12000);
+    // - Each section renders independently, so larger = fewer re-layouts
+    final sections = adapter.parseToSections(html, chunkSize: 25000);
 
     // Resolve styles luôn trong isolate để main thread nhẹ gánh
     final resolver = StyleResolver();
