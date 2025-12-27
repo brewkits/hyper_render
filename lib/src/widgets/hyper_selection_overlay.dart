@@ -8,13 +8,27 @@ import 'hyper_render_widget.dart';
 /// Selection handle position
 enum _HandlePosition { start, end }
 
-/// HyperSelectionOverlay - Provides selection UI features
+/// Selection menu action
+class SelectionMenuAction {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const SelectionMenuAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+}
+
+/// HyperSelectionOverlay - Provides selection UI features like SelectionArea
 ///
 /// Features:
-/// - Tap outside to clear selection
-/// - Long press context menu (Copy)
+/// - Automatic popup menu when text is selected
+/// - Native-style selection handles
 /// - Keyboard shortcuts (Ctrl+A, Ctrl+C)
-/// - Draggable selection handles
+/// - Customizable actions (Copy, Select All, Share, etc.)
+/// - Smooth animations
 class HyperSelectionOverlay extends StatefulWidget {
   /// The document to render
   final DocumentNode document;
@@ -34,9 +48,22 @@ class HyperSelectionOverlay extends StatefulWidget {
   /// Selection handle color
   final Color handleColor;
 
+  /// Menu background color (defaults to surface color)
+  final Color? menuBackgroundColor;
+
   /// Context menu builder (optional custom menu)
   final Widget Function(BuildContext, HyperSelectionOverlayState)?
       contextMenuBuilder;
+
+  /// Custom menu actions (if null, uses default Copy + Select All)
+  final List<SelectionMenuAction> Function(HyperSelectionOverlayState)?
+      menuActionsBuilder;
+
+  /// Whether to show handles
+  final bool showHandles;
+
+  /// Whether to automatically show menu on selection
+  final bool autoShowMenu;
 
   const HyperSelectionOverlay({
     super.key,
@@ -46,14 +73,19 @@ class HyperSelectionOverlay extends StatefulWidget {
     this.widgetBuilder,
     this.selectable = true,
     this.handleColor = const Color(0xFF2196F3),
+    this.menuBackgroundColor,
     this.contextMenuBuilder,
+    this.menuActionsBuilder,
+    this.showHandles = true,
+    this.autoShowMenu = true,
   });
 
   @override
   State<HyperSelectionOverlay> createState() => HyperSelectionOverlayState();
 }
 
-class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
+class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
+    with SingleTickerProviderStateMixin {
   /// Global key for accessing RenderHyperBox
   final GlobalKey _renderKey = GlobalKey();
 
@@ -63,16 +95,18 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
   /// Whether context menu is showing
   bool _showContextMenu = false;
 
-  /// Context menu position
-  Offset _contextMenuPosition = Offset.zero;
-
   /// Selection handles positions
   Rect? _startHandleRect;
   Rect? _endHandleRect;
 
-  /// Which handle is being dragged (used for visual feedback)
+  /// Which handle is being dragged (for potential future animation/haptic feedback)
   // ignore: unused_field
   _HandlePosition? _draggingHandle;
+
+  /// Animation controller for menu
+  late AnimationController _menuAnimController;
+  late Animation<double> _menuScaleAnim;
+  late Animation<double> _menuOpacityAnim;
 
   /// Get the RenderHyperBox
   RenderHyperBox? get _renderBox {
@@ -90,10 +124,57 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
   bool get hasSelection =>
       selection != null && selection!.isValid && !selection!.isCollapsed;
 
+  /// Get selected text
+  String? get selectedText => _renderBox?.getSelectedText();
+
+  @override
+  void initState() {
+    super.initState();
+    _menuAnimController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _menuScaleAnim = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _menuAnimController, curve: Curves.easeOutCubic),
+    );
+    _menuOpacityAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _menuAnimController, curve: Curves.easeOut),
+    );
+  }
+
   @override
   void dispose() {
     _focusNode.dispose();
+    _menuAnimController.dispose();
     super.dispose();
+  }
+
+  /// Called when selection changes in RenderHyperBox
+  void _onSelectionChanged() {
+    _updateHandlePositions();
+
+    if (widget.autoShowMenu && hasSelection) {
+      _showMenu();
+    } else {
+      _hideMenu();
+    }
+  }
+
+  void _showMenu() {
+    if (!_showContextMenu) {
+      setState(() => _showContextMenu = true);
+      _menuAnimController.forward();
+    }
+  }
+
+  void _hideMenu() {
+    if (_showContextMenu) {
+      _menuAnimController.reverse().then((_) {
+        if (mounted) {
+          setState(() => _showContextMenu = false);
+        }
+      });
+    }
   }
 
   /// Copy selected text to clipboard
@@ -102,6 +183,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
     if (text != null && text.isNotEmpty) {
       await Clipboard.setData(ClipboardData(text: text));
       _showCopiedSnackBar();
+      clearSelection();
     }
   }
 
@@ -109,10 +191,10 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
   void clearSelection() {
     _renderBox?.clearSelection();
     setState(() {
-      _showContextMenu = false;
       _startHandleRect = null;
       _endHandleRect = null;
     });
+    _hideMenu();
   }
 
   /// Select all text
@@ -142,27 +224,15 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
   }
 
   void _handleTapOutside() {
-    if (hasSelection) {
+    if (hasSelection || _showContextMenu) {
       clearSelection();
     }
   }
 
-  void _handleLongPress(LongPressStartDetails details) {
-    if (!widget.selectable) return;
-
-    // Show context menu at long press position
-    setState(() {
-      _showContextMenu = true;
-      _contextMenuPosition = details.globalPosition;
-    });
-  }
-
   void _handleTap(TapDownDetails details) {
-    // Hide context menu on tap
-    if (_showContextMenu) {
-      setState(() {
-        _showContextMenu = false;
-      });
+    // Hide menu and clear selection on tap
+    if (_showContextMenu || hasSelection) {
+      clearSelection();
     }
   }
 
@@ -195,6 +265,32 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
     return KeyEventResult.ignored;
   }
 
+  /// Calculate menu position above selection
+  Offset _calculateMenuPosition() {
+    if (_startHandleRect == null) return Offset.zero;
+
+    final RenderBox? box =
+        _renderKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return Offset.zero;
+
+    // Get all selection rects to find the topmost point
+    final selectionRects = _renderBox?.getSelectionRects() ?? [];
+    if (selectionRects.isEmpty) return Offset.zero;
+
+    // Find the topmost and leftmost point of selection
+    double minY = double.infinity;
+    double centerX = 0;
+    for (final rect in selectionRects) {
+      if (rect.top < minY) {
+        minY = rect.top;
+        centerX = rect.center.dx;
+      }
+    }
+
+    // Position menu above selection with some padding
+    return Offset(centerX, minY - 8);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Focus(
@@ -202,11 +298,11 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
       onKeyEvent: _handleKeyEvent,
       child: GestureDetector(
         onTapDown: _handleTap,
-        onLongPressStart: _handleLongPress,
         behavior: HitTestBehavior.translucent,
         child: TapRegion(
           onTapOutside: (_) => _handleTapOutside(),
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
               // Main content
               KeyedSubtree(
@@ -217,22 +313,50 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
                   onLinkTap: widget.onLinkTap,
                   widgetBuilder: widget.widgetBuilder,
                   selectable: widget.selectable,
+                  onSelectionChanged: _onSelectionChanged,
                 ),
               ),
 
               // Selection handles
-              if (hasSelection && widget.selectable) ...[
+              if (hasSelection && widget.selectable && widget.showHandles) ...[
                 if (_startHandleRect != null)
                   _buildHandle(_HandlePosition.start, _startHandleRect!),
                 if (_endHandleRect != null)
                   _buildHandle(_HandlePosition.end, _endHandleRect!),
               ],
 
-              // Context menu
+              // Context menu (positioned above selection)
               if (_showContextMenu && hasSelection)
-                _buildContextMenu(context),
+                _buildAnimatedContextMenu(context),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedContextMenu(BuildContext context) {
+    final menuPosition = _calculateMenuPosition();
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: menuPosition.dy - 48, // Menu height + padding
+      child: AnimatedBuilder(
+        animation: _menuAnimController,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _menuOpacityAnim.value,
+            child: Transform.scale(
+              scale: _menuScaleAnim.value,
+              child: child,
+            ),
+          );
+        },
+        child: Center(
+          child: widget.contextMenuBuilder != null
+              ? widget.contextMenuBuilder!(context, this)
+              : _buildDefaultContextMenu(context),
         ),
       ),
     );
@@ -242,9 +366,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
     final isStart = position == _HandlePosition.start;
 
     // Native-style teardrop handle positioning
-    // Start handle: teardrop points up, positioned at top-left of selection
-    // End handle: teardrop points down, positioned at bottom-right of selection
-    final left = isStart ? rect.left - 1 : rect.right - 1;
+    final left = isStart ? rect.left - 11 : rect.right - 11;
     final top = isStart ? rect.top - 22 : rect.bottom;
 
     return Positioned(
@@ -254,12 +376,12 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
         onPanStart: (_) {
           _draggingHandle = position;
           _focusNode.requestFocus();
+          _hideMenu(); // Hide menu while dragging
         },
         onPanUpdate: (details) {
           final renderBox = _renderBox;
           if (renderBox == null) return;
 
-          // Convert global position to local
           final RenderBox? box =
               _renderKey.currentContext?.findRenderObject() as RenderBox?;
           if (box == null) return;
@@ -270,8 +392,10 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
         },
         onPanEnd: (_) {
           _draggingHandle = null;
+          if (hasSelection && widget.autoShowMenu) {
+            _showMenu();
+          }
         },
-        // Native teardrop handle design
         child: CustomPaint(
           size: const Size(22, 22),
           painter: _TeardropHandlePainter(
@@ -283,47 +407,49 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay> {
     );
   }
 
-  Widget _buildContextMenu(BuildContext context) {
-    if (widget.contextMenuBuilder != null) {
-      return widget.contextMenuBuilder!(context, this);
-    }
+  Widget _buildDefaultContextMenu(BuildContext context) {
+    final actions = widget.menuActionsBuilder?.call(this) ?? _defaultActions;
+    final bgColor = widget.menuBackgroundColor ??
+        Theme.of(context).colorScheme.surface;
 
-    return Positioned(
-      left: _contextMenuPosition.dx - 50,
-      top: _contextMenuPosition.dy - 60,
-      child: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
+    return Material(
+      elevation: 8,
+      shadowColor: Colors.black38,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _ContextMenuButton(
-                icon: Icons.copy,
-                label: 'Copy',
-                onTap: () {
-                  copySelection();
-                  setState(() => _showContextMenu = false);
-                },
-              ),
-              _ContextMenuButton(
-                icon: Icons.select_all,
-                label: 'Select All',
-                onTap: () {
-                  selectAll();
-                  setState(() => _showContextMenu = false);
-                },
-              ),
-            ],
-          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: actions.map((action) {
+            return _ContextMenuButton(
+              icon: action.icon,
+              label: action.label,
+              onTap: action.onPressed,
+            );
+          }).toList(),
         ),
       ),
     );
   }
+
+  List<SelectionMenuAction> get _defaultActions => [
+        SelectionMenuAction(
+          icon: Icons.copy_rounded,
+          label: 'Copy',
+          onPressed: copySelection,
+        ),
+        SelectionMenuAction(
+          icon: Icons.select_all_rounded,
+          label: 'All',
+          onPressed: selectAll,
+        ),
+      ];
 }
 
 class _ContextMenuButton extends StatelessWidget {
