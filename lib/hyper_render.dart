@@ -168,3 +168,6 @@ export 'src/core/animation_controller.dart'
 
 export 'src/core/render_formula.dart'
     show FormulaWidget, FormulaBuilder, FormulaInfo;
+
+export 'src/widgets/code_block_widget.dart'
+    show CodeBlockWidget, CodeTheme, detectLanguageFromClass;

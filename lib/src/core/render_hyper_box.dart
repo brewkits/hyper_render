@@ -74,6 +74,7 @@ class _BlockDecoration {
   final Color? backgroundColor;
   final Color? borderLeftColor;
   final double borderLeftWidth;
+  final BorderRadius? borderRadius;
 
   _BlockDecoration({
     required this.node,
@@ -81,6 +82,7 @@ class _BlockDecoration {
     this.backgroundColor,
     this.borderLeftColor,
     this.borderLeftWidth = 0,
+    this.borderRadius,
   });
 }
 
@@ -207,11 +209,12 @@ class RenderHyperBox extends RenderBox
   final List<_FloatArea> _rightFloats = [];
 
   /// Text painters cache (for measuring and painting text)
-  /// Uses LRU cache with max 2000 entries for large documents (e.g., novel reading apps)
+  /// Uses LRU cache with max 5000 entries for large documents (e.g., novel reading apps)
   /// The LRU eviction ensures memory stays bounded while keeping frequently used painters
-  /// Larger cache = better performance for stress tests with 100+ pages
+  /// Larger cache = better performance for stress tests with 500+ pages
+  /// 5000 entries ≈ ~20MB memory for typical text styles
   late final _LruCache<int, TextPainter> _textPainters = _LruCache(
-    maxSize: 2000,
+    maxSize: 5000,
     onEvict: (painter) => painter.dispose(),
   );
 
@@ -672,8 +675,18 @@ class RenderHyperBox extends RenderBox
       ));
     }
 
-    for (final child in node.children) {
-      _tokenizeNode(child, node);
+    // Code blocks (<pre>) are rendered as child widgets with syntax highlighting
+    // Create a placeholder fragment instead of tokenizing the content
+    if (tagName == 'pre') {
+      _fragments.add(_CodeBlockFragment(
+        sourceNode: node,
+        style: style,
+      ));
+      // Skip tokenizing children - they're handled by CodeBlockWidget
+    } else {
+      for (final child in node.children) {
+        _tokenizeNode(child, node);
+      }
     }
 
     _fragments.add(_BlockEndFragment(
@@ -893,6 +906,7 @@ class RenderHyperBox extends RenderBox
           fragment is _BlockEndFragment ||
           fragment is _FloatFragment ||
           fragment is _TableFragment ||
+          fragment is _CodeBlockFragment ||
           fragment is _InlineStartFragment ||
           fragment is _InlineEndFragment) {
         fragment.measuredSize = Size.zero;
@@ -959,6 +973,11 @@ class RenderHyperBox extends RenderBox
   }
 
   /// Step 3: Line Breaking with Float Support
+  ///
+  /// PERFORMANCE OPTIMIZATION: Uses queue-based processing instead of List.insert()
+  /// to avoid O(n²) complexity when splitting text fragments. The pendingFragments
+  /// queue holds fragments that need to be processed next, eliminating costly
+  /// list insertions in the middle of the fragments list.
   void _performLineLayout() {
     _lines.clear();
     _leftFloats.clear();
@@ -980,6 +999,11 @@ class RenderHyperBox extends RenderBox
 
     // Track active blocks for decoration (border-left, background)
     final List<(_BlockStartFragment, double, double)> activeBlocks = []; // (fragment, startY, leftX)
+
+    // PERFORMANCE: Queue for pending fragments from splits - avoids O(n²) List.insert()
+    // When we split a fragment, the second part goes here instead of being inserted
+    // into _fragments list. This is O(1) instead of O(n).
+    Fragment? pendingFragment;
 
     void finishLine() {
       if (currentLineFragments.isEmpty) return;
@@ -1034,9 +1058,8 @@ class RenderHyperBox extends RenderBox
       return _maxWidth - leftInset - rightInset;
     }
 
-    for (int i = 0; i < _fragments.length; i++) {
-      final fragment = _fragments[i];
-
+    // Process a single fragment - extracted for reuse with pending fragments
+    void processFragment(Fragment fragment) {
       if (fragment is _BlockStartFragment) {
         finishLine();
         currentY += fragment.marginTop + fragment.paddingTop;
@@ -1051,16 +1074,18 @@ class RenderHyperBox extends RenderBox
         rightInset = newRightPadding;
         currentX = leftInset;
 
-        // Track this block for border-left decoration
+        // Track this block for decoration (background, border-left, border-radius)
         final style = fragment.style;
-        if (style.borderColor != null && style.borderWidth.left > 0) {
+        final hasBackground = style.backgroundColor != null;
+        final hasBorderLeft = style.borderColor != null && style.borderWidth.left > 0;
+        if (hasBackground || hasBorderLeft) {
           // Calculate the left edge X position (account for parent padding but not this block's)
           final blockLeftX = leftPaddingStack.length > 1
               ? leftPaddingStack[leftPaddingStack.length - 2]
               : 0.0;
           activeBlocks.add((fragment, currentY, blockLeftX));
         }
-        continue;
+        return;
       }
 
       // Handle list markers - render them in the margin area
@@ -1069,7 +1094,7 @@ class RenderHyperBox extends RenderBox
         fragment.measuredSize = Size(painter.width, painter.height);
         // Position marker in the left margin (before the content)
         fragment.offset = Offset(leftInset - painter.width - 4, currentY);
-        continue;
+        return;
       }
 
       if (fragment is _BlockEndFragment) {
@@ -1089,6 +1114,7 @@ class RenderHyperBox extends RenderBox
               backgroundColor: style.backgroundColor,
               borderLeftColor: style.borderColor,
               borderLeftWidth: style.borderWidth.left,
+              borderRadius: style.borderRadius,
             ));
           }
         }
@@ -1100,12 +1126,12 @@ class RenderHyperBox extends RenderBox
         leftInset = leftPaddingStack.last;
         rightInset = rightPaddingStack.last;
         currentX = leftInset;
-        continue;
+        return;
       }
 
       if (fragment is _FloatFragment) {
         _layoutFloat(fragment, currentY);
-        continue;
+        return;
       }
 
       if (fragment is _TableFragment) {
@@ -1128,19 +1154,43 @@ class RenderHyperBox extends RenderBox
         fragment.measuredSize = Size(tableWidth, tableHeight);
         fragment.offset = Offset(leftInset, currentY);
         currentY += tableHeight + 16; // Add margin after table
-        continue;
+        return;
+      }
+
+      // Handle code blocks - rendered as child widgets with syntax highlighting
+      if (fragment is _CodeBlockFragment) {
+        finishLine();
+        // Find the child RenderBox for this code block
+        RenderBox? codeBlockChild = _findChildForFragment(fragment);
+        double blockHeight = 100.0; // Default fallback
+        double blockWidth = _maxWidth;
+
+        if (codeBlockChild != null) {
+          // Layout the code block to get its actual size
+          codeBlockChild.layout(
+            BoxConstraints(maxWidth: _maxWidth),
+            parentUsesSize: true,
+          );
+          blockHeight = codeBlockChild.size.height;
+          blockWidth = codeBlockChild.size.width;
+        }
+
+        fragment.measuredSize = Size(blockWidth, blockHeight);
+        fragment.offset = Offset(leftInset, currentY);
+        currentY += blockHeight + 8; // Add small margin after code block
+        return;
       }
 
       // Skip inline markers
       if (fragment is _InlineStartFragment ||
           fragment is _InlineEndFragment) {
-        continue;
+        return;
       }
 
       if (fragment.type == FragmentType.lineBreak) {
         finishLine();
         currentX = leftInset;
-        continue;
+        return;
       }
 
       final availableWidth = getAvailableWidth();
@@ -1162,8 +1212,9 @@ class RenderHyperBox extends RenderBox
               });
               finishLine();
               currentX = leftInset;
-              _fragments.insert(i + 1, secondPart);
-              continue;
+              // PERFORMANCE: Queue secondPart instead of inserting into list
+              pendingFragment = secondPart;
+              return;
             }
           }
 
@@ -1187,8 +1238,9 @@ class RenderHyperBox extends RenderBox
               });
               finishLine();
               currentX = leftInset;
-              _fragments.insert(i + 1, secondPart);
-              continue;
+              // PERFORMANCE: Queue secondPart instead of inserting into list
+              pendingFragment = secondPart;
+              return;
             }
           }
         } else {
@@ -1209,6 +1261,25 @@ class RenderHyperBox extends RenderBox
         lineHeight = h;
         maxBaseline = b;
       });
+    }
+
+    // Main loop with pending fragment support
+    for (int i = 0; i < _fragments.length; i++) {
+      // Process pending fragment first (from previous split)
+      while (pendingFragment != null) {
+        final frag = pendingFragment!;
+        pendingFragment = null;
+        processFragment(frag);
+      }
+
+      processFragment(_fragments[i]);
+    }
+
+    // Process any remaining pending fragment
+    while (pendingFragment != null) {
+      final frag = pendingFragment!;
+      pendingFragment = null;
+      processFragment(frag);
     }
 
     finishLine();
@@ -1668,9 +1739,10 @@ class RenderHyperBox extends RenderBox
       // Match atomic fragments (images, embeds) and special fragment types
       final isAtomicFragment = fragment.type == FragmentType.atomic;
       final isTableFragment = fragment is _TableFragment;
+      final isCodeBlockFragment = fragment is _CodeBlockFragment;
       final isFloatFragment = fragment is _FloatFragment;
 
-      if (isAtomicFragment || isTableFragment || isFloatFragment) {
+      if (isAtomicFragment || isTableFragment || isCodeBlockFragment || isFloatFragment) {
         final parentData = child.parentData as HyperBoxParentData;
 
         // Link fragment to child
@@ -1785,10 +1857,25 @@ class RenderHyperBox extends RenderBox
       // Paint background if specified
       if (decoration.backgroundColor != null) {
         final bgPaint = Paint()..color = decoration.backgroundColor!;
-        canvas.drawRect(adjustedRect, bgPaint);
+
+        if (decoration.borderRadius != null) {
+          // Draw rounded rectangle for code blocks, etc.
+          canvas.drawRRect(
+            RRect.fromRectAndCorners(
+              adjustedRect,
+              topLeft: decoration.borderRadius!.topLeft,
+              topRight: decoration.borderRadius!.topRight,
+              bottomLeft: decoration.borderRadius!.bottomLeft,
+              bottomRight: decoration.borderRadius!.bottomRight,
+            ),
+            bgPaint,
+          );
+        } else {
+          canvas.drawRect(adjustedRect, bgPaint);
+        }
       }
 
-      // Paint border-left
+      // Paint border-left (for blockquote style)
       if (decoration.borderLeftColor != null && decoration.borderLeftWidth > 0) {
         final borderPaint = Paint()
           ..color = decoration.borderLeftColor!
@@ -2457,6 +2544,15 @@ class _FloatFragment extends Fragment {
 
 class _TableFragment extends Fragment {
   _TableFragment({
+    required super.sourceNode,
+    required super.style,
+  }) : super(type: FragmentType.atomic);
+}
+
+/// Fragment for code blocks (<pre> elements) that are rendered as child widgets
+/// This acts as a placeholder in the fragment list, similar to _TableFragment
+class _CodeBlockFragment extends Fragment {
+  _CodeBlockFragment({
     required super.sourceNode,
     required super.style,
   }) : super(type: FragmentType.atomic);
