@@ -22,6 +22,10 @@ dependencies:
   flutter_widget_from_html: ^0.17.1
   flutter_widget_from_html_core: ^0.17.0
 
+  # For opening HTML in browser
+  url_launcher: ^6.2.0
+  path_provider: ^2.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

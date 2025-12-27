@@ -34,23 +34,9 @@ dependencies:
   # Parse CSS for style resolution (cascade, specificity)
   csslib: ^1.0.0
 
-  # Character handling for CJK/Emoji
-  # Critical for Japanese text selection & line-breaking
-  # Reference: doc1.txt - "characters package"
-  characters: ^1.4.0
-
   # Advanced data structures
   # Used for CSS specificity calculation (Priority Queue)
-  # Reference: doc1.txt - "collection package"
   collection: ^1.18.0
-
-  # Matrix transforms for CSS transform property
-  # Reference: doc1.txt - "vector_math package"
-  vector_math: ^2.1.4
-
-  # Lazy rendering optimization
-  # Reference: doc3.md Section 9.1
-  visibility_detector: ^0.4.0+2
 
   # Markdown Parser - Dart team maintained
   # Converts Markdown to HTML for rendering

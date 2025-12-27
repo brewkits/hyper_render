@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../core/render_hyper_box.dart';
+import '../interfaces/code_highlighter.dart';
+import '../interfaces/content_parser.dart';
 import '../model/node.dart';
 import '../parser/html/html_adapter.dart';
+import '../plugins/default_html_parser.dart';
 import '../style/resolver.dart';
 import 'hyper_render_widget.dart';
 
@@ -34,6 +37,30 @@ class HyperViewer extends StatefulWidget {
   /// Maximum scale for zoom (default: 4.0)
   final double maxScale;
 
+  /// Custom content parser for parsing HTML/Markdown/etc.
+  /// If null, uses DefaultHtmlParser.
+  ///
+  /// Example with custom parser:
+  /// ```dart
+  /// HyperViewer(
+  ///   html: content,
+  ///   contentParser: MyCustomParser(),
+  /// )
+  /// ```
+  final ContentParser? contentParser;
+
+  /// Custom code highlighter for syntax highlighting in code blocks.
+  /// If null, uses DefaultCodeHighlighter (requires flutter_highlight).
+  ///
+  /// Example with custom highlighter:
+  /// ```dart
+  /// HyperViewer(
+  ///   html: content,
+  ///   codeHighlighter: PlainTextHighlighter(), // No syntax highlighting
+  /// )
+  /// ```
+  final CodeHighlighter? codeHighlighter;
+
   const HyperViewer({
     super.key,
     required this.html,
@@ -45,6 +72,8 @@ class HyperViewer extends StatefulWidget {
     this.enableZoom = false,
     this.minScale = 0.5,
     this.maxScale = 4.0,
+    this.contentParser,
+    this.codeHighlighter,
   });
 
   @override
@@ -77,16 +106,21 @@ class _HyperViewerState extends State<HyperViewer> {
     final useVirtualization = widget.mode == HyperRenderMode.virtualized ||
         (widget.mode == HyperRenderMode.auto && widget.html.length > 10000); // Ngưỡng 10k ký tự
 
+    // Use custom parser if provided, otherwise use default HTML parser
+    final parser = widget.contentParser ?? DefaultHtmlParser();
+
     if (!useVirtualization) {
       // 1. Sync Parsing (Fast path for small content)
       setState(() {
-        _syncDocument = HtmlAdapter().parse(widget.html);
+        _syncDocument = parser.parse(widget.html);
         StyleResolver().resolveStyles(_syncDocument!);
         _sections = null;
         _isLoading = false;
       });
     } else {
       // 2. Async Parsing (Isolate path for large content)
+      // Note: Custom parser cannot be passed to isolate, so we use default
+      // HtmlAdapter for virtualized mode. This is a trade-off for performance.
       setState(() => _isLoading = true);
 
       // Sử dụng compute để đẩy việc nặng sang thread khác
