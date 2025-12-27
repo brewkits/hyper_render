@@ -249,6 +249,9 @@ class RenderHyperBox extends RenderBox
   /// Character offset to fragment mapping
   final Map<int, Fragment> _characterToFragment = {};
 
+  /// Callback when selection changes
+  VoidCallback? onSelectionChanged;
+
   RenderHyperBox({
     DocumentNode? document,
     TextStyle baseStyle =
@@ -256,6 +259,7 @@ class RenderHyperBox extends RenderBox
     HyperLinkTapCallback? onLinkTap,
     HyperImageLoader? imageLoader,
     bool selectable = true,
+    this.onSelectionChanged,
   })  : _document = document,
         _baseStyle = baseStyle,
         _onLinkTap = onLinkTap,
@@ -313,6 +317,12 @@ class RenderHyperBox extends RenderBox
     if (_selection == value) return;
     _selection = value;
     markNeedsPaint();
+    onSelectionChanged?.call();
+  }
+
+  /// Notify selection changed (call after modifying _selection directly)
+  void _notifySelectionChanged() {
+    onSelectionChanged?.call();
   }
 
   // ============================================
@@ -2288,6 +2298,10 @@ class RenderHyperBox extends RenderBox
       }
     } else if (event is PointerUpEvent) {
       _selectionStartPosition = null;
+      // Notify selection changed when user finishes selection
+      if (_selection != null && !_selection!.isCollapsed) {
+        _notifySelectionChanged();
+      }
     }
 
     super.handleEvent(event, entry);
@@ -2391,6 +2405,7 @@ class RenderHyperBox extends RenderBox
   void clearSelection() {
     _selection = null;
     markNeedsPaint();
+    _notifySelectionChanged();
   }
 
   /// Select all text
@@ -2399,6 +2414,7 @@ class RenderHyperBox extends RenderBox
       _selection =
           HyperTextSelection(start: 0, end: _totalCharacterCount);
       markNeedsPaint();
+      _notifySelectionChanged();
     }
   }
 

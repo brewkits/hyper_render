@@ -41,6 +41,9 @@ class SmartTableWrapper extends StatelessWidget {
   /// Callback when a link in the table is tapped
   final void Function(String url)? onLinkTap;
 
+  /// Whether text in table cells can be selected
+  final bool selectable;
+
   const SmartTableWrapper({
     super.key,
     required this.tableNode,
@@ -48,6 +51,7 @@ class SmartTableWrapper extends StatelessWidget {
     this.minScaleFactor = 0.6,
     this.baseStyle,
     this.onLinkTap,
+    this.selectable = true,
   });
 
   @override
@@ -88,6 +92,7 @@ class SmartTableWrapper extends StatelessWidget {
       tableNode: tableNode,
       baseStyle: baseStyle,
       onLinkTap: onLinkTap,
+      selectable: selectable,
     );
   }
 }
@@ -100,6 +105,7 @@ class SmartTableWrapper extends StatelessWidget {
 /// - Border customization
 /// - Header/body styling
 /// - Proper intrinsic width calculation
+/// - Text selection across cells (when selectable = true)
 ///
 /// Note: Uses custom layout instead of Flutter's Table widget
 /// because Table doesn't support colspan/rowspan.
@@ -117,6 +123,10 @@ class HyperTable extends StatelessWidget {
   /// Default cell padding
   final EdgeInsets cellPadding;
 
+  /// Whether text in cells can be selected
+  /// When true, wraps table with SelectionArea for cross-cell selection
+  final bool selectable;
+
   const HyperTable({
     super.key,
     required this.tableNode,
@@ -125,6 +135,7 @@ class HyperTable extends StatelessWidget {
     this.borderColor = const Color(0xFFE0E0E0),
     this.borderWidth = 1.0,
     this.cellPadding = const EdgeInsets.all(8.0),
+    this.selectable = true,
   });
 
   @override
@@ -136,13 +147,22 @@ class HyperTable extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return _TableLayout(
+    final tableWidget = _TableLayout(
       grid: grid,
       borderColor: borderColor,
       borderWidth: borderWidth,
       cellPadding: cellPadding,
       cellBuilder: _buildCellContent,
     );
+
+    // Wrap with SelectionArea for cross-cell text selection
+    if (selectable) {
+      return SelectionArea(
+        child: tableWidget,
+      );
+    }
+
+    return tableWidget;
   }
 
   Widget _buildCellContent(TableCellNode cellNode) {

@@ -1,11 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/image_provider.dart';
 import '../core/render_hyper_box.dart';
 import '../core/render_table.dart';
+import '../interfaces/image_clipboard.dart';
 import '../model/computed_style.dart';
 import '../model/node.dart';
 import 'code_block_widget.dart';
+
+/// Image action types for context menu
+enum ImageAction {
+  /// Copy image URL to clipboard
+  copyUrl,
+  /// Copy image data (requires ImageClipboardHandler)
+  copyImage,
+  /// Save image to device (requires ImageClipboardHandler)
+  saveImage,
+  /// Share image (requires ImageClipboardHandler)
+  shareImage,
+}
+
+/// Callback for custom image action handling
+/// Return true if the action was handled, false to use default behavior
+typedef ImageActionCallback = Future<bool> Function(
+  ImageAction action,
+  String imageUrl,
+  BuildContext context,
+);
 
 /// HyperRenderWidget - MultiChildRenderObjectWidget for custom HTML rendering
 ///
@@ -56,6 +78,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// Whether text selection is enabled
   final bool selectable;
 
+  /// Callback when selection changes (e.g., to show context menu)
+  final VoidCallback? onSelectionChanged;
+
   /// Creates a HyperRenderWidget
   ///
   /// The [document] parameter is required and contains the parsed UDT tree.
@@ -68,6 +93,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.widgetBuilder,
     this.imageLoader,
     this.selectable = true,
+    this.onSelectionChanged,
   }) : super(children: _buildChildren(document, widgetBuilder));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
@@ -207,58 +233,13 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       final width = node.intrinsicWidth ?? node.style.width;
       final height = node.intrinsicHeight ?? node.style.height;
 
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8.0),
-        child: Image.network(
-          src,
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-          // Cache with smaller size for better performance
-          cacheWidth: width != null ? (width * 2).toInt() : null, // 2x for retina
-          cacheHeight: height != null ? (height * 2).toInt() : null,
-          // Add loading builder for better UX
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(
-              width: width ?? 100,
-              height: height ?? 100,
-              color: const Color(0xFFF5F5F5),
-              child: Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
-                    strokeWidth: 2,
-                  ),
-                ),
-              ),
-            );
-          },
-          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-            if (wasSynchronouslyLoaded) return child;
-            return AnimatedOpacity(
-              opacity: frame == null ? 0 : 1,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-              child: child,
-            );
-          },
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              width: node.intrinsicWidth ?? 100,
-              height: node.intrinsicHeight ?? 100,
-              color: const Color(0xFFE0E0E0),
-              child: const Center(
-                child: Icon(Icons.broken_image, size: 32, color: Color(0xFF9E9E9E)),
-              ),
-            );
-          },
-        ),
+      // Use HyperImage with context menu for copy/save/share
+      return HyperImage(
+        src: src,
+        width: width,
+        height: height,
+        borderRadius: 8.0,
+        enableContextMenu: true,
       );
     }
 
@@ -316,6 +297,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       onLinkTap: onLinkTap,
       imageLoader: imageLoader,
       selectable: selectable,
+      onSelectionChanged: onSelectionChanged,
     );
   }
 
@@ -335,6 +317,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     }
     if (renderObject.selectable != selectable) {
       renderObject.selectable = selectable;
+    }
+    if (renderObject.onSelectionChanged != onSelectionChanged) {
+      renderObject.onSelectionChanged = onSelectionChanged;
     }
   }
 }
@@ -380,4 +365,243 @@ class _HyperFloatChildWidget extends ParentDataWidget<HyperBoxParentData> {
 
   @override
   Type get debugTypicalAncestorWidgetClass => HyperRenderWidget;
+}
+
+/// HyperImage - Image widget with context menu for copy/save/share
+///
+/// Features:
+/// - Long-press to show context menu
+/// - Copy image URL to clipboard (default)
+/// - Full image copy/save/share with custom [ImageClipboardHandler]
+/// - Loading and error states
+///
+/// ## Basic Usage
+/// ```dart
+/// HyperImage(src: 'https://example.com/image.jpg')
+/// ```
+///
+/// ## With Full Clipboard Support
+/// ```dart
+/// HyperImage(
+///   src: 'https://example.com/image.jpg',
+///   clipboardHandler: SuperClipboardHandler(), // from hyper_render_clipboard
+/// )
+/// ```
+class HyperImage extends StatelessWidget {
+  /// Image source URL
+  final String src;
+
+  /// Image width
+  final double? width;
+
+  /// Image height
+  final double? height;
+
+  /// Border radius
+  final double borderRadius;
+
+  /// Handler for clipboard operations (copy, save, share)
+  /// If not provided, uses [DefaultImageClipboardHandler] which only copies URLs.
+  final ImageClipboardHandler? clipboardHandler;
+
+  /// Callback for custom image actions (legacy, prefer clipboardHandler)
+  /// If not provided, uses clipboardHandler behavior
+  final ImageActionCallback? onImageAction;
+
+  /// Whether to show context menu on long press
+  final bool enableContextMenu;
+
+  const HyperImage({
+    super.key,
+    required this.src,
+    this.width,
+    this.height,
+    this.borderRadius = 8.0,
+    this.clipboardHandler,
+    this.onImageAction,
+    this.enableContextMenu = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final imageWidget = ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: Image.network(
+        src,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        cacheWidth: width != null ? (width! * 2).toInt() : null,
+        cacheHeight: height != null ? (height! * 2).toInt() : null,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            width: width ?? 100,
+            height: height ?? 100,
+            color: const Color(0xFFF5F5F5),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
+          );
+        },
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded) return child;
+          return AnimatedOpacity(
+            opacity: frame == null ? 0 : 1,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            child: child,
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: width ?? 100,
+            height: height ?? 100,
+            color: const Color(0xFFE0E0E0),
+            child: const Center(
+              child: Icon(Icons.broken_image, size: 32, color: Color(0xFF9E9E9E)),
+            ),
+          );
+        },
+      ),
+    );
+
+    if (!enableContextMenu) {
+      return imageWidget;
+    }
+
+    return GestureDetector(
+      onLongPressStart: (details) => _showContextMenu(context, details.globalPosition),
+      onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
+      child: imageWidget,
+    );
+  }
+
+  void _showContextMenu(BuildContext context, Offset position) {
+    final handler = clipboardHandler ?? const DefaultImageClipboardHandler();
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+
+    // Build menu items based on handler capabilities
+    final menuItems = <PopupMenuEntry<ImageAction>>[
+      const PopupMenuItem(
+        value: ImageAction.copyUrl,
+        child: Row(
+          children: [
+            Icon(Icons.link, size: 20),
+            SizedBox(width: 12),
+            Text('Copy URL'),
+          ],
+        ),
+      ),
+    ];
+
+    // Add "Copy Image" if supported
+    if (handler.isImageCopySupported) {
+      menuItems.add(const PopupMenuItem(
+        value: ImageAction.copyImage,
+        child: Row(
+          children: [
+            Icon(Icons.copy, size: 20),
+            SizedBox(width: 12),
+            Text('Copy Image'),
+          ],
+        ),
+      ));
+    }
+
+    // Add "Save Image" if supported
+    if (handler.isSaveSupported) {
+      menuItems.add(const PopupMenuItem(
+        value: ImageAction.saveImage,
+        child: Row(
+          children: [
+            Icon(Icons.download, size: 20),
+            SizedBox(width: 12),
+            Text('Save Image'),
+          ],
+        ),
+      ));
+    }
+
+    // Add "Share" if supported
+    if (handler.isShareSupported) {
+      menuItems.add(const PopupMenuItem(
+        value: ImageAction.shareImage,
+        child: Row(
+          children: [
+            Icon(Icons.share, size: 20),
+            SizedBox(width: 12),
+            Text('Share'),
+          ],
+        ),
+      ));
+    }
+
+    showMenu<ImageAction>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(position.dx, position.dy, 0, 0),
+        Offset.zero & overlay.size,
+      ),
+      items: menuItems,
+    ).then((action) async {
+      if (action == null) return;
+      if (!context.mounted) return;
+
+      // Try custom callback first (legacy support)
+      if (onImageAction != null) {
+        final handled = await onImageAction!(action, src, context);
+        if (handled) return;
+        if (!context.mounted) return;
+      }
+
+      // Use handler for actions
+      bool success = false;
+      String message = '';
+
+      switch (action) {
+        case ImageAction.copyUrl:
+          await Clipboard.setData(ClipboardData(text: src));
+          success = true;
+          message = 'Image URL copied to clipboard';
+          break;
+
+        case ImageAction.copyImage:
+          success = await handler.copyImageFromUrl(src);
+          message = success ? 'Image copied to clipboard' : 'Failed to copy image';
+          break;
+
+        case ImageAction.saveImage:
+          final path = await handler.saveImageFromUrl(src);
+          success = path != null;
+          message = success ? 'Image saved' : 'Failed to save image';
+          break;
+
+        case ImageAction.shareImage:
+          success = await handler.shareImageFromUrl(src);
+          message = success ? '' : 'Failed to share image'; // No message on share success
+          break;
+      }
+
+      if (context.mounted && message.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: const Duration(seconds: 2),
+            backgroundColor: success ? null : Colors.red,
+          ),
+        );
+      }
+    });
+  }
 }

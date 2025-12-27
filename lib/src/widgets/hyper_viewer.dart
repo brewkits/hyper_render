@@ -5,9 +5,12 @@ import '../interfaces/code_highlighter.dart';
 import '../interfaces/content_parser.dart';
 import '../model/node.dart';
 import '../parser/html/html_adapter.dart';
+import '../plugins/default_delta_parser.dart';
 import '../plugins/default_html_parser.dart';
+import '../plugins/default_markdown_parser.dart';
 import '../style/resolver.dart';
 import 'hyper_render_widget.dart';
+import 'hyper_selection_overlay.dart';
 
 /// Chế độ render
 enum HyperRenderMode {
@@ -19,8 +22,28 @@ enum HyperRenderMode {
   virtualized,
 }
 
+/// Content type for HyperViewer
+enum HyperContentType {
+  /// HTML content
+  html,
+  /// Quill Delta JSON
+  delta,
+  /// Markdown
+  markdown,
+}
+
 class HyperViewer extends StatefulWidget {
-  final String html;
+  /// The content to render
+  final String content;
+
+  /// Type of content (html, delta, markdown)
+  final HyperContentType contentType;
+
+  /// Legacy parameter - use [content] instead
+  /// Kept for backward compatibility
+  @Deprecated('Use content parameter instead')
+  String get html => content;
+
   final HyperRenderMode mode;
   final bool selectable;
   final Function(String)? onLinkTap;
@@ -37,33 +60,40 @@ class HyperViewer extends StatefulWidget {
   /// Maximum scale for zoom (default: 4.0)
   final double maxScale;
 
-  /// Custom content parser for parsing HTML/Markdown/etc.
-  /// If null, uses DefaultHtmlParser.
-  ///
-  /// Example with custom parser:
-  /// ```dart
-  /// HyperViewer(
-  ///   html: content,
-  ///   contentParser: MyCustomParser(),
-  /// )
-  /// ```
+  /// Custom content parser for parsing content.
+  /// If null, uses default parser based on [contentType].
   final ContentParser? contentParser;
 
   /// Custom code highlighter for syntax highlighting in code blocks.
   /// If null, uses DefaultCodeHighlighter (requires flutter_highlight).
-  ///
-  /// Example with custom highlighter:
-  /// ```dart
-  /// HyperViewer(
-  ///   html: content,
-  ///   codeHighlighter: PlainTextHighlighter(), // No syntax highlighting
-  /// )
-  /// ```
   final CodeHighlighter? codeHighlighter;
 
+  /// Show selection popup menu when text is selected.
+  /// If true (default when selectable), shows Copy/Select All menu on selection.
+  /// Set to false to disable the popup menu but keep selection enabled.
+  final bool showSelectionMenu;
+
+  /// Color of selection handles (default: blue)
+  final Color selectionHandleColor;
+
+  /// Custom menu actions builder for the selection popup.
+  /// If null, uses default Copy and Select All actions.
+  final List<SelectionMenuAction> Function(HyperSelectionOverlayState)?
+      selectionMenuActionsBuilder;
+
+  /// Custom context menu builder for full customization.
+  /// If provided, overrides the default menu completely.
+  final Widget Function(BuildContext, HyperSelectionOverlayState)?
+      selectionContextMenuBuilder;
+
+  /// Creates a HyperViewer for HTML content (default)
+  ///
+  /// ```dart
+  /// HyperViewer(html: '<p>Hello World</p>')
+  /// ```
   const HyperViewer({
     super.key,
-    required this.html,
+    required String html,
     this.mode = HyperRenderMode.auto,
     this.selectable = true,
     this.onLinkTap,
@@ -74,7 +104,66 @@ class HyperViewer extends StatefulWidget {
     this.maxScale = 4.0,
     this.contentParser,
     this.codeHighlighter,
-  });
+    this.showSelectionMenu = true,
+    this.selectionHandleColor = const Color(0xFF2196F3),
+    this.selectionMenuActionsBuilder,
+    this.selectionContextMenuBuilder,
+  })  : content = html,
+        contentType = HyperContentType.html;
+
+  /// Creates a HyperViewer for Quill Delta JSON content
+  ///
+  /// ```dart
+  /// HyperViewer.delta(
+  ///   delta: '{"ops":[{"insert":"Hello World\\n"}]}',
+  /// )
+  /// ```
+  const HyperViewer.delta({
+    super.key,
+    required String delta,
+    this.mode = HyperRenderMode.auto,
+    this.selectable = true,
+    this.onLinkTap,
+    this.widgetBuilder,
+    this.placeholderBuilder,
+    this.enableZoom = false,
+    this.minScale = 0.5,
+    this.maxScale = 4.0,
+    this.contentParser,
+    this.codeHighlighter,
+    this.showSelectionMenu = true,
+    this.selectionHandleColor = const Color(0xFF2196F3),
+    this.selectionMenuActionsBuilder,
+    this.selectionContextMenuBuilder,
+  })  : content = delta,
+        contentType = HyperContentType.delta;
+
+  /// Creates a HyperViewer for Markdown content
+  ///
+  /// ```dart
+  /// HyperViewer.markdown(
+  ///   markdown: '# Hello World\n\nThis is **bold** text.',
+  /// )
+  /// ```
+  const HyperViewer.markdown({
+    super.key,
+    required String markdown,
+    this.mode = HyperRenderMode.auto,
+    this.selectable = true,
+    this.onLinkTap,
+    this.widgetBuilder,
+    this.placeholderBuilder,
+    this.enableZoom = false,
+    this.minScale = 0.5,
+    this.maxScale = 4.0,
+    this.contentParser,
+    this.codeHighlighter,
+    this.showSelectionMenu = true,
+    this.selectionHandleColor = const Color(0xFF2196F3),
+    this.selectionMenuActionsBuilder,
+    this.selectionContextMenuBuilder,
+  })  : content = markdown,
+        contentType = HyperContentType.markdown;
 
   @override
   State<HyperViewer> createState() => _HyperViewerState();
@@ -97,42 +186,68 @@ class _HyperViewerState extends State<HyperViewer> {
   @override
   void didUpdateWidget(covariant HyperViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.html != widget.html || oldWidget.mode != widget.mode) {
+    if (oldWidget.content != widget.content ||
+        oldWidget.contentType != widget.contentType ||
+        oldWidget.mode != widget.mode) {
       _parseContent();
+    }
+  }
+
+  /// Get the appropriate parser based on content type
+  ContentParser _getDefaultParser() {
+    if (widget.contentParser != null) {
+      return widget.contentParser!;
+    }
+
+    switch (widget.contentType) {
+      case HyperContentType.html:
+        return DefaultHtmlParser();
+      case HyperContentType.delta:
+        return const DefaultDeltaParser();
+      case HyperContentType.markdown:
+        return DefaultMarkdownParser();
     }
   }
 
   void _parseContent() {
     final useVirtualization = widget.mode == HyperRenderMode.virtualized ||
-        (widget.mode == HyperRenderMode.auto && widget.html.length > 10000); // Ngưỡng 10k ký tự
+        (widget.mode == HyperRenderMode.auto && widget.content.length > 10000);
 
-    // Use custom parser if provided, otherwise use default HTML parser
-    final parser = widget.contentParser ?? DefaultHtmlParser();
+    final parser = _getDefaultParser();
 
     if (!useVirtualization) {
       // 1. Sync Parsing (Fast path for small content)
       setState(() {
-        _syncDocument = parser.parse(widget.html);
+        _syncDocument = parser.parse(widget.content);
         StyleResolver().resolveStyles(_syncDocument!);
         _sections = null;
         _isLoading = false;
       });
     } else {
       // 2. Async Parsing (Isolate path for large content)
-      // Note: Custom parser cannot be passed to isolate, so we use default
-      // HtmlAdapter for virtualized mode. This is a trade-off for performance.
-      setState(() => _isLoading = true);
+      // Note: For virtualized mode, we only support HTML currently
+      // Delta and Markdown are parsed synchronously
+      if (widget.contentType == HyperContentType.html) {
+        setState(() => _isLoading = true);
 
-      // Sử dụng compute để đẩy việc nặng sang thread khác
-      compute(_parseAndChunk, widget.html).then((sections) {
-        if (mounted) {
-          setState(() {
-            _sections = sections;
-            _syncDocument = null;
-            _isLoading = false;
-          });
-        }
-      });
+        compute(_parseAndChunk, widget.content).then((sections) {
+          if (mounted) {
+            setState(() {
+              _sections = sections;
+              _syncDocument = null;
+              _isLoading = false;
+            });
+          }
+        });
+      } else {
+        // Fallback to sync parsing for Delta/Markdown
+        setState(() {
+          _syncDocument = parser.parse(widget.content);
+          StyleResolver().resolveStyles(_syncDocument!);
+          _sections = null;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -189,12 +304,30 @@ class _HyperViewerState extends State<HyperViewer> {
 
     // Case 2: Single Widget (cho văn bản ngắn)
     if (_syncDocument != null) {
-      final content = HyperRenderWidget(
-        document: _syncDocument!,
-        selectable: widget.selectable,
-        onLinkTap: widget.onLinkTap,
-        widgetBuilder: widget.widgetBuilder,
-      );
+      Widget content;
+
+      // Use HyperSelectionOverlay for full selection UX with popup menu
+      if (widget.selectable && widget.showSelectionMenu) {
+        content = HyperSelectionOverlay(
+          document: _syncDocument!,
+          selectable: true,
+          onLinkTap: widget.onLinkTap,
+          widgetBuilder: widget.widgetBuilder,
+          handleColor: widget.selectionHandleColor,
+          menuActionsBuilder: widget.selectionMenuActionsBuilder,
+          contextMenuBuilder: widget.selectionContextMenuBuilder,
+          showHandles: true,
+          autoShowMenu: true,
+        );
+      } else {
+        // Use HyperRenderWidget directly (no popup menu)
+        content = HyperRenderWidget(
+          document: _syncDocument!,
+          selectable: widget.selectable,
+          onLinkTap: widget.onLinkTap,
+          widgetBuilder: widget.widgetBuilder,
+        );
+      }
 
       // Wrap with zoom if enabled (only for sync mode)
       if (widget.enableZoom) {

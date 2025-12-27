@@ -190,6 +190,30 @@ class DemoHomePage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          _buildSectionHeader(context, 'Input Formats'),
+          _buildDemoCard(
+            context,
+            icon: Icons.data_object,
+            title: 'Quill Delta',
+            subtitle: 'Render Quill Delta JSON format (from Quill.js editor)',
+            color: Colors.amber,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const QuillDeltaDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.text_snippet,
+            title: 'Markdown',
+            subtitle: 'Render Markdown content',
+            color: Colors.blueGrey,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MarkdownDemo()),
+            ),
+          ),
+          const SizedBox(height: 16),
           _buildSectionHeader(context, 'Comparison & Stress Test'),
           _buildDemoCard(
             context,
@@ -2226,5 +2250,520 @@ class _StressTestDemoState extends State<StressTestDemo> {
       default:
         return const Center(child: Text('Unknown library'));
     }
+  }
+}
+
+// =============================================================================
+// QUILL DELTA DEMO
+// =============================================================================
+
+class QuillDeltaDemo extends StatelessWidget {
+  const QuillDeltaDemo({super.key});
+
+  /// Sample Quill Delta JSON demonstrating various features
+  static const deltaJson = '''
+{
+  "ops": [
+    { "insert": "Building a Real-time Chat App with Flutter\\n", "attributes": { "header": 1 } },
+    { "insert": "A comprehensive guide to implementing WebSocket-based messaging\\n", "attributes": { "color": "#666666", "italic": true } },
+    { "insert": "\\n" },
+
+    { "insert": "Introduction\\n", "attributes": { "header": 2 } },
+    { "insert": "In this tutorial, we'll build a " },
+    { "insert": "production-ready", "attributes": { "bold": true, "color": "#E91E63" } },
+    { "insert": " chat application using " },
+    { "insert": "Flutter", "attributes": { "bold": true, "color": "#02569B" } },
+    { "insert": " and " },
+    { "insert": "WebSockets", "attributes": { "bold": true, "color": "#FF6F00" } },
+    { "insert": ". This is the same architecture used by apps like " },
+    { "insert": "Slack", "attributes": { "italic": true, "link": "https://slack.com" } },
+    { "insert": ", " },
+    { "insert": "Discord", "attributes": { "italic": true, "link": "https://discord.com" } },
+    { "insert": ", and " },
+    { "insert": "WhatsApp", "attributes": { "italic": true, "link": "https://whatsapp.com" } },
+    { "insert": ".\\n\\n" },
+
+    { "insert": "Prerequisites\\n", "attributes": { "header": 2 } },
+    { "insert": "Flutter SDK 3.0+", "attributes": { "bold": true } },
+    { "insert": " - Latest stable version recommended" },
+    { "insert": "\\n", "attributes": { "list": "bullet" } },
+    { "insert": "Dart 3.0+", "attributes": { "bold": true } },
+    { "insert": " - With null safety enabled" },
+    { "insert": "\\n", "attributes": { "list": "bullet" } },
+    { "insert": "Basic knowledge of ", "attributes": {} },
+    { "insert": "async/await", "attributes": { "background": "#FFF3E0", "color": "#E65100" } },
+    { "insert": " patterns" },
+    { "insert": "\\n", "attributes": { "list": "bullet" } },
+    { "insert": "Familiarity with ", "attributes": {} },
+    { "insert": "Provider", "attributes": { "background": "#E3F2FD", "color": "#1565C0" } },
+    { "insert": " or " },
+    { "insert": "Riverpod", "attributes": { "background": "#E8F5E9", "color": "#2E7D32" } },
+    { "insert": " state management" },
+    { "insert": "\\n", "attributes": { "list": "bullet" } },
+    { "insert": "\\n" },
+
+    { "insert": "Key Features We'll Implement\\n", "attributes": { "header": 2 } },
+    { "insert": "Real-time messaging with WebSocket", "attributes": {} },
+    { "insert": "\\n", "attributes": { "list": "ordered" } },
+    { "insert": "Message persistence with SQLite", "attributes": {} },
+    { "insert": "\\n", "attributes": { "list": "ordered" } },
+    { "insert": "Push notifications (FCM)", "attributes": {} },
+    { "insert": "\\n", "attributes": { "list": "ordered" } },
+    { "insert": "Typing indicators & read receipts", "attributes": {} },
+    { "insert": "\\n", "attributes": { "list": "ordered" } },
+    { "insert": "Image & file sharing", "attributes": {} },
+    { "insert": "\\n", "attributes": { "list": "ordered" } },
+    { "insert": "End-to-end encryption ", "attributes": {} },
+    { "insert": "(E2EE)", "attributes": { "bold": true, "color": "#D32F2F" } },
+    { "insert": "\\n", "attributes": { "list": "ordered" } },
+    { "insert": "\\n" },
+
+    { "insert": "The beauty of simplicity is that it allows complexity to emerge naturally.\\n", "attributes": {} },
+    { "insert": "— John Maeda, The Laws of Simplicity", "attributes": { "italic": true } },
+    { "insert": "\\n", "attributes": { "blockquote": true } },
+    { "insert": "\\n" },
+
+    { "insert": "Architecture Overview\\n", "attributes": { "header": 2 } },
+    { "insert": "Our app follows the ", "attributes": {} },
+    { "insert": "Clean Architecture", "attributes": { "bold": true } },
+    { "insert": " pattern with three main layers:\\n\\n" },
+
+    { "insert": "Presentation Layer", "attributes": { "header": 3 } },
+    { "insert": "\\nWidgets, Pages, and State Management. Uses " },
+    { "insert": "BLoC pattern", "attributes": { "background": "#FCE4EC", "color": "#C2185B" } },
+    { "insert": " for reactive UI updates.\\n\\n" },
+
+    { "insert": "Domain Layer", "attributes": { "header": 3 } },
+    { "insert": "\\nBusiness logic, Use Cases, and Entities. " },
+    { "insert": "Framework-independent", "attributes": { "underline": true } },
+    { "insert": " - can be tested without Flutter.\\n\\n" },
+
+    { "insert": "Data Layer", "attributes": { "header": 3 } },
+    { "insert": "\\nRepositories, Data Sources, and Models. Handles " },
+    { "insert": "API calls", "attributes": { "italic": true } },
+    { "insert": ", " },
+    { "insert": "caching", "attributes": { "italic": true } },
+    { "insert": ", and " },
+    { "insert": "local storage", "attributes": { "italic": true } },
+    { "insert": ".\\n\\n" },
+
+    { "insert": "Core Implementation\\n", "attributes": { "header": 2 } },
+    { "insert": "Here's our WebSocket service implementation:\\n\\n" },
+    { "insert": "class ChatWebSocket {\\n  late WebSocketChannel _channel;\\n  final _messageController = StreamController<Message>.broadcast();\\n  \\n  Stream<Message> get messages => _messageController.stream;\\n  \\n  Future<void> connect(String url, String token) async {\\n    _channel = WebSocketChannel.connect(\\n      Uri.parse(url),\\n      protocols: ['chat-protocol'],\\n    );\\n    \\n    // Authenticate\\n    _channel.sink.add(jsonEncode({'type': 'auth', 'token': token}));\\n    \\n    // Listen for messages\\n    _channel.stream.listen(\\n      (data) => _handleMessage(jsonDecode(data)),\\n      onError: (e) => _handleError(e),\\n      onDone: () => _handleDisconnect(),\\n    );\\n  }\\n  \\n  void sendMessage(String roomId, String content) {\\n    _channel.sink.add(jsonEncode({\\n      'type': 'message',\\n      'roomId': roomId,\\n      'content': content,\\n      'timestamp': DateTime.now().toIso8601String(),\\n    }));\\n  }\\n}" },
+    { "insert": "\\n", "attributes": { "code-block": "dart" } },
+    { "insert": "\\n" },
+
+    { "insert": "Performance Metrics\\n", "attributes": { "header": 2 } },
+    { "insert": "Our implementation achieves impressive benchmarks:\\n\\n" },
+
+    { "insert": "Message Latency", "attributes": { "bold": true } },
+    { "insert": "\\n" },
+    { "insert": "< 50ms", "attributes": { "size": "large", "color": "#4CAF50", "bold": true } },
+    { "insert": " average round-trip time" },
+    { "insert": "\\n", "attributes": { "align": "center" } },
+    { "insert": "\\n" },
+
+    { "insert": "Memory Usage", "attributes": { "bold": true } },
+    { "insert": "\\n" },
+    { "insert": "~15MB", "attributes": { "size": "large", "color": "#2196F3", "bold": true } },
+    { "insert": " with 10,000 cached messages" },
+    { "insert": "\\n", "attributes": { "align": "center" } },
+    { "insert": "\\n" },
+
+    { "insert": "Battery Impact", "attributes": { "bold": true } },
+    { "insert": "\\n" },
+    { "insert": "< 2%", "attributes": { "size": "large", "color": "#FF9800", "bold": true } },
+    { "insert": " per hour of active use" },
+    { "insert": "\\n", "attributes": { "align": "center" } },
+    { "insert": "\\n\\n" },
+
+    { "insert": "Important Security Note\\n", "attributes": { "header": 2 } },
+    { "insert": "Never store API keys or tokens in client-side code!", "attributes": { "bold": true, "color": "#D32F2F" } },
+    { "insert": " Use secure token exchange via your backend server. All sensitive operations should be validated server-side." },
+    { "insert": "\\n", "attributes": { "blockquote": true } },
+    { "insert": "\\n" },
+
+    { "insert": { "image": "https://picsum.photos/600/300" } },
+    { "insert": "\\n" },
+    { "insert": "Figure 1: App architecture diagram showing data flow between layers", "attributes": { "italic": true, "color": "#666666", "size": "small" } },
+    { "insert": "\\n", "attributes": { "align": "center" } },
+    { "insert": "\\n\\n" },
+
+    { "insert": "What's Next?\\n", "attributes": { "header": 2 } },
+    { "insert": "In " },
+    { "insert": "Part 2", "attributes": { "bold": true, "link": "#part2" } },
+    { "insert": ", we'll implement:\\n" },
+    { "insert": "Message encryption with ", "attributes": {} },
+    { "insert": "libsodium", "attributes": { "background": "#FFEBEE", "color": "#B71C1C" } },
+    { "insert": "\\n", "attributes": { "list": "bullet" } },
+    { "insert": "Offline-first sync with ", "attributes": {} },
+    { "insert": "Drift", "attributes": { "background": "#E8EAF6", "color": "#283593" } },
+    { "insert": "\\n", "attributes": { "list": "bullet" } },
+    { "insert": "Push notifications via ", "attributes": {} },
+    { "insert": "Firebase Cloud Messaging", "attributes": { "background": "#FFF8E1", "color": "#FF6F00" } },
+    { "insert": "\\n", "attributes": { "list": "bullet" } },
+    { "insert": "\\n\\n" },
+
+    { "insert": "This Delta content was rendered with ", "attributes": { "color": "#666666" } },
+    { "insert": "HyperRender", "attributes": { "bold": true, "color": "#6200EE" } },
+    { "insert": " - demonstrating full Quill.js compatibility!", "attributes": { "color": "#666666" } },
+    { "insert": "\\n" }
+  ]
+}
+''';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Quill Delta Demo'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.code),
+            tooltip: 'View Delta JSON',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Delta JSON'),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    height: 400,
+                    child: SingleChildScrollView(
+                      child: SelectableText(
+                        deltaJson,
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: HyperViewer.delta(
+            delta: deltaJson,
+            selectable: true,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// MARKDOWN DEMO
+// =============================================================================
+
+class MarkdownDemo extends StatelessWidget {
+  const MarkdownDemo({super.key});
+
+  static const markdown = '''
+# Flutter State Management: A Complete Guide
+
+> **Last updated:** December 2024 | **Reading time:** 12 min | **Level:** Intermediate
+
+State management is one of the most discussed topics in Flutter development. This guide covers everything from basic concepts to advanced patterns used in production apps.
+
+---
+
+## Table of Contents
+
+1. [Understanding State](#understanding-state)
+2. [Built-in Solutions](#built-in-solutions)
+3. [Popular Libraries](#popular-libraries)
+4. [Comparison & Benchmarks](#comparison)
+5. [Best Practices](#best-practices)
+
+---
+
+## Understanding State
+
+In Flutter, **state** refers to any data that can change over time and affects what the UI displays. There are two types:
+
+### Ephemeral State
+- *Local* to a single widget
+- Examples: current page in PageView, animation progress
+- Solution: `StatefulWidget` + `setState()`
+
+### App State
+- *Shared* across multiple widgets
+- Examples: user authentication, shopping cart, preferences
+- Solution: State management libraries
+
+> 💡 **Rule of thumb:** If you need to access the same state from multiple places in your widget tree, it's probably app state.
+
+---
+
+## Built-in Solutions
+
+### InheritedWidget
+
+The foundation of Flutter's reactivity system:
+
+```dart
+class AppState extends InheritedWidget {
+  final int counter;
+  final VoidCallback increment;
+
+  const AppState({
+    required this.counter,
+    required this.increment,
+    required Widget child,
+  }) : super(child: child);
+
+  static AppState of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<AppState>()!;
+  }
+
+  @override
+  bool updateShouldNotify(AppState oldWidget) {
+    return counter != oldWidget.counter;
+  }
+}
+```
+
+### ValueNotifier + ValueListenableBuilder
+
+Great for simple reactive values:
+
+```dart
+final counter = ValueNotifier<int>(0);
+
+ValueListenableBuilder<int>(
+  valueListenable: counter,
+  builder: (context, value, child) {
+    return Text('Count: \$value');
+  },
+)
+```
+
+---
+
+## Popular Libraries
+
+### Provider / Riverpod
+
+The **recommended** solution by the Flutter team:
+
+| Feature | Provider | Riverpod |
+|---------|----------|----------|
+| Compile-time safety | ❌ | ✅ |
+| No BuildContext needed | ❌ | ✅ |
+| Auto-dispose | Manual | ✅ |
+| Testing | Good | Excellent |
+| Learning curve | Low | Medium |
+
+```dart
+// Riverpod example
+final counterProvider = StateProvider<int>((ref) => 0);
+
+class CounterWidget extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(counterProvider);
+    return Text('Count: \$count');
+  }
+}
+```
+
+### BLoC / Cubit
+
+**Business Logic Component** - great for complex apps:
+
+```dart
+class CounterCubit extends Cubit<int> {
+  CounterCubit() : super(0);
+
+  void increment() => emit(state + 1);
+  void decrement() => emit(state - 1);
+  void reset() => emit(0);
+}
+
+// In widget
+BlocBuilder<CounterCubit, int>(
+  builder: (context, count) {
+    return Text('Count: \$count');
+  },
+)
+```
+
+### GetX
+
+Minimalist approach with maximum features:
+
+```dart
+class Controller extends GetxController {
+  var count = 0.obs;
+  void increment() => count++;
+}
+
+// In widget - no builder needed!
+Obx(() => Text('Count: \${controller.count}'))
+```
+
+---
+
+## Performance Benchmarks
+
+We tested each solution with 10,000 state updates:
+
+| Library | Avg. Rebuild Time | Memory | Bundle Size |
+|---------|-------------------|--------|-------------|
+| setState | 0.8ms | Low | 0 KB |
+| Provider | 1.2ms | Low | +12 KB |
+| Riverpod | 1.1ms | Low | +45 KB |
+| BLoC | 1.5ms | Medium | +89 KB |
+| GetX | 0.9ms | Medium | +120 KB |
+| MobX | 1.8ms | High | +200 KB |
+
+> ⚠️ **Note:** These benchmarks are synthetic. Real-world performance depends on your specific use case.
+
+---
+
+## Best Practices
+
+### ✅ Do
+
+- **Keep state minimal** - Only store what you need
+- **Separate concerns** - UI state vs business logic
+- **Use selectors** - Rebuild only what changed
+- **Test your state** - Unit test state logic separately
+
+### ❌ Don't
+
+- ~~Put everything in global state~~
+- ~~Mix UI logic with business logic~~
+- ~~Ignore memory leaks~~ (dispose your controllers!)
+- ~~Over-engineer simple apps~~
+
+---
+
+## Decision Flowchart
+
+```
+Is state used by single widget?
+├─ YES → setState() or ValueNotifier
+└─ NO → Is it a simple app?
+        ├─ YES → Provider
+        └─ NO → Do you need strong typing?
+                ├─ YES → Riverpod or BLoC
+                └─ NO → GetX (if you prefer simplicity)
+```
+
+---
+
+## Real-world Example
+
+Here's how **Instagram-like** feed would be structured with Riverpod:
+
+```dart
+// Providers
+final feedProvider = FutureProvider<List<Post>>((ref) async {
+  final api = ref.read(apiProvider);
+  return api.fetchFeed();
+});
+
+final likedPostsProvider = StateProvider<Set<String>>((ref) => {});
+
+// Derived state
+final isLikedProvider = Provider.family<bool, String>((ref, postId) {
+  final likedPosts = ref.watch(likedPostsProvider);
+  return likedPosts.contains(postId);
+});
+
+// Widget
+class FeedScreen extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final feedAsync = ref.watch(feedProvider);
+
+    return feedAsync.when(
+      data: (posts) => ListView.builder(
+        itemCount: posts.length,
+        itemBuilder: (_, i) => PostCard(post: posts[i]),
+      ),
+      loading: () => const ShimmerList(),
+      error: (e, _) => ErrorWidget(message: e.toString()),
+    );
+  }
+}
+```
+
+---
+
+## Additional Resources
+
+- 📚 [Official Flutter Docs](https://flutter.dev/docs/development/data-and-backend/state-mgmt)
+- 🎥 [Flutter State Management - Video Course](https://example.com)
+- 💬 [Flutter Community Discord](https://discord.gg/flutter)
+- 📦 [Awesome Flutter](https://github.com/Solido/awesome-flutter)
+
+---
+
+![Architecture Diagram](https://picsum.photos/600/350)
+*Figure: Clean Architecture with State Management layers*
+
+---
+
+*This Markdown content was rendered with* ***HyperRender*** *- demonstrating full GitHub Flavored Markdown support including tables, code blocks, task lists, and more!*
+''';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Markdown Demo'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.code),
+            tooltip: 'View Markdown Source',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Markdown Source'),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    height: 400,
+                    child: SingleChildScrollView(
+                      child: SelectableText(
+                        markdown,
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: HyperViewer.markdown(
+            markdown: markdown,
+            selectable: true,
+          ),
+        ),
+      ),
+    );
   }
 }
