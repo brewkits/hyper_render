@@ -61,7 +61,8 @@ library;
 // Public API - Widgets
 // ============================================
 
-export 'src/widgets/hyper_viewer.dart' show HyperViewer, HyperRenderMode;
+export 'src/widgets/hyper_viewer.dart'
+    show HyperViewer, HyperRenderMode, HyperContentType;
 
 // ============================================
 // Public API - Models
@@ -137,13 +138,15 @@ export 'src/core/image_provider.dart'
         CachedImage,
         defaultImageLoader;
 
-export 'src/widgets/hyper_render_widget.dart' show HyperRenderWidget;
+export 'src/widgets/hyper_render_widget.dart'
+    show HyperRenderWidget, HyperImage, ImageAction, ImageActionCallback;
 
 export 'src/widgets/hyper_selection_overlay.dart'
     show
         HyperSelectionOverlay,
         HyperSelectionOverlayState,
-        HyperRenderWidgetSelectionExtension;
+        HyperRenderWidgetSelectionExtension,
+        SelectionMenuAction;
 
 export 'src/core/span_converter.dart'
     show HtmlToSpanConverter, LinkTapCallback, ImageBuilder;
@@ -190,6 +193,9 @@ export 'src/interfaces/css_parser.dart'
 export 'src/interfaces/code_highlighter.dart'
     show CodeHighlighter, PlainTextHighlighter;
 
+export 'src/interfaces/image_clipboard.dart'
+    show ImageClipboardHandler, DefaultImageClipboardHandler, ImageOperationResult;
+
 // ============================================
 // Public API - Default Plugin Implementations
 // ============================================
@@ -197,6 +203,8 @@ export 'src/interfaces/code_highlighter.dart'
 export 'src/plugins/default_html_parser.dart' show DefaultHtmlParser;
 
 export 'src/plugins/default_markdown_parser.dart' show DefaultMarkdownParser;
+
+export 'src/plugins/default_delta_parser.dart' show DefaultDeltaParser;
 
 export 'src/plugins/default_css_parser.dart' show DefaultCssParser;
 

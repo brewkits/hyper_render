@@ -1,5 +1,4 @@
 import 'package:flutter/painting.dart';
-import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/vs2015.dart';
 import 'package:flutter_highlight/themes/atom-one-dark.dart';
 import 'package:flutter_highlight/themes/atom-one-light.dart';

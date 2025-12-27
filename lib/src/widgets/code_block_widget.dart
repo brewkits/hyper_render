@@ -147,16 +147,29 @@ class CodeBlockWidget extends StatelessWidget {
       return _buildWithLineNumbers(cleanCode, themeMap);
     }
 
+    final codeStyle = textStyle ??
+        const TextStyle(
+          fontFamily: 'monospace',
+          fontSize: 13,
+          height: 1.5,
+        );
+
+    // If no language specified, render as plain text without highlighting
+    if (language == null || language!.isEmpty) {
+      final rootStyle = themeMap['root'];
+      return Text(
+        cleanCode,
+        style: codeStyle.copyWith(
+          color: rootStyle?.color ?? Colors.white,
+        ),
+      );
+    }
+
     return HighlightView(
       cleanCode,
-      language: language,
+      language: language!,
       theme: themeMap,
-      textStyle: textStyle ??
-          const TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 13,
-            height: 1.5,
-          ),
+      textStyle: codeStyle,
     );
   }
 
@@ -165,6 +178,32 @@ class CodeBlockWidget extends StatelessWidget {
     final lines = cleanCode.split('\n');
     final lineCount = lines.length;
     final lineNumberWidth = lineCount.toString().length * 10.0 + 24;
+
+    final codeStyle = textStyle ??
+        const TextStyle(
+          fontFamily: 'monospace',
+          fontSize: 13,
+          height: 1.5,
+        );
+
+    // Build code widget - plain text if no language, otherwise highlighted
+    Widget codeWidget;
+    if (language == null || language!.isEmpty) {
+      final rootStyle = themeMap['root'];
+      codeWidget = Text(
+        cleanCode,
+        style: codeStyle.copyWith(
+          color: rootStyle?.color ?? Colors.white,
+        ),
+      );
+    } else {
+      codeWidget = HighlightView(
+        cleanCode,
+        language: language!,
+        theme: themeMap,
+        textStyle: codeStyle,
+      );
+    }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,17 +240,7 @@ class CodeBlockWidget extends StatelessWidget {
         const SizedBox(width: 16),
 
         // Code
-        HighlightView(
-          cleanCode,
-          language: language,
-          theme: themeMap,
-          textStyle: textStyle ??
-              const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 13,
-                height: 1.5,
-              ),
-        ),
+        codeWidget,
       ],
     );
   }
