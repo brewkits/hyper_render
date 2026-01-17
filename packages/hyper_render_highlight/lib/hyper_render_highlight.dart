@@ -1,44 +1,44 @@
-/// HyperRender Highlight Plugin (PAID)
+/// HyperRender Highlight - Syntax Highlighting Plugin
 ///
-/// Provides syntax highlighting for code blocks with support for 180+ languages.
+/// This package provides syntax highlighting for HyperRender using
+/// the flutter_highlight package. It supports 180+ programming languages
+/// with multiple color themes.
 ///
-/// This is a PAID plugin. Contact sales@hyperrender.dev for licensing.
-///
-/// ## Installation
-///
-/// ```yaml
-/// dependencies:
-///   hyper_render_core: ^2.0.0
-///   hyper_render_html: ^2.0.0
-///   hyper_render_highlight: ^2.0.0  # Requires license
-/// ```
+/// ## Features
+/// - 180+ programming language support via highlight.js
+/// - Multiple built-in themes (VS2015, Atom One Dark, GitHub, Dracula, etc.)
+/// - Auto-detection of language when not specified
+/// - Seamless integration with HyperRender
 ///
 /// ## Usage
-///
 /// ```dart
-/// import 'package:hyper_render_core/hyper_render_core.dart';
-/// import 'package:hyper_render_html/hyper_render_html.dart';
 /// import 'package:hyper_render_highlight/hyper_render_highlight.dart';
 ///
-/// HyperViewer(
-///   html: '<pre><code class="language-dart">void main() {}</code></pre>',
-///   contentParser: HtmlContentParser(),
-///   codeHighlighter: FlutterCodeHighlighter(
-///     theme: HighlightTheme.vs2015,
-///   ),
+/// // Create a highlighter with your preferred theme
+/// final highlighter = FlutterHighlightCodeHighlighter(
+///   theme: HighlightTheme.dracula,
+/// );
+///
+/// // Use with HyperRenderWidget
+/// HyperRenderWidget(
+///   document: document,
+///   codeHighlighter: highlighter,
 /// )
 /// ```
 ///
-/// ## Features
-///
-/// - 180+ programming languages supported
-/// - 6 color themes (VS2015, Atom One Dark, GitHub, Monokai, etc.)
-/// - Automatic language detection
-/// - Line numbers and copy button
+/// ## Available Themes
+/// - [HighlightTheme.vs2015] - Visual Studio 2015 dark theme (default)
+/// - [HighlightTheme.atomOneDark] - Atom One Dark theme
+/// - [HighlightTheme.atomOneLight] - Atom One Light theme
+/// - [HighlightTheme.github] - GitHub light theme
+/// - [HighlightTheme.monokaiSublime] - Monokai Sublime theme
+/// - [HighlightTheme.dracula] - Dracula dark theme
 library;
 
-// NOTE: This is a STUB package showing the intended structure.
-// In a full implementation:
+// Export the highlighter implementation
+export 'src/code_highlighter.dart'
+    show FlutterHighlightCodeHighlighter, HighlightTheme;
 
-// export 'src/flutter_code_highlighter.dart';
-// export 'src/highlight_theme.dart';
+// Re-export CodeHighlighter interface from core for convenience
+export 'package:hyper_render_core/hyper_render_core.dart'
+    show CodeHighlighter, PlainTextHighlighter;

@@ -272,9 +272,22 @@ class _HyperViewerState extends State<HyperViewer> {
 
   @override
   Widget build(BuildContext context) {
+    // Use AnimatedSwitcher for smooth transitions between loading and content
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     if (_isLoading) {
-      return widget.placeholderBuilder?.call(context) ??
-          const Center(child: CircularProgressIndicator());
+      return KeyedSubtree(
+        key: const ValueKey('loading'),
+        child: widget.placeholderBuilder?.call(context) ??
+            const Center(child: CircularProgressIndicator()),
+      );
     }
 
     // Case 1: Virtualized List (cho văn bản dài)
@@ -283,22 +296,25 @@ class _HyperViewerState extends State<HyperViewer> {
     // 2. Unbounded constraints issues
     // 3. Performance considerations with large documents
     if (_sections != null) {
-      return ListView.builder(
-        // Increased cacheExtent to 1500 for smoother scrolling with large documents:
-        // - Pre-renders ~1-2 screens ahead/behind
-        // - Reduces visible lag during fast scrolling
-        // - Trade-off: slightly higher memory usage
-        cacheExtent: 1500,
-        physics: const BouncingScrollPhysics(),
-        itemCount: _sections!.length,
-        itemBuilder: (context, index) {
-          return HyperRenderWidget(
-            document: _sections![index],
-            selectable: widget.selectable,
-            onLinkTap: widget.onLinkTap,
-            widgetBuilder: widget.widgetBuilder,
-          );
-        },
+      return KeyedSubtree(
+        key: const ValueKey('virtualized'),
+        child: ListView.builder(
+          // Increased cacheExtent to 1500 for smoother scrolling with large documents:
+          // - Pre-renders ~1-2 screens ahead/behind
+          // - Reduces visible lag during fast scrolling
+          // - Trade-off: slightly higher memory usage
+          cacheExtent: 1500,
+          physics: const BouncingScrollPhysics(),
+          itemCount: _sections!.length,
+          itemBuilder: (context, index) {
+            return HyperRenderWidget(
+              document: _sections![index],
+              selectable: widget.selectable,
+              onLinkTap: widget.onLinkTap,
+              widgetBuilder: widget.widgetBuilder,
+            );
+          },
+        ),
       );
     }
 
@@ -331,21 +347,27 @@ class _HyperViewerState extends State<HyperViewer> {
 
       // Wrap with zoom if enabled (only for sync mode)
       if (widget.enableZoom) {
-        return InteractiveViewer(
-          minScale: widget.minScale,
-          maxScale: widget.maxScale,
-          boundaryMargin: const EdgeInsets.all(20),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: content,
+        return KeyedSubtree(
+          key: const ValueKey('sync-zoom'),
+          child: InteractiveViewer(
+            minScale: widget.minScale,
+            maxScale: widget.maxScale,
+            boundaryMargin: const EdgeInsets.all(20),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: content,
+            ),
           ),
         );
       }
 
       // No zoom - standard scroll view
-      return SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: content,
+      return KeyedSubtree(
+        key: const ValueKey('sync'),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: content,
+        ),
       );
     }
 

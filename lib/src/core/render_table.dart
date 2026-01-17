@@ -24,6 +24,10 @@ enum TableStrategy {
 /// 2. Auto-scaling to fit while preserving proportions
 /// 3. Enabling horizontal scroll for very wide tables
 ///
+/// The wrapper automatically detects when a table would be too compressed
+/// (columns narrower than [minColumnWidth]) and switches to horizontal scroll
+/// to prevent unreadable text.
+///
 /// Reference: doc3.md - "Requirement 2: Table Horizontal Scroll & Auto Scale"
 class SmartTableWrapper extends StatelessWidget {
   /// The table node to render
@@ -32,8 +36,15 @@ class SmartTableWrapper extends StatelessWidget {
   /// Strategy for handling wide tables
   final TableStrategy strategy;
 
-  /// Minimum scale factor before switching to scroll
+  /// Minimum scale factor before switching to scroll (for autoScale strategy)
   final double minScaleFactor;
+
+  /// Minimum column width in pixels before auto-switching to horizontal scroll
+  ///
+  /// If the table's columns would be compressed below this width,
+  /// the wrapper automatically switches to [TableStrategy.horizontalScroll]
+  /// to prevent unreadable text. Default is 60.0 pixels.
+  final double minColumnWidth;
 
   /// Base text style for table content
   final TextStyle? baseStyle;
@@ -49,6 +60,7 @@ class SmartTableWrapper extends StatelessWidget {
     required this.tableNode,
     this.strategy = TableStrategy.horizontalScroll,
     this.minScaleFactor = 0.6,
+    this.minColumnWidth = 60.0,
     this.baseStyle,
     this.onLinkTap,
     this.selectable = true,
@@ -56,27 +68,94 @@ class SmartTableWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Build the table widget
-    final table = _buildTable(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Build the table widget
+        final table = _buildTable(context);
 
-    // Apply strategy based on configuration
-    switch (strategy) {
-      case TableStrategy.fitWidth:
-        // Just render table as-is, it will fit to constraints
-        return table;
+        // Calculate effective strategy based on constraints
+        final effectiveStrategy = _calculateEffectiveStrategy(constraints);
 
-      case TableStrategy.autoScale:
-        // Use FittedBox to scale down if needed
-        return FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.topLeft,
-          child: table,
-        );
+        // Apply strategy based on configuration
+        switch (effectiveStrategy) {
+          case TableStrategy.fitWidth:
+            // Render table with width constraints
+            return ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+              child: table,
+            );
 
-      case TableStrategy.horizontalScroll:
-        // Enable horizontal scrolling
-        return _buildScrollableTable(table);
+          case TableStrategy.autoScale:
+            // Use FittedBox to scale down if needed
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.topLeft,
+              child: table,
+            );
+
+          case TableStrategy.horizontalScroll:
+            // Enable horizontal scrolling
+            return _buildScrollableTable(table);
+        }
+      },
+    );
+  }
+
+  /// Calculate the effective strategy based on table size and constraints
+  ///
+  /// If the requested strategy would result in columns that are too narrow,
+  /// automatically switch to horizontal scroll to prevent unreadable text.
+  TableStrategy _calculateEffectiveStrategy(BoxConstraints constraints) {
+    if (strategy == TableStrategy.horizontalScroll) {
+      return strategy; // Already using scroll, no change needed
     }
+
+    // Estimate table width based on column count
+    final columnCount = _estimateColumnCount();
+    if (columnCount == 0) return strategy;
+
+    final availableWidth = constraints.maxWidth;
+    final estimatedColumnWidth = availableWidth / columnCount;
+
+    // If columns would be too narrow, switch to horizontal scroll
+    if (estimatedColumnWidth < minColumnWidth) {
+      return TableStrategy.horizontalScroll;
+    }
+
+    // For autoScale, also check if scale factor would be too small
+    if (strategy == TableStrategy.autoScale) {
+      // Estimate natural table width (rough estimate based on column count and min width)
+      final naturalWidth = columnCount * minColumnWidth * 2; // Assume 2x min as natural
+      final scaleFactor = availableWidth / naturalWidth;
+
+      if (scaleFactor < minScaleFactor) {
+        return TableStrategy.horizontalScroll;
+      }
+    }
+
+    return strategy;
+  }
+
+  /// Estimate the number of columns in the table
+  int _estimateColumnCount() {
+    // TableNode stores rows as children
+    final rows = tableNode.children.whereType<TableRowNode>();
+    if (rows.isEmpty) return 0;
+
+    // Find the maximum number of cells in any row (accounting for colspan)
+    int maxColumns = 0;
+    for (final row in rows) {
+      int rowColumns = 0;
+      // TableRowNode stores cells as children
+      final cells = row.children.whereType<TableCellNode>();
+      for (final cell in cells) {
+        rowColumns += cell.colspan;
+      }
+      if (rowColumns > maxColumns) {
+        maxColumns = rowColumns;
+      }
+    }
+    return maxColumns;
   }
 
   Widget _buildScrollableTable(Widget table) {

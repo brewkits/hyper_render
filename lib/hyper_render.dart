@@ -3,58 +3,41 @@
 /// A high-performance rendering engine for HTML, Markdown, and Quill Delta
 /// with perfect text selection, advanced CSS support, and CJK typography.
 ///
-/// ## Features
+/// ## v2.0 Modular Architecture
 ///
-/// - **Perfect Text Selection**: Single InlineSpan tree architecture ensures
-///   smooth, crash-free text selection across the entire document.
+/// This package is now a convenience wrapper that includes all plugins.
+/// For minimal dependencies, use individual packages:
 ///
-/// - **Advanced CSS Support**: Comprehensive CSS parsing and resolution
-///   following the W3C cascade specification.
+/// - `hyper_render_core` - Zero-dep core rendering engine
+/// - `hyper_render_html` - HTML parsing with CSS support
+/// - `hyper_render_markdown` - Markdown parsing (GFM)
+/// - `hyper_render_highlight` - Syntax highlighting for code blocks
 ///
-/// - **Multi-Format Input**: Supports HTML, Quill Delta (future), and
-///   Markdown (future) through a unified adapter system.
-///
-/// - **CJK Typography**: Proper line-breaking and Ruby/Furigana support
-///   for Japanese, Chinese, and Korean text.
-///
-/// - **High Performance**: Custom RenderObject-based rendering for
-///   optimal performance with large documents.
-///
-/// ## Basic Usage
+/// ## Quick Start
 ///
 /// ```dart
 /// import 'package:hyper_render/hyper_render.dart';
 ///
-/// // Simple HTML rendering
-/// HyperViewer(
-///   html: '<p>Hello <strong>World</strong></p>',
-/// )
+/// // Render HTML
+/// HyperViewer(html: '<h1>Hello World</h1>')
 ///
-/// // With link handling
-/// HyperViewer(
-///   html: '<a href="https://example.com">Click me</a>',
-///   onLinkTap: (url) => print('Link tapped: $url'),
-/// )
+/// // Render Markdown
+/// HyperViewer.markdown(markdown: '# Hello World')
 ///
-/// // With custom styling
-/// HyperViewer(
-///   html: htmlContent,
-///   baseStyle: TextStyle(fontSize: 18),
-///   customCss: 'p { margin: 16px 0; }',
-/// )
+/// // Render Quill Delta
+/// HyperViewer.delta(delta: '{"ops":[{"insert":"Hello World\\n"}]}')
 /// ```
 ///
-/// ## Architecture
+/// ## Features
 ///
-/// HyperRender uses a multi-layer architecture:
-///
-/// 1. **Parser Layer**: Converts input (HTML/Delta/Markdown) to UDT
-/// 2. **Style Resolver**: Applies CSS cascade to compute final styles
-/// 3. **Layout Engine**: Calculates positions using BFC/IFC algorithms
-/// 4. **Painting Layer**: Renders directly to Canvas
-///
-/// See the [architecture documentation](https://github.com/user/hyper_render)
-/// for more details.
+/// - **HTML Rendering**: Full HTML support with CSS cascade
+/// - **Markdown Rendering**: GitHub Flavored Markdown
+/// - **Quill Delta**: Rich text editor format support
+/// - **Text Selection**: Native-feeling selection with handles
+/// - **CJK Typography**: Japanese Kinsoku and Ruby/Furigana
+/// - **Tables**: Smart tables with horizontal scroll
+/// - **Code Blocks**: Syntax highlighting for 180+ languages
+/// - **Performance**: Virtualized rendering for long documents
 library;
 
 // ============================================
@@ -210,3 +193,13 @@ export 'src/plugins/default_css_parser.dart' show DefaultCssParser;
 
 export 'src/plugins/default_code_highlighter.dart'
     show DefaultCodeHighlighter, HighlightTheme;
+
+// ============================================
+// Public API - Clipboard Plugin (Optional - requires hyper_render_clipboard)
+// ============================================
+
+// Commented out due to share_plus/mime version conflicts
+// To use clipboard features, add hyper_render_clipboard separately:
+//   import 'package:hyper_render_clipboard/hyper_render_clipboard.dart';
+// export 'package:hyper_render_clipboard/hyper_render_clipboard.dart'
+//     show SuperClipboardHandler;

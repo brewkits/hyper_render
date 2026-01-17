@@ -68,12 +68,15 @@ class HtmlAdapter {
     DocumentNode currentSection = DocumentNode(children: []);
     int currentSize = 0;
 
-    for (var child in body.nodes) {
+    // Flatten nodes - if a container is too large, extract its children
+    final nodesToProcess = _flattenLargeContainers(body.nodes.toList(), chunkSize);
+
+    for (var child in nodesToProcess) {
       UDTNode? udtNode = _parseNode(child);
-      
+
       if (udtNode != null) {
         currentSection.children.add(udtNode);
-        currentSize += child.text?.length ?? 100;
+        currentSize += _estimateNodeSize(child);
 
         if (currentSize >= chunkSize && udtNode.isBlock) {
           sections.add(currentSection);
@@ -92,6 +95,48 @@ class HtmlAdapter {
     }
 
     return sections;
+  }
+
+  /// Flatten large container nodes (div, section, article, main) to enable virtualization
+  /// This handles the "Giant Div" edge case where one wrapper contains all content
+  List<dom.Node> _flattenLargeContainers(List<dom.Node> nodes, int chunkSize) {
+    final result = <dom.Node>[];
+
+    for (final node in nodes) {
+      if (node is dom.Element) {
+        final tagName = node.localName?.toLowerCase();
+        final nodeSize = _estimateNodeSize(node);
+
+        // If this is a large container element, extract its children instead
+        final isContainer = const ['div', 'section', 'article', 'main', 'header', 'footer', 'aside']
+            .contains(tagName);
+
+        if (isContainer && nodeSize > chunkSize && node.nodes.length > 1) {
+          // Recursively flatten children of this large container
+          result.addAll(_flattenLargeContainers(node.nodes.toList(), chunkSize));
+        } else {
+          result.add(node);
+        }
+      } else {
+        result.add(node);
+      }
+    }
+
+    return result;
+  }
+
+  /// Estimate the size of a node for chunking purposes
+  int _estimateNodeSize(dom.Node node) {
+    if (node is dom.Text) {
+      return node.text.length;
+    }
+    if (node is dom.Element) {
+      // Estimate based on inner text + some overhead for tags/attributes
+      final textLength = node.text.length;
+      final overhead = node.nodes.length * 10; // Rough estimate for structure
+      return textLength + overhead;
+    }
+    return 50; // Default estimate for unknown nodes
   }
 
   DocumentNode _parseDocument(dom.Document document) {

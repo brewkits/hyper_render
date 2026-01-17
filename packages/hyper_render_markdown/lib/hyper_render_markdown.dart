@@ -1,14 +1,14 @@
 /// HyperRender Markdown Plugin
 ///
-/// Provides Markdown content parsing for HyperRender using the `markdown` package.
+/// Provides Markdown parsing support for HyperRender.
+/// Converts Markdown content into the Unified Document Tree (UDT).
 ///
-/// ## Installation
-///
-/// ```yaml
-/// dependencies:
-///   hyper_render_core: ^2.0.0
-///   hyper_render_markdown: ^2.0.0
-/// ```
+/// ## Features
+/// - GitHub Flavored Markdown (GFM) support
+/// - Tables, strikethrough, task lists
+/// - Code blocks with language hints
+/// - Images and links
+/// - Blockquotes and lists
 ///
 /// ## Usage
 ///
@@ -16,21 +16,16 @@
 /// import 'package:hyper_render_core/hyper_render_core.dart';
 /// import 'package:hyper_render_markdown/hyper_render_markdown.dart';
 ///
-/// HyperViewer(
-///   content: '# Hello **World**',
+/// // Parse Markdown to UDT
+/// final document = parseMarkdown('# Hello World');
+///
+/// // Or use with HyperViewer
+/// HyperViewer.markdown(
+///   markdown: '# Title\n\nContent...',
 ///   contentParser: MarkdownContentParser(),
 /// )
 /// ```
-///
-/// ## Features
-///
-/// - Full CommonMark support
-/// - GitHub Flavored Markdown (GFM) extensions
-/// - Tables, task lists, strikethrough
-/// - Fenced code blocks with language hints
 library;
 
-// NOTE: This is a STUB package showing the intended structure.
-// In a full implementation:
-
-// export 'src/markdown_content_parser.dart';
+export 'src/markdown_adapter.dart';
+export 'src/markdown_parser.dart';
