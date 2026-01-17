@@ -74,8 +74,38 @@ class StyleResolver {
     's': ComputedStyle(textDecoration: TextDecoration.lineThrough),
     'del': ComputedStyle(textDecoration: TextDecoration.lineThrough),
     'a': ComputedStyle(
-      color: const Color(0xFF0000EE),
+      color: const Color(0xFF1976D2), // Material Blue 700
       textDecoration: TextDecoration.underline,
+    ),
+    'hr': ComputedStyle(
+      display: DisplayType.block,
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      borderWidth: const EdgeInsets.only(top: 1),
+      borderColor: const Color(0xFFDDDDDD),
+    ),
+    'mark': ComputedStyle(
+      backgroundColor: const Color(0xFFFFEB3B), // Material Yellow
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+    ),
+    'sub': ComputedStyle(
+      fontSize: 12,
+      verticalAlign: HyperVerticalAlign.bottom,
+    ),
+    'sup': ComputedStyle(
+      fontSize: 12,
+      verticalAlign: HyperVerticalAlign.top,
+    ),
+    'small': ComputedStyle(
+      fontSize: 13,
+    ),
+    'kbd': ComputedStyle(
+      fontFamily: 'monospace',
+      backgroundColor: const Color(0xFFF5F5F5),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      borderWidth: const EdgeInsets.all(1),
+      borderColor: const Color(0xFFCCCCCC),
+      borderRadius: BorderRadius.circular(4),
+      fontSize: 13,
     ),
     'code': ComputedStyle(
       fontFamily: 'monospace',
@@ -99,7 +129,11 @@ class StyleResolver {
     ),
     'blockquote': ComputedStyle(
       display: DisplayType.block,
-      margin: const EdgeInsets.fromLTRB(40, 16, 40, 16),
+      margin: const EdgeInsets.fromLTRB(0, 16, 0, 16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      borderWidth: const EdgeInsets.only(left: 4),
+      borderColor: const Color(0xFFDDDDDD),
+      backgroundColor: const Color(0xFFF9F9F9),
     ),
     'ul': ComputedStyle(
       display: DisplayType.block,
@@ -111,13 +145,38 @@ class StyleResolver {
       padding: const EdgeInsets.only(left: 40),
       margin: const EdgeInsets.symmetric(vertical: 16),
     ),
-    'li': ComputedStyle(display: DisplayType.block),
-    'table': ComputedStyle(display: DisplayType.table),
-    'tr': ComputedStyle(display: DisplayType.tableRow),
-    'td': ComputedStyle(display: DisplayType.tableCell),
+    'li': ComputedStyle(
+      display: DisplayType.block,
+      margin: const EdgeInsets.symmetric(vertical: 4),
+    ),
+    'table': ComputedStyle(
+      display: DisplayType.table,
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      borderWidth: const EdgeInsets.all(1),
+      borderColor: const Color(0xFFDDDDDD),
+    ),
+    'thead': ComputedStyle(
+      display: DisplayType.block,
+      backgroundColor: const Color(0xFFF5F5F5),
+    ),
+    'tr': ComputedStyle(
+      display: DisplayType.tableRow,
+      borderWidth: const EdgeInsets.only(bottom: 1),
+      borderColor: const Color(0xFFEEEEEE),
+    ),
+    'td': ComputedStyle(
+      display: DisplayType.tableCell,
+      padding: const EdgeInsets.all(12),
+      borderWidth: const EdgeInsets.all(1),
+      borderColor: const Color(0xFFEEEEEE),
+    ),
     'th': ComputedStyle(
       display: DisplayType.tableCell,
       fontWeight: FontWeight.bold,
+      padding: const EdgeInsets.all(12),
+      backgroundColor: const Color(0xFFF5F5F5),
+      borderWidth: const EdgeInsets.all(1),
+      borderColor: const Color(0xFFDDDDDD),
     ),
   };
 
@@ -1013,9 +1072,7 @@ class StyleResolver {
     }
 
     // White space - inherit if not explicitly set
-    if (style.whiteSpace == null) {
-      style.whiteSpace = parentStyle.whiteSpace;
-    }
+    style.whiteSpace ??= parentStyle.whiteSpace;
   }
 
   // ============================================

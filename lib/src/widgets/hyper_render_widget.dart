@@ -325,13 +325,17 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
 }
 
 /// Internal widget to wrap atomic children
+///
+/// Uses a [ValueKey] based on [UDTNode.id] to ensure Flutter correctly matches
+/// widgets to their corresponding elements during rebuilds. This prevents
+/// mismatching issues when the widget tree and fragment list update asynchronously.
 class _HyperChildWidget extends ParentDataWidget<HyperBoxParentData> {
   final UDTNode node;
 
-  const _HyperChildWidget({
+  _HyperChildWidget({
     required this.node,
     required super.child,
-  });
+  }) : super(key: ValueKey('hyper_child_${node.id}'));
 
   @override
   void applyParentData(RenderObject renderObject) {
@@ -345,15 +349,18 @@ class _HyperChildWidget extends ParentDataWidget<HyperBoxParentData> {
 }
 
 /// Internal widget to wrap float children
+///
+/// Uses a [ValueKey] based on [UDTNode.id] to ensure Flutter correctly matches
+/// float widgets to their corresponding elements during rebuilds.
 class _HyperFloatChildWidget extends ParentDataWidget<HyperBoxParentData> {
   final UDTNode node;
   final HyperFloat floatDirection;
 
-  const _HyperFloatChildWidget({
+  _HyperFloatChildWidget({
     required this.node,
     required this.floatDirection,
     required super.child,
-  });
+  }) : super(key: ValueKey('hyper_float_${node.id}'));
 
   @override
   void applyParentData(RenderObject renderObject) {

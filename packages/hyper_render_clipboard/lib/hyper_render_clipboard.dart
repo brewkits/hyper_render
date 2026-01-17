@@ -54,10 +54,10 @@
 ///
 /// ### Windows/Linux
 /// No additional setup required.
-library hyper_render_clipboard;
+library;
 
 export 'src/super_clipboard_handler.dart' show SuperClipboardHandler;
 
-// Re-export interface from hyper_render for convenience
-export 'package:hyper_render/hyper_render.dart'
+// Re-export interface from hyper_render_core for convenience
+export 'package:hyper_render_core/hyper_render_core.dart'
     show ImageClipboardHandler, DefaultImageClipboardHandler, ImageOperationResult;

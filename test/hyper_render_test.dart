@@ -443,11 +443,3 @@ void main() {
     });
   });
 }
-
-/// Helper to set parent references for testing
-void _setParentReferences(UDTNode node, UDTNode parent) {
-  node.parent = parent;
-  for (final child in node.children) {
-    _setParentReferences(child, node);
-  }
-}

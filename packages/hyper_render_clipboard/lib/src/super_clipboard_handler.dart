@@ -1,9 +1,8 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:hyper_render/hyper_render.dart';
+import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -68,13 +67,26 @@ class SuperClipboardHandler implements ImageClipboardHandler {
 
       final item = DataWriterItem();
 
-      // Determine format from mime type
-      final format = _getFormatFromMimeType(mimeType);
-      if (format != null) {
-        item.add(format(bytes));
-      } else {
-        // Default to PNG
-        item.add(Formats.png(bytes));
+      // Add image data based on mime type
+      switch (mimeType?.toLowerCase()) {
+        case 'image/jpeg':
+        case 'image/jpg':
+          item.add(Formats.jpeg(bytes));
+          break;
+        case 'image/gif':
+          item.add(Formats.gif(bytes));
+          break;
+        case 'image/webp':
+          item.add(Formats.webp(bytes));
+          break;
+        case 'image/tiff':
+          item.add(Formats.tiff(bytes));
+          break;
+        case 'image/png':
+        default:
+          // Default to PNG
+          item.add(Formats.png(bytes));
+          break;
       }
 
       await clipboard.write([item]);
@@ -187,25 +199,6 @@ class SuperClipboardHandler implements ImageClipboardHandler {
         'image/webp',
         'image/bmp',
       ];
-
-  /// Get appropriate format from MIME type
-  SimpleFileFormat? Function(Uint8List)? _getFormatFromMimeType(String? mimeType) {
-    switch (mimeType?.toLowerCase()) {
-      case 'image/png':
-        return Formats.png;
-      case 'image/jpeg':
-      case 'image/jpg':
-        return Formats.jpeg;
-      case 'image/gif':
-        return Formats.gif;
-      case 'image/webp':
-        return Formats.webp;
-      case 'image/tiff':
-        return Formats.tiff;
-      default:
-        return null;
-    }
-  }
 
   /// Extract filename from URL
   String _getFilenameFromUrl(String url) {

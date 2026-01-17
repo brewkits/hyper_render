@@ -195,6 +195,9 @@ class RenderHyperBox extends RenderBox
   /// Whether text selection is enabled
   bool _selectable;
 
+  /// Text direction for layout (LTR or RTL)
+  TextDirection _textDirection;
+
   /// Max width constraint (for line wrapping)
   double _maxWidth = double.infinity;
 
@@ -202,7 +205,7 @@ class RenderHyperBox extends RenderBox
   List<Fragment> _fragments = [];
 
   /// Cached lines after layout
-  List<LineInfo> _lines = [];
+  final List<LineInfo> _lines = [];
 
   /// Active float areas
   final List<_FloatArea> _leftFloats = [];
@@ -225,10 +228,10 @@ class RenderHyperBox extends RenderBox
   double _lastBlockMarginBottom = 0;
 
   /// Inline decorations for painting backgrounds/borders
-  List<_InlineDecoration> _inlineDecorations = [];
+  final List<_InlineDecoration> _inlineDecorations = [];
 
   /// Block decorations for painting border-left, backgrounds
-  List<_BlockDecoration> _blockDecorations = [];
+  final List<_BlockDecoration> _blockDecorations = [];
 
   /// Image cache
   final Map<String, CachedImage> _imageCache = {};
@@ -259,12 +262,14 @@ class RenderHyperBox extends RenderBox
     HyperLinkTapCallback? onLinkTap,
     HyperImageLoader? imageLoader,
     bool selectable = true,
+    TextDirection textDirection = TextDirection.ltr,
     this.onSelectionChanged,
   })  : _document = document,
         _baseStyle = baseStyle,
         _onLinkTap = onLinkTap,
         _imageLoader = imageLoader,
-        _selectable = selectable;
+        _selectable = selectable,
+        _textDirection = textDirection;
 
   // ============================================
   // Properties
@@ -324,6 +329,17 @@ class RenderHyperBox extends RenderBox
   void _notifySelectionChanged() {
     onSelectionChanged?.call();
   }
+
+  TextDirection get textDirection => _textDirection;
+  set textDirection(TextDirection value) {
+    if (_textDirection == value) return;
+    _textDirection = value;
+    _invalidateLayout();
+    markNeedsLayout();
+  }
+
+  /// Whether the text direction is right-to-left
+  bool get isRTL => _textDirection == TextDirection.rtl;
 
   // ============================================
   // RenderBox Setup
@@ -950,7 +966,7 @@ class RenderHyperBox extends RenderBox
   }
 
   TextPainter _getTextPainter(String text, ComputedStyle style) {
-    // Use a more robust cache key combining text and style properties
+    // Use a more robust cache key combining text, style, and textDirection
     final styleKey = style.fontSize.hashCode ^
         style.fontWeight.hashCode ^
         style.fontStyle.hashCode ^
@@ -958,7 +974,7 @@ class RenderHyperBox extends RenderBox
         (style.fontFamily?.hashCode ?? 0) ^
         (style.lineHeight?.hashCode ?? 0) ^
         (style.letterSpacing?.hashCode ?? 0);
-    final key = text.hashCode ^ styleKey;
+    final key = text.hashCode ^ styleKey ^ _textDirection.hashCode;
 
     final cached = _textPainters.get(key);
     if (cached != null) {
@@ -974,7 +990,7 @@ class RenderHyperBox extends RenderBox
         style: mergedStyle,
       ),
       strutStyle: StrutStyle.fromTextStyle(mergedStyle, forceStrutHeight: true),
-      textDirection: TextDirection.ltr,
+      textDirection: _textDirection,
       maxLines: 1,
     )..layout();
 
@@ -1008,7 +1024,8 @@ class RenderHyperBox extends RenderBox
     final List<double> rightPaddingStack = [0];
 
     // Track active blocks for decoration (border-left, background)
-    final List<(_BlockStartFragment, double, double)> activeBlocks = []; // (fragment, startY, leftX)
+    // Tuple: (fragment, startY, leftX, rightX)
+    final List<(_BlockStartFragment, double, double, double)> activeBlocks = [];
 
     // PERFORMANCE: Queue for pending fragments from splits - avoids O(n²) List.insert()
     // When we split a fragment, the second part goes here instead of being inserted
@@ -1068,10 +1085,45 @@ class RenderHyperBox extends RenderBox
       return _maxWidth - leftInset - rightInset;
     }
 
+    /// Get the Y position needed to clear floats based on the clear property
+    /// Returns the current Y if no clearing is needed
+    double getClearPosition(HyperClear clear) {
+      if (clear == HyperClear.none) return currentY;
+
+      double clearY = currentY;
+
+      // Clear left floats
+      if (clear == HyperClear.left || clear == HyperClear.both) {
+        for (final float in _leftFloats) {
+          if (float.rect.bottom > clearY) {
+            clearY = float.rect.bottom;
+          }
+        }
+      }
+
+      // Clear right floats
+      if (clear == HyperClear.right || clear == HyperClear.both) {
+        for (final float in _rightFloats) {
+          if (float.rect.bottom > clearY) {
+            clearY = float.rect.bottom;
+          }
+        }
+      }
+
+      return clearY;
+    }
+
     // Process a single fragment - extracted for reuse with pending fragments
     void processFragment(Fragment fragment) {
       if (fragment is _BlockStartFragment) {
         finishLine();
+
+        // Apply CSS clear property - move below floats if needed
+        final clearY = getClearPosition(fragment.style.clear);
+        if (clearY > currentY) {
+          currentY = clearY;
+        }
+
         currentY += fragment.marginTop + fragment.paddingTop;
 
         // ACCUMULATE padding for nested blocks
@@ -1089,11 +1141,16 @@ class RenderHyperBox extends RenderBox
         final hasBackground = style.backgroundColor != null;
         final hasBorderLeft = style.borderColor != null && style.borderWidth.left > 0;
         if (hasBackground || hasBorderLeft) {
-          // Calculate the left edge X position (account for parent padding but not this block's)
+          // Calculate the edge positions (account for parent padding but not this block's)
           final blockLeftX = leftPaddingStack.length > 1
               ? leftPaddingStack[leftPaddingStack.length - 2]
               : 0.0;
-          activeBlocks.add((fragment, currentY, blockLeftX));
+          final blockRightX = rightPaddingStack.length > 1
+              ? _maxWidth - rightPaddingStack[rightPaddingStack.length - 2]
+              : _maxWidth;
+          // startY is BEFORE padding (current position includes padding, so subtract it)
+          final blockStartY = currentY - fragment.paddingTop;
+          activeBlocks.add((fragment, blockStartY, blockLeftX, blockRightX));
         }
         return;
       }
@@ -1113,14 +1170,14 @@ class RenderHyperBox extends RenderBox
 
         // Check if this block has a decoration pending
         if (activeBlocks.isNotEmpty) {
-          final (startFragment, startY, blockLeftX) = activeBlocks.last;
+          final (startFragment, startY, blockLeftX, blockRightX) = activeBlocks.last;
           if (startFragment.sourceNode == fragment.sourceNode) {
             activeBlocks.removeLast();
             // Create block decoration
             final style = fragment.style;
             _blockDecorations.add(_BlockDecoration(
               node: fragment.sourceNode,
-              rect: Rect.fromLTRB(blockLeftX, startY, _maxWidth, currentY),
+              rect: Rect.fromLTRB(blockLeftX, startY, blockRightX, currentY),
               backgroundColor: style.backgroundColor,
               borderLeftColor: style.borderColor,
               borderLeftWidth: style.borderWidth.left,
@@ -1342,10 +1399,27 @@ class RenderHyperBox extends RenderBox
       final lastSpace = beforeBreak.lastIndexOf(' ');
 
       if (lastSpace > 0) {
+        // Found a space before break point - use it
         breakIndex = lastSpace + 1;
       } else if (KinsokuProcessor.containsCjk(text)) {
+        // CJK text - use kinsoku rules
         breakIndex = KinsokuProcessor.findBreakPoint(text, breakIndex);
         if (breakIndex < 0) breakIndex = position.offset;
+      } else {
+        // Latin text without space before break point
+        // Look for next space AFTER break point to avoid breaking words
+        final afterBreak = text.substring(breakIndex);
+        final nextSpace = afterBreak.indexOf(' ');
+
+        if (nextSpace >= 0) {
+          // Found space after - but this means moving more to next line
+          // Return null to signal "can't fit any complete word on this line"
+          // The caller should start a new line and try again
+          return null;
+        }
+        // No space at all in text - this is a single long word
+        // Return null, let caller decide (may force split if word > line width)
+        return null;
       }
     }
 
@@ -1386,56 +1460,114 @@ class RenderHyperBox extends RenderBox
     }
   }
 
-  /// Force split text fragment at character level when no word boundary exists
-  /// This handles cases where text is wider than the available line width
+  /// Force split text fragment when entire text is wider than the available line
+  /// This tries to respect word boundaries for Latin text, only breaking mid-word
+  /// when a single word is wider than the entire line width
   (Fragment, Fragment)? _forceSplitTextFragment(Fragment fragment, double maxWidth) {
     final text = fragment.text!;
     if (text.length <= 1) return null;
 
-    // Use binary search to find the character that fits
-    int low = 1;
-    int high = text.length - 1;
-    int bestBreak = 1;
+    // First, try to find a word boundary that fits
+    int breakIndex = -1;
 
-    while (low <= high) {
-      final mid = (low + high) ~/ 2;
-      final testText = text.substring(0, mid);
-      final painter = _getTextPainter(testText, fragment.style);
-
-      if (painter.width <= maxWidth) {
-        bestBreak = mid;
-        low = mid + 1;
-      } else {
-        high = mid - 1;
+    // Find all space positions
+    final spaceIndices = <int>[];
+    for (int i = 0; i < text.length; i++) {
+      if (text[i] == ' ') {
+        spaceIndices.add(i);
       }
     }
 
-    // Ensure we have at least 1 character
-    if (bestBreak < 1) bestBreak = 1;
-    if (bestBreak >= text.length) return null;
+    // Try each word boundary from the end
+    for (int i = spaceIndices.length - 1; i >= 0; i--) {
+      final spaceIdx = spaceIndices[i];
+      final testText = text.substring(0, spaceIdx + 1);
+      final painter = _getTextPainter(testText, fragment.style);
 
-    final firstPart = text.substring(0, bestBreak);
-    final secondPart = text.substring(bestBreak);
+      if (painter.width <= maxWidth) {
+        breakIndex = spaceIdx + 1;
+        break;
+      }
+    }
 
-    if (firstPart.isEmpty || secondPart.isEmpty) return null;
+    // If we found a word boundary, use it
+    if (breakIndex > 0 && breakIndex < text.length) {
+      final firstPart = text.substring(0, breakIndex).trimRight();
+      final secondPart = text.substring(breakIndex).trimLeft();
 
-    final firstFragment = Fragment.text(
-      text: firstPart,
-      sourceNode: fragment.sourceNode,
-      style: fragment.style,
-      characterOffset: fragment.characterOffset,
-    );
-    _measureFragment(firstFragment);
+      if (firstPart.isNotEmpty && secondPart.isNotEmpty) {
+        final firstFragment = Fragment.text(
+          text: firstPart,
+          sourceNode: fragment.sourceNode,
+          style: fragment.style,
+          characterOffset: fragment.characterOffset,
+        );
+        _measureFragment(firstFragment);
 
-    final secondFragment = Fragment.text(
-      text: secondPart,
-      sourceNode: fragment.sourceNode,
-      style: fragment.style,
-      characterOffset: fragment.characterOffset + bestBreak,
-    );
-    _measureFragment(secondFragment);
+        final secondFragment = Fragment.text(
+          text: secondPart,
+          sourceNode: fragment.sourceNode,
+          style: fragment.style,
+          characterOffset: fragment.characterOffset + breakIndex,
+        );
+        _measureFragment(secondFragment);
 
-    return (firstFragment, secondFragment);
+        return (firstFragment, secondFragment);
+      }
+    }
+
+    // No word boundary fits - check if this is CJK text (OK to break mid-character)
+    if (KinsokuProcessor.containsCjk(text)) {
+      // Use binary search to find the best break point for CJK
+      int low = 1;
+      int high = text.length - 1;
+      int bestBreak = 1;
+
+      while (low <= high) {
+        final mid = (low + high) ~/ 2;
+        final testText = text.substring(0, mid);
+        final painter = _getTextPainter(testText, fragment.style);
+
+        if (painter.width <= maxWidth) {
+          bestBreak = mid;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+
+      if (bestBreak >= 1 && bestBreak < text.length) {
+        final kinsokuBreak = KinsokuProcessor.findBreakPoint(text, bestBreak);
+        final finalBreak = kinsokuBreak > 0 ? kinsokuBreak : bestBreak;
+
+        final firstPart = text.substring(0, finalBreak);
+        final secondPart = text.substring(finalBreak);
+
+        if (firstPart.isNotEmpty && secondPart.isNotEmpty) {
+          final firstFragment = Fragment.text(
+            text: firstPart,
+            sourceNode: fragment.sourceNode,
+            style: fragment.style,
+            characterOffset: fragment.characterOffset,
+          );
+          _measureFragment(firstFragment);
+
+          final secondFragment = Fragment.text(
+            text: secondPart,
+            sourceNode: fragment.sourceNode,
+            style: fragment.style,
+            characterOffset: fragment.characterOffset + finalBreak,
+          );
+          _measureFragment(secondFragment);
+
+          return (firstFragment, secondFragment);
+        }
+      }
+    }
+
+    // For Latin text with a single word wider than the line - allow overflow
+    // Don't break mid-word, just return null and let the word overflow
+    return null;
   }
 
   /// Default float size when not specified in CSS
@@ -1470,41 +1602,111 @@ class RenderHyperBox extends RenderBox
     final bottomMargin = margin.bottom > 0 ? margin.bottom : defaultFloatMargin;
 
     Rect floatRect;
+    double floatY = currentY;
 
     if (fragment.floatDirection == HyperFloat.left) {
       double left = 0;
-      for (final existing in _leftFloats) {
-        if (existing.rect.bottom > currentY) {
-          left = math.max(left, existing.rect.right);
+
+      // Find available position - may need to move down if float doesn't fit
+      // This handles multiple floats stacking correctly
+      bool foundPosition = false;
+      int iterations = 0;
+      const maxIterations = 100;
+
+      while (!foundPosition && iterations < maxIterations) {
+        left = 0;
+
+        // Check existing left floats at current Y position
+        for (final existing in _leftFloats) {
+          if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+            left = math.max(left, existing.rect.right);
+          }
         }
+
+        // Check right floats to ensure there's enough space
+        double rightEdge = _maxWidth;
+        for (final existing in _rightFloats) {
+          if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+            rightEdge = math.min(rightEdge, existing.rect.left);
+          }
+        }
+
+        // Check if float fits in available space
+        final totalWidth = width + rightMargin;
+        if (left + totalWidth <= rightEdge) {
+          foundPosition = true;
+        } else {
+          // Not enough space - move down below the lowest float at this Y
+          double lowestBottom = floatY + 1;
+          for (final existing in [..._leftFloats, ..._rightFloats]) {
+            if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+              lowestBottom = math.max(lowestBottom, existing.rect.bottom);
+            }
+          }
+          floatY = lowestBottom;
+        }
+        iterations++;
       }
 
       // Float rect includes margin on right and bottom for text spacing
-      // Left and top margins are handled by positioning
       floatRect = Rect.fromLTWH(
         left,
-        currentY,
-        width + rightMargin,  // Add right margin so text doesn't stick
-        height + bottomMargin, // Add bottom margin for vertical spacing
+        floatY,
+        width + rightMargin,
+        height + bottomMargin,
       );
       _leftFloats.add(_FloatArea(rect: floatRect, direction: HyperFloat.left));
     } else {
       double right = _maxWidth;
-      for (final existing in _rightFloats) {
-        if (existing.rect.bottom > currentY) {
-          right = math.min(right, existing.rect.left);
+
+      // Find available position - may need to move down if float doesn't fit
+      bool foundPosition = false;
+      int iterations = 0;
+      const maxIterations = 100;
+
+      while (!foundPosition && iterations < maxIterations) {
+        right = _maxWidth;
+
+        // Check existing right floats at current Y position
+        for (final existing in _rightFloats) {
+          if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+            right = math.min(right, existing.rect.left);
+          }
         }
+
+        // Check left floats to ensure there's enough space
+        double leftEdge = 0;
+        for (final existing in _leftFloats) {
+          if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+            leftEdge = math.max(leftEdge, existing.rect.right);
+          }
+        }
+
+        // Check if float fits in available space
+        final totalWidth = width + leftMargin;
+        if (right - totalWidth >= leftEdge) {
+          foundPosition = true;
+        } else {
+          // Not enough space - move down below the lowest float at this Y
+          double lowestBottom = floatY + 1;
+          for (final existing in [..._leftFloats, ..._rightFloats]) {
+            if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+              lowestBottom = math.max(lowestBottom, existing.rect.bottom);
+            }
+          }
+          floatY = lowestBottom;
+        }
+        iterations++;
       }
 
       // Float rect includes margin on left and bottom for text spacing
       floatRect = Rect.fromLTWH(
-        right - width - leftMargin, // Add left margin so text doesn't stick
-        currentY,
-        width + leftMargin,   // Total width including margin
+        right - width - leftMargin,
+        floatY,
+        width + leftMargin,
         height + bottomMargin,
       );
-      _rightFloats
-          .add(_FloatArea(rect: floatRect, direction: HyperFloat.right));
+      _rightFloats.add(_FloatArea(rect: floatRect, direction: HyperFloat.right));
     }
 
     fragment.measuredSize = Size(width, height);
@@ -1518,9 +1720,14 @@ class RenderHyperBox extends RenderBox
   }
 
   /// Step 4: Position fragments within lines (baseline alignment)
+  /// Handles both LTR (left-to-right) and RTL (right-to-left) text directions
   void _positionFragments() {
     for (final line in _lines) {
-      double x = line.leftInset;
+      // For RTL, start from the right side and move left
+      // For LTR, start from the left side and move right
+      double x = isRTL
+          ? (_maxWidth - line.rightInset - line.width)
+          : line.leftInset;
 
       for (final fragment in line.fragments) {
         double fragmentBaseline;
@@ -1626,7 +1833,7 @@ class RenderHyperBox extends RenderBox
   }
 
   /// Fragment range for efficient character lookup
-  List<(int, int, Fragment)> _fragmentRanges = []; // (startIndex, endIndex, fragment)
+  final List<(int, int, Fragment)> _fragmentRanges = []; // (startIndex, endIndex, fragment)
 
   /// Step 6: Build character mapping for selection (optimized)
   void _buildCharacterMapping() {
@@ -1643,30 +1850,6 @@ class RenderHyperBox extends RenderBox
         _totalCharacterCount = endIdx;
       }
     }
-  }
-
-  /// Find fragment containing character at given index (binary search)
-  Fragment? _findFragmentForCharacter(int charIndex) {
-    if (_fragmentRanges.isEmpty) return null;
-
-    // Binary search
-    int low = 0;
-    int high = _fragmentRanges.length - 1;
-
-    while (low <= high) {
-      final mid = (low + high) ~/ 2;
-      final (startIdx, endIdx, fragment) = _fragmentRanges[mid];
-
-      if (charIndex < startIdx) {
-        high = mid - 1;
-      } else if (charIndex >= endIdx) {
-        low = mid + 1;
-      } else {
-        return fragment;
-      }
-    }
-
-    return null;
   }
 
   /// Step 7: Layout child RenderBoxes
@@ -1740,34 +1923,90 @@ class RenderHyperBox extends RenderBox
   /// This is critical for atomic elements (images, tables) to render correctly.
   /// Since fragments and children are both created by traversing the UDT in the same order,
   /// we can match them by iterating through both lists simultaneously.
+  /// Links fragments to their corresponding child RenderBoxes using sourceNode-based matching.
+  ///
+  /// This is more robust than order-based matching because it uses the unique sourceNode
+  /// reference to identify the correct fragment-child pair, preventing misalignment issues
+  /// when the widget tree and fragment list update asynchronously.
   void _linkFragmentsToChildrenByOrder() {
-    RenderBox? child = firstChild;
-
+    // Step 1: Build a map of sourceNode -> Fragment for quick lookup
+    final fragmentMap = <UDTNode, Fragment>{};
     for (final fragment in _fragments) {
-      if (child == null) break;
-
-      // Match atomic fragments (images, embeds) and special fragment types
       final isAtomicFragment = fragment.type == FragmentType.atomic;
       final isTableFragment = fragment is _TableFragment;
       final isCodeBlockFragment = fragment is _CodeBlockFragment;
       final isFloatFragment = fragment is _FloatFragment;
 
       if (isAtomicFragment || isTableFragment || isCodeBlockFragment || isFloatFragment) {
-        final parentData = child.parentData as HyperBoxParentData;
+        fragmentMap[fragment.sourceNode] = fragment;
+      }
+    }
 
-        // Link fragment to child
+    // Step 2: Link children to fragments using sourceNode matching (primary method)
+    RenderBox? child = firstChild;
+    while (child != null) {
+      final parentData = child.parentData as HyperBoxParentData;
+
+      if (parentData.sourceNode != null) {
+        final matchedFragment = fragmentMap[parentData.sourceNode];
+        if (matchedFragment != null) {
+          parentData.fragment = matchedFragment;
+
+          // Set float info if applicable
+          if (matchedFragment is _FloatFragment) {
+            parentData.isFloat = true;
+            parentData.floatDirection = matchedFragment.floatDirection;
+          }
+        }
+      }
+
+      child = parentData.nextSibling;
+    }
+
+    // Step 3: Fallback - link remaining unlinked children by order
+    // This handles cases where sourceNode is null (rare, but possible)
+    child = firstChild;
+    final unlinkedFragments = _fragments.where((f) {
+      final isAtomicFragment = f.type == FragmentType.atomic;
+      final isTableFragment = f is _TableFragment;
+      final isCodeBlockFragment = f is _CodeBlockFragment;
+      final isFloatFragment = f is _FloatFragment;
+
+      if (!(isAtomicFragment || isTableFragment || isCodeBlockFragment || isFloatFragment)) {
+        return false;
+      }
+
+      // Check if this fragment is already linked to a child
+      RenderBox? c = firstChild;
+      while (c != null) {
+        final pd = c.parentData as HyperBoxParentData;
+        if (pd.fragment == f) return false;
+        c = pd.nextSibling;
+      }
+      return true;
+    }).iterator;
+
+    while (child != null) {
+      final parentData = child.parentData as HyperBoxParentData;
+
+      // Skip children that are already linked
+      if (parentData.fragment != null) {
+        child = parentData.nextSibling;
+        continue;
+      }
+
+      // Try to get next unlinked fragment
+      if (unlinkedFragments.moveNext()) {
+        final fragment = unlinkedFragments.current;
         parentData.fragment = fragment;
 
-        // Set float info if applicable
-        if (isFloatFragment) {
-          final floatFrag = fragment as _FloatFragment;
+        if (fragment is _FloatFragment) {
           parentData.isFloat = true;
-          parentData.floatDirection = floatFrag.floatDirection;
+          parentData.floatDirection = fragment.floatDirection;
         }
-
-        // Move to next child
-        child = parentData.nextSibling;
       }
+
+      child = parentData.nextSibling;
     }
   }
 
@@ -2058,9 +2297,13 @@ class RenderHyperBox extends RenderBox
   }
 
   void _paintFloatImages(Canvas canvas, Offset offset) {
-    // Paint images from float fragments
+    // Paint images from float fragments ONLY if they don't have child widgets
     for (final fragment in _fragments) {
       if (fragment is _FloatFragment) {
+        // Check if this fragment has a linked child widget - if so, skip canvas painting
+        // The child widget (HyperImage) will handle rendering
+        if (_hasChildWidgetForFragment(fragment)) continue;
+
         final node = fragment.sourceNode;
         if (node is AtomicNode && node.tagName == 'img') {
           _paintImage(canvas, offset, fragment, node);
@@ -2070,15 +2313,32 @@ class RenderHyperBox extends RenderBox
   }
 
   void _paintInlineImages(Canvas canvas, Offset offset) {
-    // Paint non-float atomic images
+    // Paint non-float atomic images ONLY if they don't have child widgets
     for (final fragment in _fragments) {
       if (fragment.type == FragmentType.atomic && fragment is! _FloatFragment) {
+        // Check if this fragment has a linked child widget - if so, skip canvas painting
+        // The child widget (HyperImage) will handle rendering
+        if (_hasChildWidgetForFragment(fragment)) continue;
+
         final node = fragment.sourceNode;
         if (node is AtomicNode && node.tagName == 'img') {
           _paintImage(canvas, offset, fragment, node);
         }
       }
     }
+  }
+
+  /// Check if a fragment has a linked child RenderBox widget
+  bool _hasChildWidgetForFragment(Fragment fragment) {
+    RenderBox? child = firstChild;
+    while (child != null) {
+      final parentData = child.parentData as HyperBoxParentData;
+      if (parentData.fragment == fragment || parentData.sourceNode == fragment.sourceNode) {
+        return true;
+      }
+      child = parentData.nextSibling;
+    }
+    return false;
   }
 
   void _paintImage(
@@ -2498,6 +2758,263 @@ class RenderHyperBox extends RenderBox
         markNeedsPaint();
       }
     }
+  }
+
+  // ============================================
+  // Accessibility (Semantics)
+  // ============================================
+
+  @override
+  bool get isRepaintBoundary => true;
+
+  /// Builds semantic information for accessibility tools (TalkBack, VoiceOver)
+  @override
+  void describeSemanticsConfiguration(SemanticsConfiguration config) {
+    super.describeSemanticsConfiguration(config);
+
+    // Mark as semantics boundary - we handle our own semantic children
+    config.isSemanticBoundary = true;
+
+    // Enable text-based semantics
+    config.textDirection = _textDirection;
+
+    // If selectable, expose text selection actions
+    if (_selectable && _selection != null && !_selection!.isCollapsed) {
+      config.isSelected = true;
+      config.value = getSelectedText() ?? '';
+    }
+
+    // Build the full text content for this render object
+    final textContent = _buildTextContentForSemantics();
+    if (textContent.isNotEmpty) {
+      config.label = textContent;
+      config.isReadOnly = true;
+    }
+  }
+
+  /// Assembles semantic nodes for complex content (links, images, headings)
+  @override
+  void assembleSemanticsNode(
+    SemanticsNode node,
+    SemanticsConfiguration config,
+    Iterable<SemanticsNode> children,
+  ) {
+    // First, let the parent do its work with child widgets (images, tables, etc.)
+    super.assembleSemanticsNode(node, config, children);
+
+    // Now add semantic nodes for our inline content
+    final semanticChildren = <SemanticsNode>[];
+
+    // Process the document tree to extract semantic information
+    if (_document != null) {
+      _buildSemanticNodes(_document!, semanticChildren, node);
+    }
+
+    // Add any children from child render objects (images, tables, etc.)
+    for (final child in children) {
+      semanticChildren.add(child);
+    }
+
+    // Update the node with all children
+    if (semanticChildren.isNotEmpty) {
+      node.updateWith(
+        config: config,
+        childrenInInversePaintOrder: semanticChildren,
+      );
+    }
+  }
+
+  /// Builds a plain text representation of the content for screen readers
+  String _buildTextContentForSemantics() {
+    if (_document == null) return '';
+
+    final buffer = StringBuffer();
+    _document!.traverse((node) {
+      switch (node.type) {
+        case NodeType.text:
+          buffer.write((node as TextNode).text);
+          break;
+        case NodeType.ruby:
+          // For ruby text, read both base and annotation
+          final ruby = node as RubyNode;
+          buffer.write('${ruby.baseText} (${ruby.rubyText})');
+          break;
+        case NodeType.lineBreak:
+          buffer.write(' ');
+          break;
+        case NodeType.atomic:
+          // For images, read alt text
+          final atomic = node as AtomicNode;
+          if (atomic.alt != null && atomic.alt!.isNotEmpty) {
+            buffer.write('[Image: ${atomic.alt}] ');
+          } else if (atomic.tagName == 'img') {
+            buffer.write('[Image] ');
+          }
+          break;
+        default:
+          break;
+      }
+    });
+
+    return buffer.toString().trim();
+  }
+
+  /// Recursively builds semantic nodes for the document tree
+  void _buildSemanticNodes(
+    UDTNode node,
+    List<SemanticsNode> semanticNodes,
+    SemanticsNode parentNode,
+  ) {
+    // Handle links - they need special semantic treatment
+    if (node is InlineNode && node.tagName == 'a') {
+      final href = node.attributes['href'];
+      if (href != null) {
+        final rect = _getNodeRect(node);
+        // Only add semantic node if it has a valid, visible rect
+        if (rect != null && rect.width > 0 && rect.height > 0) {
+          final linkNode = SemanticsNode();
+
+          linkNode.updateWith(
+            config: SemanticsConfiguration()
+              ..isLink = true
+              ..textDirection = _textDirection
+              ..label = node.textContent
+              ..hint = 'Link to $href'
+              ..onTap = () {
+                _onLinkTap?.call(href);
+              },
+          );
+
+          linkNode.rect = rect;
+          semanticNodes.add(linkNode);
+        }
+        return; // Don't process children of links separately
+      }
+    }
+
+    // Handle headings - announce heading level
+    if (node is BlockNode && node.tagName != null) {
+      final headingLevel = _getHeadingLevel(node.tagName!);
+      if (headingLevel > 0) {
+        final rect = _getNodeRect(node);
+        // Only add semantic node if it has a valid, visible rect
+        if (rect != null && rect.width > 0 && rect.height > 0) {
+          final headingNode = SemanticsNode();
+
+          headingNode.updateWith(
+            config: SemanticsConfiguration()
+              ..isHeader = true
+              ..textDirection = _textDirection
+              ..label = node.textContent
+              ..hint = 'Heading level $headingLevel',
+          );
+
+          headingNode.rect = rect;
+          semanticNodes.add(headingNode);
+        }
+        return;
+      }
+    }
+
+    // Handle images
+    if (node is AtomicNode && node.tagName == 'img') {
+      final rect = _getNodeRect(node);
+      // Only add semantic node if it has a valid, visible rect
+      if (rect != null && rect.width > 0 && rect.height > 0) {
+        final imgNode = SemanticsNode();
+
+        imgNode.updateWith(
+          config: SemanticsConfiguration()
+            ..isImage = true
+            ..textDirection = _textDirection
+            ..label = node.alt ?? 'Image',
+        );
+
+        imgNode.rect = rect;
+        semanticNodes.add(imgNode);
+      }
+      return;
+    }
+
+    // Handle buttons (if any interactive elements)
+    if (node is BlockNode && node.tagName == 'button') {
+      final rect = _getNodeRect(node);
+      // Only add semantic node if it has a valid, visible rect
+      if (rect != null && rect.width > 0 && rect.height > 0) {
+        final buttonNode = SemanticsNode();
+
+        buttonNode.updateWith(
+          config: SemanticsConfiguration()
+            ..isButton = true
+            ..textDirection = _textDirection
+            ..label = node.textContent,
+        );
+
+        buttonNode.rect = rect;
+        semanticNodes.add(buttonNode);
+      }
+      return;
+    }
+
+    // Recursively process children
+    for (final child in node.children) {
+      _buildSemanticNodes(child, semanticNodes, parentNode);
+    }
+  }
+
+  /// Gets the heading level from a tag name (h1 = 1, h2 = 2, etc.)
+  int _getHeadingLevel(String tagName) {
+    switch (tagName) {
+      case 'h1':
+        return 1;
+      case 'h2':
+        return 2;
+      case 'h3':
+        return 3;
+      case 'h4':
+        return 4;
+      case 'h5':
+        return 5;
+      case 'h6':
+        return 6;
+      default:
+        return 0;
+    }
+  }
+
+  /// Gets the bounding rect for a node based on its fragments
+  Rect? _getNodeRect(UDTNode node) {
+    double? minX, minY, maxX, maxY;
+
+    for (final fragment in _fragments) {
+      if (fragment.sourceNode == node || _isDescendantOf(fragment.sourceNode, node)) {
+        final rect = fragment.rect;
+        if (rect != null) {
+          minX = minX == null ? rect.left : math.min(minX, rect.left);
+          minY = minY == null ? rect.top : math.min(minY, rect.top);
+          maxX = maxX == null ? rect.right : math.max(maxX, rect.right);
+          maxY = maxY == null ? rect.bottom : math.max(maxY, rect.bottom);
+        }
+      }
+    }
+
+    if (minX != null && minY != null && maxX != null && maxY != null) {
+      return Rect.fromLTRB(minX, minY, maxX, maxY);
+    }
+    return null;
+  }
+
+  /// Checks if a node is a descendant of another node
+  bool _isDescendantOf(UDTNode? child, UDTNode parent) {
+    if (child == null) return false;
+    if (child == parent) return true;
+
+    for (final parentChild in parent.children) {
+      if (_isDescendantOf(child, parentChild)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // ============================================
