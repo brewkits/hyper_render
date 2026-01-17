@@ -1,93 +1,158 @@
 # HyperRender Highlight
 
-Syntax highlighting plugin for HyperRender.
+Syntax highlighting plugin for HyperRender using flutter_highlight.
 
-> **Note**: This is a **PAID** plugin. Contact sales@hyperrender.dev for licensing.
+## Features
+
+- **180+ Languages** - Comprehensive language support via highlight.js
+- **Multiple Themes** - VS2015, Atom One Dark, GitHub, Dracula, and more
+- **Auto-detection** - Automatic language detection when not specified
+- **Seamless Integration** - Works with HyperRender's code block rendering
 
 ## Installation
 
 ```yaml
 dependencies:
   hyper_render_core: ^2.0.0
-  hyper_render_html: ^2.0.0  # or hyper_render_markdown
   hyper_render_highlight: ^2.0.0
 ```
 
-## Features
-
-- 180+ programming languages
-- Multiple color themes
-- Line numbers (optional)
-- Copy button (optional)
-- Custom theme support
-
 ## Usage
+
+### Basic Usage
 
 ```dart
 import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:hyper_render_html/hyper_render_html.dart';
 import 'package:hyper_render_highlight/hyper_render_highlight.dart';
 
-HyperViewer(
-  content: '''
-    <pre><code class="language-dart">
-    void main() {
-      print('Hello, World!');
-    }
-    </code></pre>
-  ''',
-  contentParser: HtmlContentParser(),
-  codeHighlighter: FlutterHighlighter(
-    theme: 'monokai',
-    showLineNumbers: true,
-  ),
+// Create highlighter
+final highlighter = FlutterHighlightCodeHighlighter();
+
+// Parse HTML with code blocks
+final parser = HtmlContentParser();
+final document = parser.parse('''
+  <pre><code class="language-dart">
+  void main() {
+    print('Hello, World!');
+  }
+  </code></pre>
+''');
+
+// Render with syntax highlighting
+HyperRenderWidget(
+  document: document,
+  codeHighlighter: highlighter,
 )
 ```
 
-## Available Themes
+### Custom Theme
 
-- `monokai` (default)
-- `dracula`
-- `github`
-- `github-dark`
-- `vs`
-- `vs-dark`
-- `atom-one-dark`
-- `atom-one-light`
-- `solarized-dark`
-- `solarized-light`
-- And many more...
+```dart
+final highlighter = FlutterHighlightCodeHighlighter(
+  theme: HighlightTheme.dracula,
+);
+```
+
+### Available Themes
+
+| Theme | Description |
+|-------|-------------|
+| `HighlightTheme.vs2015` | Visual Studio 2015 dark (default) |
+| `HighlightTheme.atomOneDark` | Atom One Dark |
+| `HighlightTheme.atomOneLight` | Atom One Light |
+| `HighlightTheme.github` | GitHub light theme |
+| `HighlightTheme.githubDark` | GitHub dark theme |
+| `HighlightTheme.monokaiSublime` | Monokai Sublime |
+| `HighlightTheme.dracula` | Dracula dark theme |
+| `HighlightTheme.nord` | Nord theme |
+| `HighlightTheme.solarizedDark` | Solarized Dark |
+| `HighlightTheme.solarizedLight` | Solarized Light |
+
+### With Markdown
+
+```dart
+import 'package:hyper_render_markdown/hyper_render_markdown.dart';
+import 'package:hyper_render_highlight/hyper_render_highlight.dart';
+
+final parser = MarkdownContentParser();
+final highlighter = FlutterHighlightCodeHighlighter(
+  theme: HighlightTheme.atomOneDark,
+);
+
+final document = parser.parse('''
+# Code Example
+
+```python
+def hello():
+    print("Hello, World!")
+
+hello()
+```
+''');
+
+HyperRenderWidget(
+  document: document,
+  codeHighlighter: highlighter,
+)
+```
 
 ## Supported Languages
 
-Dart, JavaScript, TypeScript, Python, Java, Kotlin, Swift, Go, Rust, C, C++, C#, PHP, Ruby, Scala, HTML, CSS, JSON, YAML, SQL, Shell, and 160+ more.
+The plugin supports 180+ programming languages including:
 
-## Configuration
+### Popular Languages
+- **Web**: JavaScript, TypeScript, HTML, CSS, JSON
+- **Mobile**: Dart, Swift, Kotlin, Java, Objective-C
+- **Backend**: Python, Ruby, PHP, Go, Rust, C#
+- **Systems**: C, C++, Rust, Assembly
+- **Data**: SQL, R, Julia, MATLAB
+- **Shell**: Bash, PowerShell, Zsh
+- **Config**: YAML, TOML, INI, XML
+
+### Full List
+
+Check `highlighter.supportedLanguages` for the complete list:
 
 ```dart
-FlutterHighlighter(
-  // Theme name
-  theme: 'monokai',
-
-  // Show line numbers
-  showLineNumbers: true,
-
-  // Custom font family
-  fontFamily: 'JetBrains Mono',
-
-  // Custom font size
-  fontSize: 14.0,
-
-  // Enable copy button
-  showCopyButton: true,
-)
+final highlighter = FlutterHighlightCodeHighlighter();
+print(highlighter.supportedLanguages);
+// {dart, javascript, python, ruby, go, rust, ...}
 ```
 
-## Dependencies
+## Custom Highlighter
 
-- `flutter_highlight: ^0.7.0`
-- `highlight: ^0.7.0`
+You can implement your own highlighter using the `CodeHighlighter` interface:
+
+```dart
+import 'package:hyper_render_core/hyper_render_core.dart';
+
+class MyCustomHighlighter implements CodeHighlighter {
+  @override
+  List<TextSpan> highlight(String code, String language) {
+    // Your custom highlighting logic
+    return [TextSpan(text: code)];
+  }
+
+  @override
+  Set<String> get supportedLanguages => {'dart', 'python'};
+
+  @override
+  bool isLanguageSupported(String language) {
+    return supportedLanguages.contains(language.toLowerCase());
+  }
+
+  @override
+  TextStyle get defaultStyle => TextStyle(
+    fontFamily: 'JetBrains Mono',
+    fontSize: 14,
+  );
+
+  @override
+  Color get backgroundColor => Color(0xFF1E1E1E);
+}
+```
 
 ## License
 
-Commercial License - Contact sales@hyperrender.dev
+MIT License - see LICENSE file for details.
