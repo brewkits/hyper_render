@@ -57,6 +57,7 @@ HyperRender v2.0 is a **native-performance HTML rendering engine** designed for 
 - **Multi-Format Input** - HTML fully supported. Quill Delta and Markdown have basic adapters implemented (full integration planned).
 - **CJK Typography** - Proper line-breaking and Ruby/Furigana for Japanese text.
 - **Smart Table Layout** - Content-based column width calculation with horizontal scroll support for wide tables, `colspan` and `rowspan`.
+- **Multimedia Integration** - 🌟 **Unique advantage**: Perfect CSS float support for video/iframe (FWFH can't do this). Plug in video_player, webview_flutter, or custom widgets via callbacks.
 - **Base URL Resolution** - Automatic resolution of relative URLs for images and links.
 
 ## Installation
@@ -119,6 +120,46 @@ HyperViewer(
   html: '<ruby>漢字<rt>かんじ</rt></ruby>',
 )
 ```
+
+### Multimedia Integration (Video, Audio, IFrame)
+
+**🌟 Unique Advantage**: Perfect CSS float support for video/iframe elements!
+
+```dart
+// Default: Beautiful placeholders shown automatically
+HyperViewer(
+  html: '<video src="video.mp4" poster="poster.jpg" controls></video>',
+)
+
+// Custom: Plug in video_player package
+HyperViewer(
+  html: '<video src="video.mp4" controls></video>',
+  mediaBuilder: (context, mediaInfo) {
+    return VideoPlayerWidget(mediaInfo: mediaInfo);
+  },
+)
+
+// IFrame: Embed YouTube, Google Maps, etc.
+HyperViewer(
+  html: '<iframe src="https://youtube.com/embed/..." width="640" height="360"></iframe>',
+  widgetBuilder: (node) {
+    if (node is AtomicNode && node.tagName == 'iframe') {
+      return IFrameWidget(src: node.attributes['src']!);
+    }
+    return null;
+  },
+)
+
+// Float Layout: Text wraps naturally around video (FWFH can't do this!)
+HyperViewer(
+  html: '''
+    <video style="float: left; margin-right: 16px;" src="video.mp4" controls></video>
+    <p>Text wraps around the video naturally...</p>
+  ''',
+)
+```
+
+**See [Multimedia Integration Guide](example/MULTIMEDIA_EXAMPLES.md) for complete examples.**
 
 ## Architecture
 

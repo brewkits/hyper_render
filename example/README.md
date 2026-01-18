@@ -139,8 +139,26 @@ Run the app to see:
 - Smooth animations
 - Interactive comparisons
 
+## 🎬 Multimedia Integration Examples
+
+**NEW!** Comprehensive guide for integrating video, audio, iframes, and custom widgets.
+
+See [MULTIMEDIA_EXAMPLES.md](MULTIMEDIA_EXAMPLES.md) for detailed examples covering:
+
+- **Video Player Integration** - Using `video_player` package via `mediaBuilder`
+- **WebView/IFrame Integration** - Embedding YouTube, Google Maps, etc. via `widgetBuilder`
+- **Float Layout with Video** - 🌟 **Unique advantage over FWFH!** Perfect CSS float support for media
+- **Custom Widget Integration** - Extend HTML with your own interactive Flutter widgets
+
+**Run multimedia examples:**
+
+```bash
+flutter run lib/multimedia_example.dart
+```
+
 ## Learn More
 
 - [HyperRender Package](https://pub.dev/packages/hyper_render)
 - [Main Documentation](../README.md)
 - [API Reference](https://pub.dev/documentation/hyper_render/latest/)
+- [Multimedia Integration Guide](MULTIMEDIA_EXAMPLES.md)
