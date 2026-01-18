@@ -618,10 +618,68 @@ class RenderHyperTable extends RenderBox
   }
 
   List<double> _calculateColumnWidths(double maxWidth) {
-    // Simple equal distribution for now
-    // TODO: Implement proper W3C table layout algorithm
-    final width = maxWidth / columnCount;
-    return List.filled(columnCount, width);
+    // Content-based width calculation
+    // This implements a simplified version of W3C table layout algorithm
+    // that distributes width based on content intrinsic sizes
+
+    // 1. Initialize array to store max intrinsic width of each column
+    final List<double> colMaxContentWidths = List.filled(columnCount, 0.0);
+
+    // 2. Measure intrinsic width of each cell to find max for each column
+    RenderBox? child = firstChild;
+    while (child != null) {
+      final parentData = child.parentData as TableParentData;
+      final int colIndex = parentData.column;
+      final int colspan = parentData.colspan;
+
+      // Get max content width of the cell
+      final double contentWidth = child.getMaxIntrinsicWidth(double.infinity);
+
+      // If cell spans multiple columns, distribute width evenly across them
+      // (Simplified approach - full W3C algorithm is more complex)
+      final double widthPerCol = contentWidth / colspan;
+
+      for (int i = 0; i < colspan; i++) {
+        if (colIndex + i < columnCount) {
+          if (widthPerCol > colMaxContentWidths[colIndex + i]) {
+            colMaxContentWidths[colIndex + i] = widthPerCol;
+          }
+        }
+      }
+
+      child = childAfter(child);
+    }
+
+    // 3. Calculate total desired width
+    double totalDesiredWidth = colMaxContentWidths.reduce((a, b) => a + b);
+
+    // Ensure we don't divide by zero
+    if (totalDesiredWidth == 0) totalDesiredWidth = 1;
+
+    // 4. Distribute actual width proportionally
+    final List<double> finalWidths = List.filled(columnCount, 0.0);
+
+    // Scale factor (if total content < maxWidth, expand; if > maxWidth, shrink)
+    double scale = maxWidth / totalDesiredWidth;
+
+    for (int i = 0; i < columnCount; i++) {
+      // Apply minimum width of 20px to prevent columns from becoming too narrow
+      double w = colMaxContentWidths[i] * scale;
+      if (w < 20.0) w = 20.0;
+      finalWidths[i] = w;
+    }
+
+    // 5. Re-normalize if minimum width constraints caused overflow
+    double currentTotal = finalWidths.reduce((a, b) => a + b);
+    if (currentTotal > maxWidth) {
+      // Shrink proportionally to fit maxWidth
+      double shrinkFactor = maxWidth / currentTotal;
+      for (int i = 0; i < columnCount; i++) {
+        finalWidths[i] *= shrinkFactor;
+      }
+    }
+
+    return finalWidths;
   }
 
   List<double> _calculateRowHeights(List<double> columnWidths) {
