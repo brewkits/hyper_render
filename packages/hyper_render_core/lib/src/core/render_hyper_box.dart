@@ -665,8 +665,11 @@ class RenderHyperBox extends RenderBox
         _listItemIndices[parentBlock] = index;
       }
 
-      // Create marker text
-      final marker = isOrdered ? '$index. ' : '• ';
+      // Get list-style-type from parent list (ul/ol)
+      final listStyleType = parentBlock.style.listStyleType;
+
+      // Generate marker text based on list-style-type
+      final marker = _generateListMarker(listStyleType, index, isOrdered);
 
       _fragments.add(_ListMarkerFragment(
         sourceNode: node,
@@ -792,6 +795,76 @@ class RenderHyperBox extends RenderBox
     // Collapse multiple whitespace into single space
     // but preserve at least one space between words
     return text.replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  /// Generate list marker text based on list-style-type and index
+  String _generateListMarker(ListStyleType? listStyleType, int index, bool isOrdered) {
+    final type = listStyleType ?? (isOrdered ? ListStyleType.decimal : ListStyleType.disc);
+
+    switch (type) {
+      case ListStyleType.decimal:
+        return '$index. ';
+
+      case ListStyleType.lowerRoman:
+        return '${_toRomanNumeral(index).toLowerCase()}. ';
+
+      case ListStyleType.upperRoman:
+        return '${_toRomanNumeral(index)}. ';
+
+      case ListStyleType.lowerAlpha:
+        return '${_toAlphaNumeral(index).toLowerCase()}. ';
+
+      case ListStyleType.upperAlpha:
+        return '${_toAlphaNumeral(index)}. ';
+
+      case ListStyleType.disc:
+        return '• '; // Filled circle (default for ul)
+
+      case ListStyleType.circle:
+        return '○ '; // Hollow circle
+
+      case ListStyleType.square:
+        return '▪ '; // Filled square
+
+      case ListStyleType.none:
+        return '';
+    }
+  }
+
+  /// Convert number to roman numerals (I, II, III, IV, V, etc.)
+  String _toRomanNumeral(int num) {
+    if (num <= 0 || num > 3999) return '$num'; // Fallback for out of range
+
+    const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+    const numerals = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+
+    String result = '';
+    int remaining = num;
+
+    for (int i = 0; i < values.length; i++) {
+      while (remaining >= values[i]) {
+        result += numerals[i];
+        remaining -= values[i];
+      }
+    }
+
+    return result;
+  }
+
+  /// Convert number to alphabetical numeral (A, B, C, ..., Z, AA, AB, etc.)
+  String _toAlphaNumeral(int num) {
+    if (num <= 0) return 'A'; // Fallback
+
+    String result = '';
+    int n = num;
+
+    while (n > 0) {
+      n--; // Adjust for 0-based indexing
+      result = String.fromCharCode(65 + (n % 26)) + result;
+      n ~/= 26;
+    }
+
+    return result;
   }
 
   /// Default placeholder size for images without dimensions

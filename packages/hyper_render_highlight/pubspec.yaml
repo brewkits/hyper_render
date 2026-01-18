@@ -11,8 +11,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # NOTE: For publishing to pub.dev, replace path with version:
+  #   hyper_render_core: ^2.0.0
+  # See PUBLISH.md for detailed publishing instructions.
   hyper_render_core:
     path: ../hyper_render_core
+
   flutter_highlight: ^0.7.0
   highlight: ^0.7.0
 
