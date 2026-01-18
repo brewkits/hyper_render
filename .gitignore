@@ -2,6 +2,12 @@
 .claude/
 *.txt
 
+# Private Strategy Documents (Not for public repository)
+STRATEGIC_POSITIONING.md
+EXECUTIVE_SUMMARY.md
+PITCH_DECK.md
+TEST_SUMMARY.md
+
 # Miscellaneous
 *.class
 *.log
@@ -32,4 +38,5 @@ migrate_working_dir/
 .dart_tool/
 .flutter-plugins-dependencies
 /build/
+**/build/
 /coverage/

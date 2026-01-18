@@ -44,20 +44,28 @@ class HtmlAdapter {
     'a': ComputedStyle(color: Colors.blue, textDecoration: TextDecoration.underline),
     'mark': ComputedStyle(backgroundColor: const Color(0xFFFFFF00)), // Yellow highlight
     'span': ComputedStyle(),
-    'ul': ComputedStyle(display: DisplayType.block, padding: const EdgeInsets.only(left: 40)),
-    'ol': ComputedStyle(display: DisplayType.block, padding: const EdgeInsets.only(left: 40)),
+    'ul': ComputedStyle(
+      display: DisplayType.block,
+      padding: const EdgeInsets.only(left: 40),
+      listStyleType: ListStyleType.disc, // Default bullet for unordered lists
+    ),
+    'ol': ComputedStyle(
+      display: DisplayType.block,
+      padding: const EdgeInsets.only(left: 40),
+      listStyleType: ListStyleType.decimal, // Default numbers for ordered lists
+    ),
     'li': ComputedStyle(display: DisplayType.block, margin: const EdgeInsets.symmetric(vertical: 4)),
   'thead': ComputedStyle(display: DisplayType.block),
   'tbody': ComputedStyle(display: DisplayType.block),
   'tfoot': ComputedStyle(display: DisplayType.block),
   };
 
-  DocumentNode parse(String html) {
+  DocumentNode parse(String html, {String? baseUrl}) {
     final document = html_parser.parse(html);
-    return _parseDocument(document);
+    return _parseDocument(document, baseUrl);
   }
 
-  List<DocumentNode> parseToSections(String html, {int chunkSize = 3000}) {
+  List<DocumentNode> parseToSections(String html, {int chunkSize = 3000, String? baseUrl}) {
     final document = html_parser.parse(html);
     final body = document.body;
 
@@ -71,7 +79,7 @@ class HtmlAdapter {
     final nodesToProcess = _flattenLargeContainers(body.nodes.toList(), chunkSize);
 
     for (var child in nodesToProcess) {
-      UDTNode? udtNode = _parseNode(child);
+      UDTNode? udtNode = _parseNode(child, baseUrl);
 
       if (udtNode != null) {
         currentSection.children.add(udtNode);
@@ -138,11 +146,30 @@ class HtmlAdapter {
     return 50; // Default estimate for unknown nodes
   }
 
-  DocumentNode _parseDocument(dom.Document document) {
+  /// Resolve relative URLs with base URL
+  ///
+  /// Handles cases like:
+  /// - Relative: "/logo.png" + "https://example.com" = "https://example.com/logo.png"
+  /// - Absolute: "https://cdn.com/img.png" + baseUrl = unchanged
+  /// - Protocol-relative: "//cdn.com/img.png" + baseUrl = adds protocol
+  String? _resolveUrl(String? url, String? baseUrl) {
+    if (url == null || url.isEmpty) return null;
+    if (baseUrl == null || baseUrl.isEmpty) return url;
+
+    try {
+      // Resolve relative URL with base
+      return Uri.parse(baseUrl).resolve(url).toString();
+    } catch (_) {
+      // If parsing fails, return original URL
+      return url;
+    }
+  }
+
+  DocumentNode _parseDocument(dom.Document document, String? baseUrl) {
     final root = DocumentNode(children: []);
     if (document.body != null) {
       for (var child in document.body!.nodes) {
-        final node = _parseNode(child);
+        final node = _parseNode(child, baseUrl);
         if (node != null) {
           root.children.add(node);
         }
@@ -151,7 +178,7 @@ class HtmlAdapter {
     return root;
   }
 
-  UDTNode? _parseNode(dom.Node node) {
+  UDTNode? _parseNode(dom.Node node, String? baseUrl) {
     if (node.nodeType == dom.Node.TEXT_NODE) {
       if (node.text == null || node.text!.trim().isEmpty) return null;
       return TextNode(node.text!);
@@ -166,11 +193,18 @@ class HtmlAdapter {
         if (tagName == 'br' || tagName == 'hr') {
           return LineBreakNode(); // Simplified
         }
+
+        // Resolve src attribute for media elements (img, video, audio, iframe)
+        String? src = element.attributes['src'];
+        if (src != null) {
+          src = _resolveUrl(src, baseUrl);
+        }
+
         return AtomicNode(
           tagName: tagName,
           attributes: element.attributes.map((k, v) => MapEntry(k.toString(), v)),
           style: defaultStyle,
-          src: element.attributes['src'],
+          src: src,
           alt: element.attributes['alt'],
           intrinsicWidth: double.tryParse(element.attributes['width'] ?? ''),
           intrinsicHeight: double.tryParse(element.attributes['height'] ?? ''),
@@ -194,10 +228,30 @@ class HtmlAdapter {
         );
       }
 
-      final children = element.nodes.map(_parseNode).whereType<UDTNode>().toList();
+      // Resolve href attribute for link elements
+      if (tagName == 'a') {
+        String? href = element.attributes['href'];
+        if (href != null) {
+          final resolvedHref = _resolveUrl(href, baseUrl);
+          if (resolvedHref != null) {
+            element.attributes['href'] = resolvedHref;
+          }
+        }
+      }
+
+      final children = element.nodes.map((n) => _parseNode(n, baseUrl)).whereType<UDTNode>().toList();
 
       UDTNode result;
-      if (tagName == 'table') {
+      if (tagName == 'details') {
+        // Parse <details> element with optional 'open' attribute
+        final isOpen = element.attributes.containsKey('open');
+        result = DetailsNode(
+          attributes: element.attributes.map((k, v) => MapEntry(k.toString(), v)),
+          style: defaultStyle,
+          children: children,
+          open: isOpen,
+        );
+      } else if (tagName == 'table') {
         result = TableNode(
           attributes: element.attributes.map((k, v) => MapEntry(k.toString(), v)),
           style: defaultStyle,

@@ -38,6 +38,9 @@ enum NodeType {
 
   /// Line break (br)
   lineBreak,
+
+  /// Interactive details/summary element
+  details,
 }
 
 /// Base class for all nodes in the Unified Document Tree (UDT)
@@ -464,4 +467,29 @@ class TableCellNode extends UDTNode {
 
   /// Get rowspan value
   int get rowspan => int.tryParse(attributes['rowspan'] ?? '1') ?? 1;
+}
+
+/// Details node for interactive disclosure widget (<details>/<summary>)
+///
+/// Represents the HTML <details> element which provides an interactive
+/// disclosure widget that can be toggled open/closed by the user.
+class DetailsNode extends UDTNode {
+  /// Whether the details should be initially open
+  final bool open;
+
+  DetailsNode({
+    super.attributes,
+    ComputedStyle? style,
+    super.children,
+    this.open = false,
+  }) : super(
+          type: NodeType.details,
+          tagName: 'details',
+          style: style ?? ComputedStyle(display: DisplayType.block),
+        );
+
+  /// Check if the 'open' attribute is present in HTML
+  static bool isOpen(Map<String, String> attributes) {
+    return attributes.containsKey('open');
+  }
 }

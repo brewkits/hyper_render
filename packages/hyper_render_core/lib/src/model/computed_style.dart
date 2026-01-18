@@ -133,6 +133,36 @@ enum HyperAnimationFillMode {
   both,
 }
 
+/// CSS list-style-type values
+enum ListStyleType {
+  /// Decimal numbers (1, 2, 3...) - default for <ol>
+  decimal,
+
+  /// Lowercase roman numerals (i, ii, iii, iv...)
+  lowerRoman,
+
+  /// Uppercase roman numerals (I, II, III, IV...)
+  upperRoman,
+
+  /// Lowercase letters (a, b, c...)
+  lowerAlpha,
+
+  /// Uppercase letters (A, B, C...)
+  upperAlpha,
+
+  /// Filled circle • - default for <ul>
+  disc,
+
+  /// Hollow circle ○
+  circle,
+
+  /// Filled square ▪
+  square,
+
+  /// No marker
+  none,
+}
+
 /// CSS transition definition
 class HyperTransition {
   /// Property to transition (null means 'all')
@@ -264,6 +294,10 @@ class ComputedStyle {
   /// CSS white-space
   String? whiteSpace;
 
+  /// CSS list-style-type - INHERITABLE
+  /// Controls the marker style for list items (ul/ol)
+  ListStyleType? listStyleType;
+
   // ============================================
   // Background Properties
   // ============================================
@@ -378,6 +412,7 @@ class ComputedStyle {
     this.verticalAlign = HyperVerticalAlign.baseline,
     this.textTransform,
     this.whiteSpace,
+    this.listStyleType,
     this.backgroundColor,
     this.backgroundImage,
     this.display = DisplayType.inline,
@@ -406,18 +441,21 @@ class ComputedStyle {
   /// Reference: doc1.txt - "1.2. Quy trình Resolve"
   /// Properties like color, font-family are inherited from parent Node
   /// margin, padding are NOT inherited
+  ///
+  /// Only inherit properties that are not explicitly set (null) in child
   void inheritFrom(ComputedStyle parent) {
-    // Text properties that inherit
-    color = parent.color;
-    fontSize = parent.fontSize;
-    fontWeight = parent.fontWeight;
-    fontStyle = parent.fontStyle;
-    fontFamily = parent.fontFamily;
-    lineHeight = parent.lineHeight;
-    letterSpacing = parent.letterSpacing;
-    wordSpacing = parent.wordSpacing;
-    textAlign = parent.textAlign;
-    whiteSpace = parent.whiteSpace;
+    // Text properties that inherit (only if not already set)
+    color ??= parent.color;
+    fontSize ??= parent.fontSize;
+    fontWeight ??= parent.fontWeight;
+    fontStyle ??= parent.fontStyle;
+    fontFamily ??= parent.fontFamily;
+    lineHeight ??= parent.lineHeight;
+    letterSpacing ??= parent.letterSpacing;
+    wordSpacing ??= parent.wordSpacing;
+    textAlign ??= parent.textAlign;
+    whiteSpace ??= parent.whiteSpace;
+    listStyleType ??= parent.listStyleType;
 
     // Note: margin, padding, border DO NOT inherit
   }

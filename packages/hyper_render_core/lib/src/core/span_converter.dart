@@ -7,6 +7,7 @@ import 'render_formula.dart';
 import 'render_media.dart';
 import 'render_ruby.dart';
 import 'render_table.dart';
+import '../widgets/details_widget.dart';
 
 /// Callback for handling link taps
 typedef LinkTapCallback = void Function(String url);
@@ -110,6 +111,9 @@ class HtmlToSpanConverter {
       case NodeType.tableCell:
         // These are handled by table converter
         return null;
+
+      case NodeType.details:
+        return _convertDetails(node as DetailsNode);
 
       case NodeType.document:
       case NodeType.rubyText:
@@ -343,6 +347,20 @@ class HtmlToSpanConverter {
     return WidgetSpan(
       child: SmartTableWrapper(
         tableNode: node,
+        baseStyle: baseStyle,
+        onLinkTap: onLinkTap,
+      ),
+      alignment: PlaceholderAlignment.middle,
+    );
+  }
+
+  /// Convert details element (<details>/<summary>)
+  ///
+  /// Details elements are rendered as WidgetSpan with DetailsWidget
+  InlineSpan _convertDetails(DetailsNode node) {
+    return WidgetSpan(
+      child: DetailsWidget(
+        detailsNode: node,
         baseStyle: baseStyle,
         onLinkTap: onLinkTap,
       ),
