@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/image_provider.dart';
+import '../core/performance_monitor.dart';
 import '../core/render_hyper_box.dart';
 import '../core/render_table.dart';
 import '../interfaces/code_highlighter.dart';
@@ -87,6 +88,24 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// If not provided, uses PlainTextHighlighter (no highlighting)
   final CodeHighlighter? codeHighlighter;
 
+  /// Performance report callback
+  ///
+  /// Called when performance metrics are available. Note that the widget
+  /// receives an already-parsed document, so parse time will be zero unless
+  /// you manually track it using [PerformanceMonitor] in your parsing code.
+  ///
+  /// Example:
+  /// ```dart
+  /// HyperRenderWidget(
+  ///   document: document,
+  ///   onPerformanceReport: (report) {
+  ///     print('Render: ${report.totalTimeMs}ms');
+  ///     print('Nodes: ${report.nodeCount}');
+  ///   },
+  /// )
+  /// ```
+  final PerformanceReportCallback? onPerformanceReport;
+
   /// Creates a HyperRenderWidget
   ///
   /// The [document] parameter is required and contains the parsed UDT tree.
@@ -101,6 +120,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.selectable = true,
     this.onSelectionChanged,
     this.codeHighlighter,
+    this.onPerformanceReport,
   }) : super(children: _buildChildren(document, widgetBuilder, codeHighlighter));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
