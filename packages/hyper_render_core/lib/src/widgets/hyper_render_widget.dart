@@ -9,6 +9,7 @@ import '../interfaces/image_clipboard.dart';
 import '../model/computed_style.dart';
 import '../model/node.dart';
 import 'code_block_widget.dart';
+import 'error_boundary_widget.dart';
 
 /// Image action types for context menu
 enum ImageAction {
@@ -160,6 +161,14 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       if (childWidget != null) {
         children.add(_HyperChildWidget(node: node, child: childWidget));
       }
+    } else if (node.type == NodeType.errorBoundary) {
+      // Error boundary - always render with ErrorBoundaryWidget
+      final errorNode = node as ErrorBoundaryNode;
+      childWidget = widgetBuilder?.call(errorNode);
+      childWidget ??= _buildDefaultErrorBoundaryWidget(errorNode);
+      if (childWidget != null) {
+        children.add(_HyperChildWidget(node: node, child: childWidget));
+      }
     }
 
     // Recurse into children, but ONLY if the current node isn't a child-widget itself
@@ -294,6 +303,14 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       tableNode: node,
       strategy: strategy,
       minScaleFactor: 0.6,
+    );
+  }
+
+  /// Build default error boundary widget
+  static Widget _buildDefaultErrorBoundaryWidget(ErrorBoundaryNode node) {
+    return ErrorBoundaryWidget(
+      errorNode: node,
+      showDetailsInitially: false,
     );
   }
 
