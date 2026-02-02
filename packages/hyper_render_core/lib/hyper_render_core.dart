@@ -64,6 +64,7 @@ export 'src/core/render_media.dart';
 export 'src/core/render_table.dart';
 export 'src/core/render_formula.dart';
 export 'src/core/animation_controller.dart';
+export 'src/core/performance_monitor.dart';
 
 // Widgets
 export 'src/widgets/hyper_render_widget.dart';
