@@ -43,10 +43,11 @@ void main() {
       expect(style.fontSize, equals(999));
     });
 
-    test('handles negative font size', () {
-      final style = ComputedStyle(fontSize: -10);
-      expect(style.fontSize, equals(-10));
-      // Note: Negative font sizes don't make sense but ComputedStyle should store them
+    test('rejects negative font size', () {
+      expect(
+        () => ComputedStyle(fontSize: -10),
+        throwsA(isA<ArgumentError>()),
+      );
     });
 
     test('handles null font size (inheritable)', () {
@@ -70,6 +71,103 @@ void main() {
       child.inheritFrom(parent);
 
       expect(child.fontSize, equals(16));
+    });
+  });
+
+  group('CSS Dimension Validation', () {
+    test('rejects negative width', () {
+      expect(
+        () => ComputedStyle(width: -100),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects negative height', () {
+      expect(
+        () => ComputedStyle(height: -50),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects negative minWidth', () {
+      expect(
+        () => ComputedStyle(minWidth: -10),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects negative maxWidth', () {
+      expect(
+        () => ComputedStyle(maxWidth: -10),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects negative minHeight', () {
+      expect(
+        () => ComputedStyle(minHeight: -10),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects negative maxHeight', () {
+      expect(
+        () => ComputedStyle(maxHeight: -10),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('accepts zero dimensions', () {
+      final style = ComputedStyle(
+        width: 0,
+        height: 0,
+        minWidth: 0,
+        maxWidth: 0,
+      );
+      expect(style.width, equals(0));
+      expect(style.height, equals(0));
+    });
+
+    test('accepts positive dimensions', () {
+      final style = ComputedStyle(
+        width: 100,
+        height: 200,
+        minWidth: 50,
+        maxWidth: 150,
+      );
+      expect(style.width, equals(100));
+      expect(style.height, equals(200));
+    });
+  });
+
+  group('CSS Opacity Validation', () {
+    test('rejects opacity less than 0', () {
+      expect(
+        () => ComputedStyle(opacity: -0.5),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects opacity greater than 1', () {
+      expect(
+        () => ComputedStyle(opacity: 1.5),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('accepts opacity 0 (fully transparent)', () {
+      final style = ComputedStyle(opacity: 0);
+      expect(style.opacity, equals(0));
+    });
+
+    test('accepts opacity 1 (fully opaque)', () {
+      final style = ComputedStyle(opacity: 1);
+      expect(style.opacity, equals(1));
+    });
+
+    test('accepts opacity 0.5 (semi-transparent)', () {
+      final style = ComputedStyle(opacity: 0.5);
+      expect(style.opacity, equals(0.5));
     });
   });
 
