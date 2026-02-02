@@ -434,7 +434,64 @@ class ComputedStyle {
     this.animationFillMode = HyperAnimationFillMode.none,
     this.colspan = 1,
     this.rowspan = 1,
-  });
+  }) {
+    // Validate CSS values
+    if (fontSize < 0) {
+      throw ArgumentError.value(
+        fontSize,
+        'fontSize',
+        'Font size must be non-negative',
+      );
+    }
+
+    if (width != null && width! < 0) {
+      throw ArgumentError.value(width, 'width', 'Width must be non-negative');
+    }
+
+    if (height != null && height! < 0) {
+      throw ArgumentError.value(height, 'height', 'Height must be non-negative');
+    }
+
+    if (opacity < 0 || opacity > 1) {
+      throw ArgumentError.value(
+        opacity,
+        'opacity',
+        'Opacity must be between 0 and 1',
+      );
+    }
+
+    if (minWidth != null && minWidth! < 0) {
+      throw ArgumentError.value(
+        minWidth,
+        'minWidth',
+        'Min width must be non-negative',
+      );
+    }
+
+    if (minHeight != null && minHeight! < 0) {
+      throw ArgumentError.value(
+        minHeight,
+        'minHeight',
+        'Min height must be non-negative',
+      );
+    }
+
+    if (maxWidth != null && maxWidth! < 0) {
+      throw ArgumentError.value(
+        maxWidth,
+        'maxWidth',
+        'Max width must be non-negative',
+      );
+    }
+
+    if (maxHeight != null && maxHeight! < 0) {
+      throw ArgumentError.value(
+        maxHeight,
+        'maxHeight',
+        'Max height must be non-negative',
+      );
+    }
+  }
 
   /// Inherit inheritable properties from parent
   ///

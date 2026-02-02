@@ -10,11 +10,11 @@
 
 | Phase | Status | Tasks | Completed | Progress |
 |-------|--------|-------|-----------|----------|
-| Phase 1: Critical Bugs | 🟡 IN PROGRESS | 4 | 3 | 75% |
+| Phase 1: Critical Bugs | ✅ COMPLETED | 4 | 4 | 100% |
 | Phase 2: Performance | 🔴 NOT STARTED | 3 | 0 | 0% |
 | Phase 3: UI/UX Polish | 🔴 NOT STARTED | 5 | 0 | 0% |
 | Phase 4: Code Quality | 🔴 NOT STARTED | 3 | 0 | 0% |
-| **TOTAL** | **20%** | **15** | **3** | **3/15** |
+| **TOTAL** | **27%** | **15** | **4** | **4/15** |
 
 **Pro Features (v3.0)**: Deferred to paid tier
 
@@ -114,7 +114,7 @@ widgetBuilder: (node) {
 - **Lines**: 46-49
 - **Issue**: Test validates negative font size without rejecting it
 - **Effort**: 1 hour
-- **Status**: 🔴 NOT STARTED
+- **Status**: ✅ COMPLETED (2026-02-02)
 
 **Implementation**:
 ```dart
@@ -603,6 +603,18 @@ test('uses <10MB memory for 25K content', () {
 ---
 
 ## 🔄 UPDATE LOG
+
+### 2026-02-02 17:00
+- ✅ **Task 1.4 COMPLETED**: Fixed CSS validation tests
+- ✅ **PHASE 1 COMPLETED**: All critical bugs fixed! 🎉
+  - Added comprehensive validation to ComputedStyle constructor
+  - Validates: fontSize, width, height, opacity, min/max dimensions
+  - All validations throw ArgumentError with clear messages
+  - Updated test to expect ArgumentError for negative fontSize
+  - Added 13 new validation tests (all passing)
+- **Progress**: 4/15 tasks (27%)
+- **Phase 1**: 100% complete ✅
+- **Next**: Phase 2 - Performance optimizations
 
 ### 2026-02-02 16:45
 - ✅ **Task 1.3 COMPLETED**: Fixed error handling in multimedia examples
