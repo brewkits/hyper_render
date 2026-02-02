@@ -115,6 +115,10 @@ class HtmlToSpanConverter {
       case NodeType.details:
         return _convertDetails(node as DetailsNode);
 
+      case NodeType.errorBoundary:
+        // Error boundaries are handled by ErrorBoundaryWidget, not inline spans
+        return null;
+
       case NodeType.document:
       case NodeType.rubyText:
         return null;

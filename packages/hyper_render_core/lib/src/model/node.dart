@@ -75,6 +75,9 @@ enum NodeType {
 
   /// Interactive details/summary element
   details,
+
+  /// Error boundary for graceful error handling
+  errorBoundary,
 }
 
 /// Base class for all nodes in the Unified Document Tree (UDT)
@@ -526,4 +529,67 @@ class DetailsNode extends UDTNode {
   static bool isOpen(Map<String, String> attributes) {
     return attributes.containsKey('open');
   }
+}
+
+/// Error boundary node for graceful error handling
+///
+/// Represents an error that occurred during parsing or rendering.
+/// Instead of crashing the entire app, errors are captured and displayed
+/// in a user-friendly way.
+///
+/// Example usage:
+/// ```dart
+/// try {
+///   return parseHTML(html);
+/// } catch (e, stack) {
+///   return DocumentNode(children: [
+///     ErrorBoundaryNode(
+///       error: e,
+///       stackTrace: stack,
+///       friendlyMessage: 'Failed to parse HTML',
+///     ),
+///   ]);
+/// }
+/// ```
+class ErrorBoundaryNode extends UDTNode {
+  /// The error that was caught
+  final dynamic error;
+
+  /// Stack trace of the error
+  final StackTrace stackTrace;
+
+  /// User-friendly error message
+  final String? friendlyMessage;
+
+  /// Original content that failed to parse (for debugging)
+  final String? originalContent;
+
+  ErrorBoundaryNode({
+    required this.error,
+    required this.stackTrace,
+    this.friendlyMessage,
+    this.originalContent,
+    super.attributes,
+  }) : super(
+          type: NodeType.errorBoundary,
+          tagName: 'error-boundary',
+          style: ComputedStyle(display: DisplayType.block),
+        );
+
+  /// Get error message as string
+  String get errorMessage => error?.toString() ?? 'Unknown error';
+
+  /// Get abbreviated stack trace (first 5 lines)
+  String get shortStackTrace {
+    final lines = stackTrace.toString().split('\n');
+    final abbreviated = lines.take(5).join('\n');
+    if (lines.length > 5) {
+      return '$abbreviated\n... (${lines.length - 5} more lines)';
+    }
+    return abbreviated;
+  }
+
+  @override
+  String toString() =>
+      'ErrorBoundaryNode(error: $errorMessage, message: $friendlyMessage)';
 }
