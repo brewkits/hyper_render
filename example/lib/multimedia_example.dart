@@ -747,7 +747,7 @@ class ChartWidget extends StatelessWidget {
               const SizedBox(height: 4),
               Container(
                 width: 40,
-                height: height,
+                height: constraints?.minHeight,
                 decoration: BoxDecoration(
                   color: Colors.blue.shade400,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
