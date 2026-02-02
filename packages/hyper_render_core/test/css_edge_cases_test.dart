@@ -88,8 +88,8 @@ void main() {
       final style = ComputedStyle(
         margin: const EdgeInsets.only(left: -10, top: -5),
       );
-      expect(style.margin!.left, equals(-10));
-      expect(style.margin!.top, equals(-5));
+      expect(style.margin.left, equals(-10));
+      expect(style.margin.top, equals(-5));
     });
 
     test('margin does not inherit', () {
@@ -122,10 +122,10 @@ void main() {
         ),
       );
 
-      expect(style.margin!.left, equals(5));
-      expect(style.margin!.right, equals(10));
-      expect(style.margin!.top, equals(15));
-      expect(style.margin!.bottom, equals(20));
+      expect(style.margin.left, equals(5));
+      expect(style.margin.right, equals(10));
+      expect(style.margin.top, equals(15));
+      expect(style.margin.bottom, equals(20));
     });
 
     test('handles asymmetric padding', () {
@@ -138,10 +138,10 @@ void main() {
         ),
       );
 
-      expect(style.padding!.left, equals(1));
-      expect(style.padding!.right, equals(2));
-      expect(style.padding!.top, equals(3));
-      expect(style.padding!.bottom, equals(4));
+      expect(style.padding.left, equals(1));
+      expect(style.padding.right, equals(2));
+      expect(style.padding.top, equals(3));
+      expect(style.padding.bottom, equals(4));
     });
   });
 

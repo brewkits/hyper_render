@@ -2,6 +2,40 @@ import 'package:flutter/painting.dart';
 
 import 'computed_style.dart';
 
+/// ID generator for UDT nodes
+///
+/// Provides unique IDs for nodes with automatic reset to prevent overflow
+/// in long-running applications.
+class NodeIdGenerator {
+  int _counter = 0;
+  static final NodeIdGenerator _instance = NodeIdGenerator._internal();
+
+  NodeIdGenerator._internal();
+
+  /// Get the singleton instance
+  factory NodeIdGenerator() => _instance;
+
+  /// Generate next unique ID
+  String next() {
+    final id = 'node_${DateTime.now().microsecondsSinceEpoch}_${_counter++}';
+
+    // Reset counter after 1M to prevent overflow
+    if (_counter >= 1000000) {
+      _counter = 0;
+    }
+
+    return id;
+  }
+
+  /// Reset counter (useful for testing)
+  void reset() {
+    _counter = 0;
+  }
+
+  /// Get current counter value (for testing)
+  int get counter => _counter;
+}
+
 /// Node type in the Unified Document Tree (UDT)
 ///
 /// Reference: doc1.txt - "Mỗi Node trong UDT sẽ có: Type (Block/Inline), Attributes (Styles), và Children"
@@ -76,8 +110,8 @@ abstract class UDTNode {
   /// Unique identifier for this node (for hit testing, selection)
   final String id;
 
-  /// Counter for generating unique IDs
-  static int _idCounter = 0;
+  /// ID generator instance
+  static final NodeIdGenerator _idGenerator = NodeIdGenerator();
 
   UDTNode({
     required this.type,
@@ -89,7 +123,7 @@ abstract class UDTNode {
   })  : attributes = attributes ?? {},
         style = style ?? ComputedStyle(),
         children = children ?? [],
-        id = id ?? 'node_${_idCounter++}';
+        id = id ?? _idGenerator.next();
 
   /// Add a child node
   void appendChild(UDTNode child) {
@@ -303,7 +337,7 @@ class TextNode extends UDTNode {
   /// The text content
   final String text;
 
-  TextNode(this.text, {super.style})
+  TextNode(this.text, {super.style, super.id})
       : super(
           type: NodeType.text,
           tagName: '#text',
