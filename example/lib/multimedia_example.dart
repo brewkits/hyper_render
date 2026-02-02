@@ -18,6 +18,88 @@ import 'package:hyper_render/hyper_render.dart';
 ///   video_player: ^2.8.0
 ///   webview_flutter: ^4.4.0
 /// ```
+
+// ============================================================================
+// Error Handling Helpers
+// ============================================================================
+
+/// Validates if a URL is safe and well-formed
+bool _isValidUrl(String? url) {
+  if (url == null || url.isEmpty) return false;
+
+  final uri = Uri.tryParse(url);
+  if (uri == null) return false;
+
+  // Must have a scheme (http, https, etc.)
+  if (!uri.hasScheme) return false;
+
+  // Must have a host
+  if (uri.host.isEmpty) return false;
+
+  return true;
+}
+
+/// Creates a beautiful error widget for failed media loading
+Widget _buildMediaErrorWidget(String message, {String? details}) {
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.red.shade50,
+      border: Border.all(color: Colors.red.shade200),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.error_outline, color: Colors.red.shade700, size: 48),
+        const SizedBox(height: 8),
+        Text(
+          message,
+          style: TextStyle(
+            color: Colors.red.shade900,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        if (details != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            details,
+            style: TextStyle(
+              color: Colors.red.shade700,
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
+/// Safe widget builder wrapper with error handling
+Widget? _safeWidgetBuilder(
+  Widget? Function() builder, {
+  required String context,
+}) {
+  try {
+    return builder();
+  } catch (e, stackTrace) {
+    // Log error in debug mode
+    assert(() {
+      print('Error in $context: $e');
+      print(stackTrace);
+      return true;
+    }());
+
+    // Return error widget
+    return _buildMediaErrorWidget(
+      'Widget failed to load',
+      details: 'Error in $context: ${e.toString()}',
+    );
+  }
+}
+
 void main() {
   runApp(const MultimediaExampleApp());
 }
@@ -300,14 +382,28 @@ class WebViewExample extends StatelessWidget {
             /*
             widgetBuilder: (node) {
               if (node is AtomicNode && node.tagName == 'iframe') {
-                final src = node.attributes['src'];
-                if (src != null) {
-                  return IFrameWidget(
-                    src: src,
-                    width: node.intrinsicWidth ?? 640,
-                    height: node.intrinsicHeight ?? 400,
-                  );
-                }
+                return _safeWidgetBuilder(
+                  () {
+                    final src = node.attributes['src'];
+
+                    // Validate URL
+                    if (!_isValidUrl(src)) {
+                      return _buildMediaErrorWidget(
+                        'Invalid IFrame URL',
+                        details: src == null || src.isEmpty
+                            ? 'No src attribute provided'
+                            : 'Invalid URL: $src',
+                      );
+                    }
+
+                    return IFrameWidget(
+                      src: src!,
+                      width: node.intrinsicWidth ?? 640,
+                      height: node.intrinsicHeight ?? 400,
+                    );
+                  },
+                  context: 'IFrame widget',
+                );
               }
               return null; // Let HyperRender handle other nodes
             },
@@ -315,7 +411,7 @@ class WebViewExample extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           const _CodeExample(
-            title: 'Implementation',
+            title: 'Implementation with Error Handling',
             code: '''
 // Add to pubspec.yaml:
 // dependencies:
@@ -325,16 +421,29 @@ HyperViewer(
   html: htmlWithIframes,
   widgetBuilder: (node) {
     if (node is AtomicNode && node.tagName == 'iframe') {
-      final src = node.attributes['src'];
-      if (src != null) {
-        return IFrameWidget(
-          src: src,
-          width: node.intrinsicWidth ?? 640,
-          height: node.intrinsicHeight ?? 400,
-        );
-      }
+      // Safe widget building with error handling
+      return _safeWidgetBuilder(
+        () {
+          final src = node.attributes['src'];
+
+          // ✅ Validate URL before using
+          if (!_isValidUrl(src)) {
+            return _buildErrorWidget(
+              'Invalid IFrame URL',
+              details: src ?? 'No src provided',
+            );
+          }
+
+          return IFrameWidget(
+            src: src!,
+            width: node.intrinsicWidth ?? 640,
+            height: node.intrinsicHeight ?? 400,
+          );
+        },
+        context: 'IFrame widget',
+      );
     }
-    return null; // Let HyperRender handle other nodes
+    return null;
   },
 )
 ''',
@@ -470,18 +579,50 @@ class CustomWidgetExample extends StatelessWidget {
             widgetBuilder: (node) {
               // Handle custom vote widget
               if (node is AtomicNode && node.tagName == 'vote-widget') {
-                return VoteWidget(
-                  question: node.attributes['question'] ?? 'Vote',
-                  option1: node.attributes['option1'] ?? 'Yes',
-                  option2: node.attributes['option2'] ?? 'No',
+                return _safeWidgetBuilder(
+                  () {
+                    return VoteWidget(
+                      question: node.attributes['question'] ?? 'Vote',
+                      option1: node.attributes['option1'] ?? 'Yes',
+                      option2: node.attributes['option2'] ?? 'No',
+                    );
+                  },
+                  context: 'Vote widget',
                 );
               }
 
               // Handle custom chart widget
               if (node is AtomicNode && node.tagName == 'chart-widget') {
-                final dataStr = node.attributes['data'] ?? '0';
-                final data = dataStr.split(',').map((e) => double.tryParse(e.trim()) ?? 0).toList();
-                return ChartWidget(data: data);
+                return _safeWidgetBuilder(
+                  () {
+                    final dataStr = node.attributes['data'];
+
+                    // Validate data attribute
+                    if (dataStr == null || dataStr.isEmpty) {
+                      return _buildMediaErrorWidget(
+                        'Chart Data Missing',
+                        details: 'No data attribute provided for chart',
+                      );
+                    }
+
+                    // Parse data safely
+                    final data = dataStr
+                        .split(',')
+                        .map((e) => double.tryParse(e.trim()) ?? 0)
+                        .toList();
+
+                    // Validate parsed data
+                    if (data.isEmpty) {
+                      return _buildMediaErrorWidget(
+                        'Invalid Chart Data',
+                        details: 'Could not parse data: $dataStr',
+                      );
+                    }
+
+                    return ChartWidget(data: data);
+                  },
+                  context: 'Chart widget',
+                );
               }
 
               return null; // Let HyperRender handle other nodes
@@ -489,25 +630,53 @@ class CustomWidgetExample extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           const _CodeExample(
-            title: 'Implementation',
+            title: 'Implementation with Error Handling',
             code: '''
 HyperViewer(
   html: htmlWithCustomElements,
   widgetBuilder: (node) {
     if (node is AtomicNode && node.tagName == 'vote-widget') {
-      return VoteWidget(
-        question: node.attributes['question'] ?? 'Vote',
-        option1: node.attributes['option1'] ?? 'Yes',
-        option2: node.attributes['option2'] ?? 'No',
+      // ✅ Wrap in safe builder for error handling
+      return _safeWidgetBuilder(
+        () => VoteWidget(
+          question: node.attributes['question'] ?? 'Vote',
+          option1: node.attributes['option1'] ?? 'Yes',
+          option2: node.attributes['option2'] ?? 'No',
+        ),
+        context: 'Vote widget',
       );
     }
 
     if (node is AtomicNode && node.tagName == 'chart-widget') {
-      final dataStr = node.attributes['data'] ?? '0';
-      final data = dataStr.split(',')
-        .map((e) => double.tryParse(e.trim()) ?? 0)
-        .toList();
-      return ChartWidget(data: data);
+      return _safeWidgetBuilder(
+        () {
+          final dataStr = node.attributes['data'];
+
+          // ✅ Validate data exists
+          if (dataStr == null || dataStr.isEmpty) {
+            return _buildErrorWidget(
+              'Chart Data Missing',
+              details: 'No data attribute',
+            );
+          }
+
+          // ✅ Parse and validate
+          final data = dataStr
+              .split(',')
+              .map((e) => double.tryParse(e.trim()) ?? 0)
+              .toList();
+
+          if (data.isEmpty) {
+            return _buildErrorWidget(
+              'Invalid Chart Data',
+              details: dataStr,
+            );
+          }
+
+          return ChartWidget(data: data);
+        },
+        context: 'Chart widget',
+      );
     }
 
     return null; // Let HyperRender handle other nodes
