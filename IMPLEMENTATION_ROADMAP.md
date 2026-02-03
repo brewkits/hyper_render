@@ -12,9 +12,9 @@
 |-------|--------|-------|-----------|----------|
 | Phase 1: Critical Bugs | ✅ COMPLETED | 4 | 4 | 100% |
 | Phase 2: Performance | ✅ COMPLETED | 3 | 3 | 100% |
-| Phase 3: UI/UX Polish | 🟡 IN PROGRESS | 5 | 3 | 60% |
+| Phase 3: UI/UX Polish | 🟡 IN PROGRESS | 5 | 4 | 80% |
 | Phase 4: Code Quality | 🔴 NOT STARTED | 3 | 0 | 0% |
-| **TOTAL** | **67%** | **15** | **10** | **10/15** |
+| **TOTAL** | **73%** | **15** | **11** | **11/15** |
 
 **Pro Features (v3.0)**: Deferred to paid tier
 
@@ -448,27 +448,47 @@ class SkeletonGrid extends StatelessWidget { /* Grid of items */ }
 ---
 
 #### ✅ Task 3.4: Dark Mode Support
-- **File**: `packages/hyper_render_core/lib/src/style/resolver.dart`
+- **File**: `packages/hyper_render_core/lib/src/style/design_tokens.dart`
 - **Issue**: No dark mode color scheme
 - **Effort**: 1 day
-- **Status**: 🔴 NOT STARTED
+- **Status**: ✅ **COMPLETED** (Task #11)
+- **Date**: 2026-02-03
+
+**Deliverables**:
+- **Files Modified**:
+  - `lib/src/style/design_tokens.dart` (+27 context-aware color methods)
+- **Files Created**:
+  - `test/dark_mode_support_test.dart` (25 tests)
 
 **Implementation**:
 ```dart
+// Context-aware color getters that automatically adapt to theme
 class DesignTokens {
-  static Color linkColor(BuildContext context) {
+  static Color getTextPrimary(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark
-        ? Color(0xFF90CAF9)  // Light blue for dark mode
-        : Color(0xFF1976D2); // Dark blue for light mode
+        ? darkTextPrimary : textPrimary;
   }
 
-  static Color backgroundColor(BuildContext context) {
+  static Color getLinkColor(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark
-        ? Color(0xFF121212)
-        : Color(0xFFFFFFFF);
+        ? darkLinkColor : linkColor;
   }
+
+  static Color getBackgroundColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF121212) : const Color(0xFFFFFFFF);
+  }
+
+  // + 24 more context-aware methods for all color categories
 }
 ```
+
+**Features**:
+- 27 context-aware color getters covering all design tokens
+- Automatic theme adaptation based on `Theme.of(context).brightness`
+- Support for: text, link, selection, code, semantic, UI element, and background colors
+- Works with nested themes
+- Comprehensive test coverage (25 tests)
 
 ---
 
@@ -694,6 +714,18 @@ test('uses <10MB memory for 25K content', () {
 ---
 
 ## 🔄 UPDATE LOG
+
+### 2026-02-03 11:00
+- ✅ **Task 3.4 COMPLETED**: Dark Mode Support (Task #11)
+  - Added 27 context-aware color getter methods to DesignTokens
+  - Methods automatically adapt to theme brightness via `Theme.of(context).brightness`
+  - Coverage: text colors, link colors, selection, code, semantic, UI elements, backgrounds
+  - Works with nested themes and MaterialApp theme switching
+  - Comprehensive test suite with 25 tests, all passing
+  - Simplifies widget code - no manual theme brightness checking needed
+- **Progress**: 11/15 tasks (73%)
+- **Phase 3**: 80% complete (4/5 tasks)
+- **Next**: Task 3.5 - Smooth Expand/Collapse Animations
 
 ### 2026-02-03 10:30
 - ✅ **Task 3.3 COMPLETED**: Loading Skeleton Animations (Task #10)
