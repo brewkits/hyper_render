@@ -12,9 +12,9 @@
 |-------|--------|-------|-----------|----------|
 | Phase 1: Critical Bugs | ✅ COMPLETED | 4 | 4 | 100% |
 | Phase 2: Performance | ✅ COMPLETED | 3 | 3 | 100% |
-| Phase 3: UI/UX Polish | 🟡 IN PROGRESS | 5 | 4 | 80% |
+| Phase 3: UI/UX Polish | ✅ COMPLETED | 5 | 5 | 100% |
 | Phase 4: Code Quality | 🔴 NOT STARTED | 3 | 0 | 0% |
-| **TOTAL** | **73%** | **15** | **11** | **11/15** |
+| **TOTAL** | **80%** | **15** | **12** | **12/15** |
 
 **Pro Features (v3.0)**: Deferred to paid tier
 
@@ -496,17 +496,42 @@ class DesignTokens {
 - **File**: `packages/hyper_render_core/lib/src/widgets/details_widget.dart`
 - **Issue**: Details/summary expand too abruptly
 - **Effort**: 2 hours
-- **Status**: 🔴 NOT STARTED
+- **Status**: ✅ **COMPLETED** (Task #12)
+- **Date**: 2026-02-03
+
+**Deliverables**:
+- **Files Modified**:
+  - `lib/src/widgets/details_widget.dart` (+3 imports, AnimatedSize + AnimatedRotation)
+- **Files Created**:
+  - `test/details_widget_test.dart` (23 tests)
 
 **Implementation**:
 ```dart
-// Add smooth expand/collapse
+// Smooth expand/collapse with AnimatedSize
 AnimatedSize(
-  duration: Duration(milliseconds: 300),
-  curve: Curves.easeInOut,
-  child: isExpanded ? content : SizedBox.shrink(),
+  duration: DesignTokens.durationMedium,
+  curve: DesignTokens.curveStandard,
+  alignment: Alignment.topCenter,
+  child: _isExpanded
+      ? Column(children: contentWidgets)
+      : const SizedBox.shrink(),
+)
+
+// Smooth icon rotation with AnimatedRotation
+AnimatedRotation(
+  turns: _isExpanded ? 0.25 : 0.0, // 90 degrees when expanded
+  duration: DesignTokens.durationMedium,
+  curve: DesignTokens.curveStandard,
+  child: const Icon(Icons.arrow_right),
 )
 ```
+
+**Features**:
+- Smooth height animation using AnimatedSize (300ms)
+- Smooth icon rotation using AnimatedRotation (90° turn)
+- Uses design tokens for consistent timing and curves
+- No abrupt transitions - all state changes are animated
+- Comprehensive test coverage (23 tests)
 
 ---
 
@@ -714,6 +739,21 @@ test('uses <10MB memory for 25K content', () {
 ---
 
 ## 🔄 UPDATE LOG
+
+### 2026-02-03 11:30
+- ✅ **Task 3.5 COMPLETED**: Smooth Expand/Collapse Animations (Task #12)
+  - Added AnimatedSize for smooth height transitions (300ms)
+  - Added AnimatedRotation for smooth icon rotation (90° turn)
+  - Uses design tokens for duration and curves (durationMedium, curveStandard)
+  - No abrupt state changes - all transitions are animated
+  - Comprehensive test suite with 23 tests, all passing
+- ✅ **PHASE 3 COMPLETED**: UI/UX Polish 🎉
+  - All 5 tasks completed: Error UI, Design Tokens, Loading Skeletons, Dark Mode, Smooth Animations
+  - 166 tests across all Phase 3 tasks
+  - Beautiful, polished user interface with Material Design 3 principles
+- **Progress**: 12/15 tasks (80%)
+- **Phase 3**: 100% complete ✅
+- **Next**: Phase 4 - Code Quality
 
 ### 2026-02-03 11:00
 - ✅ **Task 3.4 COMPLETED**: Dark Mode Support (Task #11)
