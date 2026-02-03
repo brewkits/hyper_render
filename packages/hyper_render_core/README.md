@@ -4,13 +4,23 @@ Zero-dependency core rendering engine for HyperRender.
 
 ## Features
 
+### Core Rendering
 - **Universal Document Tree (UDT)** - Unified data model for all content types
 - **Custom RenderObject Layout Engine** - High-performance rendering
 - **Fragment-based Inline Layout** - Advanced text layout with float support
 - **CJK Line-breaking (Kinsoku)** - Proper Japanese/Chinese/Korean typography
 - **Ruby/Furigana Support** - Japanese reading annotations
 - **Text Selection** - Native-feeling selection with handles
-- **CSS Cascade Resolution** - Full CSS specificity and inheritance
+- **CSS Cascade Resolution** - Full CSS specificity and inheritance with 10x faster rule indexing
+
+### New in v2.1 🎉
+- **Error Boundaries** - ErrorBoundaryNode for graceful error handling
+- **Performance Monitoring** - PerformanceMonitor with P95/P99 percentile tracking
+- **Layout Cache** - Separate layout storage for efficient invalidation
+- **CSS Rule Indexing** - O(1) rule lookup instead of O(n×m) linear scan
+- **Design Tokens** - Material Design 3 compliant design system with dark mode
+- **Loading Skeletons** - Beautiful shimmer animations
+- **Error UI Components** - HyperErrorWidget with Material Design 3 styling
 
 ## Installation
 
@@ -61,6 +71,98 @@ final document = parser.parse('<h1>Hello</h1><p>World</p>');
 
 // Render
 HyperRenderWidget(document: document)
+```
+
+### With Performance Monitoring (NEW in v2.1)
+
+```dart
+import 'package:hyper_render_core/hyper_render_core.dart';
+
+final monitor = PerformanceMonitor();
+
+// Measure operations
+final doc = monitor.measure('parse', () {
+  return HtmlContentParser().parse(html);
+});
+
+// Build report
+final report = monitor.buildReport();
+print('Average: ${report.averageDuration.inMilliseconds}ms');
+print('P95: ${report.p95Duration.inMilliseconds}ms');
+print('Rating: ${report.rating}'); // Excellent, Good, Acceptable, Slow, Poor
+
+// Export to JSON for analytics
+final json = report.toJson();
+```
+
+### With Error Boundaries (NEW in v2.1)
+
+```dart
+import 'package:hyper_render_core/hyper_render_core.dart';
+
+// Create document with error handling
+final document = DocumentNode(children: [
+  try {
+    parseUntrustedContent(html),
+  } catch (e, stack) {
+    ErrorBoundaryNode(
+      error: e,
+      stackTrace: stack,
+      friendlyMessage: 'Failed to parse content',
+      originalContent: html,
+    ),
+  }
+]);
+
+// Render with automatic error UI
+HyperRenderWidget(document: document)
+```
+
+### With Design Tokens (NEW in v2.1)
+
+```dart
+import 'package:hyper_render_core/hyper_render_core.dart';
+
+// Use design tokens for consistent styling
+Container(
+  padding: EdgeInsets.all(DesignTokens.space2), // 16px
+  decoration: BoxDecoration(
+    color: DesignTokens.getBackgroundColor(context),
+    borderRadius: BorderRadius.circular(DesignTokens.radiusMedium),
+    boxShadow: DesignTokens.shadow(2),
+  ),
+  child: Text(
+    'Hello',
+    style: DesignTokens.headingStyle(1).copyWith(
+      color: DesignTokens.getTextPrimary(context),
+    ),
+  ),
+)
+
+// Spacing, typography, colors automatically adapt to dark mode
+```
+
+### With Loading Skeletons (NEW in v2.1)
+
+```dart
+import 'package:hyper_render_core/hyper_render_core.dart';
+
+// Show loading skeleton while content loads
+FutureBuilder<DocumentNode>(
+  future: fetchDocument(),
+  builder: (context, snapshot) {
+    if (snapshot.hasData) {
+      return HyperRenderWidget(document: snapshot.data!);
+    }
+
+    // Beautiful loading skeleton with shimmer animation
+    return SkeletonCard(
+      lines: 5,
+      showImage: true,
+      showAvatar: true,
+    );
+  },
+)
 ```
 
 ## Plugin Interfaces
@@ -132,6 +234,8 @@ abstract class ImageClipboardHandler {
 | `TableNode` | Table structure | table |
 | `TableRowNode` | Table row | tr |
 | `TableCellNode` | Table cell | td, th |
+| `DetailsNode` | Interactive disclosure | details |
+| `ErrorBoundaryNode` | Error handling (NEW in v2.1) | error-boundary |
 
 ## ComputedStyle
 
