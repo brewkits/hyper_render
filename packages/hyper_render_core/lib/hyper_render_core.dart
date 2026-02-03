@@ -76,3 +76,4 @@ export 'src/widgets/hyper_selection_overlay.dart';
 export 'src/widgets/code_block_widget.dart';
 export 'src/widgets/details_widget.dart';
 export 'src/widgets/error_boundary_widget.dart';
+export 'src/widgets/hyper_error_widget.dart';
