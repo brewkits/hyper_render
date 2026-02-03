@@ -44,6 +44,9 @@ export 'src/model/computed_style.dart';
 export 'src/model/node.dart';
 export 'src/model/fragment.dart';
 
+// Layout
+export 'src/layout/layout_cache.dart';
+
 // Interfaces (Plugin system)
 export 'src/interfaces/content_parser.dart';
 export 'src/interfaces/css_parser.dart';
