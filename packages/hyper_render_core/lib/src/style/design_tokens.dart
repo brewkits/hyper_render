@@ -565,4 +565,233 @@ class DesignTokens {
       ),
     ];
   }
+
+  // ============================================================================
+  // CONTEXT-AWARE THEME COLORS
+  // ============================================================================
+  // These methods automatically pick the right color based on theme brightness
+
+  /// Get primary text color based on theme
+  static Color getTextPrimary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkTextPrimary
+        : textPrimary;
+  }
+
+  /// Get secondary text color based on theme
+  static Color getTextSecondary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkTextSecondary
+        : textSecondary;
+  }
+
+  /// Get tertiary text color based on theme
+  static Color getTextTertiary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkTextTertiary
+        : textTertiary;
+  }
+
+  /// Get disabled text color based on theme
+  static Color getTextDisabled(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkTextDisabled
+        : textDisabled;
+  }
+
+  /// Get link color based on theme
+  static Color getLinkColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkLinkColor
+        : linkColor;
+  }
+
+  /// Get link hover color based on theme
+  static Color getLinkColorHover(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkLinkColorHover
+        : linkColorHover;
+  }
+
+  /// Get link visited color based on theme
+  static Color getLinkColorVisited(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkLinkColorVisited
+        : linkColorVisited;
+  }
+
+  /// Get selection background color based on theme
+  static Color getSelectionBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkSelectionBackground
+        : selectionBackground;
+  }
+
+  /// Get selection text color based on theme
+  static Color getSelectionText(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkSelectionText
+        : selectionText;
+  }
+
+  /// Get mark/highlight background color based on theme
+  static Color getMarkBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkMarkBackground
+        : markBackground;
+  }
+
+  /// Get mark text color based on theme
+  static Color getMarkText(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkMarkText
+        : markText;
+  }
+
+  /// Get code inline background color based on theme
+  static Color getCodeBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkCodeBackground
+        : codeBackground;
+  }
+
+  /// Get code inline text color based on theme
+  static Color getCodeText(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkCodeText
+        : codeText;
+  }
+
+  /// Get code block background color based on theme
+  static Color getCodeBlockBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkCodeBlockBackground
+        : codeBlockBackground;
+  }
+
+  /// Get code block text color based on theme
+  static Color getCodeBlockText(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkCodeBlockText
+        : codeBlockText;
+  }
+
+  /// Get quote border color based on theme
+  static Color getQuoteBorder(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkQuoteBorder
+        : quoteBorder;
+  }
+
+  /// Get quote background color based on theme
+  static Color getQuoteBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkQuoteBackground
+        : quoteBackground;
+  }
+
+  /// Get table border color based on theme
+  static Color getTableBorder(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkTableBorder
+        : tableBorder;
+  }
+
+  /// Get table header background color based on theme
+  static Color getTableHeaderBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkTableHeaderBackground
+        : tableHeaderBackground;
+  }
+
+  /// Get table row alternate background color based on theme
+  static Color getTableRowAltBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkTableRowAltBackground
+        : tableRowAltBackground;
+  }
+
+  /// Get divider color based on theme
+  static Color getDividerColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkDividerColor
+        : dividerColor;
+  }
+
+  /// Get error color based on theme
+  static Color getErrorColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkErrorColor
+        : errorColor;
+  }
+
+  /// Get error background color based on theme
+  static Color getErrorBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkErrorBackground
+        : errorBackground;
+  }
+
+  /// Get success color based on theme
+  static Color getSuccessColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkSuccessColor
+        : successColor;
+  }
+
+  /// Get success background color based on theme
+  static Color getSuccessBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkSuccessBackground
+        : successBackground;
+  }
+
+  /// Get warning color based on theme
+  static Color getWarningColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkWarningColor
+        : warningColor;
+  }
+
+  /// Get warning background color based on theme
+  static Color getWarningBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkWarningBackground
+        : warningBackground;
+  }
+
+  /// Get info color based on theme
+  static Color getInfoColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkInfoColor
+        : infoColor;
+  }
+
+  /// Get info background color based on theme
+  static Color getInfoBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? darkInfoBackground
+        : infoBackground;
+  }
+
+  /// Get background color based on theme
+  static Color getBackgroundColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF121212) // Material dark background
+        : const Color(0xFFFFFFFF); // White
+  }
+
+  /// Get surface color based on theme
+  static Color getSurfaceColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF1E1E1E) // Material dark surface
+        : const Color(0xFFFFFFFF); // White
+  }
+
+  /// Get card color based on theme
+  static Color getCardColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF2D2D2D) // Material dark card
+        : const Color(0xFFFFFFFF); // White
+  }
 }
