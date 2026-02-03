@@ -106,11 +106,10 @@ abstract class UDTNode {
   /// Child nodes
   final List<UDTNode> children;
 
-  /// Layout result - position relative to parent
-  /// Set by Layout Engine after performLayout()
-  Rect? layoutRect;
-
   /// Unique identifier for this node (for hit testing, selection)
+  ///
+  /// Layout information (position, size, baseline) is now stored separately
+  /// in [LayoutCache] for better separation of concerns and performance.
   final String id;
 
   /// ID generator instance
