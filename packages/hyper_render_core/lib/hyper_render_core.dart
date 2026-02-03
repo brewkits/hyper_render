@@ -77,3 +77,4 @@ export 'src/widgets/code_block_widget.dart';
 export 'src/widgets/details_widget.dart';
 export 'src/widgets/error_boundary_widget.dart';
 export 'src/widgets/hyper_error_widget.dart';
+export 'src/widgets/loading_skeleton.dart';
