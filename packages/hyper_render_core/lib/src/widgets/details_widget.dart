@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../model/node.dart';
+import '../style/design_tokens.dart';
 
 /// Interactive widget for <details>/<summary> HTML elements
 ///
@@ -48,10 +49,8 @@ class _DetailsWidgetState extends State<DetailsWidget> {
         // Build summary widget
         summaryWidget = _buildSummary(child);
       } else {
-        // All other children are content (shown when expanded)
-        if (_isExpanded) {
-          contentWidgets.add(_buildContent(child));
-        }
+        // All other children are content (collected regardless of expansion state)
+        contentWidgets.add(_buildContent(child));
       }
     }
 
@@ -73,12 +72,15 @@ class _DetailsWidgetState extends State<DetailsWidget> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Disclosure triangle
-                Icon(
-                  _isExpanded
-                      ? Icons.arrow_drop_down
-                      : Icons.arrow_right,
-                  size: 20,
+                // Animated disclosure triangle with smooth rotation
+                AnimatedRotation(
+                  turns: _isExpanded ? 0.25 : 0.0, // 90 degrees when expanded
+                  duration: DesignTokens.durationMedium,
+                  curve: DesignTokens.curveStandard,
+                  child: const Icon(
+                    Icons.arrow_right,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 4),
                 Flexible(child: summaryWidget),
@@ -86,7 +88,19 @@ class _DetailsWidgetState extends State<DetailsWidget> {
             ),
           ),
         ),
-        if (_isExpanded) ...contentWidgets,
+        // Smooth expand/collapse animation
+        AnimatedSize(
+          duration: DesignTokens.durationMedium,
+          curve: DesignTokens.curveStandard,
+          alignment: Alignment.topCenter,
+          child: _isExpanded
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: contentWidgets,
+                )
+              : const SizedBox.shrink(),
+        ),
       ],
     );
   }
