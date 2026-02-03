@@ -56,6 +56,7 @@ export 'src/interfaces/image_clipboard.dart';
 // Style
 export 'src/style/resolver.dart';
 export 'src/style/css_rule_index.dart';
+export 'src/style/design_tokens.dart';
 
 // Core rendering
 export 'src/core/render_hyper_box.dart';
