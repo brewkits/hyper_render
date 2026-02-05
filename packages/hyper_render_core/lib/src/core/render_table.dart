@@ -188,6 +188,10 @@ class HyperTable extends StatelessWidget {
               cellNode.isHeader ? FontWeight.bold : FontWeight.normal,
         ),
       ),
+      // Explicit text wrapping behavior for consistent cell rendering
+      softWrap: true,
+      overflow: TextOverflow.clip,
+      textWidthBasis: TextWidthBasis.parent,
     );
   }
 
@@ -378,9 +382,15 @@ class _TableLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Wrap in LayoutBuilder to handle unbounded constraints
-    // This fixes "NEEDS-LAYOUT" error when used in horizontal scroll
     return LayoutBuilder(
       builder: (context, constraints) {
+        // For unbounded width, calculate table width based on content
+        // This avoids nested IntrinsicWidth+IntrinsicHeight which causes layout thrashing
+        double? tableWidth;
+        if (constraints.maxWidth == double.infinity) {
+          tableWidth = _calculateTableWidth();
+        }
+
         final child = Container(
           decoration: BoxDecoration(
             border: Border.all(color: borderColor, width: borderWidth),
@@ -391,15 +401,75 @@ class _TableLayout extends StatelessWidget {
           ),
         );
 
-        // If width is unbounded (e.g., in horizontal scroll),
-        // wrap in IntrinsicWidth to provide bounded constraints
-        if (constraints.maxWidth == double.infinity) {
-          return IntrinsicWidth(child: child);
+        // If we calculated a specific width, constrain to it
+        if (tableWidth != null) {
+          return SizedBox(
+            width: tableWidth,
+            child: child,
+          );
         }
 
         return child;
       },
     );
+  }
+
+  /// Calculate table width based on content without using IntrinsicWidth
+  /// This avoids layout thrashing from nested Intrinsic widgets
+  double _calculateTableWidth() {
+    // Calculate width by finding the widest content in each column
+    final columnWidths = List<double>.filled(grid.columnCount, 0.0);
+
+    // Measure each cell and distribute width to columns
+    for (int rowIdx = 0; rowIdx < grid.rowCount; rowIdx++) {
+      for (int colIdx = 0; colIdx < grid.columnCount; colIdx++) {
+        final cell = grid.cells[rowIdx][colIdx];
+        if (cell == null || !cell.isPrimary) continue;
+
+        // Estimate cell content width (rough estimate to avoid expensive measurement)
+        // Use character count as proxy for width
+        final textLength = _estimateCellTextLength(cell.cellNode);
+        final estimatedCellWidth = textLength * 8.0; // ~8px per character
+
+        // Distribute width across spanned columns
+        final widthPerColumn = estimatedCellWidth / cell.colspan;
+        for (int i = 0; i < cell.colspan && (colIdx + i) < grid.columnCount; i++) {
+          if (widthPerColumn > columnWidths[colIdx + i]) {
+            columnWidths[colIdx + i] = widthPerColumn;
+          }
+        }
+      }
+    }
+
+    // Apply minimum column width
+    const double minColumnWidth = 80.0;
+    for (int i = 0; i < columnWidths.length; i++) {
+      if (columnWidths[i] < minColumnWidth) {
+        columnWidths[i] = minColumnWidth;
+      }
+    }
+
+    // Sum column widths + borders + padding
+    final contentWidth = columnWidths.reduce((a, b) => a + b);
+    final borderCount = grid.columnCount + 1;
+    final totalPadding = grid.columnCount * (cellPadding.horizontal);
+
+    return contentWidth + (borderCount * borderWidth) + totalPadding;
+  }
+
+  /// Estimate text length in a cell for width calculation
+  int _estimateCellTextLength(TableCellNode cellNode) {
+    int length = 0;
+    void countText(UDTNode node) {
+      if (node is TextNode) {
+        length += node.text.length;
+      }
+      for (final child in node.children) {
+        countText(child);
+      }
+    }
+    countText(cellNode);
+    return length;
   }
 
   List<Widget> _buildRows() {
@@ -619,13 +689,13 @@ class RenderHyperTable extends RenderBox
 
   List<double> _calculateColumnWidths(double maxWidth) {
     // Content-based width calculation
-    // This implements a simplified version of W3C table layout algorithm
-    // that distributes width based on content intrinsic sizes
+    // Implements W3C table layout algorithm with proper colspan handling
+    // Reference: https://www.w3.org/TR/CSS22/tables.html#auto-table-layout
 
     // 1. Initialize array to store max intrinsic width of each column
     final List<double> colMaxContentWidths = List.filled(columnCount, 0.0);
 
-    // 2. Measure intrinsic width of each cell to find max for each column
+    // 2. First pass: Measure non-spanning cells to establish base column widths
     RenderBox? child = firstChild;
     while (child != null) {
       final parentData = child.parentData as TableParentData;
@@ -635,14 +705,56 @@ class RenderHyperTable extends RenderBox
       // Get max content width of the cell
       final double contentWidth = child.getMaxIntrinsicWidth(double.infinity);
 
-      // If cell spans multiple columns, distribute width evenly across them
-      // (Simplified approach - full W3C algorithm is more complex)
-      final double widthPerCol = contentWidth / colspan;
+      // Only process non-spanning cells in first pass
+      if (colspan == 1) {
+        if (contentWidth > colMaxContentWidths[colIndex]) {
+          colMaxContentWidths[colIndex] = contentWidth;
+        }
+      }
 
-      for (int i = 0; i < colspan; i++) {
-        if (colIndex + i < columnCount) {
-          if (widthPerCol > colMaxContentWidths[colIndex + i]) {
-            colMaxContentWidths[colIndex + i] = widthPerCol;
+      child = childAfter(child);
+    }
+
+    // 3. Second pass: Handle spanning cells by distributing width proportionally
+    child = firstChild;
+    while (child != null) {
+      final parentData = child.parentData as TableParentData;
+      final int colIndex = parentData.column;
+      final int colspan = parentData.colspan;
+
+      if (colspan > 1) {
+        final double contentWidth = child.getMaxIntrinsicWidth(double.infinity);
+
+        // Calculate current total width of spanned columns
+        double currentTotal = 0.0;
+        for (int i = 0; i < colspan; i++) {
+          if (colIndex + i < columnCount) {
+            currentTotal += colMaxContentWidths[colIndex + i];
+          }
+        }
+
+        // If spanning cell needs more width than current total
+        if (contentWidth > currentTotal) {
+          final double additionalWidth = contentWidth - currentTotal;
+
+          // Distribute additional width proportionally based on current widths
+          // If all spanned columns are 0-width, distribute evenly
+          if (currentTotal == 0) {
+            final double widthPerCol = additionalWidth / colspan;
+            for (int i = 0; i < colspan; i++) {
+              if (colIndex + i < columnCount) {
+                colMaxContentWidths[colIndex + i] += widthPerCol;
+              }
+            }
+          } else {
+            // Distribute proportionally to existing widths
+            for (int i = 0; i < colspan; i++) {
+              if (colIndex + i < columnCount) {
+                final double proportion =
+                    colMaxContentWidths[colIndex + i] / currentTotal;
+                colMaxContentWidths[colIndex + i] += additionalWidth * proportion;
+              }
+            }
           }
         }
       }
@@ -663,9 +775,10 @@ class RenderHyperTable extends RenderBox
     double scale = maxWidth / totalDesiredWidth;
 
     for (int i = 0; i < columnCount; i++) {
-      // Apply minimum width of 20px to prevent columns from becoming too narrow
+      // Apply minimal constraint to prevent zero-width columns (1px for safety)
+      // Removed hardcoded 20px minimum that caused unnecessary table overflow
       double w = colMaxContentWidths[i] * scale;
-      if (w < 20.0) w = 20.0;
+      if (w < 1.0) w = 1.0;
       finalWidths[i] = w;
     }
 
@@ -691,8 +804,10 @@ class RenderHyperTable extends RenderBox
 
       for (int col = 0; col < columnCount; col++) {
         if (child != null) {
+          // Use tight width constraint to ensure cells fill their column width
+          // This ensures consistent text wrapping behavior
           child.layout(
-            BoxConstraints(maxWidth: columnWidths[col]),
+            BoxConstraints.tightFor(width: columnWidths[col]),
             parentUsesSize: true,
           );
 

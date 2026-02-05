@@ -272,6 +272,7 @@ class _HyperViewerState extends State<HyperViewer> {
 
   @override
   Widget build(BuildContext context) {
+    print('📺 [HyperViewer] build() called, contentType=${widget.contentType}, onLinkTap=${widget.onLinkTap != null ? 'SET' : 'NULL'}');
     // Use AnimatedSwitcher for smooth transitions between loading and content
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
@@ -282,7 +283,10 @@ class _HyperViewerState extends State<HyperViewer> {
   }
 
   Widget _buildContent(BuildContext context) {
+    print('📺 [HyperViewer] _buildContent: isLoading=$_isLoading, sections=${_sections != null ? 'YES(${_sections!.length})' : 'NO'}, syncDocument=${_syncDocument != null ? 'YES' : 'NO'}');
+
     if (_isLoading) {
+      print('📺 [HyperViewer] Showing loading indicator');
       return KeyedSubtree(
         key: const ValueKey('loading'),
         child: widget.placeholderBuilder?.call(context) ??
@@ -296,6 +300,7 @@ class _HyperViewerState extends State<HyperViewer> {
     // 2. Unbounded constraints issues
     // 3. Performance considerations with large documents
     if (_sections != null) {
+      print('📺 [HyperViewer] Using VIRTUALIZED mode with ${_sections!.length} sections');
       return KeyedSubtree(
         key: const ValueKey('virtualized'),
         child: ListView.builder(
@@ -320,10 +325,12 @@ class _HyperViewerState extends State<HyperViewer> {
 
     // Case 2: Single Widget (cho văn bản ngắn)
     if (_syncDocument != null) {
+      print('📺 [HyperViewer] Using SYNC mode, selectable=${widget.selectable}, showSelectionMenu=${widget.showSelectionMenu}');
       Widget content;
 
       // Use HyperSelectionOverlay for full selection UX with popup menu
       if (widget.selectable && widget.showSelectionMenu) {
+        print('📺 [HyperViewer] Using HyperSelectionOverlay');
         content = HyperSelectionOverlay(
           document: _syncDocument!,
           selectable: true,
@@ -337,6 +344,7 @@ class _HyperViewerState extends State<HyperViewer> {
         );
       } else {
         // Use HyperRenderWidget directly (no popup menu)
+        print('📺 [HyperViewer] Using HyperRenderWidget directly, onLinkTap=${widget.onLinkTap != null ? 'SET' : 'NULL'}');
         content = HyperRenderWidget(
           document: _syncDocument!,
           selectable: widget.selectable,

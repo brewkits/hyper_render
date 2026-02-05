@@ -227,8 +227,9 @@ class DesignTokens {
   // LIGHT THEME COLORS
   // ============================================================================
 
-  /// Primary text color (near black)
-  static const Color textPrimary = Color(0xFF000000);
+  /// Primary text color (Material Gray 900 - softer than pure black)
+  /// Pure black (#000) is too harsh on screens, #212121 is easier on eyes
+  static const Color textPrimary = Color(0xFF212121);
 
   /// Secondary text color (medium gray)
   static const Color textSecondary = Color(0xFF666666);

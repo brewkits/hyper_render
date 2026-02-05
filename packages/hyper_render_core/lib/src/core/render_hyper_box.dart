@@ -789,12 +789,28 @@ class RenderHyperBox extends RenderBox
   }
 
   String _normalizeWhitespace(String text, String? whiteSpace) {
-    if (whiteSpace == 'pre' || whiteSpace == 'pre-wrap') {
-      return text;
+    // Handle all CSS white-space property values
+    // Reference: https://developer.mozilla.org/en-US/docs/Web/CSS/white-space
+    switch (whiteSpace) {
+      case 'pre':
+      case 'pre-wrap':
+      case 'break-spaces':
+        // Preserve all whitespace (spaces, tabs, newlines)
+        return text;
+
+      case 'pre-line':
+        // Collapse spaces and tabs, but preserve newlines
+        return text.split('\n').map((line) {
+          // Collapse consecutive spaces/tabs within each line
+          return line.replaceAll(RegExp(r'[ \t]+'), ' ');
+        }).join('\n');
+
+      case 'nowrap':
+      case 'normal':
+      default:
+        // Collapse all whitespace (spaces, tabs, newlines) into single spaces
+        return text.replaceAll(RegExp(r'\s+'), ' ');
     }
-    // Collapse multiple whitespace into single space
-    // but preserve at least one space between words
-    return text.replaceAll(RegExp(r'\s+'), ' ');
   }
 
   /// Generate list marker text based on list-style-type and index
@@ -1288,8 +1304,12 @@ class RenderHyperBox extends RenderBox
       // Check if fragment fits in remaining space
       if (fragment.width > remainingWidth) {
         if (fragment.type == FragmentType.text && fragment.text != null) {
-          // Try to split text fragment
-          if (currentLineFragments.isNotEmpty && remainingWidth > 20) {
+          // Check if wrapping is allowed based on white-space property
+          final whiteSpace = fragment.style.whiteSpace;
+          final allowWrap = (whiteSpace != 'nowrap' && whiteSpace != 'pre');
+
+          // Try to split text fragment (only if wrapping is allowed)
+          if (allowWrap && currentLineFragments.isNotEmpty && remainingWidth > 20) {
             // Try to fit part of text on current line
             final splitResult = _splitTextFragment(fragment, remainingWidth);
             if (splitResult != null) {
@@ -1316,21 +1336,28 @@ class RenderHyperBox extends RenderBox
           // Now check if fragment is wider than full line width
           final fullLineWidth = getAvailableWidth();
           if (fragment.width > fullLineWidth && fragment.text!.length > 1) {
-            // Fragment is wider than entire line - FORCE split
-            final forceSplit = _forceSplitTextFragment(fragment, fullLineWidth);
-            if (forceSplit != null) {
-              final (firstPart, secondPart) = forceSplit;
-              currentLineFragments.add(firstPart);
-              _updateLineMetrics(firstPart, lineHeight, maxBaseline, (h, b) {
-                lineHeight = h;
-                maxBaseline = b;
-              });
-              finishLine();
-              currentX = leftInset;
-              // PERFORMANCE: Queue secondPart instead of inserting into list
-              pendingFragment = secondPart;
-              return;
+            // Check if wrapping is allowed for force-split too
+            final whiteSpace = fragment.style.whiteSpace;
+            final allowWrap = (whiteSpace != 'nowrap' && whiteSpace != 'pre');
+
+            if (allowWrap) {
+              // Fragment is wider than entire line - FORCE split
+              final forceSplit = _forceSplitTextFragment(fragment, fullLineWidth);
+              if (forceSplit != null) {
+                final (firstPart, secondPart) = forceSplit;
+                currentLineFragments.add(firstPart);
+                _updateLineMetrics(firstPart, lineHeight, maxBaseline, (h, b) {
+                  lineHeight = h;
+                  maxBaseline = b;
+                });
+                finishLine();
+                currentX = leftInset;
+                // PERFORMANCE: Queue secondPart instead of inserting into list
+                pendingFragment = secondPart;
+                return;
+              }
             }
+            // If nowrap/pre, let the text overflow (don't split)
           }
         } else {
           // Non-text fragment - just start new line if needed
@@ -1408,6 +1435,23 @@ class RenderHyperBox extends RenderBox
     update(newHeight, newBaseline);
   }
 
+  /// Check if a break position is within a CJK context (surrounded by CJK characters)
+  /// This helps properly handle mixed CJK+Latin text by applying appropriate rules
+  bool _isBreakInCjkContext(String text, int position) {
+    if (position <= 0 || position >= text.length) return false;
+
+    // Check character before and after break position
+    final charBefore = text[position - 1];
+    final charAfter = text[position];
+
+    // If either side is CJK, consider it CJK context
+    // This allows Kinsoku rules to apply at CJK/Latin boundaries
+    final isBeforeCjk = KinsokuProcessor.isCjkCharacter(charBefore);
+    final isAfterCjk = KinsokuProcessor.isCjkCharacter(charAfter);
+
+    return isBeforeCjk || isAfterCjk;
+  }
+
   (Fragment, Fragment)? _splitTextFragment(Fragment fragment, double maxWidth) {
     final text = fragment.text!;
     if (text.isEmpty) return null;
@@ -1424,11 +1468,28 @@ class RenderHyperBox extends RenderBox
         // Found a space before break point - use it
         breakIndex = lastSpace + 1;
       } else if (KinsokuProcessor.containsCjk(text)) {
-        // CJK text - use kinsoku rules
-        breakIndex = KinsokuProcessor.findBreakPoint(text, breakIndex);
-        if (breakIndex < 0) breakIndex = position.offset;
+        // Text contains CJK - check if break position is within CJK context
+        final isCjkBreak = _isBreakInCjkContext(text, breakIndex);
+
+        if (isCjkBreak) {
+          // Break is in CJK region - apply Kinsoku rules
+          breakIndex = KinsokuProcessor.findBreakPoint(text, breakIndex);
+          if (breakIndex < 0) breakIndex = position.offset;
+        } else {
+          // Break is in Latin region of mixed text - treat as Latin
+          // Look for next space AFTER break point to avoid breaking words
+          final afterBreak = text.substring(breakIndex);
+          final nextSpace = afterBreak.indexOf(' ');
+
+          if (nextSpace >= 0) {
+            // Found space after - but this means moving more to next line
+            return null;
+          }
+          // No space in Latin part - may need force split
+          return null;
+        }
       } else {
-        // Latin text without space before break point
+        // Pure Latin text without space before break point
         // Look for next space AFTER break point to avoid breaking words
         final afterBreak = text.substring(breakIndex);
         final nextSpace = afterBreak.indexOf(' ');
@@ -1449,8 +1510,19 @@ class RenderHyperBox extends RenderBox
       return null;
     }
 
-    final firstPart = text.substring(0, breakIndex).trimRight();
-    final secondPart = text.substring(breakIndex).trimLeft();
+    // Only trim spaces for normal/nowrap/pre-line modes
+    // For pre/pre-wrap/break-spaces, preserve all whitespace
+    final whiteSpace = fragment.style.whiteSpace;
+    final shouldTrim = (whiteSpace != 'pre' &&
+                        whiteSpace != 'pre-wrap' &&
+                        whiteSpace != 'break-spaces');
+
+    final firstPart = shouldTrim
+        ? text.substring(0, breakIndex).trimRight()
+        : text.substring(0, breakIndex);
+    final secondPart = shouldTrim
+        ? text.substring(breakIndex).trimLeft()
+        : text.substring(breakIndex);
 
     if (firstPart.isEmpty || secondPart.isEmpty) {
       return null;
@@ -1514,8 +1586,18 @@ class RenderHyperBox extends RenderBox
 
     // If we found a word boundary, use it
     if (breakIndex > 0 && breakIndex < text.length) {
-      final firstPart = text.substring(0, breakIndex).trimRight();
-      final secondPart = text.substring(breakIndex).trimLeft();
+      // Only trim spaces for normal/nowrap/pre-line modes
+      final whiteSpace = fragment.style.whiteSpace;
+      final shouldTrim = (whiteSpace != 'pre' &&
+                          whiteSpace != 'pre-wrap' &&
+                          whiteSpace != 'break-spaces');
+
+      final firstPart = shouldTrim
+          ? text.substring(0, breakIndex).trimRight()
+          : text.substring(0, breakIndex);
+      final secondPart = shouldTrim
+          ? text.substring(breakIndex).trimLeft()
+          : text.substring(breakIndex);
 
       if (firstPart.isNotEmpty && secondPart.isNotEmpty) {
         final firstFragment = Fragment.text(
@@ -1559,8 +1641,24 @@ class RenderHyperBox extends RenderBox
       }
 
       if (bestBreak >= 1 && bestBreak < text.length) {
-        final kinsokuBreak = KinsokuProcessor.findBreakPoint(text, bestBreak);
-        final finalBreak = kinsokuBreak > 0 ? kinsokuBreak : bestBreak;
+        // Check if break is in CJK context for mixed text handling
+        int finalBreak;
+        if (_isBreakInCjkContext(text, bestBreak)) {
+          // In CJK region - apply Kinsoku rules
+          final kinsokuBreak = KinsokuProcessor.findBreakPoint(text, bestBreak);
+          finalBreak = kinsokuBreak > 0 ? kinsokuBreak : bestBreak;
+        } else {
+          // In Latin region - look for nearby space to avoid mid-word break
+          final beforeBreak = text.substring(0, bestBreak);
+          final lastSpace = beforeBreak.lastIndexOf(' ');
+          if (lastSpace > 0) {
+            // Found space before - use it
+            finalBreak = lastSpace + 1;
+          } else {
+            // No space found - use binary search result (will break mid-word)
+            finalBreak = bestBreak;
+          }
+        }
 
         final firstPart = text.substring(0, finalBreak);
         final secondPart = text.substring(finalBreak);

@@ -116,11 +116,22 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Debug: Check if onTap callback exists
+    print('🔵 [DefaultMediaWidget] onTap callback is ${widget.onTap != null ? 'SET ✅' : 'NULL ❌'} for ${widget.mediaInfo.type.name}: ${widget.mediaInfo.src}');
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
       child: GestureDetector(
-        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque, // CRITICAL: Catch taps on entire area including transparent regions
+        onTap: widget.onTap != null
+            ? () {
+                print('🔴 [DefaultMediaWidget] TAP DETECTED on ${widget.mediaInfo.type.name}: ${widget.mediaInfo.src}');
+                widget.onTap!();
+              }
+            : () {
+                print('⚠️ [DefaultMediaWidget] TAP but onTap is NULL!');
+              },
         child: widget.mediaInfo.isVideo
             ? _buildVideoPlaceholder()
             : _buildAudioPlaceholder(),
@@ -129,15 +140,36 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
   }
 
   Widget _buildVideoPlaceholder() {
-    final width = widget.mediaInfo.width ?? 320;
-    final height = widget.mediaInfo.height ?? 180;
+    final width = widget.mediaInfo.width ?? 640;
+    final height = widget.mediaInfo.height ?? 360;
 
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
+    // Use LayoutBuilder to make video responsive
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Determine available width
+        final availableWidth = constraints.maxWidth != double.infinity
+            ? constraints.maxWidth
+            : 640.0; // Default max width when unconstrained
+
+        // Calculate responsive dimensions maintaining aspect ratio
+        double responsiveWidth = width;
+        double responsiveHeight = height;
+
+        // Always constrain to available width if video is larger
+        if (width > availableWidth) {
+          final scale = availableWidth / width;
+          responsiveWidth = availableWidth;
+          responsiveHeight = height * scale;
+        }
+
+        return Container(
+          width: responsiveWidth,
+          height: responsiveHeight,
+          decoration: BoxDecoration(
         color: Colors.black87,
         borderRadius: BorderRadius.circular(8),
+        // DEBUG: Add red border to verify DefaultMediaWidget is being used
+        border: Border.all(color: Colors.red, width: 4),
         image: widget.mediaInfo.poster != null
             ? DecorationImage(
                 image: NetworkImage(widget.mediaInfo.poster!),
@@ -229,14 +261,29 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
         ],
       ),
     );
+      },
+    );
   }
 
   Widget _buildAudioPlaceholder() {
-    final width = widget.mediaInfo.width ?? 300;
+    final width = widget.mediaInfo.width ?? 320;
 
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(12),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Determine available width
+        final availableWidth = constraints.maxWidth != double.infinity
+            ? constraints.maxWidth
+            : 400.0; // Default max width when unconstrained
+
+        // Make audio responsive
+        double responsiveWidth = width;
+        if (width > availableWidth) {
+          responsiveWidth = availableWidth;
+        }
+
+        return Container(
+          width: responsiveWidth,
+          padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(8),
@@ -314,6 +361,8 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
           ),
         ],
       ),
+    );
+      },
     );
   }
 }
