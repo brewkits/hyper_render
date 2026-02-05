@@ -399,7 +399,7 @@ class ComputedStyle {
     this.borderColor,
     this.borderRadius,
     this.color = const Color(0xFF000000),
-    this.fontSize = 16.0,
+    this.fontSize = 14.0, // Reduced from 16px for better mobile readability
     this.fontWeight = FontWeight.normal,
     this.fontStyle = FontStyle.normal,
     this.fontFamily,
@@ -583,6 +583,7 @@ class ComputedStyle {
   /// Default style matching browser defaults with improved readability
   /// lineHeight: 1.5 is recommended for better readability
   static ComputedStyle get defaultStyle => ComputedStyle(
-        lineHeight: 1.5, // Better readability than browser default 1.0
+        fontSize: 14.0, // Default body text size
+        lineHeight: 1.7, // Generous line height for comfortable reading
       );
 }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../core/image_provider.dart';
 import '../core/performance_monitor.dart';
 import '../core/render_hyper_box.dart';
+import '../core/render_media.dart';
 import '../core/render_table.dart';
 import '../interfaces/code_highlighter.dart';
 import '../interfaces/image_clipboard.dart';
@@ -121,16 +122,17 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.onSelectionChanged,
     this.codeHighlighter,
     this.onPerformanceReport,
-  }) : super(children: _buildChildren(document, widgetBuilder, codeHighlighter));
+  }) : super(children: _buildChildren(document, widgetBuilder, codeHighlighter, onLinkTap));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
   static List<Widget> _buildChildren(
     DocumentNode document,
     HyperWidgetBuilder? widgetBuilder,
     CodeHighlighter? codeHighlighter,
+    HyperLinkTapCallback? onLinkTap,
   ) {
     final children = <Widget>[];
-    _collectAtomicChildren(document, children, widgetBuilder, codeHighlighter);
+    _collectAtomicChildren(document, children, widgetBuilder, codeHighlighter, onLinkTap);
     return children;
   }
 
@@ -139,6 +141,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     List<Widget> children,
     HyperWidgetBuilder? widgetBuilder,
     CodeHighlighter? codeHighlighter,
+    HyperLinkTapCallback? onLinkTap,
   ) {
     Widget? childWidget;
 
@@ -147,7 +150,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       childWidget = widgetBuilder?.call(node);
       // If it's an image, build the default image widget
       if (childWidget == null && node is AtomicNode && node.tagName == 'img') {
-        childWidget = _buildDefaultAtomicWidget(node);
+        childWidget = _buildDefaultAtomicWidget(node, onLinkTap: onLinkTap);
       }
 
       if (childWidget != null) {
@@ -170,7 +173,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     else if (node.type == NodeType.atomic) {
       final atomicNode = node as AtomicNode;
       childWidget = widgetBuilder?.call(atomicNode);
-      childWidget ??= _buildDefaultAtomicWidget(atomicNode);
+      childWidget ??= _buildDefaultAtomicWidget(atomicNode, onLinkTap: onLinkTap);
       if (childWidget != null) {
         children.add(_HyperChildWidget(node: node, child: childWidget));
       }
@@ -195,7 +198,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     // (because its children are not part of the main render tree)
     if (childWidget == null) {
       for (final child in node.children) {
-        _collectAtomicChildren(child, children, widgetBuilder, codeHighlighter);
+        _collectAtomicChildren(child, children, widgetBuilder, codeHighlighter, onLinkTap);
       }
     }
   }
@@ -261,7 +264,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     }
   }
 
-  static Widget? _buildDefaultAtomicWidget(AtomicNode node) {
+  static Widget? _buildDefaultAtomicWidget(
+    AtomicNode node, {
+    HyperLinkTapCallback? onLinkTap,
+  }) {
     if (node.tagName == 'img') {
       final src = node.src;
       if (src == null || src.isEmpty) return null;
@@ -280,19 +286,14 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       );
     }
 
-    if (node.tagName == 'video') {
-      // Placeholder for video - actual implementation would use video_player
-      return Container(
-        width: node.intrinsicWidth ?? 320,
-        height: node.intrinsicHeight ?? 180,
-        color: const Color(0xFF000000),
-        child: const Center(
-          child: Icon(
-            Icons.play_circle_outline,
-            size: 64,
-            color: Color(0xFFFFFFFF),
-          ),
-        ),
+    if (node.tagName == 'video' || node.tagName == 'audio') {
+      // Use beautiful DefaultMediaWidget with hover effects and poster support
+      final mediaInfo = MediaInfo.fromNode(node);
+      return DefaultMediaWidget(
+        mediaInfo: mediaInfo,
+        onTap: onLinkTap != null && mediaInfo.src.isNotEmpty
+            ? () => onLinkTap(mediaInfo.src)
+            : null,
       );
     }
 
@@ -461,7 +462,7 @@ class HyperImage extends StatelessWidget {
     required this.src,
     this.width,
     this.height,
-    this.borderRadius = 8.0,
+    this.borderRadius = 0.0, // No border radius by default (sharp corners)
     this.clipboardHandler,
     this.onImageAction,
     this.enableContextMenu = true,

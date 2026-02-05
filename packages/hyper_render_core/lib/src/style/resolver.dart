@@ -38,40 +38,47 @@ class StyleResolver {
       fontSize: DesignTokens.h1FontSize,
       fontWeight: DesignTokens.h1FontWeight,
       margin: EdgeInsets.symmetric(vertical: DesignTokens.h1MarginTop),
+      lineHeight: 1.3, // Tighter line height for large headings
     ),
     'h2': ComputedStyle(
       display: DisplayType.block,
       fontSize: DesignTokens.h2FontSize,
       fontWeight: DesignTokens.h2FontWeight,
       margin: EdgeInsets.symmetric(vertical: DesignTokens.h2MarginTop),
+      lineHeight: 1.35,
     ),
     'h3': ComputedStyle(
       display: DisplayType.block,
       fontSize: DesignTokens.h3FontSize,
       fontWeight: DesignTokens.h3FontWeight,
       margin: EdgeInsets.symmetric(vertical: DesignTokens.h3MarginTop),
+      lineHeight: 1.4,
     ),
     'h4': ComputedStyle(
       display: DisplayType.block,
       fontSize: DesignTokens.h4FontSize,
       fontWeight: DesignTokens.h4FontWeight,
       margin: EdgeInsets.symmetric(vertical: DesignTokens.h4MarginTop),
+      lineHeight: 1.45,
     ),
     'h5': ComputedStyle(
       display: DisplayType.block,
       fontSize: DesignTokens.h5FontSize,
       fontWeight: DesignTokens.h5FontWeight,
       margin: EdgeInsets.symmetric(vertical: DesignTokens.h5MarginTop),
+      lineHeight: 1.5,
     ),
     'h6': ComputedStyle(
       display: DisplayType.block,
       fontSize: DesignTokens.h6FontSize,
       fontWeight: DesignTokens.h6FontWeight,
       margin: EdgeInsets.symmetric(vertical: DesignTokens.h6MarginTop),
+      lineHeight: 1.5,
     ),
     'p': ComputedStyle(
       display: DisplayType.block,
       margin: EdgeInsets.symmetric(vertical: DesignTokens.space2),
+      lineHeight: 1.7, // Increased from default 1.5 for better readability
     ),
     'div': ComputedStyle(display: DisplayType.block),
     'span': ComputedStyle(display: DisplayType.inline),
@@ -110,19 +117,19 @@ class StyleResolver {
     'kbd': ComputedStyle(
       fontFamily: 'monospace',
       backgroundColor: DesignTokens.codeBackground,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2), // Tight padding
       borderWidth: const EdgeInsets.all(1),
       borderColor: DesignTokens.tableBorder,
-      borderRadius: DesignTokens.radius(DesignTokens.radiusSmall),
-      fontSize: DesignTokens.bodySmallFontSize,
+      borderRadius: DesignTokens.radius(DesignTokens.radiusXs), // Smaller radius for tighter fit
+      fontSize: 13.0, // Increased from 12px
     ),
     'code': ComputedStyle(
       fontFamily: 'monospace',
       backgroundColor: DesignTokens.codeBackground,
       color: DesignTokens.codeText,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      borderRadius: DesignTokens.radius(DesignTokens.radiusSmall),
-      fontSize: DesignTokens.bodySmallFontSize,
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1), // Ultra-minimal padding for tight text fit
+      borderRadius: DesignTokens.radius(DesignTokens.radiusXs), // Smaller radius (4px) for tighter fit
+      fontSize: 13.0, // Slightly larger than bodySmall (12px) for better readability
     ),
     'pre': ComputedStyle(
       display: DisplayType.block,
@@ -131,32 +138,36 @@ class StyleResolver {
       backgroundColor: DesignTokens.codeBlockBackground,
       color: DesignTokens.codeBlockText,
       padding: EdgeInsets.all(DesignTokens.space2),
-      margin: EdgeInsets.symmetric(vertical: DesignTokens.space1_5),
+      margin: EdgeInsets.symmetric(vertical: DesignTokens.space2),  // Increased from space1_5
       borderRadius: DesignTokens.radius(DesignTokens.radiusMedium),
-      fontSize: DesignTokens.bodySmallFontSize,
+      fontSize: 13.0, // Increased from 12px for better code readability
       lineHeight: 1.6,
     ),
     'blockquote': ComputedStyle(
       display: DisplayType.block,
       margin: EdgeInsets.fromLTRB(0, DesignTokens.space2, 0, DesignTokens.space2),
-      padding: EdgeInsets.fromLTRB(DesignTokens.space2, DesignTokens.space1_5, DesignTokens.space2, DesignTokens.space1_5),
-      borderWidth: EdgeInsets.only(left: DesignTokens.space0_5),
+      padding: EdgeInsets.fromLTRB(DesignTokens.space3, DesignTokens.space2, DesignTokens.space3, DesignTokens.space2),  // More generous padding
+      borderWidth: const EdgeInsets.only(left: 4), // Thicker left border for emphasis
       borderColor: DesignTokens.quoteBorder,
       backgroundColor: DesignTokens.quoteBackground,
+      fontStyle: FontStyle.italic, // Italic text for quotes
+      lineHeight: 1.75, // Extra generous line height
     ),
     'ul': ComputedStyle(
       display: DisplayType.block,
       padding: EdgeInsets.only(left: DesignTokens.space5),
       margin: EdgeInsets.symmetric(vertical: DesignTokens.space2),
+      lineHeight: 1.7, // Better line height for list items
     ),
     'ol': ComputedStyle(
       display: DisplayType.block,
       padding: EdgeInsets.only(left: DesignTokens.space5),
       margin: EdgeInsets.symmetric(vertical: DesignTokens.space2),
+      lineHeight: 1.7,
     ),
     'li': ComputedStyle(
       display: DisplayType.block,
-      margin: EdgeInsets.symmetric(vertical: DesignTokens.space0_5),
+      margin: EdgeInsets.symmetric(vertical: DesignTokens.space1), // Increased from space0_5 for breathing room
     ),
     'table': ComputedStyle(
       display: DisplayType.table,
@@ -175,14 +186,14 @@ class StyleResolver {
     ),
     'td': ComputedStyle(
       display: DisplayType.tableCell,
-      padding: EdgeInsets.all(DesignTokens.space1_5),
+      padding: EdgeInsets.all(DesignTokens.space2), // Increased from space1_5 for more breathing room
       borderWidth: const EdgeInsets.all(1),
       borderColor: DesignTokens.tableBorder,
     ),
     'th': ComputedStyle(
       display: DisplayType.tableCell,
       fontWeight: FontWeight.bold,
-      padding: EdgeInsets.all(DesignTokens.space1_5),
+      padding: EdgeInsets.all(DesignTokens.space2), // Increased from space1_5
       backgroundColor: DesignTokens.tableHeaderBackground,
       borderWidth: const EdgeInsets.all(1),
       borderColor: DesignTokens.quoteBorder,

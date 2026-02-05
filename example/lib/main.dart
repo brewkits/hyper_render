@@ -7,6 +7,7 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart' as fwfh;
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart'
     as fwfh_core;
 import 'package:hyper_render/hyper_render.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'html_preview_helper.dart';
 
@@ -176,6 +177,17 @@ class DemoHomePage extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ImageHandlingDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.play_circle_filled,
+            title: 'Video & Media',
+            subtitle: 'Video placeholder với hover effects và poster support',
+            color: Colors.red,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const VideoDemo()),
             ),
           ),
           _buildDemoCard(
@@ -431,7 +443,7 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
         child: HyperViewer(
           html: htmlContent,
           selectable: true,
-          onLinkTap: (url) => _showSnackBar('Link: $url'),
+          onLinkTap: (url) => _handleLinkTap(url),
           widgetBuilder: (node) {
             if (node is AtomicNode && node.tagName == 'subscribe-button') {
               return _buildSubscribeButton();
@@ -463,6 +475,35 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 1)),
     );
+  }
+
+  Future<void> _handleLinkTap(String url) async {
+    print('[KitchenSinkDemo] _handleLinkTap called with URL: $url');
+
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      print('[KitchenSinkDemo] Invalid URL: $url');
+      _showSnackBar('❌ Invalid URL: $url');
+      return;
+    }
+
+    // Try to launch the URL
+    try {
+      print('[KitchenSinkDemo] Checking if can launch: $uri');
+      final canLaunch = await canLaunchUrl(uri);
+      print('[KitchenSinkDemo] canLaunch result: $canLaunch');
+
+      if (canLaunch) {
+        print('[KitchenSinkDemo] Launching URL...');
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        _showSnackBar('🚀 Opening: ${uri.toString().length > 40 ? '${uri.toString().substring(0, 40)}...' : uri.toString()}');
+      } else {
+        _showSnackBar('❌ Cannot open URL: $url');
+      }
+    } catch (e) {
+      print('[KitchenSinkDemo] Error: $e');
+      _showSnackBar('❌ Error opening URL: $e');
+    }
   }
 }
 
@@ -2763,6 +2804,228 @@ class FeedScreen extends ConsumerWidget {
             selectable: true,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class VideoDemo extends StatelessWidget {
+  const VideoDemo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    print('🚨🚨🚨 [VideoDemo] BUILD CALLED - YOU SHOULD SEE THIS! 🚨🚨🚨');
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Video & Media Demo'),
+        backgroundColor: Colors.red,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text(
+            'Video Placeholder với DefaultMediaWidget',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'HyperRender provides beautiful default placeholders for video elements. '
+            'Hover over videos to see animations!',
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          
+          // Video with poster
+          const Text('Video với Poster Image:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          HyperViewer(
+            html: '''
+              <video
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+                poster="https://peach.blender.org/wp-content/uploads/title_anouncement.jpg"
+                width="640"
+                height="360"
+                controls>
+              </video>
+            ''',
+            onLinkTap: (url) async {
+              print('✅ [VideoDemo] TAP CALLBACK CALLED! URL: $url');
+              final uri = Uri.tryParse(url);
+              if (uri != null && await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+          const SizedBox(height: 24),
+          
+          // Video without poster
+          const Text('Video không có Poster:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          HyperViewer(
+            html: '''
+              <video
+                src="https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4"
+                width="640"
+                height="360"
+                controls>
+              </video>
+            ''',
+            onLinkTap: (url) async {
+              print('✅ [VideoDemo] TAP CALLBACK CALLED! URL: $url');
+              final uri = Uri.tryParse(url);
+              if (uri != null && await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+          const SizedBox(height: 24),
+          
+          // Multiple videos in grid
+          const Text('Video Grid Layout:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          HyperViewer(
+            html: '''
+              <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                <video
+                  src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
+                  poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg"
+                  width="300"
+                  height="200"
+                  controls>
+                </video>
+
+                <video
+                  src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+                  poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg"
+                  width="300"
+                  height="200"
+                  controls>
+                </video>
+
+                <video
+                  src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
+                  poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg"
+                  width="300"
+                  height="200"
+                  controls>
+                </video>
+              </div>
+            ''',
+            onLinkTap: (url) async {
+              print('✅ [VideoDemo] TAP CALLBACK CALLED! URL: $url');
+              final uri = Uri.tryParse(url);
+              if (uri != null && await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+          const SizedBox(height: 24),
+          
+          // Floated video with text wrapping
+          const Text('Float Layout với Video (Unique Feature!):', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          HyperViewer(
+            html: '''
+              <h2>Article with Floated Video</h2>
+
+              <video
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4"
+                poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/WeAreGoingOnBullrun.jpg"
+                width="320"
+                height="180"
+                style="float: left; margin-right: 16px; margin-bottom: 8px;"
+                controls>
+              </video>
+
+              <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+              Text wraps naturally around the floated video, just like in a web browser!
+              This is a unique feature that flutter_widget_from_html struggles with.</p>
+
+              <p>Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
+
+              <p>Duis aute irure dolor in reprehenderit in voluptate velit esse
+              cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
+              non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+              <div style="clear: both;"></div>
+
+              <p>After clearing the float, text returns to normal width.</p>
+            ''',
+            selectable: true,
+            onLinkTap: (url) async {
+              print('✅ [VideoDemo] TAP CALLBACK CALLED! URL: $url');
+              final uri = Uri.tryParse(url);
+              if (uri != null && await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+          const SizedBox(height: 24),
+          
+          // Info card
+          Card(
+            color: Colors.blue.shade50,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue.shade700),
+                      const SizedBox(width: 8),
+                      Text(
+                        'About Video Support',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade700,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '• Default placeholders show play button with hover effects\n'
+                    '• Poster images are supported and displayed beautifully\n'
+                    '• Float layout works perfectly with videos (unique!)\n'
+                    '• For actual playback, integrate video_player package\n'
+                    '• See MULTIMEDIA_EXAMPLES.md for integration guide',
+                    style: TextStyle(height: 1.6),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Video URLs used
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Free Video URLs Used:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '• Big Buck Bunny - Blender Foundation\n'
+                    '• Butterfly - Flutter assets\n'
+                    '• Elephants Dream - Google GTV samples\n'
+                    '• For Bigger Blazes - Google GTV samples\n'
+                    '• Sintel - Blender Foundation\n'
+                    '• We Are Going On Bullrun - Google GTV samples',
+                    style: TextStyle(fontSize: 12, height: 1.8),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
