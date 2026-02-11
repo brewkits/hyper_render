@@ -1,6 +1,6 @@
 name: hyper_render_core
 description: Core rendering engine for HyperRender - Zero external dependencies. Universal Document Tree (UDT) model and rendering primitives.
-version: 2.0.0
+version: 1.0.0
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_core
 

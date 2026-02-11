@@ -73,7 +73,7 @@ class HyperSelectionOverlay extends StatefulWidget {
     this.onLinkTap,
     this.widgetBuilder,
     this.selectable = true,
-    this.handleColor = Colors.blue, // Will be overridden by theme in build
+    this.handleColor = const Color(0xFF2196F3),
     this.menuBackgroundColor,
     this.contextMenuBuilder,
     this.menuActionsBuilder,

@@ -367,8 +367,6 @@ class _HyperViewerState extends State<HyperViewer> {
 
   @override
   Widget build(BuildContext context) {
-    print('📺 [HyperViewer] build() called, contentType=${widget.contentType}, onLinkTap=${widget.onLinkTap != null ? 'SET' : 'NULL'}');
-
     final content = AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       switchInCurve: Curves.easeOut,
@@ -376,19 +374,17 @@ class _HyperViewerState extends State<HyperViewer> {
       child: _buildContent(context),
     );
 
-    // Wrap with Semantics for accessibility
-    return Semantics(
-      label: widget.semanticLabel ?? 'Article content',
-      excludeSemantics: widget.excludeSemantics,
-      child: content,
-    );
+    // Wrap with Semantics for accessibility (unless excluded)
+    return widget.excludeSemantics
+        ? ExcludeSemantics(child: content)
+        : Semantics(
+            label: widget.semanticLabel ?? 'Article content',
+            child: content,
+          );
   }
 
   Widget _buildContent(BuildContext context) {
-    print('📺 [HyperViewer] _buildContent: isLoading=$_isLoading, sections=${_sections != null ? 'YES(${_sections!.length})' : 'NO'}, syncDocument=${_syncDocument != null ? 'YES' : 'NO'}');
-
     if (_isLoading) {
-      print('📺 [HyperViewer] Showing loading indicator');
       return KeyedSubtree(
         key: const ValueKey('loading'),
         child: widget.placeholderBuilder?.call(context) ??
@@ -402,7 +398,6 @@ class _HyperViewerState extends State<HyperViewer> {
     // 2. Unbounded constraints issues
     // 3. Performance considerations with large documents
     if (_sections != null) {
-      print('📺 [HyperViewer] Using VIRTUALIZED mode with ${_sections!.length} sections');
       return KeyedSubtree(
         key: const ValueKey('virtualized'),
         child: ListView.builder(
@@ -427,7 +422,6 @@ class _HyperViewerState extends State<HyperViewer> {
 
     // Case 2: Single Widget (cho văn bản ngắn)
     if (_syncDocument != null) {
-      print('📺 [HyperViewer] Using SYNC mode, selectable=${widget.selectable}, showSelectionMenu=${widget.showSelectionMenu}');
       Widget content;
 
       // Use HyperSelectionOverlay for full selection UX with popup menu

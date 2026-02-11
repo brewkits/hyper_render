@@ -13,11 +13,11 @@ A high-performance rendering engine for HTML, Markdown, and Quill Delta with per
 
 **"Render HTML like Flutter Text, not like a Web Browser"**
 
-HyperRender v2.0 is a **native-performance HTML rendering engine** designed for content-heavy Flutter apps. Unlike traditional widget builders that create deep widget trees, HyperRender renders entire HTML documents as a single `InlineSpan` tree - achieving **4.4x faster** parsing and **3.5x less** memory usage than flutter_widget_from_html.
+HyperRender v1.0 is a **native-performance HTML rendering engine** designed for content-heavy Flutter apps. Unlike traditional widget builders that create deep widget trees, HyperRender renders entire HTML documents as a single `InlineSpan` tree - achieving **4.4x faster** parsing and **3.5x less** memory usage than flutter_widget_from_html.
 
 ### The Problem with Current Solutions
 
-| Problem | flutter_html | FWFH | **HyperRender v2.0** |
+| Problem | flutter_html | FWFH | **HyperRender v1.0** |
 |---------|-------------|------|-----------------|
 | Large docs (25K chars) | Slow (420ms) ❌ | Slow (250ms) ⚠️ | **Fast (95ms) ✅** |
 | Memory usage | High (28MB) ❌ | High (15MB) ⚠️ | **Low (8MB) ✅** |
@@ -61,7 +61,7 @@ HyperRender v2.0 is a **native-performance HTML rendering engine** designed for 
 - **Multimedia Integration** - 🌟 **Unique advantage**: Perfect CSS float support for video/iframe (FWFH can't do this). Plug in video_player, webview_flutter, or custom widgets via callbacks.
 - **Base URL Resolution** - Automatic resolution of relative URLs for images and links.
 
-### New in v2.1 🎉
+### Features 🎉
 - **Error Boundaries** - Graceful error handling with beautiful error UI (ErrorBoundaryNode, HyperErrorWidget).
 - **Performance Monitoring** - Track render performance with PerformanceMonitor and get actionable insights (P95, P99 percentiles).
 - **Dark Mode Support** - 27 context-aware color methods that automatically adapt to theme brightness.
@@ -72,7 +72,7 @@ HyperRender v2.0 is a **native-performance HTML rendering engine** designed for 
 
 ```yaml
 dependencies:
-  hyper_render: ^2.0.0
+  hyper_render: ^1.0.0
 ```
 
 ## 🔒 Security Warning
@@ -416,8 +416,8 @@ HyperViewer({
   OnLinkTap? onLinkTap,
   bool selectable = true,
   HyperRenderMode mode = HyperRenderMode.auto,
-  OnPerformanceReport? onPerformanceReport,  // NEW in v2.1
-  WidgetBuilder? onLoadingBuilder,           // NEW in v2.1
+  OnPerformanceReport? onPerformanceReport,  // v1.0
+  WidgetBuilder? onLoadingBuilder,           // v1.0
   // Planned:
   // String? delta,
   // String? markdown,
@@ -453,7 +453,7 @@ resolver.addCssRules([
 ]);
 ```
 
-### PerformanceMonitor (NEW in v2.1)
+### PerformanceMonitor (v1.0)
 
 Track and analyze render performance.
 
@@ -473,7 +473,7 @@ print('P99: ${report.p99Duration.inMilliseconds}ms');
 final json = report.toJson();
 ```
 
-### DesignTokens (NEW in v2.1)
+### DesignTokens (v1.0)
 
 Material Design 3 compliant design system with dark mode support.
 
@@ -508,7 +508,7 @@ DesignTokens.durationMedium   // 300ms
 DesignTokens.curveStandard    // Curves.easeInOut
 ```
 
-### ErrorBoundaryNode (NEW in v2.1)
+### ErrorBoundaryNode (v1.0)
 
 Graceful error handling in the document tree.
 
@@ -521,7 +521,7 @@ ErrorBoundaryNode(
 )
 ```
 
-### HyperErrorWidget (NEW in v2.1)
+### HyperErrorWidget (v1.0)
 
 Beautiful error UI with Material Design 3 styling.
 
@@ -548,7 +548,7 @@ HyperErrorIndicator(
 )
 ```
 
-### LoadingSkeleton (NEW in v2.1)
+### LoadingSkeleton (v1.0)
 
 Shimmer loading animations with dark mode support.
 
@@ -582,10 +582,10 @@ HyperRender achieves superior performance through:
 2.  **Isolate Parsing** - Heavy HTML parsing is moved to a background isolate, keeping the UI smooth and responsive.
 3.  **Custom RenderObject** - A single, highly-optimized `RenderObject` paints content directly to the canvas, avoiding Flutter's expensive widget tree for static content.
 4.  **Flat Coordinate System** - All positions are calculated in a single layout pass, minimizing layout cost.
-5.  **CSS Rule Indexing** (NEW in v2.1) - O(1) rule lookup by tag/class/ID instead of O(n×m) linear scan, achieving 10x faster CSS matching with 1000+ rules.
-6.  **Separate Layout Cache** (NEW in v2.1) - Layout data stored separately from tree structure for efficient invalidation and memory management.
+5.  **CSS Rule Indexing** (v1.0) - O(1) rule lookup by tag/class/ID instead of O(n×m) linear scan, achieving 10x faster CSS matching with 1000+ rules.
+6.  **Separate Layout Cache** (v1.0) - Layout data stored separately from tree structure for efficient invalidation and memory management.
 
-### Performance Benchmarks (v2.1)
+### Performance Benchmarks
 
 | Operation | Nodes | Target | Achieved |
 |-----------|-------|--------|----------|

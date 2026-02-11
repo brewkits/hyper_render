@@ -15,6 +15,9 @@ import 'security_demo.dart';
 import 'accessibility_demo.dart';
 import 'video_demo_improved.dart';
 import 'enhanced_selection_demo.dart';
+import 'fwfh_issues_test_demo.dart';
+import 'css_properties_demo.dart';
+import 'flexbox_demo.dart';
 
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
@@ -83,6 +86,17 @@ class DemoHomePage extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const KitchenSinkDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.view_column,
+            title: 'Flexbox Layout ⭐ NEW',
+            subtitle: 'Modern CSS Flexbox: justify-content, align-items, gap, flex-direction',
+            color: Colors.deepPurple,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FlexboxDemo()),
             ),
           ),
           _buildDemoCard(
@@ -246,6 +260,17 @@ class DemoHomePage extends StatelessWidget {
           ),
           _buildDemoCard(
             context,
+            icon: Icons.bug_report,
+            title: 'FWFH Issues Test ⭐',
+            subtitle: 'Test features that flutter_widget_from_html struggles with',
+            color: Colors.red,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FWFHIssuesTestDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
             icon: Icons.speed,
             title: 'Stress Test',
             subtitle: 'Test với sách 1000 trang - Đo performance',
@@ -288,6 +313,17 @@ class DemoHomePage extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AccessibilityDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.style,
+            title: 'CSS Properties Showcase ⭐',
+            subtitle: 'text-shadow, text-overflow, border-style, direction, và hơn 60+ properties',
+            color: Colors.blue,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CssPropertiesDemo()),
             ),
           ),
         ],

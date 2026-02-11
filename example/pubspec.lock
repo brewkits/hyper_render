@@ -318,35 +318,35 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "2.1.0"
+    version: "1.0.0"
   hyper_render_core:
     dependency: transitive
     description:
       path: "../packages/hyper_render_core"
       relative: true
     source: path
-    version: "2.0.0"
+    version: "1.0.0"
   hyper_render_highlight:
     dependency: transitive
     description:
       path: "../packages/hyper_render_highlight"
       relative: true
     source: path
-    version: "2.0.0"
+    version: "1.0.0"
   hyper_render_html:
     dependency: transitive
     description:
       path: "../packages/hyper_render_html"
       relative: true
     source: path
-    version: "2.0.0"
+    version: "1.0.0"
   hyper_render_markdown:
     dependency: transitive
     description:
       path: "../packages/hyper_render_markdown"
       relative: true
     source: path
-    version: "2.0.0"
+    version: "1.0.0"
   just_audio:
     dependency: transitive
     description:

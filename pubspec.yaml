@@ -1,6 +1,6 @@
 name: hyper_render
 description: "The Universal Content Engine for Flutter - A high-performance rendering engine for HTML, Markdown, and Quill Delta with perfect text selection, advanced CSS support, and CJK typography."
-version: 2.1.0
+version: 1.0.0
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render
 issue_tracker: https://github.com/brewkits/hyper_render/issues
@@ -22,7 +22,7 @@ dependencies:
     sdk: flutter
 
   # ============================================
-  # MODULAR ARCHITECTURE v2.0
+  # MODULAR ARCHITECTURE v1.0
   # This package is a convenience wrapper that includes all plugins
   # For minimal dependencies, use individual packages:
   #   - hyper_render_core: Zero-dep core
@@ -32,10 +32,10 @@ dependencies:
   # ============================================
 
   # NOTE: For publishing to pub.dev, replace path dependencies with versions:
-  #   hyper_render_core: ^2.0.0
-  #   hyper_render_html: ^2.0.0
-  #   hyper_render_markdown: ^2.0.0
-  #   hyper_render_highlight: ^2.0.0
+  #   hyper_render_core: ^1.0.0
+  #   hyper_render_html: ^1.0.0
+  #   hyper_render_markdown: ^1.0.0
+  #   hyper_render_highlight: ^1.0.0
   # See PUBLISH.md for detailed publishing instructions.
 
   hyper_render_core:

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:super_clipboard/super_clipboard.dart';
+import 'package:super_clipboard/super_clipboard.dart' show DataWriterItem, Formats, SystemClipboard;
 
 /// Image clipboard handler using super_clipboard package
 ///

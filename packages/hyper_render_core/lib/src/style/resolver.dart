@@ -101,7 +101,10 @@ class StyleResolver {
     ),
     'mark': ComputedStyle(
       backgroundColor: DesignTokens.markBackground,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignTokens.space1, // 8px - comfortable spacing
+        vertical: DesignTokens.space0_5, // 4px
+      ),
     ),
     'sub': ComputedStyle(
       fontSize: DesignTokens.bodySmallFontSize,
@@ -117,22 +120,25 @@ class StyleResolver {
     'kbd': ComputedStyle(
       fontFamily: 'monospace',
       backgroundColor: DesignTokens.codeBackground,
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2), // Tight padding
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignTokens.space1, // 8px - comfortable spacing
+        vertical: DesignTokens.space0_5, // 4px
+      ),
       borderWidth: const EdgeInsets.all(1),
       borderColor: DesignTokens.tableBorder,
-      borderRadius: DesignTokens.radius(DesignTokens.radiusXs), // Smaller radius for tighter fit
-      fontSize: 13.0, // Increased from 12px
+      borderRadius: DesignTokens.radius(DesignTokens.radiusSmall),
+      fontSize: 13.0,
     ),
     'code': ComputedStyle(
       fontFamily: DesignTokens.codeFontFamily,
       backgroundColor: DesignTokens.codeBackground,
       color: DesignTokens.codeText,
       padding: EdgeInsets.symmetric(
-        horizontal: DesignTokens.space0_5 / 2, // 2px - Ultra-minimal padding for tight text fit
-        vertical: DesignTokens.space0_5 / 4, // 1px
+        horizontal: DesignTokens.space0_5, // 4px - comfortable spacing for inline code
+        vertical: DesignTokens.space0_5 / 2, // 2px
       ),
-      borderRadius: DesignTokens.radius(DesignTokens.radiusXs), // Smaller radius (4px) for tighter fit
-      fontSize: DesignTokens.codeFontSize, // 14px for better readability
+      borderRadius: DesignTokens.radius(DesignTokens.radiusSmall),
+      fontSize: DesignTokens.codeFontSize,
     ),
     'pre': ComputedStyle(
       display: DisplayType.block,
