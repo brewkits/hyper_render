@@ -161,7 +161,7 @@ class _MultimediaExamplesPageState extends State<MultimediaExamplesPage> {
                 label: Text('WebView/IFrame'),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.float_left),
+                icon: Icon(Icons.view_quilt),
                 label: Text('Float Layout'),
               ),
               NavigationRailDestination(
@@ -905,7 +905,7 @@ class ChartWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: data.map((value) {
-          final height = maxValue > 0 ? (value / maxValue * 150) : 0;
+          final barHeight = maxValue > 0 ? (value / maxValue * 150) : 0.0;
           return Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -916,7 +916,7 @@ class ChartWidget extends StatelessWidget {
               const SizedBox(height: 4),
               Container(
                 width: 40,
-                height: constraints?.minHeight,
+                height: barHeight,
                 decoration: BoxDecoration(
                   color: Colors.blue.shade400,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),

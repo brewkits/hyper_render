@@ -318,7 +318,7 @@ class HyperErrorWidget extends StatelessWidget {
       case HyperErrorType.error:
         return _ErrorColors(
           backgroundColor: isDark ? DesignTokens.darkErrorBackground : DesignTokens.errorBackground,
-          borderColor: isDark ? DesignTokens.darkErrorColor.withOpacity(0.5) : DesignTokens.errorColor.withOpacity(0.3),
+          borderColor: isDark ? DesignTokens.darkErrorColor.withValues(alpha:0.4) : DesignTokens.errorColor.withValues(alpha:0.4),
           iconColor: isDark ? DesignTokens.darkErrorColor : DesignTokens.errorColor,
           textColor: isDark ? DesignTokens.darkErrorColor : DesignTokens.errorColor,
           buttonColor: isDark ? DesignTokens.darkErrorColor : DesignTokens.errorColor,
@@ -327,7 +327,7 @@ class HyperErrorWidget extends StatelessWidget {
       case HyperErrorType.warning:
         return _ErrorColors(
           backgroundColor: isDark ? DesignTokens.darkWarningBackground : DesignTokens.warningBackground,
-          borderColor: isDark ? DesignTokens.darkWarningColor.withOpacity(0.5) : DesignTokens.warningColor.withOpacity(0.3),
+          borderColor: isDark ? DesignTokens.darkWarningColor.withValues(alpha:0.4) : DesignTokens.warningColor.withValues(alpha:0.4),
           iconColor: isDark ? DesignTokens.darkWarningColor : DesignTokens.warningColor,
           textColor: isDark ? DesignTokens.darkWarningColor : DesignTokens.warningColor,
           buttonColor: isDark ? DesignTokens.darkWarningColor : DesignTokens.warningColor,
@@ -336,7 +336,7 @@ class HyperErrorWidget extends StatelessWidget {
       case HyperErrorType.info:
         return _ErrorColors(
           backgroundColor: isDark ? DesignTokens.darkInfoBackground : DesignTokens.infoBackground,
-          borderColor: isDark ? DesignTokens.darkInfoColor.withOpacity(0.5) : DesignTokens.infoColor.withOpacity(0.3),
+          borderColor: isDark ? DesignTokens.darkInfoColor.withValues(alpha:0.4) : DesignTokens.infoColor.withValues(alpha:0.4),
           iconColor: isDark ? DesignTokens.darkInfoColor : DesignTokens.infoColor,
           textColor: isDark ? DesignTokens.darkInfoColor : DesignTokens.infoColor,
           buttonColor: isDark ? DesignTokens.darkInfoColor : DesignTokens.infoColor,
@@ -344,11 +344,21 @@ class HyperErrorWidget extends StatelessWidget {
 
       case HyperErrorType.network:
         return _ErrorColors(
-          backgroundColor: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5),
-          borderColor: isDark ? const Color(0xFF616161) : const Color(0xFFBDBDBD),
-          iconColor: isDark ? const Color(0xFF9E9E9E) : const Color(0xFF757575),
-          textColor: isDark ? DesignTokens.darkTextSecondary : DesignTokens.textSecondary,
-          buttonColor: isDark ? DesignTokens.darkTextSecondary : DesignTokens.textSecondary,
+          backgroundColor: isDark
+              ? DesignTokens.darkQuoteBackground
+              : DesignTokens.codeBackground,
+          borderColor: isDark
+              ? DesignTokens.darkQuoteBorder
+              : DesignTokens.quoteBorder,
+          iconColor: isDark
+              ? DesignTokens.darkTextSecondary
+              : DesignTokens.textSecondary,
+          textColor: isDark
+              ? DesignTokens.darkTextSecondary
+              : DesignTokens.textSecondary,
+          buttonColor: isDark
+              ? DesignTokens.darkTextSecondary
+              : DesignTokens.textSecondary,
         );
     }
   }

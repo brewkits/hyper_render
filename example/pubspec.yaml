@@ -26,6 +26,9 @@ dependencies:
   url_launcher: ^6.2.0
   path_provider: ^2.1.0
 
+  # For sharing content
+  share_plus: ^10.1.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

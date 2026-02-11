@@ -9,6 +9,7 @@ import '../plugins/default_delta_parser.dart';
 import '../plugins/default_html_parser.dart';
 import '../plugins/default_markdown_parser.dart';
 import '../style/resolver.dart';
+import '../utils/html_sanitizer.dart';
 import 'hyper_render_widget.dart';
 import 'hyper_selection_overlay.dart';
 
@@ -73,8 +74,8 @@ class HyperViewer extends StatefulWidget {
   /// Set to false to disable the popup menu but keep selection enabled.
   final bool showSelectionMenu;
 
-  /// Color of selection handles (default: blue)
-  final Color selectionHandleColor;
+  /// Color of selection handles (default: theme primary color)
+  final Color? selectionHandleColor;
 
   /// Custom menu actions builder for the selection popup.
   /// If null, uses default Copy and Select All actions.
@@ -86,10 +87,79 @@ class HyperViewer extends StatefulWidget {
   final Widget Function(BuildContext, HyperSelectionOverlayState)?
       selectionContextMenuBuilder;
 
+  /// **SECURITY**: Sanitize HTML to prevent XSS attacks.
+  ///
+  /// When enabled, removes dangerous tags (<script>, <iframe>) and
+  /// event handlers (onclick, onerror, etc.) before rendering.
+  ///
+  /// **IMPORTANT**: Always enable this when rendering untrusted HTML!
+  ///
+  /// Default: false (for backward compatibility)
+  ///
+  /// Example:
+  /// ```dart
+  /// // ✅ SAFE - Sanitize user-generated content
+  /// HyperViewer(
+  ///   html: userInput,
+  ///   sanitize: true,
+  /// )
+  ///
+  /// // ❌ UNSAFE - Never do this with untrusted HTML
+  /// HyperViewer(html: userInput)
+  /// ```
+  final bool sanitize;
+
+  /// Custom list of allowed HTML tags when [sanitize] is enabled.
+  ///
+  /// If null, uses [HtmlSanitizer.defaultAllowedTags].
+  ///
+  /// Example:
+  /// ```dart
+  /// HyperViewer(
+  ///   html: content,
+  ///   sanitize: true,
+  ///   allowedTags: ['p', 'a', 'img', 'strong', 'em'],
+  /// )
+  /// ```
+  final List<String>? allowedTags;
+
+  /// Allow data-* attributes when sanitizing.
+  ///
+  /// Default: false
+  final bool allowDataAttributes;
+
+  /// **ACCESSIBILITY**: Semantic label for screen readers.
+  ///
+  /// Describes the content for users with visual impairments.
+  /// If null, a default label "Article content" is used.
+  ///
+  /// Example:
+  /// ```dart
+  /// HyperViewer(
+  ///   html: newsArticle,
+  ///   semanticLabel: 'News article: Breaking news title',
+  /// )
+  /// ```
+  final String? semanticLabel;
+
+  /// **ACCESSIBILITY**: Exclude from semantic tree.
+  ///
+  /// When true, this widget and its children are excluded from
+  /// assistive technologies like screen readers.
+  ///
+  /// Default: false
+  final bool excludeSemantics;
+
   /// Creates a HyperViewer for HTML content (default)
   ///
   /// ```dart
   /// HyperViewer(html: '<p>Hello World</p>')
+  ///
+  /// // With sanitization (recommended for user content)
+  /// HyperViewer(
+  ///   html: userInput,
+  ///   sanitize: true,
+  /// )
   /// ```
   const HyperViewer({
     super.key,
@@ -105,9 +175,14 @@ class HyperViewer extends StatefulWidget {
     this.contentParser,
     this.codeHighlighter,
     this.showSelectionMenu = true,
-    this.selectionHandleColor = const Color(0xFF2196F3),
+    this.selectionHandleColor,
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
+    this.sanitize = false,
+    this.allowedTags,
+    this.allowDataAttributes = false,
+    this.semanticLabel,
+    this.excludeSemantics = false,
   })  : content = html,
         contentType = HyperContentType.html;
 
@@ -132,9 +207,14 @@ class HyperViewer extends StatefulWidget {
     this.contentParser,
     this.codeHighlighter,
     this.showSelectionMenu = true,
-    this.selectionHandleColor = const Color(0xFF2196F3),
+    this.selectionHandleColor,
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
+    this.sanitize = false,
+    this.allowedTags,
+    this.allowDataAttributes = false,
+    this.semanticLabel,
+    this.excludeSemantics = false,
   })  : content = delta,
         contentType = HyperContentType.delta;
 
@@ -159,9 +239,14 @@ class HyperViewer extends StatefulWidget {
     this.contentParser,
     this.codeHighlighter,
     this.showSelectionMenu = true,
-    this.selectionHandleColor = const Color(0xFF2196F3),
+    this.selectionHandleColor,
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
+    this.sanitize = false,
+    this.allowedTags,
+    this.allowDataAttributes = false,
+    this.semanticLabel,
+    this.excludeSemantics = false,
   })  : content = markdown,
         contentType = HyperContentType.markdown;
 
@@ -210,15 +295,25 @@ class _HyperViewerState extends State<HyperViewer> {
   }
 
   void _parseContent() {
+    // Sanitize content if enabled (HTML only)
+    final contentToRender = widget.sanitize &&
+            widget.contentType == HyperContentType.html
+        ? HtmlSanitizer.sanitize(
+            widget.content,
+            allowedTags: widget.allowedTags,
+            allowDataAttributes: widget.allowDataAttributes,
+          )
+        : widget.content;
+
     final useVirtualization = widget.mode == HyperRenderMode.virtualized ||
-        (widget.mode == HyperRenderMode.auto && widget.content.length > 10000);
+        (widget.mode == HyperRenderMode.auto && contentToRender.length > 10000);
 
     final parser = _getDefaultParser();
 
     if (!useVirtualization) {
       // 1. Sync Parsing (Fast path for small content)
       setState(() {
-        _syncDocument = parser.parse(widget.content);
+        _syncDocument = parser.parse(contentToRender);
         StyleResolver().resolveStyles(_syncDocument!);
         _sections = null;
         _isLoading = false;
@@ -230,7 +325,7 @@ class _HyperViewerState extends State<HyperViewer> {
       if (widget.contentType == HyperContentType.html) {
         setState(() => _isLoading = true);
 
-        compute(_parseAndChunk, widget.content).then((sections) {
+        compute(_parseAndChunk, contentToRender).then((sections) {
           if (mounted) {
             setState(() {
               _sections = sections;
@@ -242,7 +337,7 @@ class _HyperViewerState extends State<HyperViewer> {
       } else {
         // Fallback to sync parsing for Delta/Markdown
         setState(() {
-          _syncDocument = parser.parse(widget.content);
+          _syncDocument = parser.parse(contentToRender);
           StyleResolver().resolveStyles(_syncDocument!);
           _sections = null;
           _isLoading = false;
@@ -273,12 +368,19 @@ class _HyperViewerState extends State<HyperViewer> {
   @override
   Widget build(BuildContext context) {
     print('📺 [HyperViewer] build() called, contentType=${widget.contentType}, onLinkTap=${widget.onLinkTap != null ? 'SET' : 'NULL'}');
-    // Use AnimatedSwitcher for smooth transitions between loading and content
-    return AnimatedSwitcher(
+
+    final content = AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       switchInCurve: Curves.easeOut,
       switchOutCurve: Curves.easeIn,
       child: _buildContent(context),
+    );
+
+    // Wrap with Semantics for accessibility
+    return Semantics(
+      label: widget.semanticLabel ?? 'Article content',
+      excludeSemantics: widget.excludeSemantics,
+      child: content,
     );
   }
 
@@ -330,13 +432,12 @@ class _HyperViewerState extends State<HyperViewer> {
 
       // Use HyperSelectionOverlay for full selection UX with popup menu
       if (widget.selectable && widget.showSelectionMenu) {
-        print('📺 [HyperViewer] Using HyperSelectionOverlay');
         content = HyperSelectionOverlay(
           document: _syncDocument!,
           selectable: true,
           onLinkTap: widget.onLinkTap,
           widgetBuilder: widget.widgetBuilder,
-          handleColor: widget.selectionHandleColor,
+          handleColor: widget.selectionHandleColor ?? Theme.of(context).primaryColor,
           menuActionsBuilder: widget.selectionMenuActionsBuilder,
           contextMenuBuilder: widget.selectionContextMenuBuilder,
           showHandles: true,
@@ -344,7 +445,6 @@ class _HyperViewerState extends State<HyperViewer> {
         );
       } else {
         // Use HyperRenderWidget directly (no popup menu)
-        print('📺 [HyperViewer] Using HyperRenderWidget directly, onLinkTap=${widget.onLinkTap != null ? 'SET' : 'NULL'}');
         content = HyperRenderWidget(
           document: _syncDocument!,
           selectable: widget.selectable,

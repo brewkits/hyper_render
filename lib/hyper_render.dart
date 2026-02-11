@@ -159,6 +159,12 @@ export 'src/widgets/code_block_widget.dart'
     show CodeBlockWidget, CodeTheme, detectLanguageFromClass;
 
 // ============================================
+// Public API - Security
+// ============================================
+
+export 'src/utils/html_sanitizer.dart' show HtmlSanitizer;
+
+// ============================================
 // Public API - Plugin Interfaces
 // ============================================
 

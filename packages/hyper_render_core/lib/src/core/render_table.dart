@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../model/node.dart';
+import '../style/design_tokens.dart';
 
 /// Table display strategy
 ///
@@ -115,13 +116,13 @@ class HyperTable extends StatelessWidget {
   final void Function(String url)? onLinkTap;
 
   /// Border color
-  final Color borderColor;
+  final Color? borderColor;
 
   /// Border width
   final double borderWidth;
 
   /// Default cell padding
-  final EdgeInsets cellPadding;
+  final EdgeInsets? cellPadding;
 
   /// Whether text in cells can be selected
   /// When true, wraps table with SelectionArea for cross-cell selection
@@ -132,9 +133,9 @@ class HyperTable extends StatelessWidget {
     required this.tableNode,
     this.baseStyle,
     this.onLinkTap,
-    this.borderColor = const Color(0xFFE0E0E0),
+    this.borderColor,
     this.borderWidth = 1.0,
-    this.cellPadding = const EdgeInsets.all(8.0),
+    this.cellPadding,
     this.selectable = true,
   });
 
@@ -147,11 +148,20 @@ class HyperTable extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // Use theme colors and design tokens as defaults
+    final effectiveBorderColor = borderColor ??
+        (Theme.of(context).brightness == Brightness.dark
+            ? DesignTokens.darkTableBorder
+            : DesignTokens.tableBorder);
+
+    final effectiveCellPadding =
+        cellPadding ?? EdgeInsets.all(DesignTokens.space1);
+
     final tableWidget = _TableLayout(
       grid: grid,
-      borderColor: borderColor,
+      borderColor: effectiveBorderColor,
       borderWidth: borderWidth,
-      cellPadding: cellPadding,
+      cellPadding: effectiveCellPadding,
       cellBuilder: _buildCellContent,
     );
 

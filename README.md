@@ -75,6 +75,38 @@ dependencies:
   hyper_render: ^2.0.0
 ```
 
+## 🔒 Security Warning
+
+**IMPORTANT**: Always sanitize untrusted HTML before rendering!
+
+```dart
+// ❌ UNSAFE - Never render untrusted HTML directly
+HyperViewer(html: userGeneratedContent)
+
+// ✅ SAFE - Enable sanitization for user content
+HyperViewer(
+  html: userGeneratedContent,
+  sanitize: true,  // Removes <script>, event handlers, javascript: URLs
+)
+
+// ✅ SAFE - Custom whitelist
+HyperViewer(
+  html: userContent,
+  sanitize: true,
+  allowedTags: ['p', 'a', 'img', 'strong', 'em'],  // Only these tags
+)
+```
+
+The sanitizer removes dangerous elements that could lead to XSS attacks:
+- `<script>`, `<iframe>`, `<object>`, `<embed>` tags
+- Event handlers (`onclick`, `onerror`, etc.)
+- `javascript:` and dangerous `data:` URLs
+- Form elements (`<form>`, `<input>`, `<button>`)
+
+For trusted HTML (from your backend, CMS, etc.), sanitization is optional but recommended as a defense-in-depth measure.
+
+---
+
 ## Quick Start
 
 ### Basic HTML Rendering

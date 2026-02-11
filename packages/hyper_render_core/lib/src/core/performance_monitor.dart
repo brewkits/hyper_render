@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 
 /// Performance metrics for HyperRender operations
 ///
@@ -123,7 +122,7 @@ class PerformanceReport {
     buffer.writeln('  Layout: ${layoutTimeMs}ms');
     buffer.writeln('  Paint: ${paintTimeMs}ms');
     buffer.writeln('  Nodes: $nodeCount');
-    buffer.writeln('  CSS Rules: $cssRuleCount (${cssRulesMatched} matched)');
+    buffer.writeln('  CSS Rules: $cssRuleCount ($cssRulesMatched matched)');
     buffer.writeln('  Memory: ${memoryUsageKb.toStringAsFixed(1)}KB');
     return buffer.toString();
   }

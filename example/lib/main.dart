@@ -10,6 +10,11 @@ import 'package:hyper_render/hyper_render.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'html_preview_helper.dart';
+import 'v2_1_showcase.dart';
+import 'security_demo.dart';
+import 'accessibility_demo.dart';
+import 'video_demo_improved.dart';
+import 'enhanced_selection_demo.dart';
 
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
@@ -94,12 +99,12 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.select_all,
-            title: 'Text Selection',
-            subtitle: 'Bôi đen, copy, handles - Long press để xem menu',
+            title: 'Text Selection (Enhanced ⭐)',
+            subtitle: 'Rich menu: Copy, Share, Search, Translate, Define...',
             color: Colors.green,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const SelectionDemo()),
+              MaterialPageRoute(builder: (_) => const EnhancedSelectionDemo()),
             ),
           ),
           _buildDemoCard(
@@ -182,12 +187,12 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.play_circle_filled,
-            title: 'Video & Media',
-            subtitle: 'Video placeholder với hover effects và poster support',
+            title: 'Video & Media (IMPROVED ⭐)',
+            subtitle: 'Functional video playback - Tap to play externally',
             color: Colors.red,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const VideoDemo()),
+              MaterialPageRoute(builder: (_) => const ImprovedVideoDemo()),
             ),
           ),
           _buildDemoCard(
@@ -248,6 +253,41 @@ class DemoHomePage extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const StressTestDemo()),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSectionHeader(context, '🎉 NEW in v2.1.0'),
+          _buildDemoCard(
+            context,
+            icon: Icons.new_releases,
+            title: 'v2.1.0 Features Showcase',
+            subtitle: 'Error Boundaries, Performance, Dark Mode, Skeletons, Animations',
+            color: Colors.purple,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const V21Showcase()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.security,
+            title: 'Security Demo (XSS Protection)',
+            subtitle: 'HTML Sanitization - Chống tấn công XSS',
+            color: Colors.red,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SecurityDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.accessibility,
+            title: 'Accessibility Demo (A11y)',
+            subtitle: 'Screen reader support - VoiceOver & TalkBack',
+            color: Colors.green,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AccessibilityDemo()),
             ),
           ),
         ],
