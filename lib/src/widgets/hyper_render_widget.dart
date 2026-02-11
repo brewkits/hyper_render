@@ -8,6 +8,7 @@ import '../interfaces/image_clipboard.dart';
 import '../model/computed_style.dart';
 import '../model/node.dart';
 import 'code_block_widget.dart';
+import 'flex_container_widget.dart';
 
 /// Image action types for context menu
 enum ImageAction {
@@ -113,8 +114,18 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   ) {
     Widget? childWidget;
 
+    // Is it a flex container?
+    if (node.style.display == DisplayType.flex) {
+      childWidget = widgetBuilder?.call(node);
+      childWidget ??= _buildFlexContainerWidget(node, widgetBuilder);
+      if (childWidget != null) {
+        children.add(_HyperChildWidget(node: node, child: childWidget));
+      }
+      // Don't recurse into flex children - they're handled by flex container
+      return;
+    }
     // Is it a float?
-    if (node.style.float != HyperFloat.none) {
+    else if (node.style.float != HyperFloat.none) {
       childWidget = widgetBuilder?.call(node);
       // If it's an image, build the default image widget
       if (childWidget == null && node is AtomicNode && node.tagName == 'img') {
@@ -287,6 +298,132 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       strategy: strategy,
       minScaleFactor: 0.6,
     );
+  }
+
+  /// Build FlexContainer widget for display:flex elements
+  static Widget? _buildFlexContainerWidget(
+    UDTNode node,
+    HyperWidgetBuilder? widgetBuilder,
+  ) {
+    // Recursively build children of flex container
+    final flexChildren = <Widget>[];
+    for (final child in node.children) {
+      final childWidget = _buildFlexChild(child, widgetBuilder);
+      if (childWidget != null) {
+        // Wrap child with FlexItemWidget if it has flex properties
+        if (child.style.flexGrow != null ||
+            child.style.flexShrink != null ||
+            child.style.flexBasis != null ||
+            child.style.alignSelf != null) {
+          flexChildren.add(FlexItemWidget(
+            child: childWidget,
+            style: child.style,
+          ));
+        } else {
+          flexChildren.add(childWidget);
+        }
+      }
+    }
+
+    return FlexContainerWidget(
+      node: node,
+      children: flexChildren,
+    );
+  }
+
+  /// Build a single flex child
+  static Widget? _buildFlexChild(UDTNode node, HyperWidgetBuilder? widgetBuilder) {
+    // If it's text content, convert to Text widget
+    if (node.type == NodeType.text) {
+      final textNode = node as TextNode;
+      final text = textNode.text.trim();
+      if (text.isEmpty) return null;
+
+      return Text(
+        text,
+        style: node.style.toTextStyle(),
+      );
+    }
+
+    // If it's an inline node with text children, convert to RichText
+    if (node.type == NodeType.inline) {
+      final spans = _buildTextSpans(node);
+      if (spans.isNotEmpty) {
+        return Text.rich(
+          TextSpan(children: spans),
+        );
+      }
+    }
+
+    // If it's a nested flex container, recursively build it
+    if (node.type == NodeType.block && node.style.display == DisplayType.flex) {
+      return _buildFlexContainerWidget(node, widgetBuilder);
+    }
+
+    // If it's a block, create a container
+    if (node.type == NodeType.block) {
+      final blockChildren = <Widget>[];
+      for (final child in node.children) {
+        final childWidget = _buildFlexChild(child, widgetBuilder);
+        if (childWidget != null) {
+          blockChildren.add(childWidget);
+        }
+      }
+
+      if (blockChildren.isEmpty) return null;
+
+      return Container(
+        margin: node.style.margin,
+        padding: node.style.padding,
+        width: node.style.width,
+        height: node.style.height,
+        decoration: BoxDecoration(
+          color: node.style.backgroundColor,
+          border: node.style.borderWidth != EdgeInsets.zero
+              ? Border.all(
+                  color: node.style.borderColor ?? Colors.transparent,
+                  width: node.style.borderWidth.top,
+                )
+              : null,
+          borderRadius: node.style.borderRadius,
+        ),
+        child: blockChildren.length == 1
+            ? blockChildren.first
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: blockChildren,
+              ),
+      );
+    }
+
+    // If it's atomic (img, video), use existing logic
+    if (node.type == NodeType.atomic) {
+      return _buildDefaultAtomicWidget(node as AtomicNode);
+    }
+
+    return null;
+  }
+
+  /// Build TextSpans from node tree (for inline content)
+  static List<InlineSpan> _buildTextSpans(UDTNode node) {
+    final spans = <InlineSpan>[];
+
+    for (final child in node.children) {
+      if (child.type == NodeType.text) {
+        final text = (child as TextNode).text;
+        if (text.isNotEmpty) {
+          spans.add(TextSpan(
+            text: text,
+            style: child.style.toTextStyle(),
+          ));
+        }
+      } else if (child.type == NodeType.inline) {
+        spans.addAll(_buildTextSpans(child));
+      }
+    }
+
+    return spans;
   }
 
   @override

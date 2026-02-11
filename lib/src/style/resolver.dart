@@ -188,9 +188,7 @@ class StyleResolver {
       final stylesheet = css_parser.parse(cssString);
       _extractRules(stylesheet);
     } catch (e) {
-      // Log CSS parsing error but don't throw
-      // ignore: avoid_print
-      print('CSS parsing error: $e');
+      // Silently ignore CSS parsing errors in production
     }
   }
 
@@ -878,6 +876,112 @@ class StyleResolver {
         }
         break;
 
+      // Flexbox properties
+      case 'flex-direction':
+        final flexDir = _parseFlexDirection(value);
+        if (flexDir != null) {
+          style.flexDirection = flexDir;
+          style.markExplicitlySet('flex-direction');
+        }
+        break;
+
+      case 'justify-content':
+        final justify = _parseJustifyContent(value);
+        if (justify != null) {
+          style.justifyContent = justify;
+          style.markExplicitlySet('justify-content');
+        }
+        break;
+
+      case 'align-items':
+        final align = _parseAlignItems(value);
+        if (align != null) {
+          style.alignItems = align;
+          style.markExplicitlySet('align-items');
+        }
+        break;
+
+      case 'align-self':
+        final alignSelf = _parseAlignItems(value);
+        if (alignSelf != null) {
+          style.alignSelf = alignSelf;
+          style.markExplicitlySet('align-self');
+        }
+        break;
+
+      case 'flex-wrap':
+        final wrap = _parseFlexWrap(value);
+        if (wrap != null) {
+          style.flexWrap = wrap;
+          style.markExplicitlySet('flex-wrap');
+        }
+        break;
+
+      case 'gap':
+        final length = _parseLength(value);
+        if (length != null) {
+          style.gap = length;
+          style.rowGap = length;
+          style.columnGap = length;
+          style.markExplicitlySet('gap');
+        }
+        break;
+
+      case 'row-gap':
+        final length = _parseLength(value);
+        if (length != null) {
+          style.rowGap = length;
+          style.markExplicitlySet('row-gap');
+        }
+        break;
+
+      case 'column-gap':
+        final length = _parseLength(value);
+        if (length != null) {
+          style.columnGap = length;
+          style.markExplicitlySet('column-gap');
+        }
+        break;
+
+      case 'flex':
+        // Parse flex shorthand: flex-grow flex-shrink flex-basis
+        final parts = value.trim().split(RegExp(r'\s+'));
+        if (parts.isNotEmpty) {
+          style.flexGrow = double.tryParse(parts[0]) ?? 0;
+          if (parts.length > 1) {
+            style.flexShrink = double.tryParse(parts[1]) ?? 1;
+          }
+          if (parts.length > 2) {
+            style.flexBasis = _parseLength(parts[2]);
+          }
+          style.markExplicitlySet('flex');
+        }
+        break;
+
+      case 'flex-grow':
+        final flexGrow = double.tryParse(value.trim());
+        if (flexGrow != null) {
+          style.flexGrow = flexGrow;
+          style.markExplicitlySet('flex-grow');
+        }
+        break;
+
+      case 'flex-shrink':
+        final flexShrink = double.tryParse(value.trim());
+        if (flexShrink != null) {
+          style.flexShrink = flexShrink;
+          style.markExplicitlySet('flex-shrink');
+        }
+        break;
+
+      case 'flex-basis':
+        final flexBasis = _parseLength(value);
+        if (flexBasis != null) {
+          style.flexBasis = flexBasis;
+          style.markExplicitlySet('flex-basis');
+        }
+        break;
+
       case 'opacity':
         final opacity = double.tryParse(value);
         if (opacity != null) {
@@ -899,6 +1003,70 @@ class StyleResolver {
         if (clearValue != null) {
           style.clear = clearValue;
           style.markExplicitlySet('clear');
+        }
+        break;
+
+      case 'text-overflow':
+        final textOverflow = _parseTextOverflow(value);
+        if (textOverflow != null) {
+          style.textOverflow = textOverflow;
+          style.markExplicitlySet('text-overflow');
+        }
+        break;
+
+      case 'text-shadow':
+        final shadows = _parseTextShadow(value);
+        if (shadows != null && shadows.isNotEmpty) {
+          style.textShadow = shadows;
+          style.markExplicitlySet('text-shadow');
+        }
+        break;
+
+      case 'border-style':
+        final borderStyle = _parseBorderStyle(value);
+        if (borderStyle != null) {
+          style.borderStyle = borderStyle;
+          style.markExplicitlySet('border-style');
+        }
+        break;
+
+      case 'border-top-style':
+        final borderStyle = _parseBorderStyle(value);
+        if (borderStyle != null) {
+          style.borderTopStyle = borderStyle;
+          style.markExplicitlySet('border-top-style');
+        }
+        break;
+
+      case 'border-right-style':
+        final borderStyle = _parseBorderStyle(value);
+        if (borderStyle != null) {
+          style.borderRightStyle = borderStyle;
+          style.markExplicitlySet('border-right-style');
+        }
+        break;
+
+      case 'border-bottom-style':
+        final borderStyle = _parseBorderStyle(value);
+        if (borderStyle != null) {
+          style.borderBottomStyle = borderStyle;
+          style.markExplicitlySet('border-bottom-style');
+        }
+        break;
+
+      case 'border-left-style':
+        final borderStyle = _parseBorderStyle(value);
+        if (borderStyle != null) {
+          style.borderLeftStyle = borderStyle;
+          style.markExplicitlySet('border-left-style');
+        }
+        break;
+
+      case 'direction':
+        final direction = _parseDirection(value);
+        if (direction != null) {
+          style.direction = direction;
+          style.markExplicitlySet('direction');
         }
         break;
     }
@@ -991,6 +1159,112 @@ class StyleResolver {
         return HyperClear.both;
       case 'none':
         return HyperClear.none;
+      default:
+        return null;
+    }
+  }
+
+  /// Parse text-overflow value
+  TextOverflow? _parseTextOverflow(String value) {
+    switch (value.toLowerCase().trim()) {
+      case 'clip':
+        return TextOverflow.clip;
+      case 'ellipsis':
+        return TextOverflow.ellipsis;
+      case 'fade':
+        return TextOverflow.fade;
+      case 'visible':
+        return TextOverflow.visible;
+      default:
+        return null;
+    }
+  }
+
+  /// Parse text-shadow value
+  /// Supports multiple shadows: "2px 2px 4px rgba(0,0,0,0.5), 1px 1px 2px red"
+  List<Shadow>? _parseTextShadow(String value) {
+    if (value.toLowerCase().trim() == 'none') return null;
+
+    final shadows = <Shadow>[];
+    // Split by comma for multiple shadows
+    final shadowDefinitions = value.split(',');
+
+    for (final shadowDef in shadowDefinitions) {
+      final parts = shadowDef.trim().split(RegExp(r'\s+'));
+      if (parts.length < 3) continue; // Need at least x y blur
+
+      double offsetX = 0;
+      double offsetY = 0;
+      double blurRadius = 0;
+      Color color = const Color(0x33000000); // Default semi-transparent black
+
+      // Parse values
+      int numIndex = 0;
+      for (final part in parts) {
+        // Try to parse as length
+        final length = _parseLength(part);
+        if (length != null) {
+          if (numIndex == 0) {
+            offsetX = length;
+          } else if (numIndex == 1) {
+            offsetY = length;
+          } else if (numIndex == 2) {
+            blurRadius = length;
+          }
+          numIndex++;
+          continue;
+        }
+
+        // Try to parse as color
+        final parsedColor = _parseColor(part);
+        if (parsedColor != null) {
+          color = parsedColor;
+        }
+      }
+
+      shadows.add(Shadow(
+        offset: Offset(offsetX, offsetY),
+        blurRadius: blurRadius,
+        color: color,
+      ));
+    }
+
+    return shadows.isEmpty ? null : shadows;
+  }
+
+  /// Parse border-style value
+  BorderStyle? _parseBorderStyle(String value) {
+    switch (value.toLowerCase().trim()) {
+      case 'none':
+        return BorderStyle.none;
+      case 'solid':
+        return BorderStyle.solid;
+      case 'dashed':
+        return BorderStyle.dashed;
+      case 'dotted':
+        return BorderStyle.dotted;
+      case 'double':
+        return BorderStyle.double;
+      case 'groove':
+        return BorderStyle.groove;
+      case 'ridge':
+        return BorderStyle.ridge;
+      case 'inset':
+        return BorderStyle.inset;
+      case 'outset':
+        return BorderStyle.outset;
+      default:
+        return null;
+    }
+  }
+
+  /// Parse direction value
+  TextDirection? _parseDirection(String value) {
+    switch (value.toLowerCase().trim()) {
+      case 'ltr':
+        return TextDirection.ltr;
+      case 'rtl':
+        return TextDirection.rtl;
       default:
         return null;
     }
@@ -1355,6 +1629,78 @@ class StyleResolver {
         return DisplayType.tableRow;
       case 'table-cell':
         return DisplayType.tableCell;
+      default:
+        return null;
+    }
+  }
+
+  /// Parse CSS flex-direction value
+  FlexDirection? _parseFlexDirection(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'row':
+        return FlexDirection.row;
+      case 'row-reverse':
+        return FlexDirection.rowReverse;
+      case 'column':
+        return FlexDirection.column;
+      case 'column-reverse':
+        return FlexDirection.columnReverse;
+      default:
+        return null;
+    }
+  }
+
+  /// Parse CSS justify-content value
+  JustifyContent? _parseJustifyContent(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'flex-start':
+      case 'start':
+        return JustifyContent.flexStart;
+      case 'flex-end':
+      case 'end':
+        return JustifyContent.flexEnd;
+      case 'center':
+        return JustifyContent.center;
+      case 'space-between':
+        return JustifyContent.spaceBetween;
+      case 'space-around':
+        return JustifyContent.spaceAround;
+      case 'space-evenly':
+        return JustifyContent.spaceEvenly;
+      default:
+        return null;
+    }
+  }
+
+  /// Parse CSS align-items value
+  AlignItems? _parseAlignItems(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'flex-start':
+      case 'start':
+        return AlignItems.flexStart;
+      case 'flex-end':
+      case 'end':
+        return AlignItems.flexEnd;
+      case 'center':
+        return AlignItems.center;
+      case 'baseline':
+        return AlignItems.baseline;
+      case 'stretch':
+        return AlignItems.stretch;
+      default:
+        return null;
+    }
+  }
+
+  /// Parse CSS flex-wrap value
+  FlexWrap? _parseFlexWrap(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'nowrap':
+        return FlexWrap.nowrap;
+      case 'wrap':
+        return FlexWrap.wrap;
+      case 'wrap-reverse':
+        return FlexWrap.wrapReverse;
       default:
         return null;
     }

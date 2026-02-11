@@ -13,7 +13,7 @@ Zero-dependency core rendering engine for HyperRender.
 - **Text Selection** - Native-feeling selection with handles
 - **CSS Cascade Resolution** - Full CSS specificity and inheritance with 10x faster rule indexing
 
-### New in v2.1 🎉
+### Features 🎉
 - **Error Boundaries** - ErrorBoundaryNode for graceful error handling
 - **Performance Monitoring** - PerformanceMonitor with P95/P99 percentile tracking
 - **Layout Cache** - Separate layout storage for efficient invalidation
@@ -73,7 +73,7 @@ final document = parser.parse('<h1>Hello</h1><p>World</p>');
 HyperRenderWidget(document: document)
 ```
 
-### With Performance Monitoring (NEW in v2.1)
+### With Performance Monitoring (v1.0)
 
 ```dart
 import 'package:hyper_render_core/hyper_render_core.dart';
@@ -95,7 +95,7 @@ print('Rating: ${report.rating}'); // Excellent, Good, Acceptable, Slow, Poor
 final json = report.toJson();
 ```
 
-### With Error Boundaries (NEW in v2.1)
+### With Error Boundaries (v1.0)
 
 ```dart
 import 'package:hyper_render_core/hyper_render_core.dart';
@@ -118,7 +118,7 @@ final document = DocumentNode(children: [
 HyperRenderWidget(document: document)
 ```
 
-### With Design Tokens (NEW in v2.1)
+### With Design Tokens (v1.0)
 
 ```dart
 import 'package:hyper_render_core/hyper_render_core.dart';
@@ -142,7 +142,7 @@ Container(
 // Spacing, typography, colors automatically adapt to dark mode
 ```
 
-### With Loading Skeletons (NEW in v2.1)
+### With Loading Skeletons (v1.0)
 
 ```dart
 import 'package:hyper_render_core/hyper_render_core.dart';
@@ -235,7 +235,7 @@ abstract class ImageClipboardHandler {
 | `TableRowNode` | Table row | tr |
 | `TableCellNode` | Table cell | td, th |
 | `DetailsNode` | Interactive disclosure | details |
-| `ErrorBoundaryNode` | Error handling (NEW in v2.1) | error-boundary |
+| `ErrorBoundaryNode` | Error handling (v1.0) | error-boundary |
 
 ## ComputedStyle
 

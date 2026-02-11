@@ -1,6 +1,6 @@
 # HyperRender Multimedia Integration Examples
 
-This guide demonstrates how to integrate video, audio, iframes, and custom widgets into HyperRender v2.0.
+This guide demonstrates how to integrate video, audio, iframes, and custom widgets into HyperRender v1.0.
 
 ## 🎯 What's Unique About HyperRender?
 

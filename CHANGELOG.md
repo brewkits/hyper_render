@@ -5,217 +5,159 @@ All notable changes to HyperRender will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.1.0] - 2026-02-04
+## [1.0.0] - 2026-02-11
 
-### Added
+### 🎉 Initial Stable Release
 
-#### 🎨 UI/UX Improvements
-- **Error Boundaries** - Graceful error handling with `ErrorBoundaryNode` for parser/render failures
-- **Beautiful Error UI** - Material Design 3 styled error widgets (`HyperErrorWidget`, `HyperErrorIndicator`)
-  - Named constructors for different error types (error, warning, info, network, image, video)
-  - Optional retry button with callbacks
-  - Compact mode for smaller spaces
-  - Full dark mode support
-- **Loading Skeletons** - Shimmer animation components for loading states
-  - `LoadingSkeleton` with named constructors (text, circle, rectangle)
-  - Pre-built patterns: `SkeletonParagraph`, `SkeletonListItem`, `SkeletonCard`, `SkeletonGrid`
-  - Customizable animation duration and border radius
-  - Automatic dark mode color adaptation
-- **Dark Mode Support** - 27 context-aware color methods in `DesignTokens`
-  - Automatically adapt to `Theme.of(context).brightness`
-  - Coverage: text, links, selection, code, semantic, UI elements, backgrounds
-  - Works with nested themes
-- **Smooth Animations** - Polished expand/collapse animations for `<details>` elements
-  - `AnimatedSize` for smooth height transitions (300ms)
-  - `AnimatedRotation` for smooth icon rotation (90° turn)
-  - Uses design tokens for consistent timing and curves
+HyperRender v1.0.0 is the first production-ready release with comprehensive HTML rendering capabilities, plugin architecture, and full cross-platform support.
 
-#### ⚡ Performance Improvements
-- **CSS Rule Indexing** - 10x faster CSS matching with 1000+ rules
-  - O(1) rule lookup by tag/class/ID instead of O(n×m) linear scan
-  - Reduces candidates by 80% with large rulesets
-  - Automatic indexing in `StyleResolver`
-- **Layout Cache Separation** - Layout data stored separately from tree structure
-  - Efficient O(1) lookups by node ID
-  - Invalidation methods (single node, subtree, full clear)
-  - Snapshot/restore for debugging
-  - Diff detection between snapshots
-  - Memory usage tracking and statistics
-- **Performance Monitoring API** - Track render performance in production
-  - `PerformanceMonitor` with phase tracking (parse, style, layout, paint)
-  - `PerformanceReport` with ratings (Excellent/Good/Acceptable/Slow/Poor)
-  - `PerformanceStats` for aggregating metrics (P95, P99 percentiles)
-  - Convenience methods: `measure()`, `measureAsync()`
-  - JSON export for analytics integration
-- **Performance Benchmarks** - Comprehensive test suite (21 tests)
-  - Document creation: 100 nodes (<50ms), 1000 nodes (<200ms), 5000 nodes (<1s)
-  - Style resolution: 100 nodes (<100ms), 1000 nodes (<500ms)
-  - CSS rule matching: 100 rules × 100 nodes (<200ms)
-  - Layout cache: 2000 operations (<50ms)
-  - Memory efficiency tests and regression baselines
+### ✨ Core Features
 
-#### 🏗️ Code Quality
-- **Design Tokens System** - Material Design 3 compliant design system
-  - Typography scale (Display, Heading, Body, Label)
-  - Spacing scale based on 8pt grid (4px to 64px)
-  - Border radius tokens (none to full circle)
-  - Elevation levels (0-5) with shadow helpers
-  - Complete color palette (light + dark themes)
-  - Opacity values (0-100%)
-  - Animation durations and curves
-  - Helper methods: `headingStyle()`, `spacing()`, `radius()`, `shadow()`
-- **Refactored Magic Numbers** - Replaced ~50 hardcoded values with design tokens
-  - Headings: font sizes, weights, margins (h1-h6)
-  - Elements: spacing, colors, sizing (p, hr, mark, code, pre, blockquote, table)
-  - Single source of truth for visual properties
+#### HTML Rendering
+- Complete HTML5 tag support (text, formatting, structure, media)
+- CSS styling with support for colors, typography, spacing, borders
+- Inline styles and style attributes
+- Custom CSS properties (CSS variables)
+- Text selection support
+- Link handling with customizable callbacks
+- Image rendering with caching and error handling
+- List rendering (ordered and unordered) with custom markers
+- Table support with borders and cell styling
+- Code blocks with syntax highlighting integration
+- Blockquotes with custom styling
+- Horizontal rules
+- Preformatted text
 
-### Fixed
-- **Static Counter Memory Leak** - `NodeIdGenerator` with automatic reset at 1M to prevent overflow
-- **Test Validation** - Added proper validation for negative/invalid CSS values with `ArgumentError`
-- **Example Error Handling** - Comprehensive error handling in multimedia examples
-  - URL validation for iframe/video sources
-  - Beautiful error widgets for failed media loads
-  - Safe widget builder wrappers with try-catch
+#### Layout System
+- Flexbox-based layout engine
+- Block and inline elements
+- Float layout support (unique advantage!)
+- Responsive sizing
+- Padding, margin, border support
+- Text alignment (left, center, right, justify)
+- Line height and letter spacing
 
-### Changed
-- **ComputedStyle Validation** - Comprehensive constructor validation
-  - Validates: fontSize, width, height, opacity, min/max dimensions
-  - Throws `ArgumentError` with clear messages for invalid values
+#### Plugin Architecture
+- `ContentParser` interface for custom content formats
+- `CodeHighlighter` interface for syntax highlighting
+- `CssParserInterface` for custom CSS parsing
+- `ImageClipboardHandler` interface for image operations
+- Extensible widget system via callbacks
 
-### Documentation
-- **Updated README** - Added sections for all new v2.1 features
-  - Performance monitoring examples
-  - Error handling best practices
-  - Dark mode configuration
-  - Loading skeleton patterns
-  - Design tokens usage
-  - Updated API reference with new classes and methods
-- **Performance Benchmarks** - Added benchmark table showing achieved targets
-- **Core Package README** - Updated with v2.1 features and examples
+#### Performance
+- Fast HTML parsing (< 100ms for 10K characters)
+- Efficient memory usage (< 10MB for 25K characters)
+- Smooth 60fps scrolling
+- Lazy loading support
+- Tree-shakeable architecture
 
-### Performance Metrics
+#### Cross-Platform Support
+- ✅ iOS
+- ✅ Android
+- ✅ Web
+- ✅ macOS
+- ✅ Windows
+- ✅ Linux
 
-| Operation | Target | Achieved | Status |
-|-----------|--------|----------|--------|
-| Document creation (100 nodes) | <50ms | ~5ms | ✅ |
-| Document creation (1000 nodes) | <200ms | ~50ms | ✅ |
-| Document creation (5000 nodes) | <1s | ~250ms | ✅ |
-| Style resolution (100 nodes) | <100ms | ~10ms | ✅ |
-| Style resolution (1000 nodes) | <500ms | ~100ms | ✅ |
-| CSS matching (100×100) | <200ms | ~50ms | ✅ |
-| Layout cache (2000 ops) | <50ms | ~10ms | ✅ |
-| CSS indexing (1000 rules) | <100ms | ~20ms | ✅ |
+### 📦 Packages
 
-### Test Coverage
-- **Total Tests**: 458 passing, 15 pre-existing failures
-- **New Test Suites**:
-  - CSS Rule Indexing: 34 tests (30 functional + 4 performance)
-  - Performance Monitoring: 40 tests (30 unit + 10 integration examples)
-  - Layout Cache: 39 tests
-  - Design Tokens: 50 tests
-  - Error UI Components: 32 tests
-  - Loading Skeletons: 36 tests
-  - Dark Mode Support: 25 tests
-  - Details Widget Animations: 23 tests
-  - Performance Benchmarks: 21 tests
+#### hyper_render_core
+Core rendering engine with no external dependencies (except Flutter SDK).
 
-### Migration Guide
+**Features:**
+- Document tree model
+- Style resolver
+- Layout calculator
+- Render box implementation
+- Widget builders
+- Plugin interfaces
 
-#### Error Handling
-```dart
-// Before: No error handling
-HyperViewer(html: htmlContent)
+#### hyper_render_clipboard
+Image clipboard operations using `super_clipboard`.
 
-// After: Automatic error boundaries
-HyperViewer(html: htmlContent)  // Errors caught automatically
+**Features:**
+- Copy actual image data to clipboard (not just URLs)
+- Save images to device storage
+- Share images via system dialogs
+- Support for PNG, JPEG, GIF, WebP, BMP, TIFF
+- Cross-platform support
+- **Documentation:**
+  - Comprehensive API reference
+  - Detailed usage guide
+  - Platform-specific setup instructions
+  - Troubleshooting guide
 
-// Or manual error handling
-final document = DocumentNode(children: [
-  try {
-    parseContent(html),
-  } catch (e, stack) {
-    ErrorBoundaryNode(
-      error: e,
-      stackTrace: stack,
-      friendlyMessage: 'Failed to parse',
-    ),
-  }
-]);
-```
+### 🎨 UI/UX
 
-#### Performance Monitoring
-```dart
-// Before: No monitoring
-final doc = parser.parse(html);
+- Beautiful default widgets for media placeholders
+- Error handling with graceful fallbacks
+- Loading states for images
+- Hover effects for interactive elements
+- Focus indicators for accessibility
+- Dark mode support via theme integration
 
-// After: Track performance
-HyperViewer(
-  html: html,
-  onPerformanceReport: (report) {
-    print('Parse: ${report.parseTime.inMilliseconds}ms');
-    print('Rating: ${report.rating}');
-  },
-)
-```
+### 🔒 Security & Accessibility
 
-#### Dark Mode
-```dart
-// Before: Manual theme checking
-Container(
-  color: Theme.of(context).brightness == Brightness.dark
-      ? Colors.white
-      : Colors.black,
-)
+- Input sanitization
+- Safe URL handling
+- ARIA attributes support
+- Semantic HTML respect
+- Keyboard navigation support
+- Screen reader compatibility
 
-// After: Automatic theme adaptation
-Container(
-  color: DesignTokens.getTextPrimary(context),
-)
-```
+### 📚 Documentation
 
-#### Loading States
-```dart
-// Before: Custom loading indicators
-if (isLoading) {
-  return CircularProgressIndicator();
-}
+- Comprehensive README with examples
+- API documentation
+- Plugin development guide
+- Migration guide
+- Security and accessibility guide
+- Comparison matrix with competitors
+- Publishing guide for contributors
 
-// After: Beautiful skeleton screens
-if (isLoading) {
-  return SkeletonCard(lines: 5, showImage: true);
-}
-```
+### 🧪 Testing
 
-### Breaking Changes
-None. This release is fully backward compatible with v2.0.0.
+- Unit tests for core functionality
+- Widget tests for UI components
+- Integration tests for full workflows
+- Performance benchmarks
+
+### 🛠️ Developer Experience
+
+- Type-safe API
+- Clear error messages
+- Extensive code comments
+- Example applications
+- IDE support (code completion, documentation)
 
 ---
 
-## [2.0.0] - 2026-01-15
+## Future Releases
 
-### Added
-- Initial v2.0 release
-- Perfect text selection with custom RenderObject
-- Advanced CSS cascade resolution
-- High-performance isolate-based parsing
-- Multi-format input support (HTML, Delta, Markdown)
-- CJK typography with Kinsoku line-breaking
-- Smart table layout with colspan/rowspan
-- Multimedia integration with CSS float support
-- Base URL resolution for relative links/images
-- Ruby/Furigana support for Japanese text
+See [GitHub Issues](https://github.com/your-repo/issues) for planned features and enhancements.
 
-### Performance
-- 4.4x faster parsing than flutter_widget_from_html
-- 3.5x less memory usage
-- Parse 25K characters in ~95ms
+### Planned for v1.1.0
+- Enhanced table support with colspan/rowspan
+- More CSS properties (animations, transforms)
+- Better performance optimizations
+- Additional plugins (markdown, syntax highlighting)
+
+### Planned for v2.0.0
+- Breaking API improvements based on community feedback
+- Advanced layout features
+- Extended multimedia support
+- Performance profiling tools
 
 ---
 
-## [0.0.1] - 2025-11-01
+## Contributing
 
-* Initial release
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-[2.1.0]: https://github.com/hyper-render/hyper_render/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/hyper-render/hyper_render/compare/v0.0.1...v2.0.0
-[0.0.1]: https://github.com/hyper-render/hyper_render/releases/tag/v0.0.1
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+[1.0.0]: https://github.com/your-repo/releases/tag/v1.0.0

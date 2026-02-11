@@ -250,12 +250,10 @@ class HtmlToSpanConverter {
 
   /// Convert media element (audio/video)
   InlineSpan _convertMedia(AtomicNode node) {
-    print('🟢 [SpanConverter] Converting media: ${node.tagName} src=${node.src}');
     final mediaInfo = MediaInfo.fromNode(node);
 
     // Use custom media builder if provided
     if (mediaBuilder != null) {
-      print('🟡 [SpanConverter] Using custom mediaBuilder');
       return WidgetSpan(
         child: Builder(
           builder: (context) => mediaBuilder!(context, mediaInfo),
@@ -266,7 +264,6 @@ class HtmlToSpanConverter {
 
     // Use default media widget with optional tap callback
     // IMPORTANT: Use onMediaTap if available, otherwise try onLinkTap for video URLs
-    print('🟢 [SpanConverter] Using DefaultMediaWidget, onMediaTap=${onMediaTap != null ? 'SET' : 'NULL'}, onLinkTap=${onLinkTap != null ? 'SET' : 'NULL'}');
     return WidgetSpan(
       child: DefaultMediaWidget(
         mediaInfo: mediaInfo,
