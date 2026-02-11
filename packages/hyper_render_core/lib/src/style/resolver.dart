@@ -124,24 +124,27 @@ class StyleResolver {
       fontSize: 13.0, // Increased from 12px
     ),
     'code': ComputedStyle(
-      fontFamily: 'monospace',
+      fontFamily: DesignTokens.codeFontFamily,
       backgroundColor: DesignTokens.codeBackground,
       color: DesignTokens.codeText,
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1), // Ultra-minimal padding for tight text fit
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignTokens.space0_5 / 2, // 2px - Ultra-minimal padding for tight text fit
+        vertical: DesignTokens.space0_5 / 4, // 1px
+      ),
       borderRadius: DesignTokens.radius(DesignTokens.radiusXs), // Smaller radius (4px) for tighter fit
-      fontSize: 13.0, // Slightly larger than bodySmall (12px) for better readability
+      fontSize: DesignTokens.codeFontSize, // 14px for better readability
     ),
     'pre': ComputedStyle(
       display: DisplayType.block,
-      fontFamily: 'monospace',
+      fontFamily: DesignTokens.codeFontFamily,
       whiteSpace: 'pre',
       backgroundColor: DesignTokens.codeBlockBackground,
       color: DesignTokens.codeBlockText,
       padding: EdgeInsets.all(DesignTokens.space2),
       margin: EdgeInsets.symmetric(vertical: DesignTokens.space2),  // Increased from space1_5
       borderRadius: DesignTokens.radius(DesignTokens.radiusMedium),
-      fontSize: 13.0, // Increased from 12px for better code readability
-      lineHeight: 1.6,
+      fontSize: DesignTokens.codeFontSize, // 14px for better code readability
+      lineHeight: DesignTokens.codeLineHeight / DesignTokens.codeFontSize, // 1.43 (20/14)
     ),
     'blockquote': ComputedStyle(
       display: DisplayType.block,

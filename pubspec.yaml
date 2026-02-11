@@ -1,6 +1,6 @@
 name: hyper_render
 description: "The Universal Content Engine for Flutter - A high-performance rendering engine for HTML, Markdown, and Quill Delta with perfect text selection, advanced CSS support, and CJK typography."
-version: 2.0.0
+version: 2.1.0
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render
 issue_tracker: https://github.com/brewkits/hyper_render/issues
@@ -53,12 +53,13 @@ dependencies:
   # hyper_render_clipboard: # Commented out due to share_plus/mime version conflict
   #   path: packages/hyper_render_clipboard
 
-  flutter_highlight: any
-  highlight: any
-  csslib: any
-  markdown: any
-  html: any
-  vector_math: any
+  # Fixed version constraints for pub.dev compliance
+  flutter_highlight: ^0.7.0
+  highlight: ^0.7.0
+  csslib: ^1.0.0
+  markdown: ^7.3.0
+  html: ^0.15.6
+  vector_math: ^2.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

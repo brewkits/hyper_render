@@ -1,6 +1,7 @@
 /// Integration example showing how to use PerformanceMonitor in production
 ///
 /// This file demonstrates best practices for performance monitoring in HyperRender
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';

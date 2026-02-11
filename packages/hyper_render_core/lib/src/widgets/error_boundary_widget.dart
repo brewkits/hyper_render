@@ -57,7 +57,7 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.red.shade900.withOpacity(0.2) : Colors.red.shade50,
+        color: isDark ? Colors.red.shade900.withValues(alpha:0.2) : Colors.red.shade50,
         border: Border.all(
           color: isDark ? Colors.red.shade700 : Colors.red.shade200,
           width: 1.5,

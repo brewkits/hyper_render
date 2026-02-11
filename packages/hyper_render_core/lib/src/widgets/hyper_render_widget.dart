@@ -189,10 +189,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       final errorNode = node as ErrorBoundaryNode;
       childWidget = widgetBuilder?.call(errorNode);
       childWidget ??= _buildDefaultErrorBoundaryWidget(errorNode);
-      if (childWidget != null) {
-        children.add(_HyperChildWidget(node: node, child: childWidget));
-      }
-    }
+      children.add(_HyperChildWidget(node: node, child: childWidget));
+        }
 
     // Recurse into children, but ONLY if the current node isn't a child-widget itself
     // (because its children are not part of the main render tree)

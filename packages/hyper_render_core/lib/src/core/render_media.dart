@@ -116,22 +116,12 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Debug: Check if onTap callback exists
-    print('🔵 [DefaultMediaWidget] onTap callback is ${widget.onTap != null ? 'SET ✅' : 'NULL ❌'} for ${widget.mediaInfo.type.name}: ${widget.mediaInfo.src}');
-
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque, // CRITICAL: Catch taps on entire area including transparent regions
-        onTap: widget.onTap != null
-            ? () {
-                print('🔴 [DefaultMediaWidget] TAP DETECTED on ${widget.mediaInfo.type.name}: ${widget.mediaInfo.src}');
-                widget.onTap!();
-              }
-            : () {
-                print('⚠️ [DefaultMediaWidget] TAP but onTap is NULL!');
-              },
+        onTap: widget.onTap,
         child: widget.mediaInfo.isVideo
             ? _buildVideoPlaceholder()
             : _buildAudioPlaceholder(),
@@ -162,14 +152,14 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
           responsiveHeight = height * scale;
         }
 
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return Container(
           width: responsiveWidth,
           height: responsiveHeight,
           decoration: BoxDecoration(
-        color: Colors.black87,
+        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFF000000),
         borderRadius: BorderRadius.circular(8),
-        // DEBUG: Add red border to verify DefaultMediaWidget is being used
-        border: Border.all(color: Colors.red, width: 4),
         image: widget.mediaInfo.poster != null
             ? DecorationImage(
                 image: NetworkImage(widget.mediaInfo.poster!),
@@ -195,21 +185,34 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
               ),
             ),
 
-          // Play button
+          // Play button with smooth animation
           Center(
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: _isHovering
-                    ? Colors.white.withValues(alpha: 0.3)
+                    ? Colors.white.withValues(alpha: 0.35)
                     : Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
+                boxShadow: _isHovering
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        )
+                      ]
+                    : null,
               ),
-              child: Icon(
-                Icons.play_arrow,
-                size: _isHovering ? 52 : 48,
-                color: Colors.white,
+              child: Transform.scale(
+                scale: _isHovering ? 1.08 : 1.0,
+                child: const Icon(
+                  Icons.play_arrow,
+                  size: 48,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -281,13 +284,17 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
           responsiveWidth = availableWidth;
         }
 
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return Container(
           width: responsiveWidth,
           padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: isDark ? const Color(0xFF424242) : const Color(0xFFE0E0E0),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
