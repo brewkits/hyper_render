@@ -143,7 +143,7 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
       end: 2.0,
     ).animate(CurvedAnimation(
       parent: _controller,
-      curve: Curves.easeInOut,
+      curve: Curves.linear, // Linear for smooth constant-speed shimmer
     ));
 
     if (widget.animate) {
@@ -248,7 +248,7 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
     if (isDark) {
       return _SkeletonColors(
         baseColor: const Color(0xFF2D2D2D),
-        highlightColor: const Color(0xFF3D3D3D),
+        highlightColor: const Color(0xFF4F4F4F), // Better contrast for dark mode
       );
     } else {
       return _SkeletonColors(

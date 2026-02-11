@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:hyper_render_core/src/style/design_tokens.dart';
 import '../core/render_hyper_box.dart';
 import '../model/node.dart';
 import 'hyper_render_widget.dart';
@@ -72,7 +73,7 @@ class HyperSelectionOverlay extends StatefulWidget {
     this.onLinkTap,
     this.widgetBuilder,
     this.selectable = true,
-    this.handleColor = const Color(0xFF2196F3),
+    this.handleColor = Colors.blue, // Will be overridden by theme in build
     this.menuBackgroundColor,
     this.contextMenuBuilder,
     this.menuActionsBuilder,
@@ -341,7 +342,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     return Positioned(
       left: 0,
       right: 0,
-      top: menuPosition.dy - 48, // Menu height + padding
+      top: menuPosition.dy - 56, // Dynamic menu height (adjusted for Material buttons)
       child: AnimatedBuilder(
         animation: _menuAnimController,
         builder: (context, child) {
@@ -415,24 +416,27 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     return Material(
       elevation: 8,
       shadowColor: Colors.black38,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(DesignTokens.radiusSmall),
       child: Container(
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusSmall),
           border: Border.all(
             color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: actions.map((action) {
-            return _ContextMenuButton(
-              icon: action.icon,
-              label: action.label,
-              onTap: action.onPressed,
-            );
-          }).toList(),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: actions.map((action) {
+              return _ContextMenuButton(
+                icon: action.icon,
+                label: action.label,
+                onTap: action.onPressed,
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
@@ -465,18 +469,21 @@ class _ContextMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18),
-            const SizedBox(width: 4),
-            Text(label, style: const TextStyle(fontSize: 14)),
-          ],
+    // Use Material TextButton for professional appearance
+    return TextButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: TextButton.styleFrom(
+        padding: EdgeInsets.symmetric(
+          horizontal: DesignTokens.space1_5,
+          vertical: DesignTokens.space1,
+        ),
+        minimumSize: const Size(0, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: const TextStyle(fontSize: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(DesignTokens.radiusXs),
         ),
       ),
     );
