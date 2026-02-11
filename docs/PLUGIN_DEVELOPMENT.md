@@ -130,6 +130,7 @@ This is a real-world example from `hyper_render_clipboard`:
 ```dart
 import 'dart:typed_data';
 import 'package:hyper_render/hyper_render.dart';
+import 'package:super_clipboard/super_clipboard.dart' show DataWriterItem, Formats, SystemClipboard;
 
 class SuperClipboardHandler implements ImageClipboardHandler {
   @override
@@ -255,9 +256,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  hyper_render:
-    hosted: https://pub.dev
-    version: ^1.0.0  # Or hyper_render_core: ^2.0.0
+  hyper_render_core: ^1.0.0
 
 dev_dependencies:
   flutter_test:

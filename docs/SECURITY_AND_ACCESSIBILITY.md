@@ -4,7 +4,7 @@
 
 ### HTML Sanitization (XSS Protection)
 
-HyperRender v2.1+ includes built-in HTML sanitization to protect against Cross-Site Scripting (XSS) attacks.
+HyperRender v1.0+ includes built-in HTML sanitization to protect against Cross-Site Scripting (XSS) attacks.
 
 #### Quick Start
 
@@ -411,17 +411,17 @@ class CommentsSection extends StatelessWidget {
 
 1. **CSS Injection**: The current implementation doesn't validate CSS content in `style` attributes
    - **Workaround**: Remove `style` from allowed attributes for high-security apps
-   - **Future**: v2.2 will add CSS sanitization
+   - **Future**: v1.1 will add CSS sanitization
 
 2. **HTML Comments**: HTML comments are preserved
    - **Workaround**: Manual comment stripping if needed
-   - **Future**: v2.2 will add comment removal option
+   - **Future**: v1.1 will add comment removal option
 
 ### Accessibility
 
 1. **Dynamic Content**: Semantic labels don't auto-update when content changes
    - **Workaround**: Set new label when content changes
-   - **Future**: v2.2 will add auto-labeling from content
+   - **Future**: v1.1 will add auto-labeling from content
 
 ---
 

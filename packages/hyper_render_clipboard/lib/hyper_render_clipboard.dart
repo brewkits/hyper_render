@@ -10,8 +10,8 @@
 /// Add to your pubspec.yaml:
 /// ```yaml
 /// dependencies:
-///   hyper_render: ^0.1.0
-///   hyper_render_clipboard: ^0.1.0
+///   hyper_render: ^1.0.0
+///   hyper_render_clipboard: ^1.0.0
 /// ```
 ///
 /// ## Usage

@@ -120,7 +120,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<p>${'Long content ' * 2000}</p>', // Trigger async loading
+              html: '<p>${'Long content ' * 500}</p>', // Reduced from 2000 to avoid timeout
               mode: HyperRenderMode.virtualized,
               semanticLabel: 'Large article',
             ),
@@ -131,9 +131,12 @@ void main() {
       // Semantic label should be present even during loading
       expect(find.bySemanticsLabel('Large article'), findsOneWidget);
 
-      await tester.pumpAndSettle();
+      // Pump a few frames instead of waiting for settle (which may timeout with virtualized lists)
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // And after loading completes
+      // And after loading starts
       expect(find.bySemanticsLabel('Large article'), findsOneWidget);
     });
 

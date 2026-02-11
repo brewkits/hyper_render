@@ -1,19 +1,17 @@
-# Publishing Guide for HyperRender v2.0
+# Publishing Guide for HyperRender v1.0
 
 This guide explains how to publish HyperRender packages to pub.dev.
 
 ## Package Structure
 
-HyperRender v2.0 uses a monorepo structure with multiple packages:
+HyperRender v1.0 uses a monorepo structure with multiple packages:
 
 ```
 hyper_render/
 ├── packages/
-│   ├── hyper_render_core/       # Core package (no dependencies)
-│   ├── hyper_render_html/        # HTML parser (depends on core)
-│   ├── hyper_render_markdown/    # Markdown parser (depends on core)
-│   └── hyper_render_highlight/   # Syntax highlighting (depends on core)
-└── hyper_render (root)           # Umbrella package (depends on all above)
+│   ├── hyper_render_core/         # Core package (no dependencies)
+│   └── hyper_render_clipboard/    # Clipboard plugin (depends on core)
+└── hyper_render (root)             # Main package (depends on core)
 ```
 
 ## Publishing Order
@@ -22,10 +20,8 @@ hyper_render/
 
 1. **First**: `hyper_render_core` (has no dependencies on other packages)
 2. **Second**: Plugin packages (all depend on core):
-   - `hyper_render_html`
-   - `hyper_render_markdown`
-   - `hyper_render_highlight`
-3. **Last**: `hyper_render` (umbrella package that depends on all plugins)
+   - `hyper_render_clipboard`
+3. **Last**: `hyper_render` (main package that depends on core)
 
 ## Before Publishing
 
@@ -34,7 +30,7 @@ hyper_render/
 Ensure all packages have consistent version numbers in their `pubspec.yaml`:
 
 ```yaml
-version: 2.0.0
+version: 1.0.0
 ```
 
 ### 2. Replace Path Dependencies with Version Dependencies
@@ -53,36 +49,21 @@ dependencies:
 ```yaml
 # PRODUCTION (for publishing)
 dependencies:
-  hyper_render_core: ^2.0.0
+  hyper_render_core: ^1.0.0
 ```
 
 ### Files to Update:
 
-#### packages/hyper_render_html/pubspec.yaml
+#### packages/hyper_render_clipboard/pubspec.yaml
 ```yaml
 dependencies:
-  hyper_render_core: ^2.0.0  # Change from: path: ../hyper_render_core
-```
-
-#### packages/hyper_render_markdown/pubspec.yaml
-```yaml
-dependencies:
-  hyper_render_core: ^2.0.0  # Change from: path: ../hyper_render_core
-```
-
-#### packages/hyper_render_highlight/pubspec.yaml
-```yaml
-dependencies:
-  hyper_render_core: ^2.0.0  # Change from: path: ../hyper_render_core
+  hyper_render_core: ^1.0.0  # Change from: path: ../hyper_render_core
 ```
 
 #### pubspec.yaml (root package)
 ```yaml
 dependencies:
-  hyper_render_core: ^2.0.0        # Change from: path: packages/hyper_render_core
-  hyper_render_html: ^2.0.0        # Change from: path: packages/hyper_render_html
-  hyper_render_markdown: ^2.0.0    # Change from: path: packages/hyper_render_markdown
-  hyper_render_highlight: ^2.0.0   # Change from: path: packages/hyper_render_highlight
+  hyper_render_core: ^1.0.0  # Change from: path: packages/hyper_render_core
 ```
 
 ## Publishing Steps
@@ -100,28 +81,18 @@ flutter pub publish            # Actual publish
 After `hyper_render_core` is published and available on pub.dev:
 
 ```bash
-# Update html package pubspec.yaml to use hyper_render_core: ^2.0.0
-cd packages/hyper_render_html
-flutter pub publish --dry-run
-flutter pub publish
-
-# Update markdown package pubspec.yaml to use hyper_render_core: ^2.0.0
-cd ../hyper_render_markdown
-flutter pub publish --dry-run
-flutter pub publish
-
-# Update highlight package pubspec.yaml to use hyper_render_core: ^2.0.0
-cd ../hyper_render_highlight
+# Update clipboard package pubspec.yaml to use hyper_render_core: ^1.0.0
+cd packages/hyper_render_clipboard
 flutter pub publish --dry-run
 flutter pub publish
 ```
 
-### Step 3: Publish Umbrella Package
+### Step 3: Publish Main Package
 
 After all plugin packages are published:
 
 ```bash
-# Update root pubspec.yaml to use version dependencies for all packages
+# Update root pubspec.yaml to use version dependencies
 cd ../..  # Back to root
 flutter pub publish --dry-run
 flutter pub publish
@@ -134,9 +105,7 @@ flutter pub publish
 After successful publishing, **revert the pubspec.yaml files back to path dependencies** for continued development:
 
 ```bash
-git checkout packages/hyper_render_html/pubspec.yaml
-git checkout packages/hyper_render_markdown/pubspec.yaml
-git checkout packages/hyper_render_highlight/pubspec.yaml
+git checkout packages/hyper_render_clipboard/pubspec.yaml
 git checkout pubspec.yaml
 ```
 
@@ -182,7 +151,7 @@ Before each release:
 
 **Cause**: Packages have mismatched version numbers.
 
-**Solution**: Ensure all packages use the same version (e.g., `2.0.0`).
+**Solution**: Ensure all packages use the same version (e.g., `1.0.0`).
 
 ## Support
 

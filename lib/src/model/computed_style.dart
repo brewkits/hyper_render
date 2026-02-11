@@ -85,6 +85,45 @@ enum HyperClear {
   both,
 }
 
+/// Border style for CSS border-style property
+enum BorderStyle {
+  /// No border
+  none,
+
+  /// Solid border (default)
+  solid,
+
+  /// Dashed border
+  dashed,
+
+  /// Dotted border
+  dotted,
+
+  /// Double border
+  double,
+
+  /// 3D grooved border
+  groove,
+
+  /// 3D ridged border
+  ridge,
+
+  /// 3D inset border
+  inset,
+
+  /// 3D outset border
+  outset,
+}
+
+/// Text direction for CSS direction property
+enum TextDirection {
+  /// Left-to-right (default)
+  ltr,
+
+  /// Right-to-left (Arabic, Hebrew, etc.)
+  rtl,
+}
+
 /// CSS timing function for animations and transitions
 enum HyperTimingFunction {
   /// Linear timing
@@ -131,6 +170,72 @@ enum HyperAnimationFillMode {
 
   /// Both fill
   both,
+}
+
+/// Flex direction for CSS flex-direction property
+enum FlexDirection {
+  /// Row (left to right) - default
+  row,
+
+  /// Row reverse (right to left)
+  rowReverse,
+
+  /// Column (top to bottom)
+  column,
+
+  /// Column reverse (bottom to top)
+  columnReverse,
+}
+
+/// Justify content for CSS justify-content property (main axis alignment)
+enum JustifyContent {
+  /// Items packed at start (default)
+  flexStart,
+
+  /// Items packed at end
+  flexEnd,
+
+  /// Items centered
+  center,
+
+  /// Items evenly distributed, first at start, last at end
+  spaceBetween,
+
+  /// Items evenly distributed with equal space around them
+  spaceAround,
+
+  /// Items evenly distributed with equal space between them
+  spaceEvenly,
+}
+
+/// Align items for CSS align-items property (cross axis alignment)
+enum AlignItems {
+  /// Items aligned at start
+  flexStart,
+
+  /// Items aligned at end
+  flexEnd,
+
+  /// Items centered
+  center,
+
+  /// Items aligned along baseline
+  baseline,
+
+  /// Items stretched to fill container (default)
+  stretch,
+}
+
+/// Flex wrap for CSS flex-wrap property
+enum FlexWrap {
+  /// No wrapping (default)
+  nowrap,
+
+  /// Wrap onto multiple lines
+  wrap,
+
+  /// Wrap onto multiple lines in reverse
+  wrapReverse,
 }
 
 /// CSS transition definition
@@ -218,6 +323,15 @@ class ComputedStyle {
   /// CSS border-radius
   BorderRadius? borderRadius;
 
+  /// CSS border-style
+  BorderStyle borderStyle;
+
+  /// Individual border styles (if different from borderStyle)
+  BorderStyle? borderTopStyle;
+  BorderStyle? borderRightStyle;
+  BorderStyle? borderBottomStyle;
+  BorderStyle? borderLeftStyle;
+
   // ============================================
   // Text Properties
   // ============================================
@@ -264,6 +378,12 @@ class ComputedStyle {
   /// CSS white-space
   String? whiteSpace;
 
+  /// CSS text-overflow
+  TextOverflow? textOverflow;
+
+  /// CSS text-shadow
+  List<Shadow>? textShadow;
+
   // ============================================
   // Background Properties
   // ============================================
@@ -298,6 +418,9 @@ class ComputedStyle {
 
   /// CSS z-index
   int? zIndex;
+
+  /// CSS direction (text direction)
+  TextDirection? direction;
 
   // ============================================
   // Transform Properties
@@ -348,6 +471,43 @@ class ComputedStyle {
   int rowspan;
 
   // ============================================
+  // Flexbox Properties
+  // ============================================
+
+  /// CSS flex-direction - defines main axis direction
+  FlexDirection flexDirection;
+
+  /// CSS justify-content - alignment along main axis
+  JustifyContent justifyContent;
+
+  /// CSS align-items - alignment along cross axis
+  AlignItems alignItems;
+
+  /// CSS flex-wrap - whether flex items wrap
+  FlexWrap flexWrap;
+
+  /// CSS gap - shorthand for row-gap and column-gap
+  double? gap;
+
+  /// CSS row-gap - gap between rows in flex/grid
+  double? rowGap;
+
+  /// CSS column-gap - gap between columns in flex/grid
+  double? columnGap;
+
+  /// CSS flex-grow - how much a flex item should grow
+  double? flexGrow;
+
+  /// CSS flex-shrink - how much a flex item should shrink
+  double? flexShrink;
+
+  /// CSS flex-basis - initial size of flex item
+  double? flexBasis;
+
+  /// CSS align-self - override align-items for specific item
+  AlignItems? alignSelf;
+
+  // ============================================
   // Constructor
   // ============================================
 
@@ -363,6 +523,11 @@ class ComputedStyle {
     this.borderWidth = EdgeInsets.zero,
     this.borderColor,
     this.borderRadius,
+    this.borderStyle = BorderStyle.solid,
+    this.borderTopStyle,
+    this.borderRightStyle,
+    this.borderBottomStyle,
+    this.borderLeftStyle,
     this.color = const Color(0xFF000000),
     this.fontSize = 16.0,
     this.fontWeight = FontWeight.normal,
@@ -377,6 +542,8 @@ class ComputedStyle {
     this.verticalAlign = HyperVerticalAlign.baseline,
     this.textTransform,
     this.whiteSpace,
+    this.textOverflow,
+    this.textShadow,
     this.backgroundColor,
     this.backgroundImage,
     this.display = DisplayType.inline,
@@ -386,6 +553,7 @@ class ComputedStyle {
     this.float = HyperFloat.none,
     this.clear = HyperClear.none,
     this.zIndex,
+    this.direction,
     this.transform,
     this.opacity = 1.0,
     this.transition,
@@ -398,6 +566,17 @@ class ComputedStyle {
     this.animationFillMode = HyperAnimationFillMode.none,
     this.colspan = 1,
     this.rowspan = 1,
+    this.flexDirection = FlexDirection.row,
+    this.justifyContent = JustifyContent.flexStart,
+    this.alignItems = AlignItems.stretch,
+    this.flexWrap = FlexWrap.nowrap,
+    this.gap,
+    this.rowGap,
+    this.columnGap,
+    this.flexGrow,
+    this.flexShrink,
+    this.flexBasis,
+    this.alignSelf,
   });
 
   /// Inherit inheritable properties from parent
@@ -434,6 +613,8 @@ class ComputedStyle {
       height: lineHeight ?? 1.4,
       letterSpacing: letterSpacing,
       wordSpacing: wordSpacing,
+      shadows: textShadow,
+      overflow: textOverflow,
     );
   }
 
