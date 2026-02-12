@@ -1,6 +1,6 @@
 import 'package:flutter/painting.dart';
 
-import '../model/computed_style.dart';
+import '../model/computed_style.dart' hide BorderStyle, TextDirection;
 import '../model/node.dart';
 import '../interfaces/css_parser.dart';
 import 'css_rule_index.dart';

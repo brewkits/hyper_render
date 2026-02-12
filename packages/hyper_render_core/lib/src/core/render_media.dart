@@ -136,27 +136,28 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
     // Use LayoutBuilder to make video responsive
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Determine available width
+        // Determine available width - always constrain to parent
         final availableWidth = constraints.maxWidth != double.infinity
             ? constraints.maxWidth
-            : 640.0; // Default max width when unconstrained
+            : 480.0; // Reasonable default max width for unconstrained layouts
 
         // Calculate responsive dimensions maintaining aspect ratio
-        double responsiveWidth = width;
-        double responsiveHeight = height;
-
-        // Always constrain to available width if video is larger
-        if (width > availableWidth) {
-          final scale = availableWidth / width;
-          responsiveWidth = availableWidth;
-          responsiveHeight = height * scale;
-        }
+        // ALWAYS constrain to available width to prevent overlap
+        final constrainedWidth = width > availableWidth ? availableWidth : width.toDouble();
+        final scale = constrainedWidth / width;
+        final responsiveWidth = constrainedWidth;
+        final responsiveHeight = height * scale;
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
-        return Container(
-          width: responsiveWidth,
-          height: responsiveHeight,
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: availableWidth,
+            maxHeight: responsiveHeight,
+          ),
+          child: Container(
+            width: responsiveWidth,
+            height: responsiveHeight,
           decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFF000000),
         borderRadius: BorderRadius.circular(8),
@@ -263,7 +264,8 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
             ),
         ],
       ),
-    );
+          ),
+        );
       },
     );
   }
@@ -273,22 +275,23 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Determine available width
+        // Determine available width - always constrain to parent
         final availableWidth = constraints.maxWidth != double.infinity
             ? constraints.maxWidth
-            : 400.0; // Default max width when unconstrained
+            : 360.0; // Reasonable default max width for unconstrained layouts
 
-        // Make audio responsive
-        double responsiveWidth = width;
-        if (width > availableWidth) {
-          responsiveWidth = availableWidth;
-        }
+        // ALWAYS constrain to available width to prevent overlap
+        final responsiveWidth = width > availableWidth ? availableWidth : width.toDouble();
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
-        return Container(
-          width: responsiveWidth,
-          padding: const EdgeInsets.all(12),
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: availableWidth,
+          ),
+          child: Container(
+            width: responsiveWidth,
+            padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(8),
@@ -368,7 +371,8 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
           ),
         ],
       ),
-    );
+          ),
+        );
       },
     );
   }
