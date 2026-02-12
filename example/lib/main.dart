@@ -1925,7 +1925,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
     return _buildTimedWidget(
       'HyperRender',
       () {
-        return Padding(
+        return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: HyperViewer(
             html: html,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../model/node.dart';
-import '../model/computed_style.dart';
+import '../model/computed_style.dart' hide TextDirection, BorderStyle;
 
 /// Widget that renders a flex container (display: flex)
 ///
@@ -52,7 +52,9 @@ class FlexContainerWidget extends StatelessWidget {
           crossAxisAlignment: crossAxisAlignment,
           mainAxisSize: MainAxisSize.min,
           textDirection: isReverse ? TextDirection.rtl : TextDirection.ltr,
-          children: _buildChildrenWithGap(children, mainAxisSpacing, axis),
+          children: _buildChildrenWithGap(children, mainAxisSpacing, axis)
+              .map((child) => Flexible(fit: FlexFit.loose, child: child))
+              .toList(),
         );
       } else {
         flexWidget = Column(
@@ -61,7 +63,9 @@ class FlexContainerWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           verticalDirection:
               isReverse ? VerticalDirection.up : VerticalDirection.down,
-          children: _buildChildrenWithGap(children, mainAxisSpacing, axis),
+          children: _buildChildrenWithGap(children, mainAxisSpacing, axis)
+              .map((child) => Flexible(fit: FlexFit.loose, child: child))
+              .toList(),
         );
       }
     } else {

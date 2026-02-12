@@ -400,7 +400,7 @@ class CssPropertiesDemo extends StatelessWidget {
           SizedBox(height: 12),
           Text(
             '✅ text-shadow • text-overflow • border-style • direction (RTL/LTR)',
-            style: TextStyle(fontSize: 12, color: Colors.white90),
+            style: TextStyle(fontSize: 12, color: Colors.white70),
           ),
         ],
       ),
