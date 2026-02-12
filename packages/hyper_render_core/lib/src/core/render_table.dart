@@ -252,33 +252,46 @@ class _TableGrid {
   /// Number of rows
   final int rowCount;
 
+  /// Number of header rows (from thead section)
+  final int headerRowCount;
+
   _TableGrid({
     required this.cells,
     required this.columnCount,
     required this.rowCount,
+    this.headerRowCount = 0,
   });
 
   bool get isEmpty => rowCount == 0 || columnCount == 0;
 
   /// Build grid from TableNode
   factory _TableGrid.fromTableNode(TableNode tableNode) {
-    // First pass: collect all rows
+    // First pass: collect all rows and track header rows
     final rows = <TableRowNode>[];
+    int headerRowCount = 0;
+
     for (final child in tableNode.children) {
       if (child is TableRowNode) {
         rows.add(child);
       } else if (child.type == NodeType.block) {
+        // Check if this is thead section
+        final isTheadSection = child.tagName?.toLowerCase() == 'thead';
+
         // Handle thead, tbody, tfoot
         for (final grandChild in child.children) {
           if (grandChild is TableRowNode) {
             rows.add(grandChild);
+            // Count header rows from thead section
+            if (isTheadSection) {
+              headerRowCount++;
+            }
           }
         }
       }
     }
 
     if (rows.isEmpty) {
-      return _TableGrid(cells: [], columnCount: 0, rowCount: 0);
+      return _TableGrid(cells: [], columnCount: 0, rowCount: 0, headerRowCount: 0);
     }
 
     // Calculate column count (max cells in any row, considering colspan)
@@ -353,6 +366,7 @@ class _TableGrid {
       cells: grid,
       columnCount: maxCols,
       rowCount: rowCount,
+      headerRowCount: headerRowCount,
     );
   }
 }

@@ -316,8 +316,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
             child.style.flexBasis != null ||
             child.style.alignSelf != null) {
           flexChildren.add(FlexItemWidget(
-            child: childWidget,
             style: child.style,
+            child: childWidget,
           ));
         } else {
           flexChildren.add(childWidget);

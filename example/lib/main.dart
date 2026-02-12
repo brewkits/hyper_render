@@ -91,8 +91,8 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.view_column,
-            title: 'Flexbox Layout ⭐ NEW',
-            subtitle: 'Modern CSS Flexbox: justify-content, align-items, gap, flex-direction',
+            title: 'Flexbox Layout',
+            subtitle: 'Modern CSS Flexbox: justify-content, align-items, gap, flex-direction, flex-wrap (90% coverage)',
             color: Colors.deepPurple,
             onTap: () => Navigator.push(
               context,
