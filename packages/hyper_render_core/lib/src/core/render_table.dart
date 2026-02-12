@@ -155,7 +155,10 @@ class HyperTable extends StatelessWidget {
             : DesignTokens.tableBorder);
 
     final effectiveCellPadding =
-        cellPadding ?? EdgeInsets.all(DesignTokens.space1);
+        cellPadding ?? EdgeInsets.symmetric(
+          horizontal: DesignTokens.space2,
+          vertical: DesignTokens.space1_5,
+        );
 
     final tableWidget = _TableLayout(
       grid: grid,
@@ -391,6 +394,8 @@ class _TableLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     // Wrap in LayoutBuilder to handle unbounded constraints
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -404,10 +409,19 @@ class _TableLayout extends StatelessWidget {
         final child = Container(
           decoration: BoxDecoration(
             border: Border.all(color: borderColor, width: borderWidth),
+            borderRadius: BorderRadius.circular(DesignTokens.radiusSmall),
+            boxShadow: [
+              BoxShadow(
+                color: (isDark ? Colors.black : Colors.grey).withValues(alpha: 0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
+          clipBehavior: Clip.antiAlias,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: _buildRows(),
+            children: _buildRows(isDark),
           ),
         );
 
@@ -482,8 +496,9 @@ class _TableLayout extends StatelessWidget {
     return length;
   }
 
-  List<Widget> _buildRows() {
+  List<Widget> _buildRows(bool isDark) {
     final rows = <Widget>[];
+    int visibleRowIdx = 0; // Track actual visible row index for zebra striping
 
     for (int rowIdx = 0; rowIdx < grid.rowCount; rowIdx++) {
       // Check if this row has any primary cells (not covered by rowspan from above)
@@ -506,18 +521,40 @@ class _TableLayout extends StatelessWidget {
         ));
       }
 
-      rows.add(IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: _buildRowCells(rowIdx),
+      // Determine if this is a header row (first row in thead section)
+      final isHeaderRow = grid.headerRowCount > 0 && rowIdx < grid.headerRowCount;
+
+      // Calculate background color for zebra striping
+      Color? rowBackground;
+      if (isHeaderRow) {
+        // Header rows get special background
+        rowBackground = isDark
+            ? DesignTokens.darkTableHeaderBackground
+            : DesignTokens.tableHeaderBackground;
+      } else if (visibleRowIdx % 2 == 1) {
+        // Odd rows (excluding header) get alternate background
+        rowBackground = isDark
+            ? DesignTokens.darkTableRowAltBackground
+            : DesignTokens.tableRowAltBackground;
+      }
+
+      rows.add(Container(
+        color: rowBackground,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: _buildRowCells(rowIdx, isHeaderRow),
+          ),
         ),
       ));
+
+      visibleRowIdx++;
     }
 
     return rows;
   }
 
-  List<Widget> _buildRowCells(int rowIdx) {
+  List<Widget> _buildRowCells(int rowIdx, bool isHeaderRow) {
     final widgets = <Widget>[];
     int colIdx = 0;
 
@@ -564,16 +601,28 @@ class _TableLayout extends StatelessWidget {
       }
 
       // Build the cell widget
-      widgets.add(_buildCell(cell));
+      widgets.add(_buildCell(cell, isHeaderRow));
       colIdx += cell.colspan;
     }
 
     return widgets;
   }
 
-  Widget _buildCell(_GridCell cell) {
+  Widget _buildCell(_GridCell cell, bool isHeaderRow) {
     // Calculate flex based on colspan
     final flex = cell.colspan;
+
+    Widget content = cellBuilder(cell.cellNode);
+
+    // Apply bold text style for header cells
+    if (isHeaderRow) {
+      content = DefaultTextStyle.merge(
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+        ),
+        child: content,
+      );
+    }
 
     return Expanded(
       flex: flex,
@@ -582,7 +631,7 @@ class _TableLayout extends StatelessWidget {
         decoration: BoxDecoration(
           color: cell.cellNode.style.backgroundColor,
         ),
-        child: cellBuilder(cell.cellNode),
+        child: content,
       ),
     );
   }
