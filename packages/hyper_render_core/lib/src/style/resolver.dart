@@ -17,6 +17,14 @@ import 'design_tokens.dart';
 /// 2. External/Internal CSS - CSS rules from <style> tags
 /// 3. Inline Styles - style attribute on elements
 /// 4. Inheritance - Properties like color, font-family from parent
+///
+/// **Known Limitation — `!important`**
+///
+/// CSS `!important` declarations are **not supported** and will be silently
+/// ignored. Rules are applied purely by CSS specificity order.
+/// If you need a declaration to always win, use inline styles (which have
+/// the highest specificity in the cascade) or increase the selector
+/// specificity instead.
 class StyleResolver {
   /// Parsed CSS rules (provided externally via CssParserInterface)
   final List<ParsedCssRule> _cssRules = [];

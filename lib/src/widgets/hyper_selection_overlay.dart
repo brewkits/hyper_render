@@ -66,6 +66,9 @@ class HyperSelectionOverlay extends StatefulWidget {
   /// Whether to automatically show menu on selection
   final bool autoShowMenu;
 
+  /// Draw debug bounds around each fragment/line. See [RenderHyperBox.debugShowBounds].
+  final bool debugShowBounds;
+
   const HyperSelectionOverlay({
     super.key,
     required this.document,
@@ -79,6 +82,7 @@ class HyperSelectionOverlay extends StatefulWidget {
     this.menuActionsBuilder,
     this.showHandles = true,
     this.autoShowMenu = true,
+    this.debugShowBounds = false,
   });
 
   @override
@@ -315,6 +319,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
                   widgetBuilder: widget.widgetBuilder,
                   selectable: widget.selectable,
                   onSelectionChanged: _onSelectionChanged,
+                  debugShowBounds: widget.debugShowBounds,
                 ),
               ),
 
