@@ -108,6 +108,7 @@ export 'src/style/resolver.dart' show StyleResolver, CssRule;
 export 'src/core/render_hyper_box.dart'
     show
         RenderHyperBox,
+        RenderHyperBoxSelection,
         HyperBoxParentData,
         HyperLinkTapCallback,
         HyperWidgetBuilder,

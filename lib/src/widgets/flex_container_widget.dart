@@ -46,15 +46,24 @@ class FlexContainerWidget extends StatelessWidget {
 
     if (style.flexWrap == FlexWrap.nowrap) {
       // Use Row/Column for no-wrap flex
+      // Wrap children that are NOT FlexItemWidget to prevent overflow
+      final processedChildren = _buildChildrenWithGap(children, mainAxisSpacing, axis)
+          .map((child) {
+            // FlexItemWidget handles its own Flexible wrapping
+            if (child is FlexItemWidget) {
+              return child;
+            }
+            // Wrap other widgets in Flexible to prevent overflow
+            return Flexible(fit: FlexFit.loose, child: child);
+          }).toList();
+
       if (axis == Axis.horizontal) {
         flexWidget = Row(
           mainAxisAlignment: mainAxisAlignment,
           crossAxisAlignment: crossAxisAlignment,
           mainAxisSize: MainAxisSize.min,
           textDirection: isReverse ? TextDirection.rtl : TextDirection.ltr,
-          children: _buildChildrenWithGap(children, mainAxisSpacing, axis)
-              .map((child) => Flexible(fit: FlexFit.loose, child: child))
-              .toList(),
+          children: processedChildren,
         );
       } else {
         flexWidget = Column(
@@ -63,9 +72,7 @@ class FlexContainerWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           verticalDirection:
               isReverse ? VerticalDirection.up : VerticalDirection.down,
-          children: _buildChildrenWithGap(children, mainAxisSpacing, axis)
-              .map((child) => Flexible(fit: FlexFit.loose, child: child))
-              .toList(),
+          children: processedChildren,
         );
       }
     } else {
