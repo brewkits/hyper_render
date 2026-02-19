@@ -9,6 +9,7 @@ import '../model/computed_style.dart';
 import '../model/node.dart';
 import 'code_block_widget.dart';
 import 'flex_container_widget.dart';
+import 'hyper_details_widget.dart';
 
 /// Image action types for context menu
 enum ImageAction {
@@ -144,6 +145,16 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
           child: childWidget,
         ));
       }
+    }
+    // Is it a <details> element?
+    else if (node.tagName?.toLowerCase() == 'details') {
+      childWidget = widgetBuilder?.call(node);
+      childWidget ??= HyperDetailsWidget(
+        detailsNode: node,
+        widgetBuilder: widgetBuilder,
+      );
+      children.add(_HyperChildWidget(node: node, child: childWidget));
+      return; // children handled internally by HyperDetailsWidget
     }
     // Is it a code block (<pre> with optional <code> child)?
     else if (_isCodeBlock(node)) {

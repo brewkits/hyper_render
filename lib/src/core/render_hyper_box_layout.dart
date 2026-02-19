@@ -8,6 +8,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
     _fragments = [];
     _lastBlockMarginBottom = 0;
+    _fragmentsVersion++; // signal that line layout must be redone
     _tokenizeNode(_document!, null);
   }
 

@@ -124,6 +124,11 @@ class RenderHyperBox extends RenderBox
   /// Fragment range for efficient character lookup
   final List<(int, int, Fragment)> _fragmentRanges = []; // (startIndex, endIndex, fragment)
 
+  // ── Incremental layout dirty tracking ─────────────────────────────────────
+  int _fragmentsVersion = 0;
+  int _linesFragmentsVersion = -1;
+  double _linesMaxWidth = double.nan;
+
   /// Default placeholder size for images without dimensions
   static const double _defaultImageWidth = 200.0;
   // Note: default height is computed from width / aspect ratio
@@ -256,6 +261,7 @@ class RenderHyperBox extends RenderBox
   void _invalidateLayout() {
     _fragments.clear();
     _lines.clear();
+    _linesFragmentsVersion = -1;
     _leftFloats.clear();
     _rightFloats.clear();
     _inlineDecorations.clear();
@@ -266,6 +272,22 @@ class RenderHyperBox extends RenderBox
     _cachedMinIntrinsicWidth = null;
     _cachedMaxIntrinsicWidth = null;
     _disposeTextPainters();
+  }
+
+  void _invalidateFragments() {
+    _fragments.clear();
+    _lines.clear();
+    _linesFragmentsVersion = -1;
+    _leftFloats.clear();
+    _rightFloats.clear();
+    _inlineDecorations.clear();
+    _blockDecorations.clear();
+    _characterToFragment.clear();
+    _fragmentRanges.clear();
+    _totalCharacterCount = 0;
+    _cachedMinIntrinsicWidth = null;
+    _cachedMaxIntrinsicWidth = null;
+    // _textPainters intentionally preserved
   }
 
   // ============================================
@@ -300,6 +322,7 @@ class RenderHyperBox extends RenderBox
           image: image,
           state: ImageLoadState.loaded,
         );
+        _invalidateFragments();
         markNeedsLayout();
         markNeedsPaint();
       },
@@ -419,29 +442,38 @@ class RenderHyperBox extends RenderBox
     try {
       _maxWidth = constraints.maxWidth;
 
-      // Step 1: Tokenization - Break UDT into Fragments
+      // Step 1: Tokenization — rebuilds only if _fragments was cleared.
       _ensureFragments();
 
-      // Step 1.5: Link children to fragments (CRITICAL - must be done right after fragments are created)
-      // This uses order-based matching since fragments and children are created in same traversal order
+      // Step 1.5: Link children to fragments (CRITICAL)
       _linkFragmentsToChildrenByOrder();
 
-      // Step 2: Measure all fragments
-      _measureFragments();
+      // Steps 2–6: Skipped when fragments and constraint width are unchanged.
+      final bool needsLineLayout = _linesFragmentsVersion != _fragmentsVersion ||
+          _linesMaxWidth != _maxWidth ||
+          _lines.isEmpty;
 
-      // Step 3: Line Breaking with Float Support
-      _performLineLayout();
+      if (needsLineLayout) {
+        // Step 2: Measure all fragments
+        _measureFragments();
 
-      // Step 4: Position fragments within lines (baseline alignment)
-      _positionFragments();
+        // Step 3: Line Breaking with Float Support
+        _performLineLayout();
 
-      // Step 5: Build inline decorations
-      _buildInlineDecorations();
+        // Step 4: Position fragments within lines (baseline alignment)
+        _positionFragments();
 
-      // Step 6: Build character mapping for selection
-      _buildCharacterMapping();
+        // Step 5: Build inline decorations
+        _buildInlineDecorations();
 
-      // Step 7: Layout child RenderBoxes (for atomic elements)
+        // Step 6: Build character mapping for selection
+        _buildCharacterMapping();
+
+        _linesFragmentsVersion = _fragmentsVersion;
+        _linesMaxWidth = _maxWidth;
+      }
+
+      // Step 7: Layout child RenderBoxes (always — child constraints may change)
       _layoutChildren();
 
       // Calculate final size

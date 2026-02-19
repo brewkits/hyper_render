@@ -1,0 +1,112 @@
+name: Visual Regression
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+jobs:
+  golden:
+    name: Golden Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run golden tests
+        id: golden
+        run: |
+          flutter test test/golden/ \
+            --reporter json \
+            > golden_results.json 2>&1 || true
+
+          # Count failures
+          FAILURES=$(grep -c '"result":"error"' golden_results.json 2>/dev/null || echo 0)
+          echo "failures=$FAILURES" >> "$GITHUB_OUTPUT"
+
+          # Exit with error if there were failures
+          if [ "$FAILURES" -gt "0" ]; then
+            echo "::error::$FAILURES golden test(s) failed"
+            exit 1
+          fi
+
+      - name: Upload failure diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-failures-${{ github.run_number }}
+          path: |
+            test/golden/goldens/failures/
+            golden_results.json
+          retention-days: 14
+
+      - name: Post PR comment on failure
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const failures = '${{ steps.golden.outputs.failures }}';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                '## ❌ Visual Regression Detected',
+                '',
+                `**${failures} golden test(s) failed.**`,
+                '',
+                'The rendered output no longer matches the reference images.',
+                '',
+                '**If the change is intentional**, regenerate the goldens locally:',
+                '```bash',
+                'flutter test test/golden/ --update-goldens',
+                'git add test/golden/goldens/',
+                'git commit -m "chore: update golden references"',
+                '```',
+                '',
+                'Download the diff artifacts from this workflow run to inspect changes.',
+              ].join('\n'),
+            });
+
+  # Separate job: update goldens on direct push to main (manual trigger)
+  update-goldens:
+    name: Update Goldens (manual)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Regenerate goldens
+        run: flutter test test/golden/ --update-goldens
+
+      - name: Commit updated goldens
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add test/golden/goldens/
+          git diff --staged --quiet || git commit -m "chore: regenerate golden references [skip ci]"
+          git push

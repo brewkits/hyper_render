@@ -293,7 +293,19 @@ class StyleResolver {
       style = _parseInlineStyle(style, inlineStyle, parentFontSize: parentFontSize);
     }
 
-    // 4. Inherit from parent
+    // 4. Apply !important declarations (win over inline styles, per CSS spec)
+    for (final rule in candidates) {
+      if (rule.importantDeclarations.isNotEmpty &&
+          _matchesSelector(node, rule.selector)) {
+        style = _applyDeclarations(
+          style,
+          rule.importantDeclarations,
+          parentFontSize: parentFontSize,
+        );
+      }
+    }
+
+    // 5. Inherit from parent
     _applyInheritance(style, parentStyle);
 
     // Store computed style on node
