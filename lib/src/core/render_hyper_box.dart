@@ -12,6 +12,7 @@ import '../model/fragment.dart';
 import '../model/node.dart';
 import 'image_provider.dart';
 import 'kinsoku_processor.dart';
+import 'lazy_image_queue.dart';
 
 part 'render_hyper_box_types.dart';
 part 'render_hyper_box_fragments.dart';
@@ -130,6 +131,18 @@ class RenderHyperBox extends RenderBox
 
   /// Fragment range for efficient character lookup
   final List<(int, int, Fragment)> _fragmentRanges = []; // (startIndex, endIndex, fragment)
+
+  // ── Incremental layout dirty tracking ─────────────────────────────────────
+  /// Bumped each time _fragments is rebuilt (via _ensureFragments).
+  /// Line layout skips when this matches [_linesFragmentsVersion] AND
+  /// [_linesMaxWidth] equals the current constraint width.
+  int _fragmentsVersion = 0;
+
+  /// The [_fragmentsVersion] value when _lines was last successfully built.
+  int _linesFragmentsVersion = -1;
+
+  /// The [_maxWidth] value when _lines was last successfully built.
+  double _linesMaxWidth = double.nan;
 
   /// Default placeholder size for images without dimensions
   static const double _defaultImageWidth = 200.0;
@@ -267,6 +280,7 @@ class RenderHyperBox extends RenderBox
   void _invalidateLayout() {
     _fragments.clear();
     _lines.clear();
+    _linesFragmentsVersion = -1;
     _leftFloats.clear();
     _rightFloats.clear();
     _inlineDecorations.clear();
@@ -277,6 +291,28 @@ class RenderHyperBox extends RenderBox
     _cachedMinIntrinsicWidth = null;
     _cachedMaxIntrinsicWidth = null;
     _disposeTextPainters();
+  }
+
+  /// Lighter invalidation that preserves the text painter cache.
+  ///
+  /// Called when image dimensions change: fragments must be re-tokenized
+  /// so [_tokenizeAtomic] reads the new image size, but text measurements
+  /// are still valid and can be reused.
+  void _invalidateFragments() {
+    _fragments.clear();
+    _lines.clear();
+    _linesFragmentsVersion = -1;
+    _leftFloats.clear();
+    _rightFloats.clear();
+    _inlineDecorations.clear();
+    _blockDecorations.clear();
+    _characterToFragment.clear();
+    _fragmentRanges.clear();
+    _totalCharacterCount = 0;
+    _cachedMinIntrinsicWidth = null;
+    _cachedMaxIntrinsicWidth = null;
+    // _textPainters intentionally preserved: text metrics are unaffected
+    // by image dimension changes.
   }
 
   void _notifySelectionChanged() {
@@ -290,36 +326,61 @@ class RenderHyperBox extends RenderBox
   void _loadImages() {
     if (_document == null) return;
 
+    // Collect images with their approximate document y-position for priority.
+    final images = <({String src, int priority})>[];
+
     _document!.traverse((node) {
       if (node is AtomicNode && node.tagName == 'img') {
         final src = node.src;
         if (src != null && src.isNotEmpty && !_imageCache.containsKey(src)) {
-          _loadImage(src);
+          // Use the fragment's y-position as priority (top = 0 = highest).
+          // Before layout, fall back to document order (index in list).
+          final yPos = _findFragmentY(node);
+          images.add((src: src, priority: yPos));
         }
       }
     });
+
+    for (final img in images) {
+      _loadImage(img.src, priority: img.priority);
+    }
   }
 
-  void _loadImage(String src) {
+  /// Returns the y-pixel offset of the first fragment belonging to [node],
+  /// or a large value if not yet laid out (loads after visible images).
+  int _findFragmentY(AtomicNode node) {
+    for (final line in _lines) {
+      for (final frag in line.fragments) {
+        if (frag.sourceNode == node) {
+          return line.top.toInt();
+        }
+      }
+    }
+    return 999999; // not laid out yet — lowest priority
+  }
+
+  void _loadImage(String src, {int priority = 999999}) {
     _imageCache[src] = const CachedImage(state: ImageLoadState.loading);
 
-    // Use the provided loader or fall back to default
     final loader = _imageLoader ?? defaultImageLoader;
 
-    loader(
-      src,
-      (ui.Image image) {
-        // On successful load
+    LazyImageQueue.instance.enqueue(
+      url: src,
+      priority: priority,
+      loader: loader,
+      onLoad: (ui.Image image) {
         if (!attached) return;
         _imageCache[src] = CachedImage(
           image: image,
           state: ImageLoadState.loaded,
         );
+        // Invalidate fragments so _tokenizeAtomic re-reads actual image
+        // dimensions. Preserves text painter cache (text metrics unchanged).
+        _invalidateFragments();
         markNeedsLayout();
         markNeedsPaint();
       },
-      (Object error) {
-        // On error
+      onError: (Object error) {
         if (!attached) return;
         _imageCache[src] = CachedImage(
           state: ImageLoadState.error,
@@ -434,29 +495,42 @@ class RenderHyperBox extends RenderBox
     try {
       _maxWidth = constraints.maxWidth;
 
-      // Step 1: Tokenization - Break UDT into Fragments
+      // Step 1: Tokenization — rebuilds only if _fragments was cleared.
       _ensureFragments();
 
       // Step 1.5: Link children to fragments (CRITICAL - must be done right after fragments are created)
       // This uses order-based matching since fragments and children are created in same traversal order
       _linkFragmentsToChildrenByOrder();
 
-      // Step 2: Measure all fragments
-      _measureFragments();
+      // Steps 2–6: Measure + line layout.
+      // Skipped when fragments and constraint width are both unchanged —
+      // e.g. a repaint-only trigger (selection change, scroll) that happens
+      // to call performLayout.  Version mismatch forces a full rebuild.
+      final bool needsLineLayout = _linesFragmentsVersion != _fragmentsVersion ||
+          _linesMaxWidth != _maxWidth ||
+          _lines.isEmpty;
 
-      // Step 3: Line Breaking with Float Support
-      _performLineLayout();
+      if (needsLineLayout) {
+        // Step 2: Measure all fragments
+        _measureFragments();
 
-      // Step 4: Position fragments within lines (baseline alignment)
-      _positionFragments();
+        // Step 3: Line Breaking with Float Support
+        _performLineLayout();
 
-      // Step 5: Build inline decorations
-      _buildInlineDecorations();
+        // Step 4: Position fragments within lines (baseline alignment)
+        _positionFragments();
 
-      // Step 6: Build character mapping for selection
-      _buildCharacterMapping();
+        // Step 5: Build inline decorations
+        _buildInlineDecorations();
 
-      // Step 7: Layout child RenderBoxes (for atomic elements)
+        // Step 6: Build character mapping for selection
+        _buildCharacterMapping();
+
+        _linesFragmentsVersion = _fragmentsVersion;
+        _linesMaxWidth = _maxWidth;
+      }
+
+      // Step 7: Layout child RenderBoxes (always — child constraints may change)
       _layoutChildren();
 
       // Calculate final size

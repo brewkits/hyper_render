@@ -115,6 +115,8 @@ export 'src/core/render_hyper_box.dart'
         HyperTextSelection,
         ImageLoadCallback;
 
+export 'src/core/lazy_image_queue.dart' show LazyImageQueue;
+
 export 'src/core/image_provider.dart'
     show
         HyperImageLoader,
@@ -158,6 +160,8 @@ export 'src/core/render_formula.dart'
 
 export 'src/widgets/code_block_widget.dart'
     show CodeBlockWidget, CodeTheme, detectLanguageFromClass;
+
+export 'src/widgets/hyper_details_widget.dart' show HyperDetailsWidget;
 
 // ============================================
 // Public API - Security

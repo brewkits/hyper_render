@@ -1,0 +1,8 @@
+# Test tags for integration tests
+# Usage: flutter test --tags=smoke
+
+smoke: real_world_html_test.dart, performance_regression_test.dart
+security: security_integration_test.dart
+performance: performance_regression_test.dart, large_document_test.dart
+robustness: error_recovery_test.dart
+ui: selection_integration_test.dart
