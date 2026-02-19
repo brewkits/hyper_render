@@ -51,6 +51,41 @@ class HyperViewer extends StatefulWidget {
   final HyperWidgetBuilder? widgetBuilder;
   final WidgetBuilder? placeholderBuilder;
 
+  /// Base URL used to resolve relative `src` and `href` attributes in HTML.
+  ///
+  /// Example:
+  /// ```dart
+  /// HyperViewer(
+  ///   html: '<img src="/images/logo.png">',
+  ///   baseUrl: 'https://example.com',
+  /// )
+  /// // → renders as: https://example.com/images/logo.png
+  /// ```
+  final String? baseUrl;
+
+  /// Extra CSS injected before the document's own styles.
+  ///
+  /// Useful for overriding default styles without modifying the HTML.
+  ///
+  /// Example:
+  /// ```dart
+  /// HyperViewer(
+  ///   html: content,
+  ///   customCss: 'body { font-size: 18px; } a { color: red; }',
+  /// )
+  /// ```
+  final String? customCss;
+
+  /// Draw colored outlines around each rendered fragment and line row.
+  ///
+  /// Equivalent to Flutter's [debugPaintSizeEnabled] but scoped to this widget.
+  /// Blue outlines = line rows, orange outlines = individual text/image fragments.
+  ///
+  /// **Only use during development — has no effect in release builds by default.**
+  ///
+  /// Default: false
+  final bool debugShowHyperRenderBounds;
+
   /// Enable pinch-to-zoom and pan gestures
   /// Wraps content in InteractiveViewer for zoom/pan support
   final bool enableZoom;
@@ -183,6 +218,9 @@ class HyperViewer extends StatefulWidget {
     this.allowDataAttributes = false,
     this.semanticLabel,
     this.excludeSemantics = false,
+    this.baseUrl,
+    this.customCss,
+    this.debugShowHyperRenderBounds = false,
   })  : content = html,
         contentType = HyperContentType.html;
 
@@ -215,6 +253,9 @@ class HyperViewer extends StatefulWidget {
     this.allowDataAttributes = false,
     this.semanticLabel,
     this.excludeSemantics = false,
+    this.baseUrl,
+    this.customCss,
+    this.debugShowHyperRenderBounds = false,
   })  : content = delta,
         contentType = HyperContentType.delta;
 
@@ -247,6 +288,9 @@ class HyperViewer extends StatefulWidget {
     this.allowDataAttributes = false,
     this.semanticLabel,
     this.excludeSemantics = false,
+    this.baseUrl,
+    this.customCss,
+    this.debugShowHyperRenderBounds = false,
   })  : content = markdown,
         contentType = HyperContentType.markdown;
 
@@ -273,7 +317,9 @@ class _HyperViewerState extends State<HyperViewer> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.content != widget.content ||
         oldWidget.contentType != widget.contentType ||
-        oldWidget.mode != widget.mode) {
+        oldWidget.mode != widget.mode ||
+        oldWidget.baseUrl != widget.baseUrl ||
+        oldWidget.customCss != widget.customCss) {
       _parseContent();
     }
   }
@@ -295,15 +341,28 @@ class _HyperViewerState extends State<HyperViewer> {
   }
 
   void _parseContent() {
-    // Sanitize content if enabled (HTML only)
-    final contentToRender = widget.sanitize &&
-            widget.contentType == HyperContentType.html
-        ? HtmlSanitizer.sanitize(
-            widget.content,
-            allowedTags: widget.allowedTags,
-            allowDataAttributes: widget.allowDataAttributes,
-          )
-        : widget.content;
+    String contentToRender = widget.content;
+
+    if (widget.contentType == HyperContentType.html) {
+      // 1. Inject customCss before document styles
+      if (widget.customCss != null && widget.customCss!.isNotEmpty) {
+        contentToRender = '<style>${widget.customCss}</style>$contentToRender';
+      }
+
+      // 2. Resolve relative URLs against baseUrl
+      if (widget.baseUrl != null && widget.baseUrl!.isNotEmpty) {
+        contentToRender = _resolveRelativeUrls(contentToRender, widget.baseUrl!);
+      }
+
+      // 3. Sanitize (after URL resolution so absolute URLs are validated)
+      if (widget.sanitize) {
+        contentToRender = HtmlSanitizer.sanitize(
+          contentToRender,
+          allowedTags: widget.allowedTags,
+          allowDataAttributes: widget.allowDataAttributes,
+        );
+      }
+    }
 
     final useVirtualization = widget.mode == HyperRenderMode.virtualized ||
         (widget.mode == HyperRenderMode.auto && contentToRender.length > 10000);
@@ -344,6 +403,26 @@ class _HyperViewerState extends State<HyperViewer> {
         });
       }
     }
+  }
+
+  /// Resolves relative `src` and `href` attribute values against [base].
+  static String _resolveRelativeUrls(String html, String base) {
+    final baseUri = Uri.tryParse(base);
+    if (baseUri == null) return html;
+
+    return html.replaceAllMapped(
+      RegExp(r'''(src|href)=["']([^"']+)["']''', caseSensitive: false),
+      (m) {
+        final attr = m.group(1)!;
+        final url = m.group(2)!;
+        final uri = Uri.tryParse(url);
+        if (uri == null || uri.hasScheme) return m.group(0)!; // already absolute
+        final resolved = baseUri.resolveUri(uri).toString();
+        // Preserve original quote style
+        final quote = m.group(0)!.contains('"') ? '"' : "'";
+        return '$attr=$quote$resolved$quote';
+      },
+    );
   }
 
   // Hàm static để chạy trong Isolate (không được dính context)
@@ -414,6 +493,7 @@ class _HyperViewerState extends State<HyperViewer> {
               selectable: widget.selectable,
               onLinkTap: widget.onLinkTap,
               widgetBuilder: widget.widgetBuilder,
+              debugShowBounds: widget.debugShowHyperRenderBounds,
             );
           },
         ),
@@ -436,6 +516,7 @@ class _HyperViewerState extends State<HyperViewer> {
           contextMenuBuilder: widget.selectionContextMenuBuilder,
           showHandles: true,
           autoShowMenu: true,
+          debugShowBounds: widget.debugShowHyperRenderBounds,
         );
       } else {
         // Use HyperRenderWidget directly (no popup menu)
@@ -444,6 +525,7 @@ class _HyperViewerState extends State<HyperViewer> {
           selectable: widget.selectable,
           onLinkTap: widget.onLinkTap,
           widgetBuilder: widget.widgetBuilder,
+          debugShowBounds: widget.debugShowHyperRenderBounds,
         );
       }
 

@@ -82,6 +82,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// Callback when selection changes (e.g., to show context menu)
   final VoidCallback? onSelectionChanged;
 
+  /// Draw debug bounds around each fragment and line row.
+  /// See [RenderHyperBox.debugShowBounds].
+  final bool debugShowBounds;
+
   /// Creates a HyperRenderWidget
   ///
   /// The [document] parameter is required and contains the parsed UDT tree.
@@ -95,6 +99,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.imageLoader,
     this.selectable = true,
     this.onSelectionChanged,
+    this.debugShowBounds = false,
   }) : super(children: _buildChildren(document, widgetBuilder));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
@@ -435,7 +440,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       imageLoader: imageLoader,
       selectable: selectable,
       onSelectionChanged: onSelectionChanged,
-    );
+    )..debugShowBounds = debugShowBounds;
   }
 
   @override
@@ -457,6 +462,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     }
     if (renderObject.onSelectionChanged != onSelectionChanged) {
       renderObject.onSelectionChanged = onSelectionChanged;
+    }
+    if (renderObject.debugShowBounds != debugShowBounds) {
+      renderObject.debugShowBounds = debugShowBounds;
+      renderObject.markNeedsPaint();
     }
   }
 }

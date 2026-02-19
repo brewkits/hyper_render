@@ -399,4 +399,36 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       iconPaint..color = const Color(0xFFE57373),
     );
   }
+
+  /// Draws colored outlines for each line and fragment when [debugShowBounds] is true.
+  void _paintDebugBounds(Canvas canvas, Offset offset) {
+    final linePaint = Paint()
+      ..color = const Color(0x66007BFF) // blue for line rows
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final fragmentPaint = Paint()
+      ..color = const Color(0x66FF6B00) // orange for individual fragments
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+
+    for (final line in _lines) {
+      // Draw the full line row
+      final lineRect = Rect.fromLTWH(
+        offset.dx,
+        offset.dy + line.top,
+        _maxWidth.isFinite ? _maxWidth : size.width,
+        line.height,
+      );
+      canvas.drawRect(lineRect, linePaint);
+
+      // Draw each fragment within the line
+      for (final fragment in line.fragments) {
+        final rect = fragment.rect;
+        if (rect != null) {
+          canvas.drawRect(rect.shift(offset), fragmentPaint);
+        }
+      }
+    }
+  }
 }

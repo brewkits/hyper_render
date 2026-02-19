@@ -364,15 +364,18 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   }
 
   TextPainter _getTextPainter(String text, ComputedStyle style) {
-    // Use a more robust cache key combining text, style, and textDirection
-    final styleKey = style.fontSize.hashCode ^
-        style.fontWeight.hashCode ^
-        style.fontStyle.hashCode ^
-        style.color.hashCode ^
-        (style.fontFamily?.hashCode ?? 0) ^
-        (style.lineHeight?.hashCode ?? 0) ^
-        (style.letterSpacing?.hashCode ?? 0);
-    final key = text.hashCode ^ styleKey ^ _textDirection.hashCode;
+    // Composite key using Object.hash to avoid XOR collision (a^b == b^a)
+    final key = Object.hash(
+      text,
+      style.fontSize,
+      style.fontWeight,
+      style.fontStyle,
+      style.color,
+      style.fontFamily,
+      style.lineHeight,
+      style.letterSpacing,
+      _textDirection,
+    );
 
     final cached = _textPainters.get(key);
     if (cached != null) {

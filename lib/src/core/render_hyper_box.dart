@@ -121,6 +121,10 @@ class RenderHyperBox extends RenderBox
   /// Callback when selection changes
   VoidCallback? onSelectionChanged;
 
+  /// When true, draws colored outlines over each fragment/line for debugging.
+  /// Equivalent to Flutter's [debugPaintSizeEnabled] but scoped to this widget.
+  bool debugShowBounds = false;
+
   /// Track list item indices for ordered lists
   final Map<UDTNode, int> _listItemIndices = {};
 
@@ -511,6 +515,11 @@ class RenderHyperBox extends RenderBox
 
       // 6. Child render boxes (tables, positioned elements)
       defaultPaint(context, offset);
+
+      // 7. Debug bounds overlay (only when debugShowBounds is true)
+      if (debugShowBounds) {
+        _paintDebugBounds(canvas, offset);
+      }
     } catch (e, stack) {
       // Error boundary: Catch paint errors to prevent full app crash
       debugPrint('HyperRender paint error: $e');

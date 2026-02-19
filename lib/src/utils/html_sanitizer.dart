@@ -1,9 +1,11 @@
 /// HTML Sanitizer to prevent XSS attacks
 ///
-/// This sanitizer uses a whitelist approach to allow only safe HTML tags
-/// and attributes. It removes dangerous elements like <script>, <iframe>,
-/// and event handlers like onclick, onerror, etc.
+/// Uses a DOM-based approach (via the `html` package) for correct handling of
+/// nested tags, malformed markup, and edge-cases that trip up regex sanitizers.
 library;
+
+import 'package:html/dom.dart' as dom;
+import 'package:html/parser.dart' as html_parser;
 
 /// HTML Sanitizer for preventing XSS attacks
 class HtmlSanitizer {
@@ -37,14 +39,14 @@ class HtmlSanitizer {
     'details', 'summary',
   ];
 
-  /// Dangerous tags that should always be removed
+  /// Tags whose entire subtree is dropped (content not preserved)
   static const List<String> dangerousTags = [
     'script', 'style', 'iframe', 'frame', 'frameset', 'object', 'embed',
     'applet', 'link', 'meta', 'base', 'form', 'input', 'button', 'select',
     'textarea', 'option', 'optgroup', 'fieldset', 'legend', 'label',
   ];
 
-  /// Dangerous attributes that should always be removed
+  /// Attribute names that are always stripped
   static const List<String> dangerousAttributes = [
     // Event handlers
     'onclick', 'ondblclick', 'onmousedown', 'onmouseup', 'onmouseover',
@@ -56,18 +58,28 @@ class HtmlSanitizer {
     'onscroll', 'onwheel', 'oncopy', 'oncut', 'onpaste',
 
     // Other dangerous attributes
-    'formaction', 'action', 'data', 'dynsrc', 'lowsrc',
+    'formaction', 'action', 'dynsrc', 'lowsrc',
   ];
 
-  /// Sanitize HTML string by removing dangerous tags and attributes
+  /// Default allowed attributes (safe subset)
+  static const List<String> defaultAllowedAttributes = [
+    'id', 'class', 'title', 'lang', 'dir',
+    'style',
+    'href', 'target', 'rel',
+    'src', 'alt', 'width', 'height',
+    'colspan', 'rowspan', 'headers', 'scope',
+    'open',
+    'datetime', 'cite',
+  ];
+
+  /// Sanitize [html] by walking the parsed DOM tree.
   ///
-  /// Parameters:
-  /// - [html]: The HTML string to sanitize
-  /// - [allowedTags]: Optional custom list of allowed tags (overrides default)
-  /// - [allowedAttributes]: Optional list of allowed attributes (default: safe subset)
-  /// - [allowDataAttributes]: Whether to allow data-* attributes (default: false)
-  ///
-  /// Returns sanitized HTML string
+  /// - Dangerous tags (script, iframe, …) are removed **with** their children.
+  /// - Unknown/disallowed tags are *unwrapped* — their text content is kept.
+  /// - Attributes are filtered to [allowedAttributes] (default:
+  ///   [defaultAllowedAttributes]). `javascript:` / non-image `data:` URLs in
+  ///   `href`/`src` are stripped.
+  /// - Set [allowDataAttributes] to `true` to also permit `data-*` attributes.
   static String sanitize(
     String html, {
     List<String>? allowedTags,
@@ -75,172 +87,131 @@ class HtmlSanitizer {
     bool allowDataAttributes = false,
   }) {
     final allowed = allowedTags ?? defaultAllowedTags;
-    final allowedAttrs = allowedAttributes ?? _defaultAllowedAttributes;
+    final allowedAttrs = allowedAttributes ?? defaultAllowedAttributes;
 
-    // Simple regex-based sanitization
-    // For production, consider using a proper HTML parser
+    // parseFragment avoids wrapping in <html><body> — gives us back only the
+    // supplied markup as a DocumentFragment.
+    final fragment = html_parser.parseFragment(html);
 
-    String result = html;
+    _sanitizeFragment(fragment, allowed, allowedAttrs, allowDataAttributes);
 
-    // 1. Remove dangerous tags
-    for (final tag in dangerousTags) {
-      // Remove opening and closing tags
-      result = result.replaceAll(
-        RegExp('<$tag[^>]*>.*?</$tag>', caseSensitive: false, dotAll: true),
-        '',
-      );
-      // Remove self-closing tags
-      result = result.replaceAll(
-        RegExp('<$tag[^>]*/?>', caseSensitive: false),
-        '',
-      );
-    }
-
-    // 2. Remove tags not in whitelist
-    result = result.replaceAllMapped(
-      RegExp(r'<(/?)(\w+)([^>]*)>', caseSensitive: false),
-      (match) {
-        final isClosing = match.group(1) == '/';
-        final tagName = match.group(2)?.toLowerCase() ?? '';
-        final attributes = match.group(3) ?? '';
-
-        // Check if tag is allowed
-        if (!allowed.contains(tagName)) {
-          return ''; // Remove tag
-        }
-
-        // For closing tags, just return as-is
-        if (isClosing) {
-          return '</$tagName>';
-        }
-
-        // Sanitize attributes
-        final sanitizedAttrs = _sanitizeAttributes(
-          attributes,
-          allowedAttrs,
-          allowDataAttributes,
-        );
-
-        return '<$tagName$sanitizedAttrs>';
-      },
-    );
-
-    // 3. Remove javascript: and data: URLs
-    result = _sanitizeUrls(result);
-
-    return result;
+    return fragment.outerHtml;
   }
 
-  /// Default allowed attributes (safe subset)
-  static const List<String> _defaultAllowedAttributes = [
-    // Universal attributes
-    'id', 'class', 'title', 'lang', 'dir',
+  // ---------------------------------------------------------------------------
+  // Internal DOM walk
+  // ---------------------------------------------------------------------------
 
-    // Styling (will be handled by CSS parser)
-    'style',
-
-    // Links
-    'href', 'target', 'rel',
-
-    // Images
-    'src', 'alt', 'width', 'height',
-
-    // Tables
-    'colspan', 'rowspan', 'headers', 'scope',
-
-    // Ruby
-    'ruby',
-
-    // Details
-    'open',
-
-    // Semantic
-    'datetime', 'cite',
-  ];
-
-  /// Sanitize HTML attributes
-  static String _sanitizeAttributes(
-    String attributes,
+  static void _sanitizeFragment(
+    dom.Node node,
+    List<String> allowed,
     List<String> allowedAttrs,
     bool allowDataAttributes,
   ) {
-    // Parse attributes
-    final attrPattern = RegExp(
-      r'''(\w+(?:-\w+)*)(?:\s*=\s*["']([^"']*)["'])?''',
-      caseSensitive: false,
-    );
+    // Iterate in reverse so index stays valid after removals/replacements.
+    for (int i = node.nodes.length - 1; i >= 0; i--) {
+      final child = node.nodes[i];
 
-    final sanitized = <String>[];
+      if (child is dom.Element) {
+        final tag = child.localName?.toLowerCase() ?? '';
 
-    for (final match in attrPattern.allMatches(attributes)) {
-      final name = match.group(1)?.toLowerCase() ?? '';
-      final value = match.group(2) ?? '';
+        if (dangerousTags.contains(tag)) {
+          // Drop the element AND all its children.
+          child.remove();
+        } else if (!allowed.contains(tag)) {
+          // Unwrap: replace element with its own (already-processed) children.
+          // First recurse into children, then lift them up.
+          _sanitizeFragment(child, allowed, allowedAttrs, allowDataAttributes);
+          final parent = child.parentNode;
+          if (parent != null) {
+            final idx = parent.nodes.indexOf(child);
+            child.remove();
+            // reparentChildren would append — insert at idx manually.
+            final children = List<dom.Node>.from(child.nodes);
+            child.nodes.clear();
+            for (int j = 0; j < children.length; j++) {
+              parent.nodes.insert(idx + j, children[j]);
+            }
+          } else {
+            child.remove();
+          }
+        } else {
+          // Allowed element — sanitize its attributes then recurse.
+          _sanitizeAttributes(child, allowedAttrs, allowDataAttributes);
+          _sanitizeFragment(child, allowed, allowedAttrs, allowDataAttributes);
+        }
+      }
+      // Text / Comment nodes are left untouched.
+    }
+  }
 
-      // Skip dangerous attributes
+  static void _sanitizeAttributes(
+    dom.Element element,
+    List<String> allowedAttrs,
+    bool allowDataAttributes,
+  ) {
+    final toRemove = <Object>[];
+
+    for (final entry in element.attributes.entries) {
+      final name = (entry.key is String)
+          ? (entry.key as String).toLowerCase()
+          : entry.key.toString().toLowerCase();
+
+      // Always strip dangerous attribute names.
       if (dangerousAttributes.contains(name)) {
+        toRemove.add(entry.key);
         continue;
       }
 
-      // Check if attribute is allowed
-      if (allowedAttrs.contains(name) ||
-          (allowDataAttributes && name.startsWith('data-'))) {
-        sanitized.add('$name="${_escapeAttribute(value)}"');
+      // Strip on* event handlers not in the explicit list.
+      if (name.startsWith('on')) {
+        toRemove.add(entry.key);
+        continue;
+      }
+
+      // Allow data-* if requested.
+      if (allowDataAttributes && name.startsWith('data-')) continue;
+
+      if (!allowedAttrs.contains(name)) {
+        toRemove.add(entry.key);
+        continue;
+      }
+
+      // Validate URL-bearing attributes.
+      if (name == 'href' || name == 'src') {
+        if (!_isSafeUrl(entry.value)) {
+          toRemove.add(entry.key);
+        }
       }
     }
 
-    return sanitized.isEmpty ? '' : ' ${sanitized.join(' ')}';
+    for (final key in toRemove) {
+      element.attributes.remove(key);
+    }
   }
 
-  /// Sanitize URLs to prevent javascript: and data: schemes
-  static String _sanitizeUrls(String html) {
-    // Remove javascript: URLs
-    html = html.replaceAllMapped(
-      RegExp(r'''(href|src)\s*=\s*["']javascript:[^"']*["']''',
-          caseSensitive: false),
-      (match) => '',
-    );
-
-    // Remove data: URLs (except for images with image/* MIME types)
-    html = html.replaceAllMapped(
-      RegExp(r'''(href|src)\s*=\s*["']data:(?!image/)[^"']*["']''',
-          caseSensitive: false),
-      (match) => '',
-    );
-
-    return html;
+  /// Returns `false` for `javascript:` and non-image `data:` URLs.
+  static bool _isSafeUrl(String url) {
+    final trimmed = url.trim().toLowerCase();
+    if (trimmed.startsWith('javascript:')) return false;
+    if (trimmed.startsWith('data:') && !trimmed.startsWith('data:image/')) {
+      return false;
+    }
+    return true;
   }
 
-  /// Escape HTML attribute value
-  static String _escapeAttribute(String value) {
-    return value
-        .replaceAll('&', '&amp;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;');
-  }
-
-  /// Check if HTML contains potentially dangerous content
+  /// Quick check — returns `true` if [html] likely contains dangerous content.
+  ///
+  /// This is a fast heuristic; use [sanitize] for actual cleaning.
   static bool containsDangerousContent(String html) {
-    // Check for dangerous tags
+    final lower = html.toLowerCase();
     for (final tag in dangerousTags) {
-      if (RegExp('<$tag[^>]*>', caseSensitive: false).hasMatch(html)) {
-        return true;
-      }
+      if (lower.contains('<$tag')) return true;
     }
-
-    // Check for javascript: URLs
-    if (RegExp(r'javascript:', caseSensitive: false).hasMatch(html)) {
-      return true;
-    }
-
-    // Check for event handlers
+    if (lower.contains('javascript:')) return true;
     for (final attr in dangerousAttributes) {
-      if (RegExp('$attr\\s*=', caseSensitive: false).hasMatch(html)) {
-        return true;
-      }
+      if (lower.contains('$attr=')) return true;
     }
-
     return false;
   }
 }
