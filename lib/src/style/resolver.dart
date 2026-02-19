@@ -16,13 +16,11 @@ import '../model/node.dart';
 /// 3. Inline Styles - style attribute on elements
 /// 4. Inheritance - Properties like color, font-family from parent
 ///
-/// **Known Limitation — `!important`**
+/// **CSS `!important` support**
 ///
-/// CSS `!important` declarations are **not supported** and will be silently
-/// ignored. Rules are applied purely by CSS specificity order.
-/// If you need a declaration to always win, use inline styles (which have
-/// the highest specificity in the cascade) or increase the selector
-/// specificity instead.
+/// `!important` declarations are stored separately in [CssRule.importantDeclarations]
+/// and applied after inline styles in step 4 of the cascade, matching the CSS spec.
+/// Higher-specificity `!important` rules still win over lower-specificity ones.
 class StyleResolver {
   /// Parsed CSS rules from <style> tags
   final List<CssRule> _cssRules = [];
@@ -246,6 +244,7 @@ class StyleResolver {
     if (selector.isEmpty) return null;
 
     final declarations = <String, String>{};
+    final importantDeclarations = <String, String>{};
 
     for (final decl in ruleSet.declarationGroup.declarations) {
       if (decl is css_ast.Declaration) {
@@ -268,7 +267,11 @@ class StyleResolver {
         }
 
         if (value.isNotEmpty) {
-          declarations[decl.property] = value;
+          if (decl.important) {
+            importantDeclarations[decl.property] = value;
+          } else {
+            declarations[decl.property] = value;
+          }
         }
       }
     }
@@ -276,6 +279,7 @@ class StyleResolver {
     return CssRule(
       selector: selector,
       declarations: declarations,
+      importantDeclarations: importantDeclarations,
       specificity: _calculateSpecificity(selector),
     );
   }
@@ -330,7 +334,7 @@ class StyleResolver {
       // Color will be inherited from parent (pre) via _applyInheritance
     }
 
-    // 2. Apply CSS rules (sorted by specificity)
+    // 2. Apply CSS rules (sorted by specificity, normal declarations only)
     for (final rule in _cssRules) {
       if (_matchesSelector(node, rule.selector)) {
         style = _applyDeclarations(
@@ -345,6 +349,18 @@ class StyleResolver {
     final inlineStyle = node.attributes['style'];
     if (inlineStyle != null && inlineStyle.isNotEmpty) {
       style = _parseInlineStyle(style, inlineStyle, parentFontSize: parentFontSize);
+    }
+
+    // 4. Apply !important declarations (win over inline styles, per CSS spec)
+    for (final rule in _cssRules) {
+      if (rule.importantDeclarations.isNotEmpty &&
+          _matchesSelector(node, rule.selector)) {
+        style = _applyDeclarations(
+          style,
+          rule.importantDeclarations,
+          parentFontSize: parentFontSize,
+        );
+      }
     }
 
     // 4. Inherit from parent
@@ -1738,15 +1754,20 @@ class StyleResolver {
 class CssRule {
   final String selector;
   final Map<String, String> declarations;
+
+  /// Declarations marked with `!important` — applied after inline styles.
+  final Map<String, String> importantDeclarations;
   final int specificity;
 
   CssRule({
     required this.selector,
     required this.declarations,
+    Map<String, String>? importantDeclarations,
     required this.specificity,
-  });
+  }) : importantDeclarations = importantDeclarations ?? const {};
 
   @override
   String toString() =>
-      'CssRule($selector, specificity=$specificity, ${declarations.length} declarations)';
+      'CssRule($selector, specificity=$specificity, '
+      '${declarations.length} normal + ${importantDeclarations.length} !important)';
 }
