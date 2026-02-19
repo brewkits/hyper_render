@@ -303,11 +303,18 @@ This is **bold** text with a [link](https://example.com).
     test('always sanitize user input', () {
       const userInput = '<p>Hello</p><script>bad()</script>';
 
-      // ❌ BAD - Don't do this
-      const badExample = HyperViewer(html: userInput);
-      expect(badExample.sanitize, isFalse); // Dangerous!
+      // ✅ GOOD - Default is sanitize: true (safe by default!)
+      const defaultExample = HyperViewer(html: userInput);
+      expect(defaultExample.sanitize, isTrue); // Safe default!
 
-      // ✅ GOOD - Always sanitize
+      // ⚠️ DANGEROUS - Explicitly disabling sanitization
+      const unsafeExample = HyperViewer(
+        html: userInput,
+        sanitize: false, // Only for trusted content!
+      );
+      expect(unsafeExample.sanitize, isFalse);
+
+      // ✅ GOOD - Explicitly enable sanitize
       const goodExample = HyperViewer(
         html: userInput,
         sanitize: true,

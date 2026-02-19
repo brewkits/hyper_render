@@ -12,7 +12,6 @@ import 'design_tokens.dart';
 /// This is the ZERO-DEP version that does NOT parse CSS directly.
 /// CSS parsing is done by external CssParserInterface implementations.
 ///
-/// Reference: doc1.txt - "1.2. Quy trình Resolve (Phân giải)"
 /// The resolver traverses the tree Top-Down:
 /// 1. User Agent Styles - Browser defaults (h1 is bold, etc.)
 /// 2. External/Internal CSS - CSS rules from <style> tags
