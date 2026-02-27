@@ -9,7 +9,10 @@ class FlexboxDemo extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Flexbox Demo'),
-        backgroundColor: Colors.purple,
+        centerTitle: false,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

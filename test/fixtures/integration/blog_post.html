@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Building a Better HTML Renderer for Flutter</title>
+    <style>
+        body {
+            font-family: Georgia, serif;
+            line-height: 1.6;
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            font-size: 42px;
+            line-height: 1.2;
+            margin-bottom: 10px;
+        }
+        .meta {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 30px auto;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', monospace;
+            font-size: 14px;
+        }
+        pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        blockquote {
+            border-left: 3px solid #ccc;
+            padding-left: 20px;
+            margin: 20px 0;
+            font-style: italic;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 4px;
+        }
+    </style>
+</head>
+<body>
+<article>
+    <h1>Building a Better HTML Renderer for Flutter</h1>
+
+    <div class="meta">
+        Published on February 15, 2026 · 12 min read · Tech
+    </div>
+
+    <p class="lead">
+        When we started building content-heavy Flutter apps, we quickly hit the limitations of existing
+        HTML rendering libraries. This is the story of how we built HyperRender, a rendering engine
+        that's <span class="highlight">4x faster</span> than the competition.
+    </p>
+
+    <h2>The Problem</h2>
+
+    <p>
+        Flutter's widget paradigm is amazing for building UIs, but it's not ideal for rendering
+        HTML content. Most libraries create deep widget trees, which causes:
+    </p>
+
+    <ul>
+        <li>Slow render times on large documents</li>
+        <li>Broken text selection</li>
+        <li>High memory usage</li>
+        <li>Frequent crashes with nested content</li>
+    </ul>
+
+    <img src="https://picsum.photos/680/400?random=1" alt="Performance comparison chart">
+
+    <h2>Our Approach: Single RenderObject</h2>
+
+    <p>
+        Instead of creating a widget for each HTML element, we render the entire document as
+        a single <code>RenderObject</code>. This is similar to how Flutter's <code>RichText</code>
+        widget works, but extended to handle block-level elements, tables, and flexbox layouts.
+    </p>
+
+    <pre><code>class RenderHyperBox extends RenderBox {
+  @override
+  void performLayout() {
+    // Layout entire document in single pass
+    _ensureFragments();
+    _measureFragments();
+    _performLineLayout();
+    _positionFragments();
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    // Paint everything on canvas
+    _paintBlockDecorations(context.canvas, offset);
+    _paintInlineDecorations(context.canvas, offset);
+    _paintText(context.canvas, offset);
+  }
+}</code></pre>
+
+    <h2>Key Innovations</h2>
+
+    <h3>1. Unified Document Tree (UDT)</h3>
+
+    <p>
+        We created an intermediate representation that works for any input format (HTML, Markdown,
+        or Quill Delta). This means:
+    </p>
+
+    <blockquote>
+        Parse once, render anywhere. The same layout engine handles all content types.
+    </blockquote>
+
+    <h3>2. O(1) CSS Rule Indexing</h3>
+
+    <p>
+        Traditional CSS matching scans all rules for each element (O(n×m) complexity). We use
+        HashMaps to index rules by tag, class, and ID for instant lookup:
+    </p>
+
+    <pre><code>final tagRules = _index['p'];  // O(1)
+final classRules = _index['.highlight'];  // O(1)
+final idRules = _index['#main'];  // O(1)</code></pre>
+
+    <h3>3. CSS Float Support</h3>
+
+    <p>
+        We're the only Flutter HTML library that properly supports CSS float layout. Text naturally
+        wraps around floated images and videos, just like in web browsers.
+    </p>
+
+    <img src="https://picsum.photos/300/200?random=2"
+         style="float: left; margin: 0 20px 20px 0; max-width: 300px;">
+
+    <p>
+        This paragraph wraps around the floated image to the left. The text flows naturally,
+        adjusting as needed. This is especially useful for magazine-style layouts and rich
+        editorial content.
+    </p>
+
+    <p style="clear: both;">
+        After clearing the float, content continues normally in full width.
+    </p>
+
+    <h2>Performance Results</h2>
+
+    <p>
+        We ran benchmarks comparing HyperRender to <code>flutter_html</code> and
+        <code>flutter_widget_from_html</code> (FWFH). The results speak for themselves:
+    </p>
+
+    <table border="1" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+            <tr style="background: #f5f5f5;">
+                <th style="padding: 10px; text-align: left;">Metric</th>
+                <th style="padding: 10px; text-align: center;">flutter_html</th>
+                <th style="padding: 10px; text-align: center;">FWFH</th>
+                <th style="padding: 10px; text-align: center;">HyperRender</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding: 10px;">Parse 25K chars</td>
+                <td style="padding: 10px; text-align: center;">420ms</td>
+                <td style="padding: 10px; text-align: center;">250ms</td>
+                <td style="padding: 10px; text-align: center;"><strong>95ms</strong></td>
+            </tr>
+            <tr>
+                <td style="padding: 10px;">Memory (100KB doc)</td>
+                <td style="padding: 10px; text-align: center;">28MB</td>
+                <td style="padding: 10px; text-align: center;">15MB</td>
+                <td style="padding: 10px; text-align: center;"><strong>8MB</strong></td>
+            </tr>
+            <tr>
+                <td style="padding: 10px;">Text Selection</td>
+                <td style="padding: 10px; text-align: center;">❌ Crashes</td>
+                <td style="padding: 10px; text-align: center;">⚠️ Buggy</td>
+                <td style="padding: 10px; text-align: center;"><strong>✅ Perfect</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Real-World Use Cases</h2>
+
+    <p>
+        HyperRender is perfect for:
+    </p>
+
+    <ol>
+        <li><strong>News Apps</strong> - Render articles with complex layouts</li>
+        <li><strong>Documentation Viewers</strong> - Display technical docs with code blocks</li>
+        <li><strong>RSS Readers</strong> - Handle varied HTML from different sources</li>
+        <li><strong>E-book Readers</strong> - EPUB rendering with professional typography</li>
+        <li><strong>Email Clients</strong> - Display HTML emails safely</li>
+    </ol>
+
+    <h2>Getting Started</h2>
+
+    <p>
+        Add HyperRender to your <code>pubspec.yaml</code>:
+    </p>
+
+    <pre><code>dependencies:
+  hyper_render: ^1.0.0</code></pre>
+
+    <p>
+        Then use it in your app:
+    </p>
+
+    <pre><code>HyperViewer(
+  html: articleContent,
+  onLinkTap: (url) => launchUrl(Uri.parse(url)),
+  selectable: true,
+  sanitize: true, // Always sanitize user content!
+)</code></pre>
+
+    <h2>What's Next?</h2>
+
+    <p>
+        We're working on even more features:
+    </p>
+
+    <ul>
+        <li>CSS Grid layout support</li>
+        <li>SVG rendering</li>
+        <li>Enhanced animations</li>
+        <li>Print/PDF export</li>
+    </ul>
+
+    <p>
+        The project is open source and we welcome contributions. Check out the
+        <a href="https://github.com/brewkits/hyper_render">GitHub repository</a> to get started.
+    </p>
+
+    <hr style="margin: 40px 0; border: none; border-top: 1px solid #ddd;">
+
+    <p style="font-style: italic; color: #666;">
+        <strong>About the author:</strong> Lead developer on the HyperRender project,
+        passionate about making Flutter apps faster and more capable.
+    </p>
+</article>
+</body>
+</html>

@@ -505,9 +505,9 @@ class TableCellNode extends UDTNode {
   int get rowspan => int.tryParse(attributes['rowspan'] ?? '1') ?? 1;
 }
 
-/// Details node for interactive disclosure widget (<details>/<summary>)
+/// Details node for interactive disclosure widget (`<details>`/`<summary>`)
 ///
-/// Represents the HTML <details> element which provides an interactive
+/// Represents the HTML `<details>` element which provides an interactive
 /// disclosure widget that can be toggled open/closed by the user.
 class DetailsNode extends UDTNode {
   /// Whether the details should be initially open

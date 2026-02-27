@@ -696,11 +696,79 @@ class RenderHyperTable extends RenderBox
     size = constraints.constrain(Size(totalWidth, totalHeight));
   }
 
+  /// Calculates column widths using a 2-pass W3C-inspired table layout.
+  ///
+  /// **Pass 1 — Min-content widths** (`minW[col]`):
+  ///   For each column, find the widest minimum intrinsic width reported by
+  ///   any child cell that starts in that column.  For cells with `colspan > 1`
+  ///   the min-width is divided equally among the spanned columns.
+  ///
+  /// **Pass 2 — Distribute remaining space**:
+  ///   If `sum(minW) >= maxWidth` the columns are clamped to their min-widths
+  ///   (table may overflow, caller adds horizontal scroll).
+  ///   Otherwise the surplus is distributed proportionally to the
+  ///   max-intrinsic widths (`maxW[col]`) so wider-content columns receive
+  ///   proportionally more space.
   List<double> _calculateColumnWidths(double maxWidth) {
-    // Simple equal distribution for now
-    // TODO: Implement proper W3C table layout algorithm
-    final width = maxWidth / columnCount;
-    return List.filled(columnCount, width);
+    if (columnCount == 0) return [];
+    if (maxWidth == 0 || maxWidth == double.infinity) {
+      return List.filled(columnCount, 0.0);
+    }
+
+    // --- Pass 1: collect min and max intrinsic widths per column -----------
+    // We iterate children in row-major order (same as _calculateRowHeights).
+    // Each child corresponds to the cell at (row, col) in the linear scan.
+    final minW = List<double>.filled(columnCount, 0.0);
+    final maxW = List<double>.filled(columnCount, 0.0);
+
+    // Walk children: columnCount children per row, rowCount rows.
+    RenderBox? child = firstChild;
+    for (int row = 0; row < rowCount; row++) {
+      for (int col = 0; col < columnCount; col++) {
+        if (child == null) break;
+
+        final td = child.parentData as TableParentData;
+        final span = td.colspan.clamp(1, columnCount - col);
+
+        final childMin = child.getMinIntrinsicWidth(double.infinity);
+        final childMax = child.getMaxIntrinsicWidth(double.infinity);
+
+        // Distribute this cell's contribution equally across spanned columns.
+        final perColMin = childMin / span;
+        final perColMax = childMax / span;
+
+        for (int c = col; c < col + span && c < columnCount; c++) {
+          if (perColMin > minW[c]) minW[c] = perColMin;
+          if (perColMax > maxW[c]) maxW[c] = perColMax;
+        }
+
+        child = childAfter(child);
+      }
+    }
+
+    // --- Pass 2: distribute available space --------------------------------
+    final totalMin = minW.fold(0.0, (s, v) => s + v);
+
+    if (totalMin >= maxWidth) {
+      // Not enough room — use min widths (table will likely overflow/scroll).
+      return List<double>.from(minW);
+    }
+
+    final surplus = maxWidth - totalMin;
+    final totalMax = maxW.fold(0.0, (s, v) => s + v);
+
+    if (totalMax <= 0) {
+      // No max-width info — fall back to equal distribution.
+      final equal = maxWidth / columnCount;
+      return List.filled(columnCount, equal);
+    }
+
+    // Proportional distribution of the surplus based on max-content widths.
+    final widths = List<double>.filled(columnCount, 0.0);
+    for (int c = 0; c < columnCount; c++) {
+      widths[c] = minW[c] + surplus * (maxW[c] / totalMax);
+    }
+    return widths;
   }
 
   List<double> _calculateRowHeights(List<double> columnWidths) {

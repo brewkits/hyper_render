@@ -78,7 +78,11 @@ export 'src/model/computed_style.dart'
         HyperTimingFunction,
         HyperAnimationDirection,
         HyperAnimationFillMode,
-        HyperTransition;
+        HyperTransition,
+        FlexDirection,
+        JustifyContent,
+        AlignItems,
+        FlexWrap;
 
 export 'src/model/fragment.dart' show Fragment, FragmentType, LineInfo;
 
@@ -127,6 +131,11 @@ export 'src/core/image_provider.dart'
 export 'src/widgets/hyper_render_widget.dart'
     show HyperRenderWidget, HyperImage, ImageAction, ImageActionCallback;
 
+export 'src/widgets/grid_container_widget.dart'
+    show GridContainerWidget, gridItemSpan;
+
+export 'src/core/capture_extension.dart' show HyperCaptureExtension;
+
 export 'src/widgets/hyper_selection_overlay.dart'
     show
         HyperSelectionOverlay,
@@ -138,7 +147,8 @@ export 'src/core/span_converter.dart'
     show HtmlToSpanConverter, LinkTapCallback, ImageBuilder;
 
 export 'src/core/render_media.dart'
-    show MediaWidgetBuilder, MediaInfo, MediaType, DefaultMediaWidget;
+    show MediaWidgetBuilder, MediaInfo, MediaType, DefaultMediaWidget,
+        AtomicNodeMediaExtension;
 
 export 'src/core/render_ruby.dart' show RubySpan, RubyTextWidget;
 
@@ -168,6 +178,8 @@ export 'src/widgets/hyper_details_widget.dart' show HyperDetailsWidget;
 // ============================================
 
 export 'src/utils/html_sanitizer.dart' show HtmlSanitizer;
+
+export 'src/utils/html_heuristics.dart' show HtmlHeuristics;
 
 // ============================================
 // Public API - Plugin Interfaces

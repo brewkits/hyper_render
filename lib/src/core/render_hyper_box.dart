@@ -109,6 +109,9 @@ class RenderHyperBox extends RenderBox
   /// Selection start position (for drag selection)
   int? _selectionStartPosition;
 
+  /// Position recorded on PointerDown — used to detect tap-vs-drag for links.
+  Offset? _pointerDownPosition;
+
   /// Total character count in document
   int _totalCharacterCount = 0;
 
@@ -203,7 +206,11 @@ class RenderHyperBox extends RenderBox
   set imageLoader(HyperImageLoader? value) {
     if (_imageLoader == value) return;
     _imageLoader = value;
-    _imageCache.clear();
+    // BUG-C+E FIX: dispose GPU resources before clearing, then re-trigger
+    // loading with the new loader so images are not left in a permanent
+    // "loading" state after the loader is swapped at runtime.
+    _disposeImages();
+    if (attached) _loadImages();
     markNeedsLayout();
   }
 
@@ -222,6 +229,7 @@ class RenderHyperBox extends RenderBox
     if (_selection == value) return;
     _selection = value;
     markNeedsPaint();
+    _notifySelectionChanged();
   }
 
   TextDirection get textDirection => _textDirection;
@@ -274,6 +282,13 @@ class RenderHyperBox extends RenderBox
   }
 
   void _disposeImages() {
+    // BUG-C FIX: ui.Image is a native GPU resource that must be explicitly
+    // disposed. Calling _imageCache.clear() without dispose() leaks GPU
+    // texture memory — the Dart GC cannot free it. This matters especially
+    // when documents with many images are swapped frequently.
+    for (final entry in _imageCache.values) {
+      entry.image?.dispose();
+    }
     _imageCache.clear();
   }
 
@@ -316,6 +331,11 @@ class RenderHyperBox extends RenderBox
   }
 
   void _notifySelectionChanged() {
+    // BUG-B FIX: Guard with attached check. The selection setter and handleEvent
+    // can fire during the dispose sequence (e.g., an ongoing pointer gesture
+    // that completes after the widget is removed from the tree). Calling
+    // onSelectionChanged after detach can invoke state on a disposed widget.
+    if (!attached) return;
     onSelectionChanged?.call();
   }
 
@@ -444,18 +464,33 @@ class RenderHyperBox extends RenderBox
     _ensureFragments();
     _measureFragments(); // Ensures all fragments have a measured size.
 
-    double totalWidth = 0;
-    for (final fragment in _fragments) {
-      // Sum up widths of inline-level elements that would form a single long line.
-      if (fragment.type == FragmentType.text ||
-          fragment.type == FragmentType.atomic ||
-          fragment.type == FragmentType.ruby) {
-        totalWidth += fragment.width;
-      }
+    // Walk fragments and track the width of each "logical line" (reset at block
+    // boundaries and explicit line breaks).  Return the widest such line.
+    // Summing all widths (the previous approach) produced values orders of
+    // magnitude too large for documents with many paragraphs.
+    double maxWidth = 0;
+    double lineWidth = 0;
+
+    void flushLine() {
+      if (lineWidth > maxWidth) maxWidth = lineWidth;
+      lineWidth = 0;
     }
 
-    _cachedMaxIntrinsicWidth = totalWidth;
-    return totalWidth;
+    for (final fragment in _fragments) {
+      if (fragment is _BlockStartFragment || fragment is _BlockEndFragment) {
+        flushLine();
+      } else if (fragment.type == FragmentType.lineBreak) {
+        flushLine();
+      } else if (fragment.type == FragmentType.text ||
+          fragment.type == FragmentType.atomic ||
+          fragment.type == FragmentType.ruby) {
+        lineWidth += fragment.width;
+      }
+    }
+    flushLine(); // flush any trailing line
+
+    _cachedMaxIntrinsicWidth = maxWidth;
+    return maxWidth;
   }
 
   @override
@@ -616,6 +651,7 @@ class RenderHyperBox extends RenderBox
       );
       textPainter.layout();
       textPainter.paint(context.canvas, offset + const Offset(8, 8));
+      textPainter.dispose(); // BUG-14: must dispose to free native resources
     }
   }
 
@@ -660,21 +696,9 @@ class RenderHyperBox extends RenderBox
   void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
     if (event is PointerDownEvent) {
       final position = event.localPosition;
+      _pointerDownPosition = position;
 
-      // Check for link tap
-      final clickedFragment = _findFragmentAtPosition(position);
-      if (clickedFragment != null) {
-        final node = clickedFragment.sourceNode;
-        if (node.tagName == 'a') {
-          final href = node.attributes['href'];
-          if (href != null && _onLinkTap != null) {
-            _onLinkTap!(href);
-            return;
-          }
-        }
-      }
-
-      // Start selection
+      // Start selection on PointerDown so drag tracking works immediately.
       if (_selectable) {
         final charPos = _getCharacterPositionAtOffset(position);
         if (charPos >= 0) {
@@ -694,8 +718,39 @@ class RenderHyperBox extends RenderBox
         }
       }
     } else if (event is PointerUpEvent) {
+      final upPosition = event.localPosition;
+      final downPosition = _pointerDownPosition;
+      _pointerDownPosition = null;
       _selectionStartPosition = null;
-      // Notify selection changed when user finishes selection
+
+      // Fire link tap on PointerUp only when the finger hasn't moved (tap, not drag).
+      // Threshold: 8 logical pixels — small enough to feel instant, large enough
+      // to ignore micro-jitter on touch screens.
+      const tapThreshold = 8.0;
+      final isTap = downPosition == null ||
+          (upPosition - downPosition).distance < tapThreshold;
+
+      if (isTap && _onLinkTap != null) {
+        final clickedFragment = _findFragmentAtPosition(upPosition);
+        if (clickedFragment != null) {
+          // Walk up the UDT parent chain to find the nearest <a> ancestor.
+          // The fragment's sourceNode is always a TextNode or AtomicNode — it
+          // is never the InlineNode for <a> itself.
+          UDTNode? node = clickedFragment.sourceNode;
+          while (node != null) {
+            if (node.tagName == 'a') {
+              final href = node.attributes['href'];
+              if (href != null) {
+                _onLinkTap!(href);
+              }
+              break;
+            }
+            node = node.parent;
+          }
+        }
+      }
+
+      // Notify selection changed when user finishes drag-selection.
       if (_selection != null && !_selection!.isCollapsed) {
         _notifySelectionChanged();
       }
@@ -769,8 +824,55 @@ class RenderHyperBox extends RenderBox
   }
 
   // ============================================
-  // Debug
+  // Debug / DevTools API
   // ============================================
+
+  /// Serialize the current UDT document tree to JSON-compatible maps.
+  /// Used by the HyperRender DevTools extension.
+  List<Map<String, dynamic>> debugUdtTree() {
+    final doc = _document;
+    if (doc == null) return [];
+    return [_serializeNode(doc)];
+  }
+
+  /// Serialize current fragment list to JSON-compatible maps.
+  List<Map<String, dynamic>> debugFragments() {
+    return _fragments.map((f) {
+      return <String, dynamic>{
+        'type': f.type.name,
+        'text': f.text,
+        'width': f.measuredSize?.width,
+        'height': f.measuredSize?.height,
+        'offsetX': f.offset?.dx,
+        'offsetY': f.offset?.dy,
+        'nodeId': f.sourceNode.id,
+        'nodeTag': f.sourceNode.tagName,
+      };
+    }).toList();
+  }
+
+  /// Serialize current line list to JSON-compatible maps.
+  List<Map<String, dynamic>> debugLines() {
+    return _lines.map((l) {
+      return <String, dynamic>{
+        'fragmentCount': l.fragments.length,
+        'top': l.top,
+        'baseline': l.baseline,
+        'width': l.width,
+        'height': l.height,
+      };
+    }).toList();
+  }
+
+  Map<String, dynamic> _serializeNode(UDTNode node) {
+    return {
+      'id': node.id,
+      'type': node.type.name,
+      'tagName': node.tagName,
+      'childCount': node.children.length,
+      'children': node.children.map(_serializeNode).toList(),
+    };
+  }
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {

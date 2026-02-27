@@ -280,16 +280,16 @@ class LayoutCacheSnapshot {
 
   /// Compare two snapshots and return the differences
   LayoutCacheDiff diff(LayoutCacheSnapshot other) {
-    final changedPositions = <String, _LayoutChange<Rect>>{};
-    final changedSizes = <String, _LayoutChange<Size>>{};
-    final changedBaselines = <String, _LayoutChange<double>>{};
+    final changedPositions = <String, LayoutChange<Rect>>{};
+    final changedSizes = <String, LayoutChange<Size>>{};
+    final changedBaselines = <String, LayoutChange<double>>{};
 
     // Check position changes
     for (final entry in positions.entries) {
       final oldValue = entry.value;
       final newValue = other.positions[entry.key];
       if (newValue != null && oldValue != newValue) {
-        changedPositions[entry.key] = _LayoutChange(oldValue, newValue);
+        changedPositions[entry.key] = LayoutChange(oldValue, newValue);
       }
     }
 
@@ -298,7 +298,7 @@ class LayoutCacheSnapshot {
       final oldValue = entry.value;
       final newValue = other.sizes[entry.key];
       if (newValue != null && oldValue != newValue) {
-        changedSizes[entry.key] = _LayoutChange(oldValue, newValue);
+        changedSizes[entry.key] = LayoutChange(oldValue, newValue);
       }
     }
 
@@ -307,7 +307,7 @@ class LayoutCacheSnapshot {
       final oldValue = entry.value;
       final newValue = other.baselines[entry.key];
       if (newValue != null && oldValue != newValue) {
-        changedBaselines[entry.key] = _LayoutChange(oldValue, newValue);
+        changedBaselines[entry.key] = LayoutChange(oldValue, newValue);
       }
     }
 
@@ -321,9 +321,9 @@ class LayoutCacheSnapshot {
 
 /// Difference between two layout cache snapshots
 class LayoutCacheDiff {
-  final Map<String, _LayoutChange<Rect>> changedPositions;
-  final Map<String, _LayoutChange<Size>> changedSizes;
-  final Map<String, _LayoutChange<double>> changedBaselines;
+  final Map<String, LayoutChange<Rect>> changedPositions;
+  final Map<String, LayoutChange<Size>> changedSizes;
+  final Map<String, LayoutChange<double>> changedBaselines;
 
   LayoutCacheDiff({
     required this.changedPositions,
@@ -348,9 +348,9 @@ class LayoutCacheDiff {
   }
 }
 
-class _LayoutChange<T> {
+class LayoutChange<T> {
   final T oldValue;
   final T newValue;
 
-  _LayoutChange(this.oldValue, this.newValue);
+  LayoutChange(this.oldValue, this.newValue);
 }

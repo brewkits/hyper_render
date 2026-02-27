@@ -200,66 +200,45 @@ class StyleResolver {
 
   /// Extract CSS rules from parsed stylesheet
   void _extractRules(css_ast.StyleSheet stylesheet) {
+    int sourceIndex = 0;
     for (final topLevel in stylesheet.topLevels) {
       if (topLevel is css_ast.RuleSet) {
-        final rule = _convertRuleSet(topLevel);
-        if (rule != null) {
-          _cssRules.add(rule);
-        }
+        // One RuleSet may contain multiple comma-separated selectors.
+        _cssRules.addAll(_convertRuleSet(topLevel, sourceIndex: sourceIndex++));
       }
     }
 
-    // Sort rules by specificity (lower first, so higher specificity wins)
-    _cssRules.sort((a, b) => a.specificity.compareTo(b.specificity));
+    // Stable sort: lower specificity first; same specificity preserves source order
+    _cssRules.sort((a, b) {
+      final cmp = a.specificity.compareTo(b.specificity);
+      return cmp != 0 ? cmp : a.sourceIndex.compareTo(b.sourceIndex);
+    });
   }
 
-  /// Convert csslib RuleSet to our CssRule
-  CssRule? _convertRuleSet(css_ast.RuleSet ruleSet) {
-    // Extract selector from selectorGroup
+  /// Convert a csslib RuleSet to one [CssRule] per comma-separated selector.
+  ///
+  /// Previously the inner loop overwrote [selector] on every simple selector,
+  /// which meant only the last class/element name was kept (e.g. "div p" became
+  /// just "p").  We now use [sel.span?.text] which gives the exact source text
+  /// of each selector (including combinators like space, ">", "+", "~").
+  List<CssRule> _convertRuleSet(css_ast.RuleSet ruleSet, {int sourceIndex = 0}) {
     final selectorGroup = ruleSet.selectorGroup;
-    if (selectorGroup == null || selectorGroup.selectors.isEmpty) return null;
+    if (selectorGroup == null || selectorGroup.selectors.isEmpty) return const [];
 
-    // Get the first selector and extract its text representation
-    String selector = '';
-    for (final sel in selectorGroup.selectors) {
-      // Build selector from simple selector sequences
-      for (final simpleSeq in sel.simpleSelectorSequences) {
-        final simpleSelector = simpleSeq.simpleSelector;
-        if (simpleSelector is css_ast.ClassSelector) {
-          selector = '.${simpleSelector.name}';
-        } else if (simpleSelector is css_ast.IdSelector) {
-          selector = '#${simpleSelector.name}';
-        } else if (simpleSelector is css_ast.ElementSelector) {
-          selector = simpleSelector.name;
-        }
-      }
-      break; // For now, only handle first selector
-    }
-
-    if (selector.isEmpty) {
-      // Fallback to span text
-      selector = selectorGroup.span?.text.trim() ?? '';
-    }
-
-    if (selector.isEmpty) return null;
-
+    // Collect declaration values once — shared across all selectors in the group.
     final declarations = <String, String>{};
     final importantDeclarations = <String, String>{};
 
     for (final decl in ruleSet.declarationGroup.declarations) {
       if (decl is css_ast.Declaration) {
-        // Get the value from expression span text
         final expression = decl.expression;
         String value = '';
 
         if (expression is css_ast.Expressions) {
-          // Get the full span text of all expressions
           final parts = <String>[];
           for (final expr in expression.expressions) {
             final text = expr.span?.text ?? '';
-            if (text.isNotEmpty) {
-              parts.add(text);
-            }
+            if (text.isNotEmpty) parts.add(text);
           }
           value = parts.join(' ');
         } else if (expression != null) {
@@ -276,12 +255,26 @@ class StyleResolver {
       }
     }
 
-    return CssRule(
-      selector: selector,
-      declarations: declarations,
-      importantDeclarations: importantDeclarations,
-      specificity: _calculateSpecificity(selector),
-    );
+    if (declarations.isEmpty && importantDeclarations.isEmpty) return const [];
+
+    // Emit one CssRule per selector in the comma-separated group.
+    final rules = <CssRule>[];
+    for (final sel in selectorGroup.selectors) {
+      // Use the span text for the full, correct selector string.
+      // This preserves combinators (descendant space, child ">", etc.) and
+      // compound selectors (e.g. "div.card > p.lead").
+      final selector = sel.span?.text.trim() ?? '';
+      if (selector.isEmpty) continue;
+
+      rules.add(CssRule(
+        selector: selector,
+        declarations: Map.unmodifiable(declarations),
+        importantDeclarations: Map.unmodifiable(importantDeclarations),
+        specificity: _calculateSpecificity(selector),
+        sourceIndex: sourceIndex,
+      ));
+    }
+    return rules;
   }
 
   /// Calculate CSS specificity for a selector
@@ -298,7 +291,11 @@ class StyleResolver {
     specificity += RegExp(r':[a-zA-Z_-]+').allMatches(selector).length * 10;
 
     // Element selectors, pseudo-elements = 1
-    specificity += RegExp(r'^[a-zA-Z]+').allMatches(selector).length;
+    // Split by combinator chars and count parts that start with a letter
+    final selectorParts = selector.split(RegExp(r'[\s>+~]+'));
+    specificity += selectorParts
+        .where((p) => p.isNotEmpty && RegExp(r'^[a-zA-Z]').hasMatch(p))
+        .length;
 
     return specificity;
   }
@@ -334,6 +331,16 @@ class StyleResolver {
       // Color will be inherited from parent (pre) via _applyInheritance
     }
 
+    // Apply dir="rtl"/"ltr" HTML attribute (maps to CSS direction)
+    final dirAttr = node.attributes['dir'];
+    if (dirAttr != null) {
+      final dir = _parseDirection(dirAttr);
+      if (dir != null) {
+        style.direction = dir;
+        style.markExplicitlySet('direction');
+      }
+    }
+
     // 2. Apply CSS rules (sorted by specificity, normal declarations only)
     for (final rule in _cssRules) {
       if (_matchesSelector(node, rule.selector)) {
@@ -341,6 +348,7 @@ class StyleResolver {
           style,
           rule.declarations,
           parentFontSize: parentFontSize,
+          inheritedCustomProps: parentStyle.customProperties,
         );
       }
     }
@@ -348,7 +356,12 @@ class StyleResolver {
     // 3. Apply inline styles
     final inlineStyle = node.attributes['style'];
     if (inlineStyle != null && inlineStyle.isNotEmpty) {
-      style = _parseInlineStyle(style, inlineStyle, parentFontSize: parentFontSize);
+      style = _parseInlineStyle(
+        style,
+        inlineStyle,
+        parentFontSize: parentFontSize,
+        inheritedCustomProps: parentStyle.customProperties,
+      );
     }
 
     // 4. Apply !important declarations (win over inline styles, per CSS spec)
@@ -359,6 +372,7 @@ class StyleResolver {
           style,
           rule.importantDeclarations,
           parentFontSize: parentFontSize,
+          inheritedCustomProps: parentStyle.customProperties,
         );
       }
     }
@@ -526,21 +540,17 @@ class StyleResolver {
     return false;
   }
 
-  /// Match child selector: `parent > child`
+  /// Match child selector: `parent > child` — supports arbitrary depth (a > b > c)
   bool _matchesChildSelector(UDTNode node, String selector) {
     final parts = selector.split(' > ');
-    if (parts.length != 2) return false;
+    if (parts.length < 2) return false;
 
-    final parentSelector = parts[0].trim();
-    final childSelector = parts[1].trim();
+    // Node must match the last (child) part
+    if (!_matchesSimpleSelector(node, parts.last.trim())) return false;
 
-    // Node must match child selector
-    if (!_matchesSimpleSelector(node, childSelector)) {
-      return false;
-    }
-
-    // Parent must match parent selector
+    // Parent must match the rest (supports arbitrary depth)
     if (node.parent == null) return false;
+    final parentSelector = parts.sublist(0, parts.length - 1).join(' > ');
     return _matchesSelector(node.parent!, parentSelector);
   }
 
@@ -662,6 +672,7 @@ class StyleResolver {
     ComputedStyle style,
     Map<String, String> declarations, {
     double? parentFontSize,
+    Map<String, String>? inheritedCustomProps,
   }) {
     for (final entry in declarations.entries) {
       style = _applySingleDeclaration(
@@ -669,6 +680,7 @@ class StyleResolver {
         entry.key,
         entry.value,
         parentFontSize: parentFontSize,
+        inheritedCustomProps: inheritedCustomProps,
       );
     }
     return style;
@@ -680,7 +692,17 @@ class StyleResolver {
     String property,
     String value, {
     double? parentFontSize,
+    Map<String, String>? inheritedCustomProps,
   }) {
+    // CSS Custom Properties (--name: value)
+    if (property.startsWith('--')) {
+      style.customProperties[property] = value;
+      return style;
+    }
+
+    // Resolve var() and calc() references before processing
+    value = _resolveCssValue(value, style.customProperties, inheritedCustomProps);
+
     switch (property) {
       case 'color':
         final color = _parseColor(value);
@@ -1093,9 +1115,268 @@ class StyleResolver {
           style.markExplicitlySet('direction');
         }
         break;
+
+      // ============================================
+      // CSS Grid Properties
+      // ============================================
+
+      case 'grid-template-columns':
+        style.gridTemplateColumns = value.trim();
+        style.markExplicitlySet('grid-template-columns');
+        break;
+
+      case 'grid-template-rows':
+        style.gridTemplateRows = value.trim();
+        style.markExplicitlySet('grid-template-rows');
+        break;
+
+      case 'grid-auto-flow':
+        style.gridAutoFlow = value.trim().toLowerCase();
+        style.markExplicitlySet('grid-auto-flow');
+        break;
+
+      case 'grid-column':
+        // Parse "span 2" or "1 / 3" or "1 / span 2"
+        final colParsed = _parseGridLine(value);
+        style.gridColumnStart = colParsed.$1;
+        style.gridColumnEnd = colParsed.$2;
+        style.gridColumnSpan = colParsed.$3;
+        style.markExplicitlySet('grid-column');
+        break;
+
+      case 'grid-row':
+        final rowParsed = _parseGridLine(value);
+        style.gridRowStart = rowParsed.$1;
+        style.gridRowEnd = rowParsed.$2;
+        style.gridRowSpan = rowParsed.$3;
+        style.markExplicitlySet('grid-row');
+        break;
+
+      case 'grid-column-start':
+        final v = int.tryParse(value.trim()) ?? 0;
+        style.gridColumnStart = v;
+        style.markExplicitlySet('grid-column-start');
+        break;
+
+      case 'grid-column-end':
+        final v = int.tryParse(value.trim()) ?? 0;
+        style.gridColumnEnd = v;
+        style.markExplicitlySet('grid-column-end');
+        break;
+
+      case 'grid-row-start':
+        final v = int.tryParse(value.trim()) ?? 0;
+        style.gridRowStart = v;
+        style.markExplicitlySet('grid-row-start');
+        break;
+
+      case 'grid-row-end':
+        final v = int.tryParse(value.trim()) ?? 0;
+        style.gridRowEnd = v;
+        style.markExplicitlySet('grid-row-end');
+        break;
+
+      case 'justify-items':
+        final ji = _parseJustifyContent(value);
+        if (ji != null) {
+          style.justifyItems = ji;
+          style.markExplicitlySet('justify-items');
+        }
+        break;
+
+      case 'align-content':
+        final ac = _parseJustifyContent(value);
+        if (ac != null) {
+          style.alignContent = ac;
+          style.markExplicitlySet('align-content');
+        }
+        break;
     }
 
     return style;
+  }
+
+  // ============================================
+  // CSS Value Preprocessor (var() and calc())
+  // ============================================
+
+  /// Resolve var() and calc() in a CSS value string.
+  String _resolveCssValue(
+    String value,
+    Map<String, String> localCustomProps,
+    Map<String, String>? inheritedCustomProps,
+  ) {
+    if (!value.contains('var(') && !value.contains('calc(')) return value;
+
+    // Merge custom props: local + inherited (local wins)
+    final allProps = <String, String>{};
+    if (inheritedCustomProps != null) allProps.addAll(inheritedCustomProps);
+    allProps.addAll(localCustomProps);
+
+    // Resolve var() first (supports nested: var(--x, fallback))
+    value = _resolveVarReferences(value, allProps);
+
+    // Then evaluate calc()
+    if (value.contains('calc(')) {
+      value = _evaluateCalcInValue(value);
+    }
+
+    return value;
+  }
+
+  /// Resolve all var(--name, fallback) references in a value string.
+  ///
+  /// Resolves from innermost outward by matching only leaf var() calls
+  /// (those whose content contains no nested parens). This correctly handles
+  /// nested fallbacks like var(--a, var(--b, default)).
+  String _resolveVarReferences(String value, Map<String, String> customProps) {
+    for (int i = 0; i < 10; i++) {
+      // [^()]+ ensures we only match leaf var() calls (no nested parens inside)
+      final resolved = value.replaceAllMapped(
+        RegExp(r'var\(\s*(--[\w-]+)\s*(?:,\s*([^()]+))?\s*\)'),
+        (match) {
+          final propName = match.group(1)!;
+          final fallback = match.group(2)?.trim() ?? '';
+          return customProps[propName] ?? fallback;
+        },
+      );
+      if (resolved == value) break; // No more replacements
+      value = resolved;
+    }
+    return value;
+  }
+
+  /// Evaluate all calc() expressions in a value string.
+  String _evaluateCalcInValue(String value) {
+    // Replace calc(...) with computed px value
+    // Handles simple arithmetic: px, em, rem, % units
+    return value.replaceAllMapped(
+      RegExp(r'calc\(([^)]+)\)'),
+      (match) {
+        final expr = match.group(1)!;
+        final result = _evaluateCalcExpr(expr);
+        if (result != null) return '${result}px';
+        return match.group(0)!; // Keep original if can't evaluate
+      },
+    );
+  }
+
+  /// Evaluate a CSS calc() arithmetic expression to a pixel value.
+  ///
+  /// Supports: px, em (×16), rem (×16), unitless numbers.
+  /// Operators: +, -, *, /
+  /// Percentage values are preserved as-is (returned as null = skip).
+  double? _evaluateCalcExpr(String expr) {
+    expr = expr.trim();
+
+    // Tokenize the expression — leading minus handled as part of number token
+    final tokenPattern = RegExp(
+      r'(-?[\d.]+)(px|em|rem|%)?\s*|([+\-*/])',
+    );
+    final tokens = tokenPattern.allMatches(expr).toList();
+    if (tokens.isEmpty) return null;
+
+    // Parse tokens into (value, operator) pairs
+    final values = <double>[];
+    final operators = <String>[];
+
+    for (final token in tokens) {
+      final numStr = token.group(1);
+      final unit = token.group(2) ?? '';
+      final op = token.group(3);
+
+      if (numStr != null) {
+        final num = double.tryParse(numStr);
+        if (num == null) return null;
+        double px;
+        switch (unit) {
+          case 'px':
+          case '':
+            px = num;
+            break;
+          case 'em':
+          case 'rem':
+            px = num * StyleResolver.rootFontSize;
+            break;
+          case '%':
+            return null; // Can't resolve % without context
+          default:
+            px = num;
+        }
+        values.add(px);
+      } else if (op != null) {
+        operators.add(op);
+      }
+    }
+
+    if (values.isEmpty) return null;
+    if (values.length != operators.length + 1) return null;
+
+    // First pass: handle * and /
+    final vals = List<double>.from(values);
+    final ops = List<String>.from(operators);
+    int i = 0;
+    while (i < ops.length) {
+      if (ops[i] == '*') {
+        vals[i] = vals[i] * vals[i + 1];
+        vals.removeAt(i + 1);
+        ops.removeAt(i);
+      } else if (ops[i] == '/') {
+        if (vals[i + 1] == 0) return null;
+        vals[i] = vals[i] / vals[i + 1];
+        vals.removeAt(i + 1);
+        ops.removeAt(i);
+      } else {
+        i++;
+      }
+    }
+
+    // Second pass: handle + and -
+    double result = vals[0];
+    for (int j = 0; j < ops.length; j++) {
+      if (ops[j] == '+') {
+        result += vals[j + 1];
+      } else if (ops[j] == '-') {
+        result -= vals[j + 1];
+      }
+    }
+
+    return result;
+  }
+
+  /// Parse grid-column / grid-row shorthand.
+  /// Returns (start, end, span) tuple.
+  /// Examples: "span 2" → (0, 0, 2), "1 / 3" → (1, 3, 1), "auto" → (0, 0, 1)
+  (int, int, int) _parseGridLine(String value) {
+    value = value.trim().toLowerCase();
+    if (value == 'auto') return (0, 0, 1);
+
+    // "span N"
+    final spanMatch = RegExp(r'^span\s+(\d+)$').firstMatch(value);
+    if (spanMatch != null) {
+      final span = int.tryParse(spanMatch.group(1)!) ?? 1;
+      return (0, 0, span);
+    }
+
+    // "start / end" or "start / span N"
+    if (value.contains('/')) {
+      final parts = value.split('/').map((p) => p.trim()).toList();
+      if (parts.length == 2) {
+        final start = int.tryParse(parts[0]) ?? 0;
+        final endStr = parts[1];
+        final spanMatch2 = RegExp(r'^span\s+(\d+)$').firstMatch(endStr);
+        if (spanMatch2 != null) {
+          final span = int.tryParse(spanMatch2.group(1)!) ?? 1;
+          return (start, 0, span);
+        }
+        final end = int.tryParse(endStr) ?? 0;
+        return (start, end, end > start ? end - start : 1);
+      }
+    }
+
+    // Plain integer
+    final n = int.tryParse(value) ?? 0;
+    return (n, 0, 1);
   }
 
   /// Parse line-height value
@@ -1299,20 +1580,25 @@ class StyleResolver {
     ComputedStyle style,
     String inlineStyle, {
     double? parentFontSize,
+    Map<String, String>? inheritedCustomProps,
   }) {
     // Simple parsing: split by semicolon, then by colon
+    // Use a more robust split that handles values with colons (e.g. url(...))
     final declarations = inlineStyle.split(';');
     for (final decl in declarations) {
-      final parts = decl.split(':');
-      if (parts.length == 2) {
-        final property = parts[0].trim();
-        final value = parts[1].trim();
-        style = _applySingleDeclaration(
-          style,
-          property,
-          value,
-          parentFontSize: parentFontSize,
-        );
+      final colonIdx = decl.indexOf(':');
+      if (colonIdx > 0) {
+        final property = decl.substring(0, colonIdx).trim();
+        final value = decl.substring(colonIdx + 1).trim();
+        if (property.isNotEmpty && value.isNotEmpty) {
+          style = _applySingleDeclaration(
+            style,
+            property,
+            value,
+            parentFontSize: parentFontSize,
+            inheritedCustomProps: inheritedCustomProps,
+          );
+        }
       }
     }
     return style;
@@ -1371,6 +1657,19 @@ class StyleResolver {
 
     // White space - inherit if not explicitly set
     style.whiteSpace ??= parentStyle.whiteSpace;
+
+    // Direction - inherit if not explicitly set
+    if (!style.isExplicitlySet('direction')) {
+      style.direction ??= parentStyle.direction;
+    }
+
+    // CSS custom properties cascade: always inherit parent's props, with child
+    // definitions taking precedence (same as CSS spec for custom properties)
+    if (parentStyle.customProperties.isNotEmpty) {
+      final inherited = Map<String, String>.from(parentStyle.customProperties);
+      inherited.addAll(style.customProperties); // child overrides parent
+      style.customProperties = inherited;
+    }
   }
 
   // ============================================
@@ -1390,35 +1689,43 @@ class StyleResolver {
         final g = hex[1] + hex[1];
         final b = hex[2] + hex[2];
         return Color(int.parse('FF$r$g$b', radix: 16));
+      } else if (hex.length == 4) {
+        // CSS Color Level 4: #RGBA → each digit expands to two
+        final r = hex[0] + hex[0];
+        final g = hex[1] + hex[1];
+        final b = hex[2] + hex[2];
+        final a = hex[3] + hex[3];
+        return Color(int.parse('$a$r$g$b', radix: 16));
       } else if (hex.length == 6) {
         return Color(int.parse('FF$hex', radix: 16));
       } else if (hex.length == 8) {
-        // #RRGGBBAA
-        return Color(int.parse(hex, radix: 16));
+        // CSS: #RRGGBBAA → Flutter Color: 0xAARRGGBB
+        final r = hex.substring(0, 2);
+        final g = hex.substring(2, 4);
+        final b = hex.substring(4, 6);
+        final a = hex.substring(6, 8);
+        return Color(int.parse('$a$r$g$b', radix: 16));
       }
     }
 
-    // rgb(r, g, b)
-    final rgbMatch = RegExp(r'rgb\((\d+),\s*(\d+),\s*(\d+)\)').firstMatch(value);
+    // rgb(r, g, b) — supports negative values (clamped to 0)
+    final rgbMatch = RegExp(r'rgb\((-?\d+),\s*(-?\d+),\s*(-?\d+)\)').firstMatch(value);
     if (rgbMatch != null) {
-      return Color.fromARGB(
-        255,
-        int.parse(rgbMatch.group(1)!),
-        int.parse(rgbMatch.group(2)!),
-        int.parse(rgbMatch.group(3)!),
-      );
+      final r = int.parse(rgbMatch.group(1)!).clamp(0, 255);
+      final g = int.parse(rgbMatch.group(2)!).clamp(0, 255);
+      final b = int.parse(rgbMatch.group(3)!).clamp(0, 255);
+      return Color.fromARGB(255, r, g, b);
     }
 
-    // rgba(r, g, b, a)
+    // rgba(r, g, b, a) — supports negative alpha (clamped to 0)
     final rgbaMatch =
-        RegExp(r'rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)').firstMatch(value);
+        RegExp(r'rgba\((-?\d+),\s*(-?\d+),\s*(-?\d+),\s*(-?[\d.]+)\)').firstMatch(value);
     if (rgbaMatch != null) {
-      return Color.fromARGB(
-        (double.parse(rgbaMatch.group(4)!) * 255).toInt(),
-        int.parse(rgbaMatch.group(1)!),
-        int.parse(rgbaMatch.group(2)!),
-        int.parse(rgbaMatch.group(3)!),
-      );
+      final r = int.parse(rgbaMatch.group(1)!).clamp(0, 255);
+      final g = int.parse(rgbaMatch.group(2)!).clamp(0, 255);
+      final b = int.parse(rgbaMatch.group(3)!).clamp(0, 255);
+      final alpha = (double.tryParse(rgbaMatch.group(4)!) ?? 1.0).clamp(0.0, 1.0);
+      return Color.fromARGB((alpha * 255).round(), r, g, b);
     }
 
     // Named colors
@@ -1625,7 +1932,8 @@ class StyleResolver {
       return pt != null ? pt * 1.333 : null;
     }
     if (value.endsWith('em')) {
-      return double.tryParse(value.replaceAll('em', ''));
+      final em = double.tryParse(value.replaceAll('em', ''));
+      return em != null ? em * rootFontSize : null;
     }
     if (value == '0') return 0;
 
@@ -1759,11 +2067,15 @@ class CssRule {
   final Map<String, String> importantDeclarations;
   final int specificity;
 
+  /// Source order index — used to make specificity sort stable (later = higher)
+  final int sourceIndex;
+
   CssRule({
     required this.selector,
     required this.declarations,
     Map<String, String>? importantDeclarations,
     required this.specificity,
+    this.sourceIndex = 0,
   }) : importantDeclarations = importantDeclarations ?? const {};
 
   @override

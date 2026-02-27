@@ -121,7 +121,10 @@ class _SecurityDemoState extends State<SecurityDemo> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Security Demo'),
+        centerTitle: false,
         backgroundColor: Colors.red.shade700,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: Column(
         children: [
@@ -203,7 +206,7 @@ class _SecurityDemoState extends State<SecurityDemo> {
                     'Removes dangerous tags and attributes (RECOMMENDED)',
                   ),
                   value: _sanitizeEnabled,
-                  activeColor: Colors.green,
+                  activeThumbColor: Colors.green,
                   onChanged: (value) {
                     setState(() => _sanitizeEnabled = value);
                   },

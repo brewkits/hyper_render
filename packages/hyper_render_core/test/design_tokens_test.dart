@@ -132,19 +132,25 @@ void main() {
     group('Light Theme Colors', () {
       test('text colors have proper contrast hierarchy', () {
         // Primary is darkest
-        expect(DesignTokens.textPrimary.value, equals(0xFF000000));
+        expect(DesignTokens.textPrimary.toARGB32(), equals(0xFF000000));
 
-        // Secondary is lighter
-        expect(DesignTokens.textSecondary.value, greaterThan(DesignTokens.textPrimary.value));
+        // Secondary is lighter (higher luminance)
+        expect(
+          DesignTokens.textSecondary.computeLuminance(),
+          greaterThan(DesignTokens.textPrimary.computeLuminance()),
+        );
 
         // Tertiary is even lighter
-        expect(DesignTokens.textTertiary.value, greaterThan(DesignTokens.textSecondary.value));
+        expect(
+          DesignTokens.textTertiary.computeLuminance(),
+          greaterThan(DesignTokens.textSecondary.computeLuminance()),
+        );
       });
 
       test('link colors are blue-based', () {
-        expect(DesignTokens.linkColor.value, equals(0xFF1976D2));
-        expect(DesignTokens.linkColorHover.value, equals(0xFF0D47A1));
-        expect(DesignTokens.linkColorVisited.value, equals(0xFF7B1FA2));
+        expect(DesignTokens.linkColor.toARGB32(), equals(0xFF1976D2));
+        expect(DesignTokens.linkColorHover.toARGB32(), equals(0xFF0D47A1));
+        expect(DesignTokens.linkColorVisited.toARGB32(), equals(0xFF7B1FA2));
       });
 
       test('semantic colors are defined', () {
@@ -185,13 +191,19 @@ void main() {
     group('Dark Theme Colors', () {
       test('dark text colors have proper contrast', () {
         // Primary is lightest
-        expect(DesignTokens.darkTextPrimary.value, equals(0xFFFFFFFF));
+        expect(DesignTokens.darkTextPrimary.toARGB32(), equals(0xFFFFFFFF));
 
-        // Secondary is darker
-        expect(DesignTokens.darkTextSecondary.value, lessThan(DesignTokens.darkTextPrimary.value));
+        // Secondary is darker (lower luminance)
+        expect(
+          DesignTokens.darkTextSecondary.computeLuminance(),
+          lessThan(DesignTokens.darkTextPrimary.computeLuminance()),
+        );
 
         // Tertiary is even darker
-        expect(DesignTokens.darkTextTertiary.value, lessThan(DesignTokens.darkTextSecondary.value));
+        expect(
+          DesignTokens.darkTextTertiary.computeLuminance(),
+          lessThan(DesignTokens.darkTextSecondary.computeLuminance()),
+        );
       });
 
       test('dark link colors are lighter than light theme', () {
@@ -379,9 +391,9 @@ void main() {
       });
 
       test('all colors are opaque', () {
-        expect(DesignTokens.textPrimary.alpha, equals(255));
-        expect(DesignTokens.linkColor.alpha, equals(255));
-        expect(DesignTokens.errorColor.alpha, equals(255));
+        expect((DesignTokens.textPrimary.a * 255).round(), equals(255));
+        expect((DesignTokens.linkColor.a * 255).round(), equals(255));
+        expect((DesignTokens.errorColor.a * 255).round(), equals(255));
       });
     });
 

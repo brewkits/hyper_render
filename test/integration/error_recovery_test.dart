@@ -1,3 +1,4 @@
+// ignore_for_file: text_direction_code_point_in_literal
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';

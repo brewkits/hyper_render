@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 
 import '../core/image_provider.dart';
 import '../core/render_hyper_box.dart';
+import '../core/render_media.dart';
 import '../core/render_table.dart';
 import '../interfaces/image_clipboard.dart';
 import '../model/computed_style.dart';
 import '../model/node.dart';
 import 'code_block_widget.dart';
 import 'flex_container_widget.dart';
+import 'grid_container_widget.dart';
 import 'hyper_details_widget.dart';
 
 /// Image action types for context menu
@@ -130,11 +132,21 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       // Don't recurse into flex children - they're handled by flex container
       return;
     }
+    // Is it a grid container?
+    if (node.style.display == DisplayType.grid) {
+      childWidget = widgetBuilder?.call(node);
+      childWidget ??= _buildGridContainerWidget(node, widgetBuilder);
+      if (childWidget != null) {
+        children.add(_HyperChildWidget(node: node, child: childWidget));
+      }
+      // Don't recurse into grid children - they're handled by grid container
+      return;
+    }
     // Is it a float?
     else if (node.style.float != HyperFloat.none) {
       childWidget = widgetBuilder?.call(node);
-      // If it's an image, build the default image widget
-      if (childWidget == null && node is AtomicNode && node.tagName == 'img') {
+      // Fall back to default atomic widget for any unhandled atomic node
+      if (childWidget == null && node is AtomicNode) {
         childWidget = _buildDefaultAtomicWidget(node);
       }
 
@@ -251,7 +263,62 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     }
   }
 
+  /// Build GridContainerWidget for display:grid elements
+  static Widget? _buildGridContainerWidget(
+    UDTNode node,
+    HyperWidgetBuilder? widgetBuilder,
+  ) {
+    final items = <GridItem>[];
+    for (final child in node.children) {
+      final childWidget = _buildFlexChild(child, widgetBuilder);
+      if (childWidget != null) {
+        items.add(GridItem(
+          child: childWidget,
+          span: gridItemSpan(child),
+        ));
+      }
+    }
+    if (items.isEmpty) return null;
+    return GridContainerWidget(node: node, items: items);
+  }
+
   static Widget? _buildDefaultAtomicWidget(AtomicNode node) {
+    // SVG inline rendering
+    if (node.tagName == 'svg') {
+      final svgData = node.svgData;
+      final width = node.intrinsicWidth ?? node.style.width ?? 200;
+      final height = node.intrinsicHeight ?? node.style.height ?? 200;
+      if (svgData != null && svgData.isNotEmpty) {
+        return SizedBox(
+          width: width,
+          height: height,
+          child: CustomPaint(
+            painter: _SvgPlaceholderPainter(svgData),
+            size: Size(width, height),
+          ),
+        );
+      }
+      // SVG from src (e.g. <img src="*.svg">)
+      final src = node.src;
+      if (src != null && src.isNotEmpty) {
+        return SizedBox(
+          width: width,
+          height: height,
+          child: Image.network(
+            src,
+            width: width,
+            height: height,
+            errorBuilder: (_, __, ___) => SizedBox(
+              width: width,
+              height: height,
+              child: const Icon(Icons.image_not_supported),
+            ),
+          ),
+        );
+      }
+      return null;
+    }
+
     if (node.tagName == 'img') {
       final src = node.src;
       if (src == null || src.isEmpty) return null;
@@ -270,20 +337,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       );
     }
 
-    if (node.tagName == 'video') {
-      // Placeholder for video - actual implementation would use video_player
-      return Container(
-        width: node.intrinsicWidth ?? 320,
-        height: node.intrinsicHeight ?? 180,
-        color: const Color(0xFF000000),
-        child: const Center(
-          child: Icon(
-            Icons.play_circle_outline,
-            size: 64,
-            color: Color(0xFFFFFFFF),
-          ),
-        ),
-      );
+    if (node.tagName == 'video' || node.tagName == 'audio') {
+      return DefaultMediaWidget(mediaInfo: MediaInfo.fromNode(node));
     }
 
     return null;
@@ -768,4 +823,51 @@ class HyperImage extends StatelessWidget {
       }
     });
   }
+}
+
+/// Placeholder painter for inline SVG data.
+/// Renders a simple bounding box with SVG icon when flutter_svg is not available.
+class _SvgPlaceholderPainter extends CustomPainter {
+  final String svgData;
+  const _SvgPlaceholderPainter(this.svgData);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Fill
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        const Radius.circular(4),
+      ),
+      Paint()..color = const Color(0xFFE0E0E0),
+    );
+    // Border
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0.5, 0.5, size.width - 1, size.height - 1),
+        const Radius.circular(4),
+      ),
+      Paint()
+        ..color = const Color(0xFFBDBDBD)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+    // Draw diagonal SVG placeholder lines
+    final linePaint = Paint()
+      ..color = const Color(0xFFBDBDBD)
+      ..strokeWidth = 1;
+    canvas.drawLine(
+      Offset(0, 0),
+      Offset(size.width, size.height),
+      linePaint,
+    );
+    canvas.drawLine(
+      Offset(size.width, 0),
+      Offset(0, size.height),
+      linePaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SvgPlaceholderPainter old) => old.svgData != svgData;
 }

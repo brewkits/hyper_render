@@ -73,6 +73,7 @@ void main() {
       print('  Speedup: ${speedup.toStringAsFixed(1)}x faster');
 
       print('\nCandidate reduction:');
+      print('  Linear matches (1000 iters): $linearMatches');
       print('  Linear would check: ${rules.length} rules per node');
       print('  Indexed checks: ${(indexedCandidates / 1000).toStringAsFixed(1)} rules per node');
       print('  Reduction: ${(100 * (1 - indexedCandidates / 1000 / rules.length)).toStringAsFixed(1)}%');

@@ -86,7 +86,12 @@ abstract class UDTNode {
   })  : attributes = attributes ?? {},
         style = style ?? ComputedStyle(),
         children = children ?? [],
-        id = id ?? 'node_${_idCounter++}';
+        id = id ?? 'node_${_idCounter++}' {
+    // Set parent back-reference for all children passed to the constructor
+    for (final child in this.children) {
+      child.parent = this;
+    }
+  }
 
   /// Add a child node
   void appendChild(UDTNode child) {
@@ -341,12 +346,16 @@ class AtomicNode extends UDTNode {
   /// Intrinsic height (from attribute or natural size)
   final double? intrinsicHeight;
 
+  /// Inline SVG data string (for `<svg>` elements serialized to string)
+  final String? svgData;
+
   AtomicNode({
     required String super.tagName,
     this.src,
     this.alt,
     this.intrinsicWidth,
     this.intrinsicHeight,
+    this.svgData,
     super.attributes,
     ComputedStyle? style,
   }) : super(
@@ -385,6 +394,35 @@ class AtomicNode extends UDTNode {
         intrinsicWidth: width,
         intrinsicHeight: height,
         attributes: {'src': src},
+      );
+
+  /// True if this node is a media element (video or audio)
+  bool get isMedia => tagName == 'video' || tagName == 'audio';
+
+  /// True if this node is a video element
+  bool get isVideo => tagName == 'video';
+
+  /// True if this node is an audio element
+  bool get isAudio => tagName == 'audio';
+
+  /// Factory for inline SVG element
+  factory AtomicNode.svg({
+    String? svgData,
+    String? src,
+    double? width,
+    double? height,
+  }) =>
+      AtomicNode(
+        tagName: 'svg',
+        src: src,
+        svgData: svgData,
+        intrinsicWidth: width ?? 200,
+        intrinsicHeight: height ?? 200,
+        attributes: {
+          if (src != null) 'src': src,
+          if (width != null) 'width': width.toString(),
+          if (height != null) 'height': height.toString(),
+        },
       );
 }
 

@@ -11,7 +11,10 @@ class CssPropertiesDemo extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('CSS Properties Demo'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        centerTitle: false,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -347,6 +350,44 @@ class CssPropertiesDemo extends StatelessWidget {
                 text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
               ">
                 Pill Button with Shadow
+              </div>
+            ''',
+          ),
+
+          const SizedBox(height: 24),
+          _buildSection('🌟 Additional Properties'),
+          _buildPropertyCard(
+            title: 'opacity (4 levels)',
+            description: 'Transparency at 100%, 75%, 50%, and 25% — clearly visible difference',
+            html: '''
+              <div style="background: #3F51B5; color: white; padding: 12px; margin: 4px 0; opacity: 1.0;">
+                Fully opaque — opacity: 1.0 (100%)
+              </div>
+              <div style="background: #3F51B5; color: white; padding: 12px; margin: 4px 0; opacity: 0.75;">
+                Slightly transparent — opacity: 0.75 (75%)
+              </div>
+              <div style="background: #3F51B5; color: white; padding: 12px; margin: 4px 0; opacity: 0.5;">
+                Half transparent — opacity: 0.5 (50%)
+              </div>
+              <div style="background: #3F51B5; color: white; padding: 12px; margin: 4px 0; opacity: 0.25;">
+                Very transparent — opacity: 0.25 (25%)
+              </div>
+            ''',
+          ),
+          _buildPropertyCard(
+            title: 'position: relative (top / left offset)',
+            description: 'Relative positioning shifts element from its normal flow position',
+            html: '''
+              <div style="background: #f5f5f5; padding: 20px; border: 1px solid #ddd;">
+                <div style="background: #E8F5E9; padding: 8px; border: 1px solid #4CAF50;">
+                  Normal flow element
+                </div>
+                <div style="background: #E3F2FD; padding: 8px; border: 1px solid #2196F3; position: relative; top: 8px; left: 16px;">
+                  position: relative; top: 8px; left: 16px
+                </div>
+                <div style="background: #FFF3E0; padding: 8px; border: 1px solid #FF9800;">
+                  Normal flow (after offset element)
+                </div>
               </div>
             ''',
           ),

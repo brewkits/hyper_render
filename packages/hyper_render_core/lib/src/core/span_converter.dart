@@ -363,7 +363,7 @@ class HtmlToSpanConverter {
     );
   }
 
-  /// Convert details element (<details>/<summary>)
+  /// Convert details element (`<details>`/`<summary>`)
   ///
   /// Details elements are rendered as WidgetSpan with DetailsWidget
   InlineSpan _convertDetails(DetailsNode node) {

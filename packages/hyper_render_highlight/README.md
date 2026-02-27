@@ -13,8 +13,8 @@ Syntax highlighting plugin for HyperRender using flutter_highlight.
 
 ```yaml
 dependencies:
-  hyper_render_core: ^2.0.0
-  hyper_render_highlight: ^2.0.0
+  hyper_render_core: ^1.0.0
+  hyper_render_highlight: ^1.0.0
 ```
 
 ## Usage

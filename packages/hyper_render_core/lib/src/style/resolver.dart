@@ -1,6 +1,6 @@
 import 'package:flutter/painting.dart';
 
-import '../model/computed_style.dart' hide BorderStyle, TextDirection;
+import '../model/computed_style.dart';
 import '../model/node.dart';
 import '../interfaces/css_parser.dart';
 import 'css_rule_index.dart';
@@ -283,6 +283,7 @@ class StyleResolver {
           style,
           rule.declarations,
           parentFontSize: parentFontSize,
+          inheritedCustomProps: parentStyle.customProperties,
         );
       }
     }
@@ -290,7 +291,12 @@ class StyleResolver {
     // 3. Apply inline styles
     final inlineStyle = node.attributes['style'];
     if (inlineStyle != null && inlineStyle.isNotEmpty) {
-      style = _parseInlineStyle(style, inlineStyle, parentFontSize: parentFontSize);
+      style = _parseInlineStyle(
+        style,
+        inlineStyle,
+        parentFontSize: parentFontSize,
+        inheritedCustomProps: parentStyle.customProperties,
+      );
     }
 
     // 4. Apply !important declarations (win over inline styles, per CSS spec)
@@ -301,6 +307,7 @@ class StyleResolver {
           style,
           rule.importantDeclarations,
           parentFontSize: parentFontSize,
+          inheritedCustomProps: parentStyle.customProperties,
         );
       }
     }
@@ -438,16 +445,14 @@ class StyleResolver {
 
   bool _matchesChildSelector(UDTNode node, String selector) {
     final parts = selector.split(' > ');
-    if (parts.length != 2) return false;
+    if (parts.length < 2) return false;
 
-    final parentSelector = parts[0].trim();
-    final childSelector = parts[1].trim();
+    // Node must match the last (child) part
+    if (!_matchesSimpleSelector(node, parts.last.trim())) return false;
 
-    if (!_matchesSimpleSelector(node, childSelector)) {
-      return false;
-    }
-
+    // Parent must match the rest (supports arbitrary depth)
     if (node.parent == null) return false;
+    final parentSelector = parts.sublist(0, parts.length - 1).join(' > ');
     return _matchesSelector(node.parent!, parentSelector);
   }
 
@@ -558,6 +563,7 @@ class StyleResolver {
     ComputedStyle style,
     Map<String, String> declarations, {
     double? parentFontSize,
+    Map<String, String>? inheritedCustomProps,
   }) {
     for (final entry in declarations.entries) {
       style = _applySingleDeclaration(
@@ -565,6 +571,7 @@ class StyleResolver {
         entry.key,
         entry.value,
         parentFontSize: parentFontSize,
+        inheritedCustomProps: inheritedCustomProps,
       );
     }
     return style;
@@ -575,7 +582,17 @@ class StyleResolver {
     String property,
     String value, {
     double? parentFontSize,
+    Map<String, String>? inheritedCustomProps,
   }) {
+    // CSS Custom Properties (--name: value)
+    if (property.startsWith('--')) {
+      style.customProperties[property] = value;
+      return style;
+    }
+
+    // Resolve var() and calc() references before processing
+    value = _resolveCssValue(value, style.customProperties, inheritedCustomProps);
+
     switch (property) {
       case 'color':
         final color = _parseColor(value);
@@ -718,6 +735,41 @@ class StyleResolver {
           style.markExplicitlySet('clear');
         }
         break;
+
+      // ============================================
+      // CSS Grid Properties
+      // ============================================
+
+      case 'grid-template-columns':
+        style.gridTemplateColumns = value.trim();
+        style.markExplicitlySet('grid-template-columns');
+        break;
+
+      case 'grid-template-rows':
+        style.gridTemplateRows = value.trim();
+        style.markExplicitlySet('grid-template-rows');
+        break;
+
+      case 'grid-auto-flow':
+        style.gridAutoFlow = value.trim().toLowerCase();
+        style.markExplicitlySet('grid-auto-flow');
+        break;
+
+      case 'grid-column':
+        final colParsed = _parseGridLine(value);
+        style.gridColumnStart = colParsed.$1;
+        style.gridColumnEnd = colParsed.$2;
+        style.gridColumnSpan = colParsed.$3;
+        style.markExplicitlySet('grid-column');
+        break;
+
+      case 'grid-row':
+        final rowParsed = _parseGridLine(value);
+        style.gridRowStart = rowParsed.$1;
+        style.gridRowEnd = rowParsed.$2;
+        style.gridRowSpan = rowParsed.$3;
+        style.markExplicitlySet('grid-row');
+        break;
     }
 
     return style;
@@ -727,19 +779,23 @@ class StyleResolver {
     ComputedStyle style,
     String inlineStyle, {
     double? parentFontSize,
+    Map<String, String>? inheritedCustomProps,
   }) {
     final declarations = inlineStyle.split(';');
     for (final decl in declarations) {
-      final parts = decl.split(':');
-      if (parts.length == 2) {
-        final property = parts[0].trim();
-        final value = parts[1].trim();
-        style = _applySingleDeclaration(
-          style,
-          property,
-          value,
-          parentFontSize: parentFontSize,
-        );
+      final colonIdx = decl.indexOf(':');
+      if (colonIdx > 0) {
+        final property = decl.substring(0, colonIdx).trim();
+        final value = decl.substring(colonIdx + 1).trim();
+        if (property.isNotEmpty && value.isNotEmpty) {
+          style = _applySingleDeclaration(
+            style,
+            property,
+            value,
+            parentFontSize: parentFontSize,
+            inheritedCustomProps: inheritedCustomProps,
+          );
+        }
       }
     }
     return style;
@@ -768,6 +824,127 @@ class StyleResolver {
       style.textAlign = parentStyle.textAlign;
     }
     style.whiteSpace ??= parentStyle.whiteSpace;
+
+    // CSS custom properties inherit
+    if (parentStyle.customProperties.isNotEmpty && style.customProperties.isEmpty) {
+      style.customProperties = Map.from(parentStyle.customProperties);
+    }
+  }
+
+  // ============================================
+  // CSS Value Preprocessor (var() and calc())
+  // ============================================
+
+  String _resolveCssValue(
+    String value,
+    Map<String, String> localCustomProps,
+    Map<String, String>? inheritedCustomProps,
+  ) {
+    if (!value.contains('var(') && !value.contains('calc(')) return value;
+    final allProps = <String, String>{};
+    if (inheritedCustomProps != null) allProps.addAll(inheritedCustomProps);
+    allProps.addAll(localCustomProps);
+    value = _resolveVarReferences(value, allProps);
+    if (value.contains('calc(')) {
+      value = _evaluateCalcInValue(value);
+    }
+    return value;
+  }
+
+  String _resolveVarReferences(String value, Map<String, String> customProps) {
+    // Resolve from innermost outward: [^()]+ matches only leaf var() calls
+    for (int i = 0; i < 10; i++) {
+      final resolved = value.replaceAllMapped(
+        RegExp(r'var\(\s*(--[\w-]+)\s*(?:,\s*([^()]+))?\s*\)'),
+        (match) {
+          final propName = match.group(1)!;
+          final fallback = match.group(2)?.trim() ?? '';
+          return customProps[propName] ?? fallback;
+        },
+      );
+      if (resolved == value) break;
+      value = resolved;
+    }
+    return value;
+  }
+
+  String _evaluateCalcInValue(String value) {
+    return value.replaceAllMapped(
+      RegExp(r'calc\(([^)]+)\)'),
+      (match) {
+        final result = _evaluateCalcExpr(match.group(1)!);
+        if (result != null) return '${result}px';
+        return match.group(0)!;
+      },
+    );
+  }
+
+  double? _evaluateCalcExpr(String expr) {
+    expr = expr.trim();
+    final tokenPattern = RegExp(r'(-?[\d.]+)(px|em|rem|%)?\s*|([+\-*/])');
+    final tokens = tokenPattern.allMatches(expr).toList();
+    if (tokens.isEmpty) return null;
+    final values = <double>[];
+    final operators = <String>[];
+    for (final token in tokens) {
+      final numStr = token.group(1);
+      final unit = token.group(2) ?? '';
+      final op = token.group(3);
+      if (numStr != null) {
+        final num = double.tryParse(numStr);
+        if (num == null) return null;
+        double px;
+        switch (unit) {
+          case 'px': case '': px = num; break;
+          case 'em': case 'rem': px = num * 16.0; break;
+          case '%': return null;
+          default: px = num;
+        }
+        values.add(px);
+      } else if (op != null) {
+        operators.add(op);
+      }
+    }
+    if (values.isEmpty || values.length != operators.length + 1) return null;
+    final vals = List<double>.from(values);
+    final ops = List<String>.from(operators);
+    int i = 0;
+    while (i < ops.length) {
+      if (ops[i] == '*') {
+        vals[i] *= vals[i + 1]; vals.removeAt(i + 1); ops.removeAt(i);
+      } else if (ops[i] == '/') {
+        if (vals[i + 1] == 0) return null;
+        vals[i] /= vals[i + 1]; vals.removeAt(i + 1); ops.removeAt(i);
+      } else { i++; }
+    }
+    double result = vals[0];
+    for (int j = 0; j < ops.length; j++) {
+      result += ops[j] == '+' ? vals[j + 1] : -vals[j + 1];
+    }
+    return result;
+  }
+
+  (int, int, int) _parseGridLine(String value) {
+    value = value.trim().toLowerCase();
+    if (value == 'auto') return (0, 0, 1);
+    final spanMatch = RegExp(r'^span\s+(\d+)$').firstMatch(value);
+    if (spanMatch != null) {
+      return (0, 0, int.tryParse(spanMatch.group(1)!) ?? 1);
+    }
+    if (value.contains('/')) {
+      final parts = value.split('/').map((p) => p.trim()).toList();
+      if (parts.length == 2) {
+        final start = int.tryParse(parts[0]) ?? 0;
+        final spanMatch2 = RegExp(r'^span\s+(\d+)$').firstMatch(parts[1]);
+        if (spanMatch2 != null) {
+          return (start, 0, int.tryParse(spanMatch2.group(1)!) ?? 1);
+        }
+        final end = int.tryParse(parts[1]) ?? 0;
+        return (start, end, end > start ? end - start : 1);
+      }
+    }
+    final n = int.tryParse(value) ?? 0;
+    return (n, 0, 1);
   }
 
   // ============================================
@@ -786,31 +963,40 @@ class StyleResolver {
         final g = hex[1] + hex[1];
         final b = hex[2] + hex[2];
         return Color(int.parse('FF$r$g$b', radix: 16));
+      } else if (hex.length == 4) {
+        // CSS Color Level 4: #RGBA → each digit expands to two
+        final r = hex[0] + hex[0];
+        final g = hex[1] + hex[1];
+        final b = hex[2] + hex[2];
+        final a = hex[3] + hex[3];
+        return Color(int.parse('$a$r$g$b', radix: 16));
       } else if (hex.length == 6) {
         return Color(int.parse('FF$hex', radix: 16));
       } else if (hex.length == 8) {
-        return Color(int.parse(hex, radix: 16));
+        // CSS: #RRGGBBAA → Flutter Color: 0xAARRGGBB
+        final r = hex.substring(0, 2);
+        final g = hex.substring(2, 4);
+        final b = hex.substring(4, 6);
+        final a = hex.substring(6, 8);
+        return Color(int.parse('$a$r$g$b', radix: 16));
       }
     }
 
     final rgbMatch = RegExp(r'rgb\((\d+),\s*(\d+),\s*(\d+)\)').firstMatch(value);
     if (rgbMatch != null) {
-      return Color.fromARGB(
-        255,
-        int.parse(rgbMatch.group(1)!),
-        int.parse(rgbMatch.group(2)!),
-        int.parse(rgbMatch.group(3)!),
-      );
+      final r = int.parse(rgbMatch.group(1)!).clamp(0, 255);
+      final g = int.parse(rgbMatch.group(2)!).clamp(0, 255);
+      final b = int.parse(rgbMatch.group(3)!).clamp(0, 255);
+      return Color.fromARGB(255, r, g, b);
     }
 
     final rgbaMatch = RegExp(r'rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)').firstMatch(value);
     if (rgbaMatch != null) {
-      return Color.fromARGB(
-        (double.parse(rgbaMatch.group(4)!) * 255).toInt(),
-        int.parse(rgbaMatch.group(1)!),
-        int.parse(rgbaMatch.group(2)!),
-        int.parse(rgbaMatch.group(3)!),
-      );
+      final r = int.parse(rgbaMatch.group(1)!).clamp(0, 255);
+      final g = int.parse(rgbaMatch.group(2)!).clamp(0, 255);
+      final b = int.parse(rgbaMatch.group(3)!).clamp(0, 255);
+      final alpha = (double.tryParse(rgbaMatch.group(4)!) ?? 1.0).clamp(0.0, 1.0);
+      return Color.fromARGB((alpha * 255).round(), r, g, b);
     }
 
     return _namedColors[value];
@@ -937,7 +1123,8 @@ class StyleResolver {
       return pt != null ? pt * 1.333 : null;
     }
     if (value.endsWith('em')) {
-      return double.tryParse(value.replaceAll('em', ''));
+      final em = double.tryParse(value.replaceAll('em', ''));
+      return em != null ? em * rootFontSize : null;
     }
     if (value == '0') return 0;
 

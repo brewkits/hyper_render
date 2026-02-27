@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>CJK Typography Test - 日本語・한국어・中文</title>
+    <style>
+        body { font-family: 'Noto Sans CJK', 'Hiragino Sans', sans-serif; line-height: 1.8; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { color: #2c3e50; }
+        ruby { ruby-align: center; }
+        rt { font-size: 0.6em; color: #666; }
+        .section { margin: 30px 0; padding: 20px; background: #f9f9f9; border-radius: 8px; }
+    </style>
+</head>
+<body>
+<h1>CJK Typography Test</h1>
+<p>This document tests Japanese, Korean, and Chinese text rendering with proper Kinsoku line-breaking rules.</p>
+
+<div class="section">
+    <h2>日本語 (Japanese) with Ruby/Furigana</h2>
+
+    <h3>Basic Ruby Annotations</h3>
+    <p>
+        <ruby>漢字<rt>かんじ</rt></ruby>は、
+        <ruby>日本語<rt>にほんご</rt></ruby>の
+        <ruby>重要<rt>じゅうよう</rt></ruby>な
+        <ruby>要素<rt>ようそ</rt></ruby>です。
+    </p>
+
+    <h3>Complex Sentence with Furigana</h3>
+    <p>
+        <ruby>私<rt>わたし</rt></ruby>は
+        <ruby>東京<rt>とうきょう</rt></ruby>で
+        <ruby>働<rt>はたら</rt></ruby>いています。
+        <ruby>毎日<rt>まいにち</rt></ruby>
+        <ruby>電車<rt>でんしゃ</rt></ruby>に
+        <ruby>乗<rt>の</rt></ruby>って
+        <ruby>通勤<rt>つうきん</rt></ruby>します。
+    </p>
+
+    <h3>Mixed Hiragana, Katakana, Kanji</h3>
+    <p>
+        これは<ruby>日本語<rt>にほんご</rt></ruby>の<ruby>文章<rt>ぶんしょう</rt></ruby>です。
+        ひらがな、カタカナ、そして<ruby>漢字<rt>かんじ</rt></ruby>が
+        <ruby>混<rt>ま</rt></ruby>ざっています。
+        HyperRenderは<ruby>正<rt>ただ</rt></ruby>しく<ruby>表示<rt>ひょうじ</rt></ruby>できます。
+    </p>
+
+    <h3>Kinsoku Shori (Line-Breaking Rules)</h3>
+    <p>
+        日本語の禁則処理のテスト。句読点「。、」や括弧「（）」が行頭に来ないようにします。
+        また、開き括弧「（」や引用符「"」は行末に来ません。
+        これらのルールを適切に処理することで、美しい日本語組版が実現できます。
+    </p>
+</div>
+
+<div class="section">
+    <h2>한국어 (Korean) Text</h2>
+
+    <h3>Basic Korean Sentence</h3>
+    <p>
+        안녕하세요. 저는 한국어를 공부하고 있습니다.
+        한글은 매우 과학적인 문자 체계입니다.
+    </p>
+
+    <h3>Mixed Korean and Hanja</h3>
+    <p>
+        韓國語(한국어)는 朝鮮半島(조선반도)에서 사용되는 言語(언어)입니다.
+        漢字(한자)와 한글이 함께 사용됩니다.
+    </p>
+
+    <h3>Korean Line-Breaking</h3>
+    <p>
+        한국어도 고유한 줄바꿈 규칙이 있습니다. 마침표나 쉼표는 행의 앞에 오지 않으며,
+        여는 괄호는 행의 끝에 오지 않습니다. HyperRender는 이러한 규칙을 지원합니다.
+    </p>
+</div>
+
+<div class="section">
+    <h2>中文 (Chinese) Text</h2>
+
+    <h3>Simplified Chinese (简体中文)</h3>
+    <p>
+        这是简体中文的测试文本。汉字是中文书写系统的基础。
+        HyperRender支持正确的中文排版和断行规则。
+    </p>
+
+    <h3>Traditional Chinese (繁體中文)</h3>
+    <p>
+        這是繁體中文的測試文本。漢字是中文書寫系統的基礎。
+        HyperRender支持正確的中文排版和斷行規則。
+    </p>
+
+    <h3>Chinese Punctuation</h3>
+    <p>
+        中文标点符号包括：句号「。」、逗号「，」、问号「？」、感叹号「！」、
+        引号「『』」等。这些标点符号有特殊的排版规则。
+    </p>
+
+    <h3>Mixed Chinese and English</h3>
+    <p>
+        中文和English可以混合使用。HyperRender能够正确处理CJK文字和Latin字母的混排，
+        并在适当的位置进行断行。这对于技术文档和现代网页内容非常重要。
+    </p>
+</div>
+
+<div class="section">
+    <h2>Mixed CJK Content</h2>
+
+    <h3>Japanese-English</h3>
+    <p>
+        <ruby>日本語<rt>にほんご</rt></ruby>とEnglishの
+        <ruby>混在<rt>こんざい</rt></ruby>。
+        HyperRenderはmixed contentを
+        <ruby>正確<rt>せいかく</rt></ruby>に
+        renderingできます。
+    </p>
+
+    <h3>Korean-English</h3>
+    <p>
+        한국어와 English의 혼용. HyperRender는 mixed content를 정확하게 rendering할 수 있습니다.
+    </p>
+
+    <h3>Chinese-English</h3>
+    <p>
+        中文和English的混合。HyperRender可以准确地rendering混合内容。
+    </p>
+</div>
+
+<div class="section">
+    <h2>Typography Features</h2>
+
+    <h3>Vertical Text (Future)</h3>
+    <p>
+        縦書き（たてがき）は将来のバージョンでサポート予定です。
+        現在は横書き（よこがき）のみ対応しています。
+    </p>
+
+    <h3>CJK Character Widths</h3>
+    <p>
+        全角文字（Full-width）：あいうえお、アイウエオ、漢字
+        <br>
+        半角文字（Half-width）：ｱｲｳｴｵ、123、ABC
+    </p>
+
+    <h3>Long Text Wrapping Test</h3>
+    <p>
+        これは長いテキストの折り返しをテストするための文章です。
+        日本語の文章は、適切な位置で改行される必要があります。
+        禁則処理により、句読点や括弧が不適切な位置に配置されることを防ぎます。
+        HyperRenderは、美しい日本語組版を実現するため、Kinsoku Shoriを実装しています。
+        これにより、プロフェッショナルな品質の文字レイアウトが可能になります。
+    </p>
+</div>
+
+<p style="text-align: center; margin-top: 40px; color: #666;">
+    <em>HyperRender: Professional CJK Typography Support</em>
+</p>
+
+</body>
+</html>

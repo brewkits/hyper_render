@@ -234,6 +234,74 @@ void main() {
       });
     });
 
+    group('Media Support (video/audio)', () {
+      test('keeps video tag with src and controls', () {
+        const html = '<video src="v.mp4" controls width="320" height="180"></video>';
+        final result = HtmlSanitizer.sanitize(html);
+
+        expect(result, contains('video'));
+        expect(result, contains('src'));
+        expect(result, contains('controls'));
+      });
+
+      test('keeps audio tag', () {
+        const html = '<audio src="a.mp3" controls></audio>';
+        final result = HtmlSanitizer.sanitize(html);
+
+        expect(result, contains('audio'));
+        expect(result, contains('src'));
+      });
+
+      test('keeps poster attribute on video', () {
+        const html = '<video src="v.mp4" poster="p.jpg"></video>';
+        final result = HtmlSanitizer.sanitize(html);
+
+        expect(result, contains('poster'));
+        expect(result, contains('p.jpg'));
+      });
+
+      test('keeps source tag inside video', () {
+        const html = '<video><source src="v.mp4" type="video/mp4"></video>';
+        final result = HtmlSanitizer.sanitize(html);
+
+        expect(result, contains('source'));
+      });
+
+      test('keeps autoplay, muted, loop on video', () {
+        const html = '<video src="v.mp4" autoplay muted loop></video>';
+        final result = HtmlSanitizer.sanitize(html);
+
+        expect(result, contains('autoplay'));
+        expect(result, contains('muted'));
+        expect(result, contains('loop'));
+      });
+
+      test('strips event handlers from video', () {
+        const html = '<video src="v.mp4" onclick="evil()" onerror="bad()"></video>';
+        final result = HtmlSanitizer.sanitize(html);
+
+        expect(result, isNot(contains('onclick')));
+        expect(result, isNot(contains('onerror')));
+        expect(result, contains('video'));
+      });
+
+      test('strips javascript: src from video', () {
+        const html = '<video src="javascript:alert(1)"></video>';
+        final result = HtmlSanitizer.sanitize(html);
+
+        expect(result, isNot(contains('javascript:')));
+      });
+
+      test('keeps figure and figcaption', () {
+        const html = '<figure><img src="i.jpg"><figcaption>Caption</figcaption></figure>';
+        final result = HtmlSanitizer.sanitize(html);
+
+        expect(result, contains('figure'));
+        expect(result, contains('figcaption'));
+        expect(result, contains('Caption'));
+      });
+    });
+
     group('Danger Detection', () {
       test('detects script tags', () {
         const html = '<p>Hello</p><script>alert(1)</script>';

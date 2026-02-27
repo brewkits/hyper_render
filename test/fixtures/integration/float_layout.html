@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CSS Float Layout Test</title>
+    <style>
+        body { font-family: Georgia, serif; line-height: 1.8; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .float-left { float: left; margin: 0 20px 20px 0; }
+        .float-right { float: right; margin: 0 0 20px 20px; }
+        .clear { clear: both; }
+        img { max-width: 300px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+<h1>CSS Float Layout Test</h1>
+
+<h2>Float Left Example</h2>
+<img src="https://picsum.photos/300/200?random=1" class="float-left" alt="Float left">
+<p>This paragraph demonstrates float left behavior. The image floats to the left side and the text wraps around it naturally. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+<p>The text continues to flow around the floated element. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+<p class="clear">This paragraph clears the float and starts on a new line below the image.</p>
+
+<h2>Float Right Example</h2>
+<img src="https://picsum.photos/300/200?random=2" class="float-right" alt="Float right">
+<p>This demonstrates float right. The image floats to the right and text flows on the left side. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+<p>Multiple paragraphs can wrap around a floated element. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+<p class="clear">Cleared paragraph starts fresh.</p>
+
+<h2>Magazine-Style Layout</h2>
+<img src="https://picsum.photos/250/150?random=3" style="float: left; margin: 0 15px 15px 0; border-radius: 4px;">
+<p><strong>Lead paragraph</strong> with floated image. This is a common magazine-style layout where an image floats within the content and text naturally wraps around it. The layout adjusts fluidly based on available space.</p>
+<p>Continuation of the article with more detailed content that flows naturally around the floated element. This tests HyperRender's unique CSS float support.</p>
+<div style="clear: both;"></div>
+
+<h2>Video Float (Placeholder)</h2>
+<div style="float: right; width: 300px; height: 200px; background: #e0e0e0; margin: 0 0 20px 20px; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+    <span style="color: #666;">Video Placeholder</span>
+</div>
+<p>This demonstrates floating a video or iframe element. The placeholder represents where a video player would be rendered. Text flows around it just like with images.</p>
+<p>HyperRender is unique in supporting CSS float for media elements, making magazine-style layouts possible in Flutter.</p>
+<p style="clear: both;">Content after clearing the float.</p>
+
+</body>
+</html>

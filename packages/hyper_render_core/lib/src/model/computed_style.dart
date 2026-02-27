@@ -373,6 +373,45 @@ class ComputedStyle {
   HyperAnimationFillMode animationFillMode;
 
   // ============================================
+  // CSS Custom Properties (variables)
+  // ============================================
+
+  /// CSS custom properties defined on this element (--name: value)
+  /// Also contains inherited custom properties from parent elements.
+  Map<String, String> customProperties = {};
+
+  // ============================================
+  // Grid Layout Properties
+  // ============================================
+
+  /// CSS grid-template-columns (e.g. "1fr 2fr auto")
+  String? gridTemplateColumns;
+
+  /// CSS grid-template-rows
+  String? gridTemplateRows;
+
+  /// CSS grid-auto-flow ("row" | "column" | "dense")
+  String? gridAutoFlow;
+
+  /// CSS grid-column-start for grid items
+  int gridColumnStart = 0;
+
+  /// CSS grid-column-end for grid items
+  int gridColumnEnd = 0;
+
+  /// CSS grid-row-start for grid items
+  int gridRowStart = 0;
+
+  /// CSS grid-row-end for grid items
+  int gridRowEnd = 0;
+
+  /// CSS grid-column span shorthand
+  int gridColumnSpan = 1;
+
+  /// CSS grid-row span shorthand
+  int gridRowSpan = 1;
+
+  // ============================================
   // Table-specific Properties
   // ============================================
 
@@ -502,17 +541,22 @@ class ComputedStyle {
   /// Only inherit properties that are not explicitly set (null) in child
   void inheritFrom(ComputedStyle parent) {
     // Text properties that inherit (only if not already set)
-    color ??= parent.color;
-    fontSize ??= parent.fontSize;
-    fontWeight ??= parent.fontWeight;
-    fontStyle ??= parent.fontStyle;
+    color = parent.color;
+    fontSize = parent.fontSize;
+    fontWeight = parent.fontWeight;
+    fontStyle = parent.fontStyle;
     fontFamily ??= parent.fontFamily;
     lineHeight ??= parent.lineHeight;
     letterSpacing ??= parent.letterSpacing;
     wordSpacing ??= parent.wordSpacing;
-    textAlign ??= parent.textAlign;
+    textAlign = parent.textAlign;
     whiteSpace ??= parent.whiteSpace;
     listStyleType ??= parent.listStyleType;
+
+    // CSS custom properties are inherited — merge parent's into this element's map
+    final merged = Map<String, String>.from(parent.customProperties);
+    merged.addAll(customProperties);
+    customProperties = merged;
 
     // Note: margin, padding, border DO NOT inherit
   }
@@ -580,10 +624,14 @@ class ComputedStyle {
     );
   }
 
-  /// Default style matching browser defaults with improved readability
-  /// lineHeight: 1.5 is recommended for better readability
-  static ComputedStyle get defaultStyle => ComputedStyle(
-        fontSize: 14.0, // Default body text size
-        lineHeight: 1.7, // Generous line height for comfortable reading
-      );
+  /// Default style matching browser defaults with improved readability.
+  ///
+  /// Declared as `static final` (not a getter) so it is constructed exactly
+  /// once. The resolver compares against this instance 5 times per element;
+  /// a getter would silently allocate a fresh object on every comparison,
+  /// creating thousands of short-lived ComputedStyle instances for large docs.
+  static final ComputedStyle defaultStyle = ComputedStyle(
+    fontSize: 14.0, // Default body text size
+    lineHeight: 1.7, // Generous line height for comfortable reading
+  );
 }

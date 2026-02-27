@@ -18,7 +18,10 @@ class ImprovedVideoDemo extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Video & Media Demo (Improved)'),
+        centerTitle: false,
         backgroundColor: Colors.red.shade700,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -29,8 +32,8 @@ class ImprovedVideoDemo extends StatelessWidget {
 
           // Video with poster
           _buildSection(
-            title: '1. Video với Poster Image',
-            description: 'Tap video để mở trong trình phát ngoài (browser/video player)',
+            title: '1. Video with Poster Image',
+            description: 'Tap video to open in external player (browser/video player)',
             child: HyperViewer(
               html: '''
                 <video
@@ -55,8 +58,8 @@ class ImprovedVideoDemo extends StatelessWidget {
 
           // Video without poster
           _buildSection(
-            title: '2. Video không có Poster',
-            description: 'Hiển thị placeholder mặc định với play button',
+            title: '2. Video without Poster',
+            description: 'Shows default placeholder with play button',
             child: HyperViewer(
               html: '''
                 <video
@@ -81,7 +84,7 @@ class ImprovedVideoDemo extends StatelessWidget {
           // Multiple videos in grid
           _buildSection(
             title: '3. Video Grid Layout',
-            description: 'Nhiều video trong lưới - responsive layout',
+            description: 'Multiple videos in grid - responsive layout',
             child: HyperViewer(
               html: '''
                 <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
@@ -124,8 +127,8 @@ class ImprovedVideoDemo extends StatelessWidget {
 
           // Floated video with text wrapping
           _buildSection(
-            title: '4. Float Layout với Video (Unique Feature!)',
-            description: 'Video float left với text wrapping - tính năng độc quyền của HyperRender',
+            title: '4. Float Layout with Video (Unique Feature!)',
+            description: 'Video float left with text wrapping - unique feature of HyperRender',
             child: HyperViewer(
               html: '''
                 <h2>Article with Floated Video</h2>
@@ -192,7 +195,7 @@ class ImprovedVideoDemo extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Tap vào video để phát trong trình phát ngoài',
+                        'Tap video to play in external player',
                         style: TextStyle(fontSize: 12),
                       ),
                     ],
@@ -273,7 +276,7 @@ class ImprovedVideoDemo extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Video sẽ được mở trong trình phát ngoài (browser hoặc video player app).'),
+                const Text('Video will be opened in external player (browser or video player app).'),
                 const SizedBox(height: 12),
                 Text(
                   'URL: ${mediaInfo.src}',
@@ -302,28 +305,21 @@ class ImprovedVideoDemo extends StatelessWidget {
         if (shouldOpen == true) {
           try {
             final uri = Uri.parse(mediaInfo.src);
-            if (await canLaunchUrl(uri)) {
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
-
-              // Show success message
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Video opened in external player'),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            } else {
-              throw Exception('Cannot launch URL');
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Video opened in external player'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
             }
           } catch (e) {
-            // Show error message
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('❌ Error: ${e.toString()}'),
+                  content: Text('Cannot open video: ${e.toString()}'),
                   backgroundColor: Colors.red,
                   duration: const Duration(seconds: 3),
                 ),

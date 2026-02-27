@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
-import 'package:hyper_render_core/src/style/design_tokens.dart';
-import 'package:hyper_render_core/src/widgets/loading_skeleton.dart';
+import 'package:hyper_render_core/hyper_render_core.dart'
+    show DesignTokens, SkeletonParagraph, SkeletonListItem, SkeletonCard;
 
-/// v2.1.0 Features Showcase
-/// Demonstrates all new features in version 2.1.0
+/// Advanced Features Showcase
+/// Demonstrates Error Boundaries, Performance, Dark Mode, Skeletons, Animations
 class V21Showcase extends StatefulWidget {
   const V21Showcase({super.key});
 
@@ -35,8 +35,11 @@ class _V21ShowcaseState extends State<V21Showcase>
       data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('v2.1.0 Features Showcase'),
-          backgroundColor: Colors.purple.shade700,
+          title: const Text('Advanced Features Showcase'),
+          centerTitle: false,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
           actions: [
             // Dark mode toggle
             IconButton(
@@ -146,7 +149,7 @@ class _ErrorBoundariesDemoState extends State<_ErrorBoundariesDemo> {
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('NEW in v2.1.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('ErrorBoundaryNode - catches parsing errors'),
                 _buildFeatureItem('HyperErrorWidget - beautiful error UI'),
@@ -343,7 +346,7 @@ class _PerformanceMonitoringDemoState
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('NEW in v2.1.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('PerformanceMonitor class'),
                 _buildFeatureItem('P95/P99 percentile tracking'),
@@ -615,7 +618,7 @@ if (darkMode) {
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('NEW in v2.1.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('27 context-aware color methods'),
                 _buildFeatureItem('Automatic theme detection'),
@@ -805,7 +808,7 @@ class _LoadingSkeletonsDemoState extends State<_LoadingSkeletonsDemo> {
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('NEW in v2.1.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('LoadingSkeleton widget'),
                 _buildFeatureItem('Pre-built patterns (Card, List, Grid)'),
@@ -1006,7 +1009,7 @@ class _DesignTokensDemo extends StatelessWidget {
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('NEW in v2.1.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('Typography scale (Display to Label)'),
                 _buildFeatureItem('8pt grid spacing system'),
@@ -1258,7 +1261,7 @@ class _AnimationsDemo extends StatelessWidget {
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('NEW in v2.1.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('AnimatedSize for expand/collapse'),
                 _buildFeatureItem('AnimatedRotation for icons'),

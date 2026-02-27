@@ -30,7 +30,7 @@ class HtmlSanitizer {
     'abbr', 'time',
 
     // Links and media
-    'a', 'img',
+    'a', 'img', 'video', 'audio', 'source', 'track', 'picture', 'figure', 'figcaption',
 
     // Ruby annotations (CJK)
     'ruby', 'rt', 'rp',
@@ -70,6 +70,9 @@ class HtmlSanitizer {
     'colspan', 'rowspan', 'headers', 'scope',
     'open',
     'datetime', 'cite',
+    // Media attributes
+    'controls', 'autoplay', 'loop', 'muted', 'poster', 'preload',
+    'type', 'media', 'kind', 'srclang', 'label', 'default',
   ];
 
   /// Sanitize [html] by walking the parsed DOM tree.
@@ -88,6 +91,11 @@ class HtmlSanitizer {
   }) {
     final allowed = allowedTags ?? defaultAllowedTags;
     final allowedAttrs = allowedAttributes ?? defaultAllowedAttributes;
+
+    // Strip null bytes — browsers interpret <script\x00> as NOT a <script> tag,
+    // letting the content through a tag-name check.  Remove them first.
+    // ignore: parameter_assignments
+    html = html.replaceAll('\x00', '');
 
     // parseFragment avoids wrapping in <html><body> — gives us back only the
     // supplied markup as a DocumentFragment.
@@ -183,6 +191,17 @@ class HtmlSanitizer {
           toRemove.add(entry.key);
         }
       }
+
+      // Strip style attributes containing CSS expression() or javascript:.
+      // expression() is an IE-era attack; javascript: can appear in url().
+      if (name == 'style') {
+        final styleVal = entry.value.toLowerCase();
+        if (styleVal.contains('expression(') ||
+            styleVal.contains('javascript:')) {
+          toRemove.add(entry.key);
+          continue;
+        }
+      }
     }
 
     for (final key in toRemove) {
@@ -190,10 +209,16 @@ class HtmlSanitizer {
     }
   }
 
-  /// Returns `false` for `javascript:` and non-image `data:` URLs.
+  /// Returns `false` for dangerous URL schemes.
+  ///
+  /// Blocked: `javascript:`, `vbscript:`, `data:image/svg` (SVG can embed
+  /// `<script>`), and any non-image `data:` URL.
   static bool _isSafeUrl(String url) {
     final trimmed = url.trim().toLowerCase();
     if (trimmed.startsWith('javascript:')) return false;
+    if (trimmed.startsWith('vbscript:')) return false;
+    // Block SVG data URLs — inline SVG can contain <script> elements.
+    if (trimmed.startsWith('data:image/svg')) return false;
     if (trimmed.startsWith('data:') && !trimmed.startsWith('data:image/')) {
       return false;
     }
@@ -209,6 +234,8 @@ class HtmlSanitizer {
       if (lower.contains('<$tag')) return true;
     }
     if (lower.contains('javascript:')) return true;
+    if (lower.contains('vbscript:')) return true;
+    if (lower.contains('expression(')) return true;
     for (final attr in dangerousAttributes) {
       if (lower.contains('$attr=')) return true;
     }

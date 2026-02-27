@@ -18,6 +18,15 @@ import 'enhanced_selection_demo.dart';
 import 'fwfh_issues_test_demo.dart';
 import 'css_properties_demo.dart';
 import 'flexbox_demo.dart';
+import 'aesthetic_demo.dart';
+import 'demo_colors.dart';
+import 'performance_deep_dive_demo.dart';
+import 'animation_demo.dart';
+import 'base_url_demo.dart';
+import 'sprint3_demo.dart';
+import 'html_heuristics_demo.dart';
+import 'smart_table_demo.dart';
+import 'formula_demo.dart';
 
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
@@ -70,8 +79,12 @@ class DemoHomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('HyperRender Demo'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        centerTitle: false,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
+      backgroundColor: const Color(0xFFF5F5F7),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -81,8 +94,8 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.auto_awesome,
             title: 'Kitchen Sink',
-            subtitle: 'Tất cả features: Float, Selection, Ruby, Widget Injection',
-            color: Colors.purple,
+            subtitle: 'All features: Float, Selection, Ruby, Widget Injection',
+            color: DemoColors.primary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const KitchenSinkDemo()),
@@ -93,7 +106,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.view_column,
             title: 'Flexbox Layout',
             subtitle: 'Modern CSS Flexbox: justify-content, align-items, gap, flex-direction, flex-wrap (90% coverage)',
-            color: Colors.deepPurple,
+            color: DemoColors.primary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const FlexboxDemo()),
@@ -103,8 +116,8 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.view_quilt,
             title: 'Float Layout',
-            subtitle: 'CSS float: left/right - Văn bản bao quanh ảnh',
-            color: Colors.blue,
+            subtitle: 'CSS float: left/right - Text wrapping around images',
+            color: DemoColors.primary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const FloatLayoutDemo()),
@@ -115,7 +128,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.select_all,
             title: 'Text Selection (Enhanced ⭐)',
             subtitle: 'Rich menu: Copy, Share, Search, Translate, Define...',
-            color: Colors.green,
+            color: DemoColors.secondary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const EnhancedSelectionDemo()),
@@ -125,8 +138,8 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.translate,
             title: 'Ruby Annotation',
-            subtitle: '振り仮名 (Furigana) cho tiếng Nhật/Trung',
-            color: Colors.orange,
+            subtitle: '振り仮名 (Furigana) for Japanese/Chinese',
+            color: DemoColors.secondary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const RubyDemo()),
@@ -136,8 +149,8 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.widgets,
             title: 'Widget Injection',
-            subtitle: 'Nhúng Flutter Widget vào HTML',
-            color: Colors.pink,
+            subtitle: 'Embed Flutter Widgets in HTML',
+            color: DemoColors.secondary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const WidgetInjectionDemo()),
@@ -147,8 +160,8 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.format_paint,
             title: 'Inline Decoration',
-            subtitle: 'Background, border wrap đúng khi xuống dòng',
-            color: Colors.teal,
+            subtitle: 'Background and border wrap correctly on line breaks',
+            color: DemoColors.secondary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const InlineDecorationDemo()),
@@ -158,8 +171,8 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.article,
             title: 'Real Content',
-            subtitle: 'Blog post, novel với full features',
-            color: Colors.indigo,
+            subtitle: 'Blog post and novel with full features',
+            color: DemoColors.primary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const RealContentDemo()),
@@ -170,7 +183,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.table_chart,
             title: 'Table Demos',
             subtitle: 'Simple, wide, complex, and nested tables',
-            color: Colors.brown,
+            color: DemoColors.primary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const TableDemo()),
@@ -181,7 +194,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.code,
             title: 'Code Blocks',
             subtitle: 'Syntax highlighting with <pre><code> elements',
-            color: Colors.deepPurple,
+            color: DemoColors.accent,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const CodeBlockDemo()),
@@ -192,7 +205,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.broken_image,
             title: 'Image Handling',
             subtitle: 'Automatic loading/error states for images',
-            color: Colors.cyan,
+            color: DemoColors.warning,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ImageHandlingDemo()),
@@ -203,7 +216,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.play_circle_filled,
             title: 'Video & Media (IMPROVED ⭐)',
             subtitle: 'Functional video playback - Tap to play externally',
-            color: Colors.red,
+            color: DemoColors.warning,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ImprovedVideoDemo()),
@@ -214,7 +227,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.zoom_in,
             title: 'Zoom & Pan',
             subtitle: 'Pinch-to-zoom and pan gestures with InteractiveViewer',
-            color: Colors.lightBlue,
+            color: DemoColors.warning,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ZoomDemo()),
@@ -227,7 +240,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.data_object,
             title: 'Quill Delta',
             subtitle: 'Render Quill Delta JSON format (from Quill.js editor)',
-            color: Colors.amber,
+            color: DemoColors.accent,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const QuillDeltaDemo()),
@@ -238,7 +251,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.text_snippet,
             title: 'Markdown',
             subtitle: 'Render Markdown content',
-            color: Colors.blueGrey,
+            color: DemoColors.accent,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const MarkdownDemo()),
@@ -251,8 +264,8 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.compare,
             title: 'Library Comparison',
             subtitle:
-                'So sánh với flutter_html, flutter_widget_from_html',
-            color: Colors.deepOrange,
+                'Compare with flutter_html and flutter_widget_from_html',
+            color: DemoColors.success,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const LibraryComparisonDemo()),
@@ -263,7 +276,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.bug_report,
             title: 'FWFH Issues Test ⭐',
             subtitle: 'Test features that flutter_widget_from_html struggles with',
-            color: Colors.red,
+            color: DemoColors.success,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const FWFHIssuesTestDemo()),
@@ -273,21 +286,33 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.speed,
             title: 'Stress Test',
-            subtitle: 'Test với sách 1000 trang - Đo performance',
-            color: Colors.red,
+            subtitle: 'Test with 1000-page book - Measure performance',
+            color: DemoColors.error,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const StressTestDemo()),
             ),
           ),
+          _buildDemoCard(
+            context,
+            icon: Icons.insights,
+            title: 'Performance Deep Dive ⚡',
+            subtitle: 'Pipeline breakdown, Isolate parsing, CSS indexing, Memory',
+            color: DemoColors.success,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const PerformanceDeepDiveDemo()),
+            ),
+          ),
           const SizedBox(height: 16),
-          _buildSectionHeader(context, '🎉 NEW in v2.1.0'),
+          _buildSectionHeader(context, '⚙️ Advanced Features'),
           _buildDemoCard(
             context,
             icon: Icons.new_releases,
-            title: 'v2.1.0 Features Showcase',
+            title: 'Advanced Features Showcase',
             subtitle: 'Error Boundaries, Performance, Dark Mode, Skeletons, Animations',
-            color: Colors.purple,
+            color: DemoColors.secondary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const V21Showcase()),
@@ -297,8 +322,8 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.security,
             title: 'Security Demo (XSS Protection)',
-            subtitle: 'HTML Sanitization - Chống tấn công XSS',
-            color: Colors.red,
+            subtitle: 'HTML Sanitization - XSS attack prevention',
+            color: DemoColors.error,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SecurityDemo()),
@@ -309,7 +334,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.accessibility,
             title: 'Accessibility Demo (A11y)',
             subtitle: 'Screen reader support - VoiceOver & TalkBack',
-            color: Colors.green,
+            color: DemoColors.success,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AccessibilityDemo()),
@@ -317,13 +342,90 @@ class DemoHomePage extends StatelessWidget {
           ),
           _buildDemoCard(
             context,
+            icon: Icons.auto_awesome,
+            title: 'Aesthetic Quality Demo ✨',
+            subtitle: 'Crisp images, anti-aliased borders, smooth gradients, text shadows',
+            color: DemoColors.secondary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AestheticDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
             icon: Icons.style,
             title: 'CSS Properties Showcase ⭐',
-            subtitle: 'text-shadow, text-overflow, border-style, direction, và hơn 60+ properties',
-            color: Colors.blue,
+            subtitle: 'text-shadow, text-overflow, border-style, direction, and 60+ properties',
+            color: DemoColors.primary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const CssPropertiesDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.animation,
+            title: 'Widget Animations',
+            subtitle: 'Fade, slide, bounce animations (CSS animations planned)',
+            color: DemoColors.accent,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AnimationDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.link,
+            title: 'Base URL & Links',
+            subtitle: 'Relative URL resolution and link tap handling',
+            color: DemoColors.secondary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const BaseUrlDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.rocket_launch,
+            title: 'CSS Variables, Grid & More ✨',
+            subtitle: 'CSS Variables, Grid, calc(), SVG, RTL/BiDi, Screenshot export',
+            color: DemoColors.accent,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const Sprint3Demo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.auto_fix_high,
+            title: 'HTML Heuristics & Fallback',
+            subtitle: 'Detect complex HTML and use WebView fallback when needed',
+            color: DemoColors.warning,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HtmlHeuristicsDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.table_chart,
+            title: 'SmartTable & TableStrategy',
+            subtitle: 'W3C 2-pass layout, fitWidth / horizontalScroll / autoScale',
+            color: Colors.teal,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SmartTableDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.calculate,
+            title: 'Formula / LaTeX Rendering',
+            subtitle: 'Greek letters, physics formulas, Quill Delta embeds, custom builder',
+            color: DemoColors.secondary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FormulaDemo()),
             ),
           ),
         ],
@@ -332,54 +434,77 @@ class DemoHomePage extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.indigo.shade700, Colors.purple.shade600],
+          colors: [primary, Color.lerp(primary, Colors.purple.shade800, 0.55)!],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: primary.withValues(alpha: 0.35),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(Icons.rocket_launch, color: Colors.white, size: 40),
-              SizedBox(width: 16),
-              Expanded(
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.rocket_launch, color: Colors.white, size: 30),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'HyperRender',
                       style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
                         color: Colors.white,
+                        letterSpacing: -0.5,
                       ),
                     ),
+                    SizedBox(height: 2),
                     Text(
                       'Universal Content Engine for Flutter',
-                      style: TextStyle(fontSize: 14, color: Colors.white70),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white70,
+                        letterSpacing: 0.1,
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _buildChip('Float Layout'),
-              _buildChip('Selection'),
-              _buildChip('Ruby'),
-              _buildChip('Kinsoku'),
-              _buildChip('Widget Injection'),
+              _buildChip('Float Layout', Icons.view_quilt_rounded),
+              _buildChip('Text Selection', Icons.select_all_rounded),
+              _buildChip('Ruby', Icons.translate_rounded),
+              _buildChip('Flexbox', Icons.view_column_rounded),
+              _buildChip('Widget Injection', Icons.widgets_rounded),
             ],
           ),
         ],
@@ -387,27 +512,50 @@ class DemoHomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildChip(String label) {
+  Widget _buildChip(String label, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
       ),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 13),
+          const SizedBox(width: 5),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
+        ],
+      ),
     );
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
+    final primary = Theme.of(context).colorScheme.primary;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12, top: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey.shade700,
-        ),
+      padding: const EdgeInsets.only(bottom: 12, top: 16),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(
+              color: primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: primary,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -420,36 +568,68 @@ class DemoHomePage extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 24),
                 ),
-                child: Icon(icon, color: color, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(subtitle, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
-                  ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A2E),
+                          letterSpacing: -0.1,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade500,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Icon(Icons.chevron_right, color: Colors.grey.shade400),
-            ],
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300, size: 22),
+              ],
+            ),
           ),
         ),
       ),
@@ -482,15 +662,15 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
   <div style="margin: 16px 0;">
     <img src="https://picsum.photos/100/100?random=1" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px;" />
     <p style="margin: 0;">
-      Đây là ví dụ về <strong style="color: #E91E63;">Float Layout</strong>. Văn bản này sẽ tự động
-      bao quanh hình ảnh bên trái. HyperRender sử dụng thuật toán IFC giống như trình duyệt web.
+      This is an example of <strong style="color: #E91E63;">Float Layout</strong>. This text will automatically
+      wrap around the image on the left. HyperRender uses the IFC algorithm like web browsers.
     </p>
   </div>
   <div style="clear: both; height: 16px;"></div>
 
   <h2 style="color: #9C27B0; border-left: 4px solid #9C27B0; padding-left: 12px;">2. Widget Injection</h2>
   <div style="text-align: center; margin: 16px 0; padding: 16px; background: #FFF3E0; border-radius: 12px;">
-    <p style="margin: 0 0 12px 0; font-weight: bold;">🔔 Subscribe để nhận thông báo!</p>
+    <p style="margin: 0 0 12px 0; font-weight: bold;">🔔 Subscribe to receive notifications!</p>
     <subscribe-button></subscribe-button>
   </div>
 
@@ -504,8 +684,8 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
 
   <h2 style="color: #607D8B; border-left: 4px solid #607D8B; padding-left: 12px;">4. Text Selection</h2>
   <div style="background: #ECEFF1; padding: 16px; border-radius: 12px;">
-    <p style="margin: 0;">👆 <strong>Long press</strong> trên văn bản để hiện menu Copy!</p>
-    <p style="margin: 8px 0 0 0;">Hoặc kéo để bôi đen, sau đó long press để copy.</p>
+    <p style="margin: 0;">👆 <strong>Long press</strong> on text to show Copy menu!</p>
+    <p style="margin: 8px 0 0 0;">Or drag to select, then long press to copy.</p>
   </div>
 </div>
 ''';
@@ -513,7 +693,11 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Kitchen Sink Demo')),
+      appBar: AppBar(
+        title: const Text('Kitchen Sink Demo'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: HyperViewer(
@@ -536,10 +720,10 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
     return ElevatedButton.icon(
       onPressed: () {
         setState(() => isSubscribed ? _subscribeCount-- : _subscribeCount++);
-        _showSnackBar(isSubscribed ? '🔕 Đã hủy đăng ký' : '🔔 Đã đăng ký!');
+        _showSnackBar(isSubscribed ? '🔕 Unsubscribed' : '🔔 Subscribed!');
       },
       icon: Icon(isSubscribed ? Icons.notifications_off : Icons.notifications_active),
-      label: Text(isSubscribed ? 'Đã đăng ký' : 'Subscribe'),
+      label: Text(isSubscribed ? 'Subscribed' : 'Subscribe'),
       style: ElevatedButton.styleFrom(
         backgroundColor: isSubscribed ? Colors.grey : Colors.redAccent,
         foregroundColor: Colors.white,
@@ -596,13 +780,13 @@ class FloatLayoutDemo extends StatelessWidget {
   <div style="margin: 16px 0;">
     <img src="https://picsum.photos/120/120?random=10" style="float: left; width: 120px; height: 120px; margin: 0 16px 8px 0; border-radius: 12px;" />
     <p>
-      Đây là ví dụ về <strong>float: left</strong>. Văn bản sẽ tự động bao quanh hình ảnh bên trái.
-      Khi văn bản đủ dài, nó sẽ tiếp tục xuống dưới hình ảnh một cách tự nhiên. Đây là tính năng
-      mà flutter_html và flutter_widget_from_html KHÔNG hỗ trợ.
+      This is an example of <strong>float: left</strong>. Text will automatically wrap around the image on the left.
+      When the text is long enough, it will continue below the image naturally. This is a feature
+      that flutter_html and flutter_widget_from_html do NOT support.
     </p>
     <p>
-      HyperRender sử dụng thuật toán IFC (Inline Formatting Context) giống như trình duyệt web thực sự
-      để tính toán khoảng trống còn lại của từng dòng và lấp đầy nó bằng các Fragment văn bản.
+      HyperRender uses the IFC (Inline Formatting Context) algorithm like real web browsers
+      to calculate the remaining space of each line and fill it with text fragments.
     </p>
   </div>
 
@@ -612,11 +796,11 @@ class FloatLayoutDemo extends StatelessWidget {
   <div style="margin: 16px 0;">
     <img src="https://picsum.photos/100/100?random=11" style="float: right; width: 100px; height: 100px; margin: 0 0 8px 16px; border-radius: 50%;" />
     <p>
-      Float cũng hoạt động ở <strong>bên phải</strong>! Hình tròn này float right và văn bản
-      sẽ lấp đầy khoảng trống bên trái một cách tự nhiên.
+      Float also works on the <strong>right side</strong>! This circle floats right and text
+      will fill the empty space on the left naturally.
     </p>
     <p>
-      Thử xoay màn hình để thấy layout thích ứng mượt mà như thế nào.
+      Try rotating the screen to see how smoothly the layout adapts.
     </p>
   </div>
 
@@ -682,10 +866,10 @@ class SelectionDemo extends StatelessWidget {
     culpa qui officia deserunt mollit anim id est laborum.
   </p>
 
-  <h2>Văn bản tiếng Việt</h2>
+  <h2>Vietnamese Text</h2>
   <p>
-    HyperRender là một thư viện Flutter mạnh mẽ cho phép render HTML, Markdown và Quill Delta
-    với hiệu năng cao. Selection hoạt động mượt mà ngay cả với văn bản dài và phức tạp.
+    HyperRender is a powerful Flutter library that renders HTML, Markdown and Quill Delta
+    with high performance. Selection works smoothly even with long and complex text.
   </p>
 
   <h2>Mixed Content</h2>
@@ -763,7 +947,11 @@ class RubyDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ruby Annotation Demo')),
+      appBar: AppBar(
+        title: const Text('Ruby Annotation Demo'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+      ),
       body: const Padding(
         padding: EdgeInsets.all(16.0),
         child: HyperViewer(html: html, selectable: true),
@@ -791,7 +979,7 @@ class _WidgetInjectionDemoState extends State<WidgetInjectionDemo> {
   static const html = '''
 <div style="font-family: sans-serif; line-height: 1.6;">
   <h2 style="color: #9C27B0;">Widget Injection</h2>
-  <p>Bạn có thể nhúng <strong>bất kỳ Flutter Widget nào</strong> vào giữa HTML bằng custom tags.</p>
+  <p>You can embed <strong>any Flutter Widget</strong> into HTML using custom tags.</p>
 
   <div style="background: #F3E5F5; padding: 16px; border-radius: 12px; margin: 16px 0; text-align: center;">
     <p style="margin: 0 0 12px 0; font-weight: bold;">🔔 Subscribe Channel</p>
@@ -818,7 +1006,11 @@ class _WidgetInjectionDemoState extends State<WidgetInjectionDemo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Widget Injection Demo')),
+      appBar: AppBar(
+        title: const Text('Widget Injection Demo'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: HyperViewer(
@@ -926,23 +1118,23 @@ class InlineDecorationDemo extends StatelessWidget {
   static const html = '''
 <div style="font-family: sans-serif; line-height: 1.8;">
   <h2 style="color: #795548;">Inline Background & Border</h2>
-  <p>Inline decoration wrap đúng cách khi xuống dòng - không giống RichText thông thường!</p>
+  <p>Inline decoration wraps correctly on line breaks - unlike regular RichText!</p>
 
   <h3>Highlight Text</h3>
   <p>
-    Đây là văn bản bình thường với
+    This is normal text with
     <span style="background: #FFEB3B; padding: 2px 6px; border-radius: 4px;">
-      phần được highlight màu vàng
+      yellow highlighted part
     </span>
-    và tiếp tục văn bản bình thường.
+    and continues with normal text.
   </p>
 
   <h3>Long Highlight (Multi-line)</h3>
   <p>
     <span style="background: #E1BEE7; padding: 4px 8px; border-radius: 4px;">
-      Đây là một đoạn text dài có background màu tím và nó sẽ wrap xuống dòng mới
-      trong khi vẫn giữ nguyên background ở mỗi dòng một cách chính xác như CSS thực sự.
-      Bạn có thể thấy background tiếp tục ở dòng tiếp theo.
+      This is a long text with purple background and it will wrap to a new line
+      while maintaining the background on each line exactly like real CSS.
+      You can see the background continues on the next line.
     </span>
   </p>
 
@@ -1564,6 +1756,8 @@ class HyperViewer extends StatefulWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Zoom & Pan Demo'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
         actions: [
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1652,7 +1846,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
     },
     {
       'name': 'Ruby Annotation',
-      'description': 'Furigana for Japanese text (HyperRender most accurate)',
+      'description': 'Furigana for Japanese — HyperRender exclusive (fwfh & flutter_html show raw text)',
       'html': '''
 <div style="font-family: sans-serif; line-height: 2;">
   <p style="font-size: 22px;">
@@ -1718,7 +1912,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
   <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
   <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-  <p><em>Flutter_html often crashes on SelectionArea with complex content</em></p>
+  <p><em>flutter_widget_from_html (fwfh) crashes on SelectionArea with complex content</em></p>
 </div>
 ''',
     },
@@ -1768,6 +1962,26 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
 </div>
 ''',
     },
+    {
+      'name': '<details>/<summary>',
+      'description': 'Collapsible sections — HyperRender exclusive (fwfh & flutter_html show flat text)',
+      'html': '''
+<div style="font-family: sans-serif; line-height: 1.6;">
+  <details>
+    <summary>What is HyperRender?</summary>
+    <p>HyperRender is a high-performance HTML/Markdown/Delta rendering engine for Flutter, built on a custom RenderObject rather than the Flutter widget tree.</p>
+  </details>
+  <details open>
+    <summary>Why not use flutter_html?</summary>
+    <p>flutter_html does not support CSS floats, ruby annotations, or the &lt;details&gt; element. It also has performance issues with large documents.</p>
+  </details>
+  <details>
+    <summary>When to use fwfh?</summary>
+    <p>Use flutter_widget_from_html for moderate complexity HTML where you need a stable, plugin-extensible library. Avoid text selection on large documents as it crashes.</p>
+  </details>
+</div>
+''',
+    },
   ];
 
   int _currentTestIndex = 0;
@@ -1776,23 +1990,25 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   String _getExpectedBehavior(int index) {
     switch (index) {
       case 0: // Float Layout
-        return '✅ HyperRender: Text wraps around image | ❌ Others: Image appears above text';
+        return '✅ HyperRender: Text wraps around image | ❌ flutter_html, fwfh: No float support — image stacks above text';
       case 1: // Table colspan/rowspan
-        return '✅ All libraries: Proper colspan/rowspan with width: 100% (fits screen)';
+        return '✅ HyperRender, fwfh: Proper colspan/rowspan | ⚠️ flutter_html: Basic cells only — spanning cells may break';
       case 2: // Ruby Annotation
-        return '✅ HyperRender: Perfect alignment | ✅ fwfh: Good | ❌ flutter_html: Not supported';
+        return '✅ HyperRender only: rt text renders above base | ❌ flutter_html: rt text appears inline (garbled) | ❌ fwfh: ruby treated as plain text';
       case 3: // Multiple Floats
-        return '✅ HyperRender: Text wraps between images | ❌ Others: Images stack vertically';
+        return '✅ HyperRender: Text wraps between both floats | ❌ flutter_html, fwfh: Both images stack vertically';
       case 4: // Inline Background
-        return '✅ HyperRender: Background wraps across lines | ❌ Others: Background is rectangular block';
+        return '✅ HyperRender: Highlight wraps across lines | ❌ flutter_html, fwfh: Background applied to full block (rectangular)';
       case 5: // CSS Specificity
-        return '✅ HyperRender, fwfh: Correct cascade order | ❌ flutter_html: May ignore <style> tag';
+        return '✅ HyperRender: Full cascade (element → class → ID → inline) | ⚠️ fwfh: Class selectors work, ID unreliable | ❌ flutter_html: <style> tag often ignored';
       case 6: // Selection Stress
-        return '✅ HyperRender, fwfh: Smooth selection | ❌ flutter_html: May crash with SelectionArea';
+        return '✅ HyperRender: Crash-free continuous selection | ⚠️ flutter_html: Works but selection breaks at widget boundaries | ❌ fwfh: Crashes on SelectionArea with complex content';
       case 7: // Wide Table Scroll
-        return '✅ HyperRender: Auto-scales down to fit | ✅ fwfh: May scroll or wrap | ❌ flutter_html: May overflow';
+        return '✅ HyperRender: Table auto-scales down (FittedBox, min 60%) | ❌ flutter_html, fwfh: Table overflows container';
       case 8: // Nested Lists
-        return '✅ All libraries: Should render correctly with proper indentation';
+        return '✅ HyperRender, fwfh: Proper indentation and markers | ⚠️ flutter_html: Indentation may be inconsistent';
+      case 9: // Details/Summary
+        return '✅ HyperRender only: Interactive collapsible with open/close | ❌ flutter_html, fwfh: <details> not supported — content shown as plain text';
       default:
         return 'Compare rendering across libraries';
     }
@@ -1817,6 +2033,8 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Library Comparison'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -1913,6 +2131,8 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
                 ),
                 const SizedBox(height: 8),
                 _buildFeatureTable(),
+                const SizedBox(height: 12),
+                _buildPerformanceChart(),
               ],
             ),
           ),
@@ -1996,15 +2216,18 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
 
   Widget _buildFeatureTable() {
     // Format: (Feature, HyperRender, flutter_html, fwfh, fwfh_core)
+    // Accuracy: verified against library source, GitHub issues, and live rendering
     const features = [
-      ('Float Layout', true, false, false, false),
+      ('Float layout', true, false, false, false),
       ('Table colspan/rowspan', true, false, true, true),
-      ('Ruby Annotation', true, false, true, true),
-      ('Multiple Floats', true, false, false, false),
-      ('Inline Bg Wrap', true, false, false, false),
-      ('CSS Specificity', true, false, true, true),
-      ('Selection (No Crash)', true, false, true, true),
-      ('Custom Widgets', true, true, true, true),
+      ('Ruby / furigana', true, false, false, false),   // fwfh #1449 — not supported
+      ('Multiple floats', true, false, false, false),
+      ('Inline bg wrap', true, false, false, false),
+      ('<style> tag CSS', true, false, true, true),     // flutter_html ignores; fwfh partial
+      ('CSS specificity', true, false, true, true),     // fwfh partial; flutter_html minimal
+      ('<details>/<summary>', true, false, false, false), // HyperRender exclusive
+      ('Selection (no crash)', true, true, false, false), // fwfh crashes; flutter_html OK
+      ('Custom widgets', true, true, true, true),
     ];
 
     return Table(
@@ -2054,6 +2277,83 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
       ),
     );
   }
+
+  Widget _buildPerformanceChart() {
+    if (_renderTimes.isEmpty) return const SizedBox.shrink();
+    final hyperTime = _renderTimes['HyperRender'];
+    final htmlTime = _renderTimes['flutter_html'];
+    final fwfhTime = _renderTimes['fwfh'];
+    final fwfhCoreTime = _renderTimes['fwfh_core'];
+    final maxTime = [hyperTime, htmlTime, fwfhTime, fwfhCoreTime]
+        .whereType<Duration>()
+        .map((d) => d.inMicroseconds)
+        .fold(1, (a, b) => a > b ? a : b);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Widget-tree build time (µs):',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const Text(
+          'Measures Dart widget construction only — actual layout/paint is async.',
+          style: TextStyle(fontSize: 10, color: Colors.black54),
+        ),
+        const SizedBox(height: 8),
+        _buildLibBar('HyperRender', hyperTime, maxTime, Colors.green),
+        _buildLibBar('flutter_html', htmlTime, maxTime, Colors.orange),
+        _buildLibBar('fwfh', fwfhTime, maxTime, Colors.blue),
+        _buildLibBar('fwfh_core', fwfhCoreTime, maxTime, Colors.purple),
+      ],
+    );
+  }
+
+  Widget _buildLibBar(String name, Duration? time, int maxUs, Color color) {
+    final us = time?.inMicroseconds ?? 0;
+    final ratio = maxUs > 0 ? us / maxUs : 0.0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(name, style: const TextStyle(fontSize: 11)),
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                Container(
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                FractionallySizedBox(
+                  widthFactor: ratio.clamp(0.02, 1.0),
+                  child: Container(
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 52,
+            child: Text('$usµs',
+                style: const TextStyle(fontSize: 10),
+                textAlign: TextAlign.right),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // =============================================================================
@@ -2091,7 +2391,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
       'Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.',
       'Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.',
       '<ruby>日本語<rt>にほんご</rt></ruby>の<ruby>文章<rt>ぶんしょう</rt></ruby>を<ruby>完璧<rt>かんぺき</rt></ruby>に<ruby>表示<rt>ひょうじ</rt></ruby>できます。これは<ruby>多言語<rt>たげんご</rt></ruby>サポートのテストです。',
-      'Tiếng Việt cũng được hỗ trợ hoàn hảo. Đây là đoạn văn bản tiếng Việt để kiểm tra khả năng hiển thị các ký tự đặc biệt và dấu.',
+      'Vietnamese is fully supported. This is Vietnamese text to test the display of special characters and diacritics.',
     ];
 
     int paragraphsPerPage = 4;
@@ -2152,6 +2452,8 @@ class _StressTestDemoState extends State<StressTestDemo> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Stress Test'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
         actions: [
           if (_generatedContent != null)
             IconButton(
@@ -2534,6 +2836,8 @@ class QuillDeltaDemo extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Quill Delta Demo'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.code),
@@ -2841,6 +3145,8 @@ class FeedScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Markdown Demo'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.code),
@@ -2894,13 +3200,14 @@ class VideoDemo extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Video & Media Demo'),
-        backgroundColor: Colors.red,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Video Placeholder với DefaultMediaWidget',
+            'Video Placeholder with DefaultMediaWidget',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -2912,7 +3219,7 @@ class VideoDemo extends StatelessWidget {
           const SizedBox(height: 24),
           
           // Video with poster
-          const Text('Video với Poster Image:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Video with Poster Image:', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           HyperViewer(
             html: '''
@@ -2935,7 +3242,7 @@ class VideoDemo extends StatelessWidget {
           const SizedBox(height: 24),
           
           // Video without poster
-          const Text('Video không có Poster:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Video without Poster:', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           HyperViewer(
             html: '''
@@ -2998,7 +3305,7 @@ class VideoDemo extends StatelessWidget {
           const SizedBox(height: 24),
           
           // Floated video with text wrapping
-          const Text('Float Layout với Video (Unique Feature!):', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Float Layout with Video (Unique Feature!):', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           HyperViewer(
             html: '''

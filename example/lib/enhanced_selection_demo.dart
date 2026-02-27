@@ -29,7 +29,10 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Enhanced Selection Menu'),
-        backgroundColor: Colors.purple.shade700,
+        centerTitle: false,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

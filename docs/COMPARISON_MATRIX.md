@@ -111,7 +111,7 @@ Last Updated: February 2026
 | `display` (block/inline) | ✅ | ✅ | ✅ |
 | `display: none` | ✅ | ✅ | ✅ |
 | `display: flex` | ❌ | ✅ | ❌ |
-| `display: grid` | ❌ | ✅ | ❌ |
+| `display: grid` | ❌ | ✅ | ✅ v3.0 |
 | `float` | ⚠️ Basic | ✅ | ✅ |
 | `clear` | ⚠️ | ✅ | ✅ |
 | `position` | ❌ | ✅ | ❌ Not planned |
@@ -135,6 +135,25 @@ Last Updated: February 2026
 - FWFH: ~50 properties
 - WebView: ~300 properties (full spec)
 - HyperRender v1.0: ~40 essential properties
+
+---
+
+## Accessibility
+
+| Aspect | FWFH | WebView | HyperRender v1.0 |
+|--------|------|---------|------------------|
+| **Screen reader support** | ⚠️ Basic | ✅ Full (browser a11y) | ✅ Semantics tree |
+| **Headings (h1–h6)** | ⚠️ | ✅ | ✅ `isHeader` + level hint |
+| **Links** | ⚠️ | ✅ | ✅ `isLink` + href hint |
+| **Images (alt text)** | ✅ | ✅ | ✅ `isImage` + alt label |
+| **Lists (ul/ol/li)** | ⚠️ | ✅ | ✅ list hint + ordinal position |
+| **Buttons** | ⚠️ | ✅ | ✅ `isButton` |
+| **`aria-label` / `aria-labelledby`** | ❌ | ✅ | ✅ Resolved to semantic label |
+| **`role` attribute** | ❌ | ✅ | ✅ button / region / heading |
+| **WCAG 2.1 AA (partial)** | ⚠️ | ✅ | ⚠️ Partial — no focus mgmt |
+
+**Note**: hyper_render exposes a `SemanticsNode` tree for screen readers but
+does not implement keyboard focus management or ARIA live regions.
 
 ---
 
@@ -211,13 +230,18 @@ Last Updated: February 2026
 
 | Aspect | FWFH | WebView | HyperRender v1.0 |
 |--------|------|---------|------------------|
-| **XSS Protection** | ⚠️ Manual | ⚠️ Sandboxed | ⚠️ Manual sanitization |
+| **XSS Protection** | ⚠️ Manual | ⚠️ Sandboxed | ✅ Built-in `HtmlSanitizer` |
 | **JavaScript Execution** | ❌ None | ✅ Full (risk) | ❌ None (safe) |
+| **`javascript:` URLs** | ⚠️ Manual | ⚠️ CSP needed | ✅ Blocked |
+| **`vbscript:` URLs** | ⚠️ Manual | ⚠️ CSP needed | ✅ Blocked |
+| **SVG data: URLs** | ⚠️ Manual | ⚠️ CSP needed | ✅ Blocked |
+| **CSS `expression()`** | ⚠️ Manual | N/A (sandboxed) | ✅ Blocked |
 | **External Resources** | ⚠️ Limited control | ⚠️ CSP needed | ✅ Full control |
 | **User Input Handling** | ⚠️ | ⚠️ | **✅ Read-only** |
 | **Privacy** | ✅ Local only | ⚠️ Tracking possible | ✅ Local only |
 
 **Recommendation**: Always sanitize untrusted HTML before rendering in any solution.
+Enable `sanitize: true` (default in HyperRender) when rendering user-generated content.
 
 ---
 

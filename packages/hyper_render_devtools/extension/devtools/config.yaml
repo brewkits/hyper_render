@@ -1,0 +1,5 @@
+name: HyperRender Inspector
+description: Inspect UDT node trees, computed styles, fragments, and performance metrics.
+issueTracker: https://github.com/brewkits/hyper_render/issues
+version: 1.0.0
+materialIconCodePoint: '0xe558'  # Icons.account_tree
