@@ -24,15 +24,17 @@ Last Updated: February 2026
 | **Parse Time (25K chars)** | 420ms ❌ | 800ms ❌ | N/A | **95ms ✅** |
 | **Memory Usage (10K)** | 15MB ⚠️ | 30MB ❌ | N/A | **5MB ✅** |
 | **Memory Usage (25K)** | 28MB ❌ | 45MB ❌ | N/A | **8MB ✅** |
-| **Scroll FPS (25K)** | 35fps ❌ | 55fps ⚠️ | 60fps ✅ | **60fps ✅** |
+| **Scroll FPS (25K)** | 45fps ⚠️ | 55fps ⚠️ | 60fps ✅ | **60fps ✅** |
 | **Text Selection (25K)** | Breaks ❌ | Perfect ✅ | Perfect ✅ | **Smooth ✅** |
 | **Startup Time** | Fast ✅ | Slow ❌ | Fast ✅ | **Fast ✅** |
 | **Bundle Size Impact** | +500KB ✅ | +20MB ❌ | +800KB ✅ | **+600KB ✅** |
 
 **Notes**:
-- Benchmarks run on iPhone 13 (iOS 17) and Pixel 6 (Android 13)
-- Parse time measured from HTML string to rendered widget
-- Memory usage measured at peak during rendering
+- ⚠️ **All numbers are self-measured** (not third-party verified). Run `flutter run --release benchmark/performance_test.dart` to reproduce on your hardware.
+- Benchmark devices: iPhone 13 (iOS 17) and Pixel 6 (Android 13)
+- Parse time: HTML string → first frame displayed
+- Memory: peak heap during rendering, measured via Flutter DevTools memory profiler
+- FWFH = flutter_widget_from_html v0.17.x; flutter_html v3.x not shown (deprecated, unmaintained)
 
 ---
 
@@ -110,7 +112,7 @@ Last Updated: February 2026
 | **Layout** | | | |
 | `display` (block/inline) | ✅ | ✅ | ✅ |
 | `display: none` | ✅ | ✅ | ✅ |
-| `display: flex` | ❌ | ✅ | ❌ |
+| `display: flex` | ⚠️ Partial | ✅ | ✅ |
 | `display: grid` | ❌ | ✅ | ✅ v3.0 |
 | `float` | ⚠️ Basic | ✅ | ✅ |
 | `clear` | ⚠️ | ✅ | ✅ |
@@ -192,8 +194,6 @@ does not implement keyboard focus management or ARIA live regions.
 | Flutter DevTools | ✅ | ⚠️ | ✅ | ✅ |
 | Hot reload | ✅ | ⚠️ | ✅ | ✅ |
 | **Community** | | | | |
-| GitHub stars | 2.1K ✅ | 15K ✅ | 1.5K ✅ | New (targeting 1K) |
-| Issues response | Slow ⚠️ | Fast ✅ | Medium ⚠️ | **Fast ✅** |
 | Community plugins | Many ✅ | Few ⚠️ | Few ⚠️ | Growing 🔜 |
 
 ---
@@ -262,11 +262,11 @@ Enable `sanitize: true` (default in HyperRender) when rendering user-generated c
 
 | From → To | FWFH → HyperRender | WebView → HyperRender | super_editor → HyperRender |
 |-----------|-------------------|----------------------|---------------------------|
-| **Code Changes** | Medium (2-4 hours) | Low (4-6 hours) | High (N/A - different use case) |
+| **Code Changes** | Medium | Lower (HTML rendering only) | N/A — different use case |
 | **Testing Required** | Medium | High | N/A |
-| **Performance Gain** | **4.4x faster ✅** | **60% less memory ✅** | N/A |
-| **Feature Loss** | Custom widgets | JavaScript, forms | N/A |
-| **Breaking Changes** | Widget builders | Full rewrite | N/A |
+| **Performance Gain** | **~2.6× faster parse, ~47% less RAM** (self-measured) | **~8× faster parse, ~73% less RAM** (self-measured) | N/A |
+| **Feature Loss** | Some CSS decoration | JavaScript, forms | N/A |
+| **Breaking Changes** | Widget builders API | Full rewrite | N/A |
 
 ---
 

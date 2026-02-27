@@ -14,8 +14,8 @@ Forget OOM crashes. Forget scroll jank. Welcome to **60 FPS**.
 [![pub package](https://img.shields.io/pub/v/hyper_render.svg)](https://pub.dev/packages/hyper_render)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)](https://flutter.dev)
-[![Performance](https://img.shields.io/badge/Parse_Speed-4.4x_faster-green.svg)](#benchmarks)
-[![CSS](https://img.shields.io/badge/CSS_Coverage-68%25-orange.svg)](#css-support)
+[![Benchmarks](https://img.shields.io/badge/Benchmarks-self--measured-orange.svg)](#benchmarks)
+[![CSS](https://img.shields.io/badge/CSS-Essential_subset-blue.svg)](#css-support)
 
 [Quick Start](#quick-start) · [Features](#features) · [Benchmarks](#benchmarks) · [API Reference](#api-reference) · [When NOT to use](#when-not-to-use)
 
@@ -81,22 +81,28 @@ One RenderObject means:
 
 ## 📊 Benchmarks
 
-> Measured on iPhone 13 (iOS 17) and Pixel 6 (Android 13) with a 25,000-character article.
+> ⚠️ **Self-reported** — measured on iPhone 13 (iOS 17) + Pixel 6 (Android 13) with a 25,000-character article.
+> Run `flutter run --release benchmark/performance_test.dart` to reproduce on your hardware.
 
 | Metric | flutter_html | flutter_widget_from_html | ⚡ HyperRender |
 |--------|:---:|:---:|:---:|
-| **Widgets created** | ~600 ❌ | ~500 ❌ | **1 ✅** |
-| **Parse time** | 420ms ❌ | 250ms ⚠️ | **95ms ✅** — 4.4× faster |
-| **RAM usage** | 28 MB ❌ | 15 MB ⚠️ | **8 MB ✅** — 3.5× lighter |
+| **HTML widgets created** | ~600 ❌ | ~500 ❌ | **~3–5 render chunks ✅** |
+| **Parse time** | 420ms ❌ | 250ms ⚠️ | **95ms ✅** |
+| **RAM usage** | 28 MB ❌ | 15 MB ⚠️ | **8 MB ✅** |
 | **Scroll FPS** | ~35 fps ❌ | ~45 fps ⚠️ | **60 fps ✅** |
-| **CSS `float`** | ❌ Not possible | ❌ Not possible | **✅ Perfect** |
+| **CSS `float`** | ❌ Not possible | ❌ Not possible | **✅** |
 | **Text selection** | ⚠️ Slow, limited | ❌ Crashes on large docs | **✅ Crash-free** |
-| **Ruby / Furigana** | ❌ Raw text | ❌ Not supported | **✅ Professional** |
+| **Ruby / Furigana** | ❌ Raw text | ❌ Not supported | **✅** |
 | **`<details>/<summary>`** | ❌ | ❌ | **✅ Interactive** |
 | **CSS Variables `var()`** | ❌ | ❌ | **✅** |
-| **Flexbox** | ❌ | ⚠️ Partial | **✅ 90%** |
+| **Flexbox** | ❌ | ⚠️ Partial | **✅** |
 
-> Widget count measured on a 3,000-word article (1 table, 2 images) on Pixel 6.
+> **Widgets created**: flutter_html / FWFH create one Flutter widget per HTML tag (~500–600 for a 3,000-word article).
+> HyperRender uses `ListView.builder` virtualization — large documents are split into ~3–5 `RenderHyperBox` chunks,
+> each painting an entire page-segment directly on Canvas. HTML structure never maps to individual Flutter widgets.
+>
+> **Text selection crash**: FWFH v0.17 wraps `SelectionArea` around multiple independent `RichText` widgets;
+> selection across widget boundaries fails on large documents (architectural limitation, not a bug).
 
 ---
 
@@ -148,8 +154,8 @@ HyperViewer(
 ### ✨ Crash-Free Text Selection
 
 Because the entire document lives inside **one continuous span tree**, selection works
-perfectly across paragraphs, headings, and table cells — with no crashes, even on
-100,000-character documents.
+across paragraphs, headings, and table cells — no widget-boundary split, no crashes.
+Tested up to 100,000-character documents in CI.
 
 ```dart
 HyperViewer(
@@ -221,7 +227,7 @@ HyperViewer(
 
 ---
 
-### 📐 Flexbox (90% Coverage)
+### 📐 Flexbox
 
 ```dart
 HyperViewer(
@@ -580,13 +586,12 @@ HyperRender is a **specialized content engine**, not a full browser. Choose the 
 e-book readers, email clients, CJK content apps — anywhere you need to render
 large amounts of beautifully formatted content without dropping frames.
 
-> **Philosophical position:** HyperRender does not try to out-feature FWFH on CSS
-> property count. FWFH's widget-per-tag model naturally maps many CSS display properties
-> to Flutter widgets. HyperRender's moat is different — it is the **only Flutter library**
-> capable of `float`, crash-free selection across 100,000-character documents, professional
-> Kinsoku + Ruby CJK typography, and 60 FPS on content that would OOM-crash the alternatives.
-> These are not feature gaps we can patch — they are structural advantages of the
-> single-RenderObject architecture.
+> **Position:** HyperRender does not compete with FWFH on CSS property count.
+> FWFH's widget-per-tag model naturally maps many CSS decorative properties to Flutter widgets.
+> HyperRender's differentiator is architectural — it is the **only Flutter library** capable
+> of `float` layout, crash-free text selection across large documents, and professional
+> Kinsoku + Ruby CJK typography. These are not missing features we can add — they require
+> a fundamentally different rendering approach.
 
 ---
 
@@ -599,7 +604,7 @@ large amounts of beautifully formatted content without dropping frames.
 - [x] **CSS Float layout** — text wrapping around images/video (unique)
 - [x] Perfect text selection + copy menu (crash-free)
 - [x] W3C 2-pass table layout (colspan, rowspan, `SmartTableWrapper`)
-- [x] Flexbox layout (90% coverage)
+- [x] Flexbox layout (`flex-direction`, `justify-content`, `align-items`, `flex-wrap`, `flex-grow/shrink/basis`, `gap`)
 - [x] CJK Kinsoku line-breaking + Ruby / Furigana (unique)
 - [x] `<details>` / `<summary>` collapsible (unique)
 - [x] CSS Variables (`--custom-props`, `var()`)

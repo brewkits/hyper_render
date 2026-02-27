@@ -9,13 +9,12 @@ This guide helps you migrate from `flutter_html` (v3.x) and `flutter_widget_from
 
 | Pain point | flutter_html | flutter_widget_from_html | HyperRender |
 |-----------|:---:|:---:|:---:|
-| 3,000-word article widget count | ~600 | ~500 | **1** |
+| HTML widgets per document | ~600 | ~500 | **~3–5 render chunks** |
 | CSS `float: left/right` | ❌ Impossible | ❌ Impossible | ✅ |
-| Text selection on large docs | ⚠️ Slow | ❌ Crashes | ✅ Crash-free |
+| Text selection on large docs | ⚠️ Slow | ❌ Crashes (v0.17) | ✅ Crash-free |
 | `<ruby>/<rt>` Furigana | ❌ Raw text | ❌ Not supported | ✅ |
 | `<details>/<summary>` | ❌ | ❌ | ✅ Interactive |
 | CSS Variables + `calc()` | ❌ | ❌ | ✅ |
-| OOM on 50,000-char doc | Likely | Possible | Never |
 
 If you need `float`, CJK typography, or crash-free selection — this migration
 pays for itself immediately. If you need maximum CSS decoration coverage
@@ -150,7 +149,8 @@ HyperViewer(
 // flutter_html — limited, no copy menu
 Html(data: html, selectable: true)
 
-// FWFH — crashes on large documents (known bug, not fixable architecturally)
+// FWFH v0.17 — no built-in selection; wrapping in SelectionArea crashes on
+// large documents because selection spans multiple independent RichText nodes
 HtmlWidget(html, enableCaching: true) // no selection support
 
 // HyperRender — crash-free, copy menu included
