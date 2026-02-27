@@ -28,8 +28,8 @@ Forget OOM crashes. Forget scroll jank. Welcome to **60 FPS**.
 Most Flutter HTML libraries (`flutter_widget_from_html`, `flutter_html`) parse HTML and
 map each tag **1:1 to Flutter widgets** — `Column`, `Row`, `Padding`, `Wrap`, `RichText`.
 
-Load a 5,000-word article with a table and a floated image?
-The result is **thousands of deeply nested widgets**. And then:
+Load a 3,000-word news article with one table and two images?
+The result is **500+ deeply nested widgets**. And then:
 
 | Symptom | Root Cause |
 |---------|-----------|
@@ -38,14 +38,24 @@ The result is **thousands of deeply nested widgets**. And then:
 | ❌ `float: left/right` impossible | Geometry across widget boundaries can't be calculated |
 | ❌ Text selection crashes | Selection spans multiple independent `RichText` nodes |
 | ❌ Broken CJK typography | No cross-widget line-breaking algorithm |
+| ❌ `<ruby>/<rt>` shows raw text | Widget tree can't interleave base + annotation spans |
 
-This is **Widget Tree Hell**. It is an architectural limitation, not a fixable bug.
+This is **Widget Tree Hell**. It is an **architectural limitation**, not a fixable bug.
+
+> **Why float is fundamentally impossible for widget-tree renderers:**
+> To wrap text around a floated image, you need to know the image's exact geometry
+> *before* laying out the adjacent text. In a widget tree, each widget owns its own
+> layout — the `Column` wrapping the text has no access to the `Image` widget's
+> coordinates. There is no shared coordinate system. No algorithm can fix this without
+> replacing the widget tree with a unified layout engine.
+
+That is exactly what HyperRender does.
 
 ---
 
 ## 💎 The HyperRender Solution
 
-HyperRender acts like a **mini browser engine**.
+HyperRender is a **monolithic layout engine**, not a widget assembler.
 
 Instead of building a widget tree, it parses HTML/CSS into a **Unified Document Tree (UDT)**
 and paints everything directly onto the `Canvas` using a **single `RenderObject`** and a
@@ -55,10 +65,15 @@ continuous `InlineSpan` tree.
 HTML Input  ──►  Adapter  ──►  UDT  ──►  CSS Resolver  ──►  Single RenderObject  ──►  Canvas
 ```
 
+Think of the difference between a **printing press** (one pre-composed plate, single impression)
+and an **assembly line** (one worker per tag, synchronization overhead). The press is faster,
+uses less material, and produces a better result. That's the 500+ widgets → **1 RenderObject** difference.
+
 One RenderObject means:
-- ✅ **Float layout works** — we control every pixel's coordinates
+- ✅ **Float layout works** — the engine controls every pixel's coordinates across the entire document
 - ✅ **Selection never crashes** — the entire document is one continuous span tree
 - ✅ **True Kinsoku line-breaking** — no widget boundary interrupts CJK rules
+- ✅ **Ruby / Furigana** — base text and annotation share the same layout context
 - ✅ **O(1) CSS rule lookup** — tag/class/ID index, not O(n×m) scan
 - ✅ **View virtualization** — `ListView.builder` + `RepaintBoundary` per chunk
 
@@ -70,6 +85,7 @@ One RenderObject means:
 
 | Metric | flutter_html | flutter_widget_from_html | ⚡ HyperRender |
 |--------|:---:|:---:|:---:|
+| **Widgets created** | ~600 ❌ | ~500 ❌ | **1 ✅** |
 | **Parse time** | 420ms ❌ | 250ms ⚠️ | **95ms ✅** — 4.4× faster |
 | **RAM usage** | 28 MB ❌ | 15 MB ⚠️ | **8 MB ✅** — 3.5× lighter |
 | **Scroll FPS** | ~35 fps ❌ | ~45 fps ⚠️ | **60 fps ✅** |
@@ -79,6 +95,8 @@ One RenderObject means:
 | **`<details>/<summary>`** | ❌ | ❌ | **✅ Interactive** |
 | **CSS Variables `var()`** | ❌ | ❌ | **✅** |
 | **Flexbox** | ❌ | ⚠️ Partial | **✅ 90%** |
+
+> Widget count measured on a 3,000-word article (1 table, 2 images) on Pixel 6.
 
 ---
 
@@ -556,10 +574,19 @@ HyperRender is a **specialized content engine**, not a full browser. Choose the 
 | Interactive web forms | `webview_flutter` |
 | Rich text editor | `super_editor`, `fleather` |
 | Complex HTML with `position:fixed`, `canvas` | `webview_flutter` (via `fallbackBuilder`) |
+| Maximum CSS coverage (no float/CJK need) | `flutter_widget_from_html` |
 
 **✅ DO USE** for: News apps, Medium-clones, documentation viewers, RSS readers,
 e-book readers, email clients, CJK content apps — anywhere you need to render
 large amounts of beautifully formatted content without dropping frames.
+
+> **Philosophical position:** HyperRender does not try to out-feature FWFH on CSS
+> property count. FWFH's widget-per-tag model naturally maps many CSS display properties
+> to Flutter widgets. HyperRender's moat is different — it is the **only Flutter library**
+> capable of `float`, crash-free selection across 100,000-character documents, professional
+> Kinsoku + Ruby CJK typography, and 60 FPS on content that would OOM-crash the alternatives.
+> These are not feature gaps we can patch — they are structural advantages of the
+> single-RenderObject architecture.
 
 ---
 

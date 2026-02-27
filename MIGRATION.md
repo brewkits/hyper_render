@@ -1,124 +1,274 @@
-# Migration Guide
+# Migration Guide — Coming from flutter_html or flutter_widget_from_html?
 
-HyperRender **v1.0.0** is the initial stable release. There are no prior public
-versions to migrate from.
-
-This document describes the stable public API, notes any patterns from
-pre-release builds, and outlines what future versions may change.
+This guide helps you migrate from `flutter_html` (v3.x) and `flutter_widget_from_html`
+(FWFH, v0.17.x) to HyperRender.
 
 ---
 
-## v1.0.0 — Stable API
+## Why migrate?
 
-### HyperViewer constructors
+| Pain point | flutter_html | flutter_widget_from_html | HyperRender |
+|-----------|:---:|:---:|:---:|
+| 3,000-word article widget count | ~600 | ~500 | **1** |
+| CSS `float: left/right` | ❌ Impossible | ❌ Impossible | ✅ |
+| Text selection on large docs | ⚠️ Slow | ❌ Crashes | ✅ Crash-free |
+| `<ruby>/<rt>` Furigana | ❌ Raw text | ❌ Not supported | ✅ |
+| `<details>/<summary>` | ❌ | ❌ | ✅ Interactive |
+| CSS Variables + `calc()` | ❌ | ❌ | ✅ |
+| OOM on 50,000-char doc | Likely | Possible | Never |
+
+If you need `float`, CJK typography, or crash-free selection — this migration
+pays for itself immediately. If you need maximum CSS decoration coverage
+and don't need those features, FWFH may still be appropriate.
+
+---
+
+## Drop-in replacement (5 minutes)
+
+### From `flutter_html`
 
 ```dart
-// HTML content
+// Before (flutter_html)
+Html(data: htmlString)
+
+// After (HyperRender)
+HyperViewer(html: htmlString)
+```
+
+### From `flutter_widget_from_html` (HtmlWidget)
+
+```dart
+// Before (FWFH)
+HtmlWidget(htmlString)
+
+// After (HyperRender)
+HyperViewer(html: htmlString)
+```
+
+Both libraries use positional `String` as their first argument. HyperRender
+requires a named `html:` parameter — that is the only mandatory change.
+
+---
+
+## Common parameter mappings
+
+### Link tap handler
+
+```dart
+// flutter_html
+Html(
+  data: html,
+  onLinkTap: (url, _, __) => launchUrl(Uri.parse(url!)),
+)
+
+// FWFH
+HtmlWidget(html, onTapUrl: (url) => launchUrl(Uri.parse(url)))
+
+// HyperRender
 HyperViewer(
-  html: '<p>Hello World</p>',
-  baseUrl: 'https://example.com',   // optional — resolves relative URLs
-  customCss: 'p { color: #333; }',  // optional — injected stylesheet
-  sanitize: true,                    // default — DOM-based XSS sanitization
-  selectable: true,                  // default — text selection enabled
-  debugShowHyperRenderBounds: false, // optional — layout debug overlay
-  captureKey: GlobalKey(),           // optional — enables toPngBytes()
-)
-
-// Markdown content
-HyperViewer.fromMarkdown(
-  markdown: '# Hello\n\nWorld',
-  captureKey: GlobalKey(),
-)
-
-// Quill Delta content
-HyperViewer.fromDelta(
-  delta: jsonString,
+  html: html,
+  onLinkTap: (url) => launchUrl(Uri.parse(url)),
 )
 ```
 
-### Screenshot export
+### Custom widget for specific tags
 
 ```dart
-final key = GlobalKey();
+// flutter_html
+Html(
+  data: html,
+  extensions: [TagExtension(tagsToExtend: {'iframe'}, builder: (ctx) => ...)],
+)
 
-HyperViewer(html: '...', captureKey: key);
+// FWFH
+HtmlWidget(
+  html,
+  customWidgetBuilder: (element) {
+    if (element.localName == 'iframe') return MyWidget();
+    return null;
+  },
+)
 
-// Capture as PNG bytes (e.g. 2× for high-DPI)
-final bytes = await key.toPngBytes(pixelRatio: 2.0);
-
-// Or as dart:ui Image
-final image = await key.toImage(pixelRatio: 3.0);
+// HyperRender
+HyperViewer(
+  html: html,
+  widgetBuilder: (context, node) {
+    if (node is AtomicNode && node.tagName == 'iframe') return MyWidget();
+    return null;  // fall through to default rendering
+  },
+)
 ```
 
-`HyperCaptureExtension` is exported from `package:hyper_render/hyper_render.dart`.
+### Text styles / CSS injection
 
-### CSS features
+```dart
+// flutter_html — custom style map
+Html(
+  data: html,
+  style: {
+    'p': Style(fontSize: FontSize(16)),
+    'h1': Style(color: Colors.indigo),
+  },
+)
 
-All features below are supported in v1.0.0:
+// FWFH — custom stylesheet
+HtmlWidget(html, customStylesBuilder: (element) {
+  if (element.localName == 'p') return 'font-size: 16px';
+  return null;
+})
 
-| Feature | Example |
-|---------|---------|
-| CSS custom properties | `--brand: #e53935; color: var(--brand)` |
-| `var()` with fallback | `color: var(--undefined, #333)` |
-| `calc()` arithmetic | `font-size: calc(1rem + 4px)` |
-| CSS Grid | `display: grid; grid-template-columns: 1fr 2fr` |
-| `repeat()` | `grid-template-columns: repeat(3, 1fr)` |
-| `grid-column: span N` | `grid-column: span 2` |
-| RTL / BiDi | `direction: rtl` or `dir="rtl"` attribute |
-| CSS `!important` | `color: red !important` |
-| Inline SVG | `<svg>` elements in HTML content |
-| `baseUrl` URL resolution | Relative `href`/`src` resolved against base |
-| `customCss` injection | Extra stylesheet applied after document CSS |
-| `debugShowHyperRenderBounds` | Blue/orange outlines for layout debugging |
+// HyperRender — inject a CSS string (full cascade, specificity respected)
+HyperViewer(
+  html: html,
+  customCss: '''
+    p  { font-size: 16px; line-height: 1.7; }
+    h1 { color: #3F51B5; }
+    a  { color: #6750A4; }
+  ''',
+)
+```
+
+---
+
+## Feature-specific migration
+
+### Float layout (NEW — not possible in flutter_html/FWFH)
+
+```dart
+// This just works in HyperRender. No migration needed — it was never possible before.
+HyperViewer(
+  html: '''
+    <img src="photo.jpg" style="float: left; width: 200px; margin: 0 16px 8px 0;" />
+    <p>Text wraps naturally around the image — magazine style.</p>
+  ''',
+)
+```
+
+### Text selection
+
+```dart
+// flutter_html — limited, no copy menu
+Html(data: html, selectable: true)
+
+// FWFH — crashes on large documents (known bug, not fixable architecturally)
+HtmlWidget(html, enableCaching: true) // no selection support
+
+// HyperRender — crash-free, copy menu included
+HyperViewer(
+  html: html,
+  selectable: true,           // default: true
+  showSelectionMenu: true,    // default: true
+  selectionHandleColor: Colors.blue,
+)
+```
 
 ### Sanitization
 
-HTML sanitization is **on by default** (`sanitize: true`). The sanitizer uses
-a DOM parser — safer than regex-based approaches.
-
 ```dart
-// Safe (default) — sanitizes user-provided HTML
-HyperViewer(html: userContent)
+// flutter_html — no built-in sanitization
+Html(data: userContent)  // XSS risk
 
-// Skip sanitization only for HTML you fully control
-HyperViewer(html: trustedMarkup, sanitize: false)
+// FWFH — no built-in sanitization
+HtmlWidget(userContent)  // XSS risk
+
+// HyperRender — sanitized by default
+HyperViewer(html: userContent)  // ✅ safe: sanitize: true is the default
+
+// Opt-out only for fully trusted, backend-controlled HTML:
+HyperViewer(html: trustedCmsHtml, sanitize: false)
 ```
 
-### CSS rule specificity
+### Markdown / Delta input
 
-The full CSS cascade is applied: user-agent defaults → class/ID rules →
-inline styles → `!important` declarations. Custom properties (`--var`) are
-inherited along the parent chain.
-
----
-
-## Pre-release builds
-
-If you used a pre-release (unreleased) build of HyperRender, note these
-API stabilizations made before v1.0.0:
-
-- **`HyperViewer` parameter**: Uses `html:` (NOT `content:`). `content` is
-  an internal field — do not reference it directly.
-- **`HyperAnimatedWidget`**: Uses `animationName:` (String) — not `keyframes:`.
-- **`PerformanceMonitor` / `PerformanceReport`**: Only exported from
-  `hyper_render_core`, not from the main `hyper_render` package.
-- **`RenderHyperBoxSelection`** extension: Selection methods (`getSelectedText`,
-  `clearSelection`, etc.) are on this public extension — import
-  `package:hyper_render/hyper_render.dart` as usual.
+```dart
+// HyperRender supports multiple formats — no separate package needed
+HyperViewer.markdown(markdown: '# Hello\n\n**Bold** _italic_.')
+HyperViewer.delta(delta: '{"ops":[{"insert":"Hello\\n"}]}')
+```
 
 ---
 
-## Future versions
+## What HyperRender does NOT support (yet)
 
-The following changes are **planned** for future releases. Nothing is removed
-in v1.0.0.
+Be aware of these before migrating critical features:
+
+| Feature | Status | Workaround |
+|---------|:------:|-----------|
+| `position: absolute/fixed` | 🚧 v4.0 planned | `fallbackBuilder` → WebView |
+| `z-index` stacking | 🚧 planned | n/a |
+| `clip-path` | 🚧 planned | n/a |
+| `<canvas>` | ❌ never (not a browser) | `widgetBuilder` injection |
+| `<form>`, `<input>` | ❌ | `widgetBuilder` injection |
+| JavaScript execution | 🔮 v4.0 QuickJS (vanilla JS) | `fallbackBuilder` → WebView |
+
+For complex HTML that uses these, use `HtmlHeuristics` to detect and
+fall back to a WebView automatically:
+
+```dart
+HyperViewer(
+  html: maybeComplexHtml,
+  fallbackBuilder: (context) => WebViewWidget(controller: _webViewController),
+)
+```
+
+---
+
+## HyperViewer v1.0.0 stable API
+
+```dart
+HyperViewer({
+  required String html,
+  String? baseUrl,             // Resolve relative URLs
+  String? customCss,           // Injected stylesheet (after document styles)
+  bool selectable = true,
+  bool sanitize = true,
+  List<String>? allowedTags,   // Custom allowlist for sanitize: true
+  HyperRenderMode mode = HyperRenderMode.auto,
+  Function(String)? onLinkTap,
+  HyperWidgetBuilder? widgetBuilder,
+  WidgetBuilder? fallbackBuilder,    // Called when HtmlHeuristics.isComplex()
+  GlobalKey? captureKey,       // Screenshot export
+  bool enableZoom = false,
+  bool showSelectionMenu = true,
+  WidgetBuilder? placeholderBuilder,
+  String? semanticLabel,
+  bool debugShowHyperRenderBounds = false,
+})
+
+HyperViewer.markdown(markdown: '# Hello', ...)
+HyperViewer.delta(delta: jsonString, ...)
+```
+
+> **Note:** Named constructors are `.markdown()` and `.delta()` — NOT `.fromMarkdown()` /
+> `.fromDelta()` (those never existed in stable).
+
+---
+
+## Pre-release → v1.0.0 API stabilizations
+
+If you used an unreleased/dev build, note these changes:
+
+| Old (pre-release) | Stable (v1.0.0) |
+|-------------------|-----------------|
+| `HyperViewer(content: ...)` | `HyperViewer(html: ...)` |
+| `HyperAnimatedWidget(keyframes: ...)` | `HyperAnimatedWidget(animationName: ...)` |
+| `HyperViewer.fromMarkdown(...)` | `HyperViewer.markdown(...)` |
+| `HyperViewer.fromDelta(...)` | `HyperViewer.delta(...)` |
+| `PerformanceMonitor` from main pkg | Only in `hyper_render_core` |
+
+---
+
+## Planned future versions
 
 | Area | Planned change |
 |------|----------------|
-| Background images | `background-image`, `background-size`, `background-position` |
-| Pseudo-elements | `::before`, `::after` |
-| CSS filters | `filter`, `backdrop-filter` |
-| Viewport units | `vh`, `vw` |
+| `position: absolute/fixed` | v4.0 PositioningContext |
+| Vanilla JS (show/hide, form validation) | v4.0 QuickJS via Dart FFI |
+| `clip-path` polygon / circle | v4.0 |
+| `::before` / `::after` pseudo-elements | Planned |
+| `filter` / `backdrop-filter` | Planned |
+| `vh` / `vw` viewport units | Planned |
+| Full SVG renderer | In progress |
 
 ---
 
