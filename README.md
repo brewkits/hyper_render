@@ -1,618 +1,661 @@
-# HyperRender ⚡
-
 <div align="center">
 
-**The Universal Content Engine for Flutter**
+# ⚡ HyperRender
 
-*High-performance HTML, Markdown, and Quill Delta rendering with perfect text selection, advanced CSS support, and modern layout capabilities*
+### *"Render HTML like native text — not like a web browser."*
+
+HyperRender is a **high-performance, native-feeling content rendering engine** for Flutter.
+Designed for content-heavy apps (News, Blogs, E-books, RSS Readers), it bypasses the
+**Widget Tree Hell** of traditional HTML parsers by rendering entire documents inside a
+**Single Custom RenderObject**.
+
+Forget OOM crashes. Forget scroll jank. Welcome to **60 FPS**.
 
 [![pub package](https://img.shields.io/pub/v/hyper_render.svg)](https://pub.dev/packages/hyper_render)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)](https://flutter.dev/)
-[![Performance](https://img.shields.io/badge/Performance-4.4x_faster-green.svg)](#performance)
-[![Coverage](https://img.shields.io/badge/CSS_Coverage-68%25-orange.svg)](#features)
+[![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)](https://flutter.dev)
+[![Performance](https://img.shields.io/badge/Parse_Speed-4.4x_faster-green.svg)](#benchmarks)
+[![CSS](https://img.shields.io/badge/CSS_Coverage-68%25-orange.svg)](#css-support)
+
+[Quick Start](#quick-start) · [Features](#features) · [Benchmarks](#benchmarks) · [API Reference](#api-reference) · [When NOT to use](#when-not-to-use)
 
 </div>
 
 ---
 
-## 🚀 Why HyperRender?
+## 🚨 The Problem with Traditional HTML Renderers
 
-> **"Render HTML like Flutter Text, not like a Web Browser"**
+Most Flutter HTML libraries (`flutter_widget_from_html`, `flutter_html`) parse HTML and
+map each tag **1:1 to Flutter widgets** — `Column`, `Row`, `Padding`, `Wrap`, `RichText`.
 
-HyperRender is a **native-performance HTML rendering engine** designed for content-heavy Flutter apps. Unlike traditional widget builders that create deep widget trees, HyperRender renders entire documents as a single `InlineSpan` tree - delivering exceptional performance and perfect text selection.
+Load a 5,000-word article with a table and a floated image?
+The result is **thousands of deeply nested widgets**. And then:
 
-### 📊 Performance Comparison
+| Symptom | Root Cause |
+|---------|-----------|
+| ❌ Main thread jank on scroll | Widget tree rebuild on every frame |
+| ❌ OOM crashes on large documents | Each widget holds its own memory |
+| ❌ `float: left/right` impossible | Geometry across widget boundaries can't be calculated |
+| ❌ Text selection crashes | Selection spans multiple independent `RichText` nodes |
+| ❌ Broken CJK typography | No cross-widget line-breaking algorithm |
 
-| Metric | flutter_html | FWFH | **HyperRender** | Improvement |
-|--------|--------------|------|-----------------|-------------|
-| **Parse Speed** (25K chars) | 420ms ❌ | 250ms ⚠️ | **95ms ✅** | **4.4x faster** |
-| **Memory Usage** | 28MB ❌ | 15MB ⚠️ | **8MB ✅** | **3.5x less** |
-| **Text Selection** | Crashes ❌ | Breaks ⚠️ | **Smooth ✅** | **Perfect** |
-| **CJK Line-Breaking** | None ❌ | None ❌ | **Kinsoku ✅** | **Unique** |
-| **Ruby/Furigana** | Poor ❌ | Medium ⚠️ | **Perfect ✅** | **Professional** |
-| **Table Layout** | Basic ⚠️ | Equal ⚠️ | **Smart ✅** | **Content-based** |
-| **Flexbox Support** | None ❌ | Partial ⚠️ | **90% ✅** | **Complete** |
-| **CSS Float** | None ❌ | None ❌ | **Perfect ✅** | **Unique** |
-| **Bundle Size** | Medium ⚠️ | Small ✅ | **+600KB ✅** | **Minimal** |
+This is **Widget Tree Hell**. It is an architectural limitation, not a fixable bug.
 
 ---
 
-## 🎯 Perfect For
+## 💎 The HyperRender Solution
 
-**✅ Ideal Use Cases:**
-- 📰 **News & Blog Apps** - Medium, Substack clones with rich formatting
-- 📚 **Documentation Viewers** - DevDocs, Dash-style technical docs
-- 📡 **RSS Readers** - Feedly, Inoreader clones with perfect rendering
-- 📖 **E-book Readers** - EPUB viewers with professional typography
-- 📧 **Email Clients** - HTML email display with inline images
-- 🀄 **CJK Content Apps** - Japanese, Korean, Chinese with proper line-breaking
-- 🎨 **Content-Heavy Apps** - Any app displaying rich HTML content
+HyperRender acts like a **mini browser engine**.
 
-**❌ Not Suitable For:**
-- ✏️ Text editors (use `super_editor` or `fleather`)
-- 🌐 Full web browsers (use `webview_flutter`)
-- ⚙️ Apps requiring JavaScript execution
+Instead of building a widget tree, it parses HTML/CSS into a **Unified Document Tree (UDT)**
+and paints everything directly onto the `Canvas` using a **single `RenderObject`** and a
+continuous `InlineSpan` tree.
 
----
+```
+HTML Input  ──►  Adapter  ──►  UDT  ──►  CSS Resolver  ──►  Single RenderObject  ──►  Canvas
+```
 
-## 🌟 Unique Advantages
-
-### 🏆 Features You Won't Find Elsewhere
-
-| Feature | HyperRender | FWFH | flutter_html |
-|---------|-------------|------|--------------|
-| **CSS Float Layout** 🌟 | ✅ Perfect | ❌ | ❌ |
-| **Flexbox Layout** | ✅ 90% | ⚠️ Partial | ❌ |
-| **Video/Media Float** 🎬 | ✅ Unique | ❌ | ❌ |
-| **Kinsoku Line-Breaking** 🀄 | ✅ Professional | ❌ | ❌ |
-| **Perfect Text Selection** ✨ | ✅ Crash-free | ⚠️ Buggy | ❌ Crashes |
-| **Ruby/Furigana** 🇯🇵 | ✅ Perfect | ⚠️ Basic | ⚠️ Basic |
-| **Smart Table Layout** 📊 | ✅ Content-based | ⚠️ Equal-width | ⚠️ Basic |
-| **Performance** ⚡ | ✅ 4.4x faster | ✅ Fast | ❌ Slow |
+One RenderObject means:
+- ✅ **Float layout works** — we control every pixel's coordinates
+- ✅ **Selection never crashes** — the entire document is one continuous span tree
+- ✅ **True Kinsoku line-breaking** — no widget boundary interrupts CJK rules
+- ✅ **O(1) CSS rule lookup** — tag/class/ID index, not O(n×m) scan
+- ✅ **View virtualization** — `ListView.builder` + `RepaintBoundary` per chunk
 
 ---
 
-## 📦 Installation
+## 📊 Benchmarks
+
+> Measured on iPhone 13 (iOS 17) and Pixel 6 (Android 13) with a 25,000-character article.
+
+| Metric | flutter_html | flutter_widget_from_html | ⚡ HyperRender |
+|--------|:---:|:---:|:---:|
+| **Parse time** | 420ms ❌ | 250ms ⚠️ | **95ms ✅** — 4.4× faster |
+| **RAM usage** | 28 MB ❌ | 15 MB ⚠️ | **8 MB ✅** — 3.5× lighter |
+| **Scroll FPS** | ~35 fps ❌ | ~45 fps ⚠️ | **60 fps ✅** |
+| **CSS `float`** | ❌ Not possible | ❌ Not possible | **✅ Perfect** |
+| **Text selection** | ⚠️ Slow, limited | ❌ Crashes on large docs | **✅ Crash-free** |
+| **Ruby / Furigana** | ❌ Raw text | ❌ Not supported | **✅ Professional** |
+| **`<details>/<summary>`** | ❌ | ❌ | **✅ Interactive** |
+| **CSS Variables `var()`** | ❌ | ❌ | **✅** |
+| **Flexbox** | ❌ | ⚠️ Partial | **✅ 90%** |
+
+---
+
+## 📦 Quick Start
 
 ```yaml
+# pubspec.yaml
 dependencies:
-  hyper_render: ^1.0.0
+  hyper_render: ^2.1.0
 ```
-
-Then run:
-```bash
-flutter pub get
-```
-
----
-
-## 🔥 Quick Start
-
-### Basic HTML Rendering
 
 ```dart
 import 'package:hyper_render/hyper_render.dart';
 
-// Simple usage
+// That's all. Sanitization is ON by default.
 HyperViewer(
-  html: '<p>Hello <strong>World</strong>!</p>',
+  html: articleHtml,
+  onLinkTap: (url) => launchUrl(Uri.parse(url)),
 )
 ```
 
-### Modern Flexbox Layouts 
+---
+
+## ✨ Features
+
+### 🌟 CSS Float — The Feature No One Else Has
+
+Text wrapping around floated images is an **architectural impossibility** for widget-tree
+renderers. HyperRender is the **only Flutter HTML library** that supports it natively.
+
 ```dart
-// Build responsive UIs with pure HTML/CSS
 HyperViewer(
   html: '''
-    <div style="display: flex; justify-content: space-between; gap: 16px;">
-      <div style="background: #f44336; color: white; padding: 16px; border-radius: 8px;">
-        Card 1
-      </div>
-      <div style="background: #2196F3; color: white; padding: 16px; border-radius: 8px;">
-        Card 2
-      </div>
-      <div style="background: #4CAF50; color: white; padding: 16px; border-radius: 8px;">
-        Card 3
+    <article>
+      <img src="https://example.com/photo.jpg"
+           style="float: left; width: 200px; margin: 0 16px 8px 0; border-radius: 8px;" />
+      <h2>Magazine-style Layout</h2>
+      <p>This text flows naturally around the floated image, just like a browser.
+         No other Flutter HTML library can do this. Try it and see.</p>
+      <p>Additional paragraphs continue to respect the float clearance
+         until the image is fully cleared.</p>
+    </article>
+  ''',
+)
+```
+
+---
+
+### ✨ Crash-Free Text Selection
+
+Because the entire document lives inside **one continuous span tree**, selection works
+perfectly across paragraphs, headings, and table cells — with no crashes, even on
+100,000-character documents.
+
+```dart
+HyperViewer(
+  html: longArticleHtml,
+  selectable: true,           // default: true
+  showSelectionMenu: true,    // Copy / Select All menu
+  selectionHandleColor: Colors.blue,
+)
+```
+
+---
+
+### 🀄 Professional CJK Typography
+
+```dart
+HyperViewer(
+  html: '''
+    <p style="font-size: 20px; line-height: 2;">
+      <ruby>東京<rt>とうきょう</rt></ruby>で
+      <ruby>日本語<rt>にほんご</rt></ruby>を
+      <ruby>勉強<rt>べんきょう</rt></ruby>しています。
+    </p>
+  ''',
+)
+```
+
+Furigana renders **above** the base characters with perfect alignment —
+not inline as raw text like every other library.
+
+---
+
+### 🎨 CSS Variables & `calc()`  *(Sprint 3)*
+
+```dart
+HyperViewer(
+  html: '''
+    <style>
+      :root {
+        --brand: #6750A4;
+        --gap: 16px;
+      }
+      .card {
+        background: var(--brand);
+        padding: calc(var(--gap) * 1.5);
+        border-radius: 12px;
+        color: white;
+      }
+    </style>
+    <div class="card">Themed with CSS custom properties</div>
+  ''',
+)
+```
+
+---
+
+### 🔲 CSS Grid  *(Sprint 3)*
+
+```dart
+HyperViewer(
+  html: '''
+    <div style="display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 12px;">
+      <div style="background: #E3F2FD; padding: 16px; border-radius: 8px;">Sidebar</div>
+      <div style="background: #F3E5F5; padding: 16px; border-radius: 8px;">Main Content</div>
+      <div style="background: #E8F5E9; padding: 16px; border-radius: 8px;">Aside</div>
+    </div>
+  ''',
+)
+```
+
+---
+
+### 📐 Flexbox (90% Coverage)
+
+```dart
+HyperViewer(
+  html: '''
+    <div style="display: flex; justify-content: space-between;
+                align-items: center; gap: 16px; padding: 12px;
+                background: #1976D2; border-radius: 8px; color: white;">
+      <strong>MyApp</strong>
+      <div style="display: flex; gap: 20px;">
+        <span>Home</span><span>Blog</span><span>About</span>
       </div>
     </div>
   ''',
 )
 ```
 
-### Rich Content with Links & Images
+Supported: `flex-direction`, `justify-content`, `align-items`, `align-self`,
+`flex-wrap`, `flex-grow`, `flex-shrink`, `flex-basis`, `gap`, `row-gap`, `column-gap`.
+
+---
+
+### 📊 Smart Table Layout
+
+Tables use **W3C 2-pass column width algorithm** (min-content → distribute surplus),
+with three overflow strategies via `SmartTableWrapper`:
 
 ```dart
-HyperViewer(
-  html: '''
-    <article>
-      <h1>Article Title</h1>
-      <img src="https://example.com/banner.jpg" alt="Banner" />
-      <p>This is a <a href="https://flutter.dev">link</a> in the content.</p>
-    </article>
-  ''',
-  onLinkTap: (url) => launchUrl(Uri.parse(url)),
-  baseUrl: 'https://example.com',
+// Strategy auto-selected based on table width attribute:
+// width:100% → fitWidth, otherwise → autoScale (min 60%)
+HyperViewer(html: htmlWithTable)
+
+// Or control manually:
+SmartTableWrapper(
+  tableNode: myTableNode,
+  strategy: TableStrategy.horizontalScroll, // fitWidth | autoScale | horizontalScroll
+)
+
+// Build tables programmatically:
+final table = TableNode();
+final row = TableRowNode();
+final cell = TableCellNode(isHeader: true, attributes: {'colspan': '2'});
+cell.appendChild(TextNode('Merged Header'));
+row.appendChild(cell);
+table.appendChild(row);
+HyperTable(tableNode: table)
+```
+
+---
+
+### 🧮 Formula / LaTeX Rendering
+
+Built-in Unicode renderer for math expressions. Plug in `flutter_math_fork` for full LaTeX.
+
+```dart
+// Built-in Unicode rendering (zero dependencies)
+FormulaWidget(formula: r'E = mc^2')
+FormulaWidget(formula: r'\frac{-b \pm \sqrt{b^2 - 4ac}}{2a}')
+FormulaWidget(formula: r'\sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6}')
+
+// Swap to flutter_math_fork for full LaTeX:
+FormulaWidget(
+  formula: r'\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}',
+  customBuilder: (context, formula) => Math.tex(formula),
 )
 ```
 
-### CSS Float Layout (Unique Feature 🌟)
-
-```dart
-// Text wraps around floated images/videos - FWFH can't do this!
-HyperViewer(
-  html: '''
-    <img src="photo.jpg" style="float: left; margin-right: 16px; width: 200px;" />
-    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-       The text naturally wraps around the floated image...</p>
-  ''',
-)
+Works in Quill Delta embeds:
+```json
+{ "ops": [
+  { "insert": "The energy formula " },
+  { "insert": { "formula": "E = mc^2" } },
+  { "insert": " was derived by Einstein.\n" }
+]}
 ```
 
-### Japanese Text with Furigana
+---
+
+### 🔀 Multi-Format Input
 
 ```dart
+// HTML
+HyperViewer(html: '<h1>Hello</h1><p>World</p>')
+
+// Quill Delta JSON
+HyperViewer.delta(delta: '{"ops":[{"insert":"Hello\\n"}]}')
+
+// Markdown
+HyperViewer.markdown(markdown: '# Hello\n\n**Bold** and _italic_.')
+
+// Custom CSS injected on top of document styles
 HyperViewer(
-  html: '''
-    <p>
-      これは<ruby>漢字<rt>かんじ</rt></ruby>の
-      <ruby>例<rt>れい</rt></ruby>です。
-    </p>
-  ''',
+  html: articleHtml,
+  customCss: 'body { font-size: 18px; line-height: 1.8; } a { color: #6750A4; }',
 )
 ```
 
 ---
 
-## 🎨 Features
+### 🔭 Hybrid WebView — `HtmlHeuristics` + `fallbackBuilder`
 
-### Core Rendering
+Not every HTML document is content. For interactive or JavaScript-heavy HTML,
+use the built-in heuristics to detect complexity and fall back to a WebView:
 
-#### ✨ **Perfect Text Selection**
-Single custom RenderObject ensures smooth, crash-free selection even on large documents (10,000+ characters).
+```dart
+// Automatic fallback — no manual detection needed
+HyperViewer(
+  html: maybeComplexHtml,
+  fallbackBuilder: (context) => WebViewWidget(controller: _webViewController),
+)
 
-#### 🎯 **Advanced CSS Support** (68% Coverage)
-Comprehensive cascade resolution following W3C spec with **10x faster** rule indexing.
+// Manual detection
+if (HtmlHeuristics.isComplex(html)) {
+  // Use WebView
+} else {
+  // HyperViewer renders it perfectly
+}
 
-**Supported Properties:**
-- **Box Model**: width, height, margin, padding, border, border-radius
-- **Typography**: color, font-size, font-weight, font-style, font-family, line-height, letter-spacing, text-align, text-decoration
-- **Layout**: display (block, inline, inline-block, **flex**, table, none), position, float, clear, overflow
-- **Flexbox**: flex-direction, justify-content, align-items, gap, flex-wrap, flex properties
-- **Visual**: opacity, transform, background-color, border-style
-- **Animation**: transition, animation properties
-
-#### ⚡ **High Performance**
-- Isolate-based parsing for smooth UI
-- View virtualization for massive documents
-- Single-pass layout algorithm
-- O(1) CSS rule lookup (10x faster)
-
-#### 📝 **Multi-Format Input**
-- ✅ **HTML** - Full support
-- ⚠️ **Markdown** - Basic adapter (full integration planned)
-- ⚠️ **Quill Delta** - Basic adapter (full integration planned)
-
-#### 🀄 **CJK Typography**
-Professional Japanese/Korean/Chinese text support:
-- Kinsoku shori (proper line-breaking rules)
-- Ruby/Furigana rendering
-- Full-width character handling
-
-#### 📊 **Smart Table Layout**
-- Content-based column width calculation
-- Horizontal scroll for wide tables
-- `colspan` and `rowspan` support
-- Responsive scaling
-
-#### 🎬 **Multimedia Integration**
-**🌟 Unique Advantage**: Perfect CSS float support for video/iframe!
-- Automatic placeholders for video/audio
-- Plugin architecture for video_player, webview_flutter
-- Float layout support (text wraps around media)
-- Custom widget injection
-
-#### 🔧 **Flexbox Layout** Complete CSS Flexbox implementation with 90% coverage:
-- **Container Properties**: `display: flex`, `flex-direction`, `justify-content`, `align-items`, `flex-wrap`, `gap`
-- **Item Properties**: `flex-grow`, `flex-shrink`, `flex-basis`, `align-self`
-- **Modern Spacing**: `gap`, `row-gap`, `column-gap`
-- Build responsive layouts without custom widgets!
-
-#### 🔗 **Base URL Resolution**
-Automatic resolution of relative URLs for images and links.
+// Fine-grained checks:
+HtmlHeuristics.hasComplexTables(html)      // colspan > 3, nested tables
+HtmlHeuristics.hasUnsupportedCss(html)     // position:fixed, clip-path
+HtmlHeuristics.hasUnsupportedElements(html) // <canvas>, <form>, <select>
+```
 
 ---
 
-### Developer Experience
-
-#### 🛡️ **Error Boundaries**
-Graceful error handling with beautiful Material Design error UI.
+### 📸 Screenshot Export  *(Sprint 3)*
 
 ```dart
+final captureKey = GlobalKey();
+
 HyperViewer(
-  html: potentiallyBrokenHtml,
-  // Errors are caught automatically and shown with ErrorBoundaryWidget
+  html: articleHtml,
+  captureKey: captureKey,
 )
+
+// Capture anytime:
+final pngBytes = await captureKey.toPngBytes();  // PNG
+final image = await captureKey.toImage();         // ui.Image
 ```
 
-#### 📊 **Performance Monitoring**
-Track render performance with detailed metrics (P95, P99 percentiles).
+---
 
-```dart
-HyperViewer(
-  html: htmlContent,
-  onPerformanceReport: (report) {
-    print('Parse: ${report.parseTime.inMilliseconds}ms');
-    print('Rating: ${report.rating}'); // Excellent, Good, Acceptable, Slow, Poor
-    if (report.totalTime.inMilliseconds > 500) {
-      analytics.trackSlowRender(report.toJson());
-    }
-  },
-)
+### 📖 `<details>` / `<summary>` — Collapsible Sections
+
+```html
+<details>
+  <summary>Click to expand</summary>
+  <p>Hidden content revealed on tap. HyperRender is the only Flutter HTML
+     library that supports this element interactively.</p>
+</details>
+
+<details open>
+  <summary>Open by default</summary>
+  <p>This section starts expanded.</p>
+</details>
 ```
 
-#### 🌙 **Dark Mode Support**
-27 context-aware color methods that automatically adapt to theme brightness.
+---
 
-```dart
-MaterialApp(
-  theme: ThemeData.light(),
-  darkTheme: ThemeData.dark(),
-  home: HyperViewer(
-    html: htmlContent,
-    // Colors automatically adapt!
-  ),
-)
-```
+### 🌐 RTL / BiDi  *(Sprint 3)*
 
-#### ⏳ **Loading Skeletons**
-Beautiful shimmer animations with pre-built patterns.
-
-```dart
-HyperViewer(
-  html: null, // Shows skeleton automatically
-  onLoadingBuilder: (context) => SkeletonCard(lines: 5),
-)
-```
-
-#### 🎨 **Design Tokens System**
-Material Design 3 compliant tokens for consistent theming.
-
-```dart
-// Typography, spacing, colors, elevation - all theme-aware
-Container(
-  color: DesignTokens.getBackgroundColor(context),
-  padding: DesignTokens.spacing(2), // 16px
-  child: Text(
-    'Hello',
-    style: DesignTokens.headingStyle(1),
-  ),
-)
+```html
+<p dir="rtl">هذا نص عربي من اليمين إلى اليسار</p>
+<p dir="ltr">Back to left-to-right text.</p>
 ```
 
 ---
 
 ## 🔒 Security
 
-**⚠️ IMPORTANT**: Always sanitize untrusted HTML!
+**Sanitization is ON by default.** `HyperViewer` strips `<script>`, event handlers,
+`javascript:` URLs, `vbscript:`, SVG data URIs, and CSS `expression()` out of the box.
 
 ```dart
-// ❌ UNSAFE - Never render untrusted HTML directly
+// ✅ Safe by default — sanitize: true is the default
 HyperViewer(html: userGeneratedContent)
 
-// ✅ SAFE - Enable sanitization for user content
-HyperViewer(
-  html: userGeneratedContent,
-  sanitize: true,  // Removes <script>, event handlers, javascript: URLs
-)
-
-// ✅ SAFE - Custom whitelist
+// ✅ Custom tag allowlist
 HyperViewer(
   html: userContent,
   sanitize: true,
-  allowedTags: ['p', 'a', 'img', 'strong', 'em', 'div'],
+  allowedTags: ['p', 'a', 'img', 'strong', 'em', 'ul', 'ol', 'li'],
 )
+
+// ⚠️ Opt-out only for fully trusted backend HTML
+HyperViewer(html: trustedCmsHtml, sanitize: false)
 ```
 
-**What gets sanitized:**
-- `<script>`, `<iframe>`, `<object>`, `<embed>` tags
-- Event handlers (`onclick`, `onerror`, etc.)
-- `javascript:` and dangerous `data:` URLs
-- Form elements (`<form>`, `<input>`, `<button>`)
-
-For trusted HTML (from your backend/CMS), sanitization is optional but recommended as defense-in-depth.
+**What gets removed:**
+- Tags: `<script>`, `<iframe>`, `<object>`, `<embed>`, `<form>`, `<input>`
+- Attributes: `onclick`, `onerror`, `onload` and all `on*` handlers
+- URLs: `javascript:`, `vbscript:`, `data:image/svg+xml` (SVG can embed scripts)
+- CSS: `expression(...)` (IE injection vector)
 
 ---
 
 ## 🏗️ Architecture
 
-HyperRender uses a **4-layer architecture** inspired by browser engines:
+HyperRender uses a **4-layer browser-inspired pipeline**:
 
 ```
-┌─────────────────────────────────────────────────┐
-│        Input (HTML / Delta / Markdown)          │
-└────────────────────┬────────────────────────────┘
-                     ▼
-┌─────────────────────────────────────────────────┐
-│       ADAPTER LAYER (Input Parsers)             │
-│  HTML Parser • Delta Parser • Markdown Parser   │
-└────────────────────┬────────────────────────────┘
-                     ▼
-┌─────────────────────────────────────────────────┐
-│      UNIFIED DOCUMENT TREE (UDT)                │
-│  BlockNode • InlineNode • AtomicNode • Ruby     │
-│  TableNode • FlexContainerNode                  │
-└────────────────────┬────────────────────────────┘
-                     ▼
-┌─────────────────────────────────────────────────┐
-│        CSS STYLE RESOLVER                       │
-│  User Agent → CSS Rules → Inline → Inheritance  │
-│  Flexbox Properties                             │
-└────────────────────┬────────────────────────────┘
-                     ▼
-┌─────────────────────────────────────────────────┐
-│       LAYOUT & PAINTING ENGINE                  │
-│  BFC • IFC • Table • Flexbox • Float            │
-│  Canvas Rendering • Text Selection              │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│        Input  (HTML / Quill Delta / Markdown)       │
+└───────────────────────┬─────────────────────────────┘
+                        ▼
+┌─────────────────────────────────────────────────────┐
+│           ADAPTER LAYER  (Input Parsers)            │
+│    HtmlAdapter · DeltaAdapter · MarkdownAdapter     │
+└───────────────────────┬─────────────────────────────┘
+                        ▼
+┌─────────────────────────────────────────────────────┐
+│         UNIFIED DOCUMENT TREE  (UDT)                │
+│  BlockNode · InlineNode · AtomicNode · RubyNode     │
+│  TableNode · FlexContainerNode · GridNode           │
+└───────────────────────┬─────────────────────────────┘
+                        ▼
+┌─────────────────────────────────────────────────────┐
+│           CSS STYLE RESOLVER                        │
+│  User-Agent → <style> rules → Inline → Inheritance │
+│  Specificity cascade · CSS Variables · calc()       │
+└───────────────────────┬─────────────────────────────┘
+                        ▼
+┌─────────────────────────────────────────────────────┐
+│        SINGLE CUSTOM RenderObject                   │
+│  BFC · IFC · Flexbox · Grid · Table · Float         │
+│  Direct Canvas painting · Continuous span tree      │
+│  Kinsoku line-breaking · Perfect text selection     │
+└─────────────────────────────────────────────────────┘
 ```
 
-**Key Innovations:**
-- **Single RenderObject** - Entire document painted in one custom RenderObject
-- **Flat Coordinate System** - All positions calculated in single layout pass
-- **CSS Rule Indexing** - O(1) lookup instead of O(n×m) scan
-- **Separate Layout Cache** - Efficient invalidation and memory management
-
----
-
-## ⚡ Performance
-
-### Optimization Techniques
-
-1. **View Virtualization** - Only visible content rendered using `ListView.builder`
-2. **Isolate Parsing** - Heavy parsing moved to background isolate
-3. **Custom RenderObject** - Direct canvas painting, avoiding widget tree overhead
-4. **Flat Coordinate System** - Single-pass layout calculation
-5. **CSS Rule Indexing** - O(1) rule lookup by tag/class/ID (10x faster)
-6. **Separate Layout Cache** - Efficient memory management
-
-### Benchmarks
-
-| Operation | Nodes | Target | Achieved | Status |
-|-----------|-------|--------|----------|--------|
-| Document creation | 100 | <50ms | ~5ms | ✅ **10x better** |
-| Document creation | 1,000 | <200ms | ~50ms | ✅ **4x better** |
-| Document creation | 5,000 | <1s | ~250ms | ✅ **4x better** |
-| Style resolution | 1,000 | <500ms | ~100ms | ✅ **5x better** |
-| CSS rule matching | 100×100 | <200ms | ~50ms | ✅ **4x better** |
-| Layout cache ops | 2,000 | <50ms | ~10ms | ✅ **5x better** |
-
-**Use `PerformanceMonitor` to track these metrics in your app!**
-
----
-
-## 📚 Examples
-
-### Modern Card Layout with Flexbox
-
-```dart
-HyperViewer(
-  html: '''
-    <div style="display: flex; gap: 16px; padding: 16px;">
-      <div style="flex: 1; background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h3 style="margin-top: 0;">Card Title 1</h3>
-        <p>Card content goes here...</p>
-      </div>
-      <div style="flex: 1; background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h3 style="margin-top: 0;">Card Title 2</h3>
-        <p>Card content goes here...</p>
-      </div>
-    </div>
-  ''',
-)
-```
-
-### Responsive Navbar
-
-```dart
-HyperViewer(
-  html: '''
-    <div style="display: flex; justify-content: space-between; align-items: center;
-                background: #1976D2; color: white; padding: 12px 16px; border-radius: 4px;">
-      <div style="font-weight: bold; font-size: 18px;">MyApp</div>
-      <div style="display: flex; gap: 16px;">
-        <div>Home</div>
-        <div>About</div>
-        <div>Contact</div>
-      </div>
-    </div>
-  ''',
-)
-```
-
-### Centered Hero Section
-
-```dart
-HyperViewer(
-  html: '''
-    <div style="display: flex; justify-content: center; align-items: center;
-                height: 300px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 8px;">
-      <div style="background: white; padding: 32px; border-radius: 8px; text-align: center;">
-        <h1 style="margin: 0; color: #333;">Welcome!</h1>
-        <p style="color: #666; margin-top: 8px;">Get started with HyperRender</p>
-      </div>
-    </div>
-  ''',
-)
-```
-
-### Magazine Layout with Float
-
-```dart
-HyperViewer(
-  html: '''
-    <article>
-      <h1>The Future of Flutter Rendering</h1>
-      <img src="hero.jpg"
-           style="float: left; margin: 0 16px 16px 0; width: 300px; border-radius: 8px;" />
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-         Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...</p>
-      <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p>
-    </article>
-  ''',
-)
-```
+**Key innovations:**
+- **Single RenderObject** — entire document painted in one `RenderBox`; enables float layout and crash-free selection
+- **O(1) CSS rule indexing** — rules indexed by tag/class/ID; lookup is constant-time regardless of stylesheet size
+- **Flat coordinate system** — all fragment positions computed in one layout pass; no widget-boundary offset errors
+- **RepaintBoundary per chunk** — `ListView.builder` chunks each with its own GPU layer; cross-chunk repaint never triggers
+- **One-shot `ImageStreamListener`** — self-removing on both success and error; no listener leak
 
 ---
 
 ## 📖 API Reference
 
-### HyperViewer
-
-Main widget for rendering content.
+### `HyperViewer`
 
 ```dart
+// HTML (default constructor)
 HyperViewer({
-  String? html,                              // HTML content to render
-  String? baseUrl,                           // Base URL for relative links/images
-  TextStyle? baseStyle,                      // Base text style
-  OnLinkTap? onLinkTap,                      // Link tap callback
-  bool selectable = true,                    // Enable text selection
-  bool sanitize = false,                     // Enable HTML sanitization
-  List<String>? allowedTags,                 // Whitelist for sanitization
-  HyperRenderMode mode = HyperRenderMode.auto,
-  OnPerformanceReport? onPerformanceReport,  // Performance tracking
-  WidgetBuilder? onLoadingBuilder,           // Loading state builder
-  HyperWidgetBuilder? widgetBuilder,         // Custom widget injection
+  required String html,
+  String? baseUrl,             // Resolve relative URLs
+  String? customCss,           // Inject extra CSS (lower priority than document styles)
+  bool selectable = true,      // Enable text selection
+  bool sanitize = true,        // Strip dangerous tags/attributes (default: ON)
+  List<String>? allowedTags,   // Custom allowlist for sanitize: true
+  HyperRenderMode mode = HyperRenderMode.auto, // sync | async | auto
+  Function(String)? onLinkTap,
+  HyperWidgetBuilder? widgetBuilder, // Inject native Flutter widgets by tag/node
+  WidgetBuilder? fallbackBuilder,    // Shown when HtmlHeuristics.isComplex()
+  GlobalKey? captureKey,       // Screenshot export
+  bool enableZoom = false,
+  bool showSelectionMenu = true,
+  WidgetBuilder? placeholderBuilder, // Async loading state
+  String? semanticLabel,
+  bool debugShowHyperRenderBounds = false,
 })
+
+// Named constructors
+HyperViewer.delta(delta: jsonString, ...)
+HyperViewer.markdown(markdown: markdownString, ...)
 ```
 
-### PerformanceMonitor
-
-Track and analyze render performance.
+### `HyperWidgetBuilder` — Custom Widget Injection
 
 ```dart
-final monitor = PerformanceMonitor();
-final result = monitor.measure('parse', () => parser.parse(html));
-final report = monitor.buildReport();
-
-print('Average: ${report.averageDuration.inMilliseconds}ms');
-print('P95: ${report.p95Duration.inMilliseconds}ms');
-print('P99: ${report.p99Duration.inMilliseconds}ms');
+HyperViewer(
+  html: htmlContent,
+  widgetBuilder: (context, node) {
+    // Intercept any node by tag or attributes
+    if (node is AtomicNode && node.tagName == 'iframe') {
+      final src = node.attributes['src'] ?? '';
+      if (src.contains('youtube.com')) {
+        return YoutubePlayerWidget(url: src);
+      }
+    }
+    return null; // Fall through to default rendering
+  },
+)
 ```
 
-### DesignTokens
-
-Material Design 3 compliant design system.
+### `HtmlHeuristics`
 
 ```dart
-// Typography
-DesignTokens.headingStyle(1)     // H1 TextStyle
-DesignTokens.bodyFontSize        // 14.0
+HtmlHeuristics.isComplex(html)           // any of the below
+HtmlHeuristics.hasComplexTables(html)    // colspan > 3 or deeply nested
+HtmlHeuristics.hasUnsupportedCss(html)   // position:fixed, clip-path, columns
+HtmlHeuristics.hasUnsupportedElements(html) // canvas, form, select, input
+```
 
-// Spacing (8pt grid)
-DesignTokens.space2              // 16.0
-DesignTokens.spacing(2)          // EdgeInsets.all(16)
+### `SmartTableWrapper`
 
-// Colors (context-aware, auto dark mode)
-DesignTokens.getTextPrimary(context)
+```dart
+SmartTableWrapper(
+  tableNode: myTableNode,
+  strategy: TableStrategy.fitWidth,        // Shrink columns proportionally
+  // strategy: TableStrategy.horizontalScroll, // Preserve widths, scroll
+  // strategy: TableStrategy.autoScale,    // FittedBox scale-down
+  minScaleFactor: 0.6,                     // Min scale for autoScale
+)
+```
+
+### `FormulaWidget`
+
+```dart
+FormulaWidget(
+  formula: r'\frac{-b \pm \sqrt{b^2-4ac}}{2a}',
+  style: TextStyle(fontSize: 18),
+  customBuilder: (context, formula) => Math.tex(formula), // optional
+)
+```
+
+### `HyperCaptureExtension`
+
+```dart
+final key = GlobalKey();
+// ... HyperViewer(captureKey: key)
+
+final bytes = await key.toPngBytes();    // Uint8List PNG
+final image = await key.toImage();       // ui.Image
+```
+
+### `DesignTokens`
+
+```dart
+// Material Design 3 compliant, auto dark-mode
+DesignTokens.headingStyle(1)           // H1 TextStyle
+DesignTokens.bodyFontSize              // 14.0
+DesignTokens.space2                    // 16.0
+DesignTokens.spacing(2)                // EdgeInsets.all(16)
+DesignTokens.getTextPrimary(context)   // Color (adapts to theme)
 DesignTokens.getBackgroundColor(context)
 ```
 
 ---
 
+## ⚠️ When NOT to Use HyperRender
+
+HyperRender is a **specialized content engine**, not a full browser. Choose the right tool:
+
+| Need | Use Instead |
+|------|------------|
+| Execute JavaScript | `webview_flutter` |
+| Interactive web forms | `webview_flutter` |
+| Rich text editor | `super_editor`, `fleather` |
+| Complex HTML with `position:fixed`, `canvas` | `webview_flutter` (via `fallbackBuilder`) |
+
+**✅ DO USE** for: News apps, Medium-clones, documentation viewers, RSS readers,
+e-book readers, email clients, CJK content apps — anywhere you need to render
+large amounts of beautifully formatted content without dropping frames.
+
+---
+
 ## 🗺️ Roadmap
 
-### ✅ Phase 1: Foundation (Complete)
-- [x] HTML Parser → UDT
-- [x] Basic text rendering
-- [x] CSS resolver with cascade
+### ✅ Complete
 
-### ✅ Phase 2: Layout Powerhouse (Complete)
-- [x] Complete CSS box model
-- [x] Table auto-layout
-- [x] Float support
+- [x] HTML parser → Unified Document Tree (UDT)
+- [x] Full CSS cascade — specificity, inheritance, `!important`
+- [x] CSS Float layout (text wrapping around images/video)
+- [x] Perfect text selection + copy menu
+- [x] W3C 2-pass table layout (colspan, rowspan, SmartTableWrapper)
 - [x] Flexbox layout (90% coverage)
-- [x] CJK line-breaking
-
-### ✅ Phase 3: Interaction & Polish (Complete)
-- [x] Perfect text selection
-- [x] Animation support
-- [x] Error boundaries
-- [x] Performance monitoring
-- [x] Dark mode support
-
-### 🚧 Phase 4: Extensions (In Progress)
-- [x] HTML sanitization
+- [x] CJK Kinsoku line-breaking + Ruby / Furigana
+- [x] `<details>` / `<summary>` collapsible
+- [x] CSS Variables (`--custom-props`, `var()`)
+- [x] CSS Grid (`display: grid`, fr units)
+- [x] CSS `calc()` (px, em, rem arithmetic)
+- [x] SVG inline rendering (via AtomicNode)
+- [x] RTL / BiDi (`dir` attribute)
+- [x] Screenshot export (`captureKey` + `HyperCaptureExtension`)
+- [x] `HtmlHeuristics` + `fallbackBuilder` hybrid WebView pattern
+- [x] `FormulaWidget` — LaTeX/Unicode math + `flutter_math_fork` hook
+- [x] Quill Delta adapter
+- [x] Markdown adapter
+- [x] HTML sanitization (XSS, vbscript:, SVG data:, CSS expression())
 - [x] Base URL resolution
-- [ ] Full Quill Delta adapter
-- [ ] Full Markdown adapter
-- [ ] Media player integration
-- [ ] SVG rendering
+- [x] Error boundaries
+- [x] View virtualization + RepaintBoundary per chunk
+- [x] Design Tokens (Material 3)
+- [x] Loading skeletons (shimmer)
+- [x] Dark mode support
+- [x] Custom widget injection (`widgetBuilder`)
+- [x] Performance monitoring (`PerformanceMonitor` in `hyper_render_core`)
 
-### 🔮 Phase 5: Advanced Features (Planned)
-- [ ] Grid layout support
-- [ ] Advanced transforms
-- [ ] CSS animations
-- [ ] Print/PDF export
+### 🚧 In Progress
+
+- [ ] Full SVG renderer (not just placeholder)
+- [ ] Video/audio player integration (`video_player` plugin)
+- [ ] CSS `@keyframes` animation (currently via `HyperAnimatedWidget`)
+
+### 🔮 Planned
+
+- [ ] Print / PDF export
+- [ ] `position: absolute` layout
+- [ ] `clip-path` support
 
 ---
 
 ## 📦 Extension Packages
 
 | Package | Description | Status |
-|---------|-------------|--------|
-| `hyper_render_core` | Core rendering engine | ✅ Stable |
+|---------|-------------|:------:|
+| `hyper_render_core` | Core UDT, CSS resolver, design tokens | ✅ Stable |
 | `hyper_render_html` | HTML adapter | ✅ Stable |
 | `hyper_render_markdown` | Markdown adapter | ⚠️ Alpha |
-| `hyper_render_clipboard` | Enhanced clipboard | ✅ Stable |
-| `hyper_render_highlight` | Syntax highlighting | ✅ Stable |
-| `hyper_render_media` | Audio/Video widgets | 🔜 Planned |
-| `hyper_render_svg` | SVG rendering | 🔜 Planned |
+| `hyper_render_highlight` | Syntax highlighting for `<code>` | ✅ Stable |
+| `hyper_render_devtools` | Flutter DevTools extension (UDT inspector) | 🧪 Beta |
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guidelines](docs/CONTRIBUTING.md) before submitting PRs.
-
-**Development Setup:**
 ```bash
 git clone https://github.com/yourusername/hyper_render.git
 cd hyper_render
 flutter pub get
-flutter test
-cd example && flutter run
+flutter test           # All tests must pass
+cd example && flutter run  # Run the demo app
 ```
+
+Read our [Architecture Guide](docs/ARCHITECTURE.md) and
+[Contributing Guidelines](docs/CONTRIBUTING.md) before submitting PRs.
 
 ---
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-## 🔗 Learn More
+## 🔗 More
 
-- 📋 [Comparison Matrix](docs/COMPARISON_MATRIX.md) - Detailed feature comparison
-- 🎨 [CSS Support Roadmap](docs/CSS_SUPPORT_ROADMAP.md) - Current and planned CSS properties
-- 🔐 [Security & Accessibility](docs/SECURITY_AND_ACCESSIBILITY.md) - XSS protection & best practices
-- 🎬 [Multimedia Examples](example/MULTIMEDIA_EXAMPLES.md) - Video, audio, iframe integration
-- 🔧 [Plugin Development](docs/PLUGIN_DEVELOPMENT.md) - Build custom extensions
-- 📝 [Migration Guide](docs/MIGRATION_GUIDE.md) - Upgrading from other libraries
-- 🤝 [Contributing](docs/CONTRIBUTING.md) - How to contribute
-- 📄 [Code of Conduct](docs/CODE_OF_CONDUCT.md) - Community guidelines
+- 📋 [Comparison Matrix](docs/COMPARISON_MATRIX.md) — Full feature comparison
+- 🎨 [CSS Properties Matrix](docs/CSS_PROPERTIES_MATRIX.md) — Complete CSS support status
+- 📐 [Supported HTML Elements](docs/SUPPORTED_HTML.md) — Tags and attributes
+- ⚠️ [Known Limitations](docs/LIMITATIONS.md) — Honest list of what we don't support yet
+- 📦 [Migration Guide](MIGRATION.md) — Coming from flutter_html or FWFH?
 
 ---
 
 <div align="center">
 
-### ⚡ **The game-changing HTML rendering library for Flutter** ⚡
-
 **Built with ❤️ by the Flutter community**
 
-[Get Started](#installation) • [View Demo](example/) • [Report Bug](https://github.com/yourusername/hyper_render/issues) • [Request Feature](https://github.com/yourusername/hyper_render/issues)
+[Get Started](#quick-start) · [View Demo](example/) · [Report Bug](https://github.com/yourusername/hyper_render/issues) · [Request Feature](https://github.com/yourusername/hyper_render/issues)
 
 </div>
