@@ -565,34 +565,33 @@ large amounts of beautifully formatted content without dropping frames.
 
 ## 🗺️ Roadmap
 
-### ✅ Complete
+### ✅ v1–v3 Complete
 
 - [x] HTML parser → Unified Document Tree (UDT)
 - [x] Full CSS cascade — specificity, inheritance, `!important`
-- [x] CSS Float layout (text wrapping around images/video)
-- [x] Perfect text selection + copy menu
-- [x] W3C 2-pass table layout (colspan, rowspan, SmartTableWrapper)
+- [x] **CSS Float layout** — text wrapping around images/video (unique)
+- [x] Perfect text selection + copy menu (crash-free)
+- [x] W3C 2-pass table layout (colspan, rowspan, `SmartTableWrapper`)
 - [x] Flexbox layout (90% coverage)
-- [x] CJK Kinsoku line-breaking + Ruby / Furigana
-- [x] `<details>` / `<summary>` collapsible
+- [x] CJK Kinsoku line-breaking + Ruby / Furigana (unique)
+- [x] `<details>` / `<summary>` collapsible (unique)
 - [x] CSS Variables (`--custom-props`, `var()`)
 - [x] CSS Grid (`display: grid`, fr units)
+- [x] **Paren-aware inline style tokenizer** — `url()`, `calc()`, `rgb()` never truncated
 - [x] CSS `calc()` (px, em, rem arithmetic)
-- [x] SVG inline rendering (via AtomicNode)
+- [x] SVG inline rendering (placeholder)
 - [x] RTL / BiDi (`dir` attribute)
 - [x] Screenshot export (`captureKey` + `HyperCaptureExtension`)
-- [x] `HtmlHeuristics` + `fallbackBuilder` hybrid WebView pattern
-- [x] `FormulaWidget` — LaTeX/Unicode math + `flutter_math_fork` hook
-- [x] Quill Delta adapter
+- [x] `HtmlHeuristics` + `fallbackBuilder` — hybrid WebView pattern
+- [x] `FormulaWidget` — Unicode LaTeX + `flutter_math_fork` hook
+- [x] Quill Delta adapter + formula embeds
 - [x] Markdown adapter
-- [x] HTML sanitization (XSS, vbscript:, SVG data:, CSS expression())
+- [x] HTML sanitization (XSS, `vbscript:`, SVG data:, CSS `expression()`)
 - [x] Base URL resolution
-- [x] Error boundaries
-- [x] View virtualization + RepaintBoundary per chunk
-- [x] Design Tokens (Material 3)
-- [x] Loading skeletons (shimmer)
-- [x] Dark mode support
-- [x] Custom widget injection (`widgetBuilder`)
+- [x] Error boundaries + loading skeletons
+- [x] View virtualization + `RepaintBoundary` per chunk
+- [x] Design Tokens (Material 3) + dark mode
+- [x] CSS Plugin Architecture (`CssParserInterface` — swappable parser)
 - [x] Performance monitoring (`PerformanceMonitor` in `hyper_render_core`)
 
 ### 🚧 In Progress
@@ -601,11 +600,70 @@ large amounts of beautifully formatted content without dropping frames.
 - [ ] Video/audio player integration (`video_player` plugin)
 - [ ] CSS `@keyframes` animation (currently via `HyperAnimatedWidget`)
 
-### 🔮 Planned
+### 🔮 v4.0 — Browser Engine Tier
 
-- [ ] Print / PDF export
-- [ ] `position: absolute` layout
-- [ ] `clip-path` support
+> These are ambitious, multi-sprint features that push HyperRender into browser-engine territory.
+
+#### 🟡 Vanilla JS Execution via QuickJS
+
+Embed [QuickJS](https://bellard.org/quickjs/) — the lightweight JS engine by Fabrice Bellard
+(~300 KB, no JIT, perfect for sandboxed execution) via Dart FFI.
+
+Architecture plan:
+1. **QuickJS via FFI** — run the C library directly inside the Flutter process
+2. **Synthetic DOM bridge** — Dart methods exposed to JS: `document.getElementById()`,
+   `element.style.display = 'none'`, `element.textContent`
+3. **Scope**: Vanilla JS only — form validation, show/hide (accordion), quiz logic.
+   No React/Vue/Angular. No `fetch()`. No `setTimeout()` with DOM mutations.
+4. For JavaScript-heavy pages: use `fallbackBuilder` → `webview_flutter`
+
+```dart
+// Future API (v4.0)
+HyperViewer(
+  html: htmlWithInlineScript,
+  enableVanillaJs: true,   // opt-in — off by default for security
+  jsWhitelist: ['document', 'console'],
+)
+```
+
+#### 🟡 `position: absolute/fixed` Layout
+
+Enable positioned elements inside a `PositioningContext`. Required for
+tooltips, dropdowns, and overlay-style HTML fragments.
+
+#### 🟡 `clip-path` Support
+
+Polygon and circle clip masks via Flutter's `ClipPath` widget.
+
+#### 🟢 Print / PDF Export
+
+`HyperViewer` → paginated `pdf` output via `printing` package.
+
+### 🎯 CSS Strategy
+
+HyperRender follows **Graceful Degradation** — unknown CSS properties are silently
+ignored, never crash the renderer. Layout and typography are always correct.
+Decorative unsupported properties (e.g. `mix-blend-mode`, `backdrop-filter`) result
+in a slightly simpler visual — the content remains perfectly readable at 60 FPS.
+
+The CSS parser backend is **swappable** via `CssParserInterface`:
+
+```dart
+// Default: uses Google's csslib AST parser (handles @media, @keyframes, etc.)
+// Zero config — automatic.
+
+// Custom parser (e.g. for a restricted environment):
+class MyMinimalParser implements CssParserInterface {
+  @override
+  List<ParsedCssRule> parseStylesheet(String css) { ... }
+
+  @override
+  Map<String, String> parseInlineStyle(String style) { ... }
+}
+```
+
+This means **community-contributed CSS plugins** can extend coverage without
+touching the core — the same model used by browser engine plugin architectures.
 
 ---
 

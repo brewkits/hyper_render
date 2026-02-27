@@ -1575,33 +1575,66 @@ class StyleResolver {
     }
   }
 
-  /// Parse inline style attribute
+  /// Parse inline style attribute.
+  ///
+  /// Uses a paren-aware tokenizer to split on `;` only at depth 0.
+  /// This correctly handles function calls such as `url('data:image/png;...')`,
+  /// `calc(100% - 20px)`, `rgb(255,0,0)`, `var(--x)`, and `linear-gradient(…)`
+  /// that contain semicolons, commas, or colons inside parentheses.
   ComputedStyle _parseInlineStyle(
     ComputedStyle style,
     String inlineStyle, {
     double? parentFontSize,
     Map<String, String>? inheritedCustomProps,
   }) {
-    // Simple parsing: split by semicolon, then by colon
-    // Use a more robust split that handles values with colons (e.g. url(...))
-    final declarations = inlineStyle.split(';');
+    if (inlineStyle.isEmpty) return style;
+
+    // Split on ';' only when not inside any pair of parentheses.
+    final declarations = _splitDeclarations(inlineStyle);
+
     for (final decl in declarations) {
+      // Split on the FIRST ':' to separate property from value.
+      // (Values like `url(http://…)` contain colons — only the first one matters.)
       final colonIdx = decl.indexOf(':');
-      if (colonIdx > 0) {
-        final property = decl.substring(0, colonIdx).trim();
-        final value = decl.substring(colonIdx + 1).trim();
-        if (property.isNotEmpty && value.isNotEmpty) {
-          style = _applySingleDeclaration(
-            style,
-            property,
-            value,
-            parentFontSize: parentFontSize,
-            inheritedCustomProps: inheritedCustomProps,
-          );
-        }
+      if (colonIdx <= 0) continue;
+      final property = decl.substring(0, colonIdx).trim();
+      final value = decl.substring(colonIdx + 1).trim();
+      if (property.isNotEmpty && value.isNotEmpty) {
+        style = _applySingleDeclaration(
+          style,
+          property,
+          value,
+          parentFontSize: parentFontSize,
+          inheritedCustomProps: inheritedCustomProps,
+        );
       }
     }
     return style;
+  }
+
+  /// Split a CSS declaration block on `;` while respecting parentheses.
+  ///
+  /// A `;` inside `(…)` (e.g. inside `url(…)`, `calc(…)`, `rgb(…)`) is NOT
+  /// treated as a declaration separator.
+  static List<String> _splitDeclarations(String declarations) {
+    final parts = <String>[];
+    int depth = 0;
+    int start = 0;
+    for (int i = 0; i < declarations.length; i++) {
+      final ch = declarations[i];
+      if (ch == '(') {
+        depth++;
+      } else if (ch == ')') {
+        if (depth > 0) depth--;
+      } else if (ch == ';' && depth == 0) {
+        final part = declarations.substring(start, i).trim();
+        if (part.isNotEmpty) parts.add(part);
+        start = i + 1;
+      }
+    }
+    final last = declarations.substring(start).trim();
+    if (last.isNotEmpty) parts.add(last);
+    return parts;
   }
 
   /// Apply inheritance from parent
