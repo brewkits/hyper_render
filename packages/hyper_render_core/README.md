@@ -26,7 +26,7 @@ Zero-dependency core rendering engine for HyperRender.
 
 ```yaml
 dependencies:
-  hyper_render_core: ^2.0.0
+  hyper_render_core: ^1.0.0
 ```
 
 ## Zero External Dependencies

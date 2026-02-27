@@ -326,7 +326,8 @@ void main() {
 
       final widget = _safeWidgetBuilder(
         () {
-          if (dataStr == null || dataStr.isEmpty) {
+          // ignore: unnecessary_null_comparison
+          if (dataStr == null) {
             return _buildMediaErrorWidget(
               'Chart Data Missing',
               details: 'No data attribute provided',

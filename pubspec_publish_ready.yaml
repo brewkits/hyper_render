@@ -1,0 +1,56 @@
+name: hyper_render
+description: "The Universal Content Engine for Flutter - A high-performance rendering engine for HTML, Markdown, and Quill Delta with perfect text selection, advanced CSS support, and CJK typography."
+version: 1.0.0
+homepage: https://github.com/brewkits/hyper_render
+repository: https://github.com/brewkits/hyper_render
+issue_tracker: https://github.com/brewkits/hyper_render/issues
+
+# Topics for pub.dev discovery
+topics:
+  - html
+  - rendering
+  - richtext
+  - quill
+  - css
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ============================================
+  # PUBLISH-READY CONFIGURATION
+  # All path dependencies replaced with version constraints
+  # ============================================
+
+  # Core packages (replace with actual pub.dev versions after publishing)
+  hyper_render_core: ^1.0.0
+  hyper_render_html: ^1.0.0
+  hyper_render_markdown: ^1.0.0
+  hyper_render_highlight: ^1.0.0
+
+  # External dependencies
+  flutter_highlight: ^0.7.0
+  highlight: ^0.7.0
+  csslib: ^1.0.0
+  markdown: ^7.3.0
+  html: ^0.15.6
+  vector_math: ^2.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Linting
+  flutter_lints: ^6.0.0
+
+  # Mocking for tests
+  mockito: ^5.4.4
+
+  # Build runner for mockito code generation
+  build_runner: ^2.4.8
+
+flutter:

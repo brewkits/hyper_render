@@ -471,6 +471,51 @@ class ComputedStyle {
   int rowspan;
 
   // ============================================
+  // CSS Custom Properties (variables)
+  // ============================================
+
+  /// CSS custom properties defined on this element (--name: value)
+  /// Also contains inherited custom properties from parent elements.
+  Map<String, String> customProperties = {};
+
+  // ============================================
+  // Grid Layout Properties
+  // ============================================
+
+  /// CSS grid-template-columns (e.g. "1fr 2fr auto")
+  String? gridTemplateColumns;
+
+  /// CSS grid-template-rows
+  String? gridTemplateRows;
+
+  /// CSS grid-auto-flow ("row" | "column" | "dense")
+  String? gridAutoFlow;
+
+  /// CSS grid-column-start for grid items
+  int gridColumnStart = 0;
+
+  /// CSS grid-column-end for grid items
+  int gridColumnEnd = 0;
+
+  /// CSS grid-row-start for grid items
+  int gridRowStart = 0;
+
+  /// CSS grid-row-end for grid items
+  int gridRowEnd = 0;
+
+  /// CSS grid-column span shorthand
+  int gridColumnSpan = 1;
+
+  /// CSS grid-row span shorthand
+  int gridRowSpan = 1;
+
+  /// CSS justify-items (for grid containers)
+  JustifyContent justifyItems = JustifyContent.flexStart;
+
+  /// CSS align-content (for grid/flex containers)
+  JustifyContent alignContent = JustifyContent.flexStart;
+
+  // ============================================
   // Flexbox Properties
   // ============================================
 
@@ -597,8 +642,21 @@ class ComputedStyle {
     textAlign = parent.textAlign;
     whiteSpace = parent.whiteSpace;
 
+    // CSS direction is inheritable
+    direction ??= parent.direction;
+
+    // CSS custom properties are inherited — merge parent's into this element's map
+    // (child-defined properties take priority over parent's)
+    final merged = Map<String, String>.from(parent.customProperties);
+    merged.addAll(customProperties);
+    customProperties = merged;
+
     // Note: margin, padding, border DO NOT inherit
   }
+
+  /// Whether this element's text direction is right-to-left.
+  /// Use this in rendering code where `TextDirection` is hidden by import.
+  bool get isRtl => direction == TextDirection.rtl;
 
   /// Convert to Flutter TextStyle
   TextStyle toTextStyle() {
@@ -620,54 +678,188 @@ class ComputedStyle {
 
   /// Create a copy with modifications
   ComputedStyle copyWith({
+    // Box model
     double? width,
     double? height,
+    double? minWidth,
+    double? maxWidth,
+    double? minHeight,
+    double? maxHeight,
     EdgeInsets? margin,
     EdgeInsets? padding,
     EdgeInsets? borderWidth,
     Color? borderColor,
     BorderRadius? borderRadius,
+    BorderStyle? borderStyle,
+    BorderStyle? borderTopStyle,
+    BorderStyle? borderRightStyle,
+    BorderStyle? borderBottomStyle,
+    BorderStyle? borderLeftStyle,
+    // Text
     Color? color,
     double? fontSize,
     FontWeight? fontWeight,
     FontStyle? fontStyle,
     String? fontFamily,
     TextDecoration? textDecoration,
+    Color? textDecorationColor,
     double? lineHeight,
+    double? letterSpacing,
+    double? wordSpacing,
     HyperTextAlign? textAlign,
+    HyperVerticalAlign? verticalAlign,
+    String? textTransform,
+    String? whiteSpace,
+    TextOverflow? textOverflow,
+    List<Shadow>? textShadow,
+    // Background
     Color? backgroundColor,
+    String? backgroundImage,
+    // Layout
     DisplayType? display,
-    double? opacity,
+    HyperOverflow? overflowX,
+    HyperOverflow? overflowY,
+    String? position,
     HyperFloat? float,
     HyperClear? clear,
+    int? zIndex,
+    TextDirection? direction,
+    // Transform / visual
+    Matrix4? transform,
+    double? opacity,
+    // Animation
+    HyperTransition? transition,
+    String? animationName,
+    int? animationDuration,
+    HyperTimingFunction? animationTimingFunction,
+    int? animationDelay,
+    int? animationIterationCount,
+    HyperAnimationDirection? animationDirection,
+    HyperAnimationFillMode? animationFillMode,
+    // Table
+    int? colspan,
+    int? rowspan,
+    // Flexbox
+    FlexDirection? flexDirection,
+    JustifyContent? justifyContent,
+    AlignItems? alignItems,
+    FlexWrap? flexWrap,
+    double? gap,
+    double? rowGap,
+    double? columnGap,
+    double? flexGrow,
+    double? flexShrink,
+    double? flexBasis,
+    AlignItems? alignSelf,
+    // Grid
+    String? gridTemplateColumns,
+    String? gridTemplateRows,
+    String? gridAutoFlow,
+    int? gridColumnStart,
+    int? gridColumnEnd,
+    int? gridRowStart,
+    int? gridRowEnd,
+    int? gridColumnSpan,
+    int? gridRowSpan,
+    JustifyContent? justifyItems,
+    JustifyContent? alignContent,
+    // Custom properties
+    Map<String, String>? customProperties,
   }) {
-    return ComputedStyle(
+    final result = ComputedStyle(
       width: width ?? this.width,
       height: height ?? this.height,
+      minWidth: minWidth ?? this.minWidth,
+      maxWidth: maxWidth ?? this.maxWidth,
+      minHeight: minHeight ?? this.minHeight,
+      maxHeight: maxHeight ?? this.maxHeight,
       margin: margin ?? this.margin,
       padding: padding ?? this.padding,
       borderWidth: borderWidth ?? this.borderWidth,
       borderColor: borderColor ?? this.borderColor,
       borderRadius: borderRadius ?? this.borderRadius,
+      borderStyle: borderStyle ?? this.borderStyle,
+      borderTopStyle: borderTopStyle ?? this.borderTopStyle,
+      borderRightStyle: borderRightStyle ?? this.borderRightStyle,
+      borderBottomStyle: borderBottomStyle ?? this.borderBottomStyle,
+      borderLeftStyle: borderLeftStyle ?? this.borderLeftStyle,
       color: color ?? this.color,
       fontSize: fontSize ?? this.fontSize,
       fontWeight: fontWeight ?? this.fontWeight,
       fontStyle: fontStyle ?? this.fontStyle,
       fontFamily: fontFamily ?? this.fontFamily,
       textDecoration: textDecoration ?? this.textDecoration,
+      textDecorationColor: textDecorationColor ?? this.textDecorationColor,
       lineHeight: lineHeight ?? this.lineHeight,
+      letterSpacing: letterSpacing ?? this.letterSpacing,
+      wordSpacing: wordSpacing ?? this.wordSpacing,
       textAlign: textAlign ?? this.textAlign,
+      verticalAlign: verticalAlign ?? this.verticalAlign,
+      textTransform: textTransform ?? this.textTransform,
+      whiteSpace: whiteSpace ?? this.whiteSpace,
+      textOverflow: textOverflow ?? this.textOverflow,
+      textShadow: textShadow ?? this.textShadow,
       backgroundColor: backgroundColor ?? this.backgroundColor,
+      backgroundImage: backgroundImage ?? this.backgroundImage,
       display: display ?? this.display,
-      opacity: opacity ?? this.opacity,
+      overflowX: overflowX ?? this.overflowX,
+      overflowY: overflowY ?? this.overflowY,
+      position: position ?? this.position,
       float: float ?? this.float,
       clear: clear ?? this.clear,
+      zIndex: zIndex ?? this.zIndex,
+      direction: direction ?? this.direction,
+      transform: transform ?? this.transform,
+      opacity: opacity ?? this.opacity,
+      transition: transition ?? this.transition,
+      animationName: animationName ?? this.animationName,
+      animationDuration: animationDuration ?? this.animationDuration,
+      animationTimingFunction:
+          animationTimingFunction ?? this.animationTimingFunction,
+      animationDelay: animationDelay ?? this.animationDelay,
+      animationIterationCount:
+          animationIterationCount ?? this.animationIterationCount,
+      animationDirection: animationDirection ?? this.animationDirection,
+      animationFillMode: animationFillMode ?? this.animationFillMode,
+      colspan: colspan ?? this.colspan,
+      rowspan: rowspan ?? this.rowspan,
+      flexDirection: flexDirection ?? this.flexDirection,
+      justifyContent: justifyContent ?? this.justifyContent,
+      alignItems: alignItems ?? this.alignItems,
+      flexWrap: flexWrap ?? this.flexWrap,
+      gap: gap ?? this.gap,
+      rowGap: rowGap ?? this.rowGap,
+      columnGap: columnGap ?? this.columnGap,
+      flexGrow: flexGrow ?? this.flexGrow,
+      flexShrink: flexShrink ?? this.flexShrink,
+      flexBasis: flexBasis ?? this.flexBasis,
+      alignSelf: alignSelf ?? this.alignSelf,
     );
+    // Copy non-constructor grid fields and custom properties
+    result.gridTemplateColumns =
+        gridTemplateColumns ?? this.gridTemplateColumns;
+    result.gridTemplateRows = gridTemplateRows ?? this.gridTemplateRows;
+    result.gridAutoFlow = gridAutoFlow ?? this.gridAutoFlow;
+    result.gridColumnStart = gridColumnStart ?? this.gridColumnStart;
+    result.gridColumnEnd = gridColumnEnd ?? this.gridColumnEnd;
+    result.gridRowStart = gridRowStart ?? this.gridRowStart;
+    result.gridRowEnd = gridRowEnd ?? this.gridRowEnd;
+    result.gridColumnSpan = gridColumnSpan ?? this.gridColumnSpan;
+    result.gridRowSpan = gridRowSpan ?? this.gridRowSpan;
+    result.justifyItems = justifyItems ?? this.justifyItems;
+    result.alignContent = alignContent ?? this.alignContent;
+    result.customProperties =
+        customProperties ?? Map<String, String>.from(this.customProperties);
+    return result;
   }
 
-  /// Default style matching browser defaults with improved readability
-  /// lineHeight: 1.5 is recommended for better readability
-  static ComputedStyle get defaultStyle => ComputedStyle(
-        lineHeight: 1.5, // Better readability than browser default 1.0
-      );
+  /// Default style matching browser defaults with improved readability.
+  ///
+  /// Declared as `static final` (not a getter) so it is constructed exactly
+  /// once. The resolver compares against this instance 5 times per element;
+  /// a getter would silently allocate a fresh object on every comparison,
+  /// creating thousands of short-lived ComputedStyle instances for large docs.
+  static final ComputedStyle defaultStyle = ComputedStyle(
+    lineHeight: 1.5, // Better readability than browser default 1.0
+  );
 }

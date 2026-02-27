@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../model/node.dart';
 import '../style/design_tokens.dart';
 
-/// Interactive widget for <details>/<summary> HTML elements
+/// Interactive widget for `<details>`/`<summary>` HTML elements
 ///
-/// Provides expand/collapse functionality similar to native HTML <details> element.
-/// The <summary> element acts as the clickable header, while the rest of the
+/// Provides expand/collapse functionality similar to native HTML `<details>` element.
+/// The `<summary>` element acts as the clickable header, while the rest of the
 /// content is shown/hidden based on the expanded state.
 class DetailsWidget extends StatefulWidget {
   /// The details node containing summary and content

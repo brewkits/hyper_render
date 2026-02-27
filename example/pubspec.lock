@@ -320,7 +320,7 @@ packages:
     source: path
     version: "1.0.0"
   hyper_render_core:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../packages/hyper_render_core"
       relative: true

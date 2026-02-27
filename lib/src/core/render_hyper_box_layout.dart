@@ -9,6 +9,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     _fragments = [];
     _lastBlockMarginBottom = 0;
     _fragmentsVersion++; // signal that line layout must be redone
+    // Reset list item counters so ordered-list numbering restarts from 1
+    _listItemIndices.clear();
     _tokenizeNode(_document!, null);
   }
 
@@ -240,15 +242,23 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         } else if (node.intrinsicWidth != null) {
           // Only width specified - maintain aspect ratio
           width = node.intrinsicWidth!;
-          height = width * (imageHeight / imageWidth);
+          // Guard: avoid division by zero for degenerate images (width == 0).
+          height = imageWidth > 0 ? width * (imageHeight / imageWidth) : 0;
         } else if (node.intrinsicHeight != null) {
           // Only height specified - maintain aspect ratio
           height = node.intrinsicHeight!;
-          width = height * (imageWidth / imageHeight);
+          // Guard: avoid division by zero for degenerate images (height == 0).
+          width = imageHeight > 0 ? height * (imageWidth / imageHeight) : 0;
         } else {
-          // No dimensions - use actual image size, constrained to maxWidth
-          width = math.min(imageWidth, _maxWidth - 32); // Leave some margin
-          height = width * (imageHeight / imageWidth);
+          // No dimensions - use actual image size, constrained to maxWidth.
+          // Guard: degenerate images with zero width produce no output.
+          if (imageWidth > 0) {
+            width = math.min(imageWidth, _maxWidth - 32); // Leave some margin
+            height = width * (imageHeight / imageWidth);
+          } else {
+            width = 0;
+            height = 0;
+          }
         }
       } else {
         // Image not loaded yet - use specified dimensions or smart placeholder
@@ -268,8 +278,20 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           height = width / RenderHyperBox._defaultAspectRatio;
         }
       }
+    } else if (node.tagName == 'video') {
+      // Video: respect specified dimensions or use 16:9 default matching DefaultMediaWidget
+      final w = node.intrinsicWidth ??
+          math.min(320.0, _maxWidth > 32 ? _maxWidth - 32 : _maxWidth);
+      final h = node.intrinsicHeight ?? w / RenderHyperBox._defaultAspectRatio;
+      width = w;
+      height = h;
+    } else if (node.tagName == 'audio') {
+      // Audio: compact horizontal bar — matches DefaultMediaWidget._buildAudioPlaceholder
+      width = node.intrinsicWidth ??
+          math.min(300.0, _maxWidth > 32 ? _maxWidth - 32 : _maxWidth);
+      height = node.intrinsicHeight ?? 64.0;
     } else {
-      // Non-image atomic element
+      // Generic atomic element
       width = node.intrinsicWidth ?? RenderHyperBox.defaultFloatSize;
       height = node.intrinsicHeight ?? RenderHyperBox.defaultFloatSize;
     }
@@ -365,6 +387,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   }
 
   TextPainter _getTextPainter(String text, ComputedStyle style) {
+    // Per-fragment text direction (supports RTL via CSS direction: rtl)
+    final fragmentDirection = style.isRtl ? ui.TextDirection.rtl : _textDirection;
+
     // Composite key using Object.hash to avoid XOR collision (a^b == b^a)
     final key = Object.hash(
       text,
@@ -375,7 +400,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       style.fontFamily,
       style.lineHeight,
       style.letterSpacing,
-      _textDirection,
+      fragmentDirection,
     );
 
     final cached = _textPainters.get(key);
@@ -386,14 +411,19 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // FIXED: baseStyle is the foundation, computed style overrides it
     final mergedStyle = _baseStyle.merge(style.toTextStyle());
 
+    // Pre/pre-wrap fragments may contain multi-line text; allow unlimited lines
+    final isPreformatted =
+        style.whiteSpace == 'pre' || style.whiteSpace == 'pre-wrap';
+    final maxLines = isPreformatted ? null : 1;
+
     final painter = TextPainter(
       text: TextSpan(
         text: text,
         style: mergedStyle,
       ),
       strutStyle: StrutStyle.fromTextStyle(mergedStyle, forceStrutHeight: true),
-      textDirection: _textDirection,
-      maxLines: 1,
+      textDirection: fragmentDirection,
+      maxLines: maxLines,
       textHeightBehavior: const TextHeightBehavior(
         applyHeightToFirstAscent: true,
         applyHeightToLastDescent: true,
@@ -457,11 +487,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       for (final frag in currentLineFragments) {
         lineInfo.add(frag);
       }
+      // BUG-F FIX: Guard against zero lineHeight. This happens when all
+      // fragments on the line have measuredSize == null (e.g., zero-dimension
+      // images) or a height of 0. A zero-height bounds rect causes the next
+      // line to paint at the same Y, producing overlapping content.
+      final safeLineHeight = lineHeight > 0 ? lineHeight : 1.0;
       // Set bounds after adding fragments
-      lineInfo.bounds = Rect.fromLTWH(leftInset, currentY, lineInfo.width, lineHeight);
+      lineInfo.bounds = Rect.fromLTWH(leftInset, currentY, lineInfo.width, safeLineHeight);
       _lines.add(lineInfo);
 
-      currentY += lineHeight;
+      currentY += safeLineHeight;
       currentLineFragments.clear();
       lineHeight = 0;
       maxBaseline = 0;
@@ -834,7 +869,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     }
 
     final firstPart = text.substring(0, breakIndex).trimRight();
-    final secondPart = text.substring(breakIndex).trimLeft();
+    final secondRaw = text.substring(breakIndex);
+    final secondPart = secondRaw.trimLeft();
+    // trimLeft() may remove leading whitespace — account for those chars in offset
+    final trimmedLeading = secondRaw.length - secondPart.length;
 
     if (firstPart.isEmpty || secondPart.isEmpty) {
       return null;
@@ -852,7 +890,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       text: secondPart,
       sourceNode: fragment.sourceNode,
       style: fragment.style,
-      characterOffset: fragment.characterOffset + breakIndex,
+      characterOffset: fragment.characterOffset + breakIndex + trimmedLeading,
     );
     _measureFragment(secondFragment);
 
@@ -979,30 +1017,35 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   void _layoutFloat(Fragment fragment, double currentY) {
     if (fragment is! _FloatFragment) return;
 
+    // Compute margins FIRST so we can leave room when laying out the child.
+    final margin = fragment.style.margin;
+    const defaultFloatMargin = 8.0;
+    final rightMargin = margin.right > 0 ? margin.right : defaultFloatMargin;
+    final leftMargin = margin.left > 0 ? margin.left : defaultFloatMargin;
+    final bottomMargin = margin.bottom > 0 ? margin.bottom : defaultFloatMargin;
+
+    // Reserve horizontal margin space so totalWidth always fits in _maxWidth.
+    final hMargin = fragment.floatDirection == HyperFloat.left ? rightMargin : leftMargin;
+    final availableWidth = math.max(0.0, _maxWidth - hMargin);
+
     double width;
     double height;
 
     // Try to get size from the actual child widget (for images, etc.)
     final child = _findChildForFragment(fragment);
     if (child != null) {
-      // Layout the child to get its actual size
-      child.layout(BoxConstraints(maxWidth: _maxWidth), parentUsesSize: true);
+      // Layout the child with the margin-reduced width so width + hMargin ≤ _maxWidth.
+      child.layout(BoxConstraints(maxWidth: availableWidth), parentUsesSize: true);
       width = child.size.width;
       height = child.size.height;
     } else {
-      // Fallback to CSS style or default size
-      width = fragment.style.width ?? RenderHyperBox.defaultFloatSize;
+      // Fallback to CSS style or default size, clamped to available width.
+      width = math.min(
+        fragment.style.width ?? RenderHyperBox.defaultFloatSize,
+        availableWidth,
+      );
       height = fragment.style.height ?? RenderHyperBox.defaultFloatSize;
     }
-
-    // Get margin from CSS style for proper text spacing
-    final margin = fragment.style.margin;
-
-    // Apply default margin if none specified for better text spacing
-    const defaultFloatMargin = 8.0;
-    final rightMargin = margin.right > 0 ? margin.right : defaultFloatMargin;
-    final leftMargin = margin.left > 0 ? margin.left : defaultFloatMargin;
-    final bottomMargin = margin.bottom > 0 ? margin.bottom : defaultFloatMargin;
 
     Rect floatRect;
     double floatY = currentY;
@@ -1049,6 +1092,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           floatY = lowestBottom;
         }
         iterations++;
+      }
+
+      if (!foundPosition) {
+        // BUG-D FIX: assert() is erased in release builds — the bad floatY
+        // value was silently used, causing content overlap in production.
+        // Fall back to currentY (place float at the current line position)
+        // and always log so developers see it regardless of build mode.
+        debugPrint('HyperRender: left float exceeded maxIterations — '
+            'falling back to currentY. Reduce float density to avoid this.');
+        floatY = currentY;
       }
 
       // Float rect includes margin on right and bottom for text spacing
@@ -1100,6 +1153,13 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           floatY = lowestBottom;
         }
         iterations++;
+      }
+
+      if (!foundPosition) {
+        // BUG-D FIX (right float): same fix as left float above.
+        debugPrint('HyperRender: right float exceeded maxIterations — '
+            'falling back to currentY. Reduce float density to avoid this.');
+        floatY = currentY;
       }
 
       // Float rect includes margin on left and bottom for text spacing

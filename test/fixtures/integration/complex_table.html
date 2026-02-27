@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Complex Table Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #ddd;
+        }
+        .numeric {
+            text-align: right;
+        }
+        caption {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+<h1>Complex Table Rendering Test</h1>
+
+<h2>Table 1: Product Inventory</h2>
+<table>
+    <caption>Quarterly Product Sales Report</caption>
+    <thead>
+        <tr>
+            <th>Product ID</th>
+            <th>Product Name</th>
+            <th>Category</th>
+            <th class="numeric">Q1 Sales</th>
+            <th class="numeric">Q2 Sales</th>
+            <th class="numeric">Q3 Sales</th>
+            <th class="numeric">Q4 Sales</th>
+            <th class="numeric">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>P001</td>
+            <td>Widget Pro</td>
+            <td>Electronics</td>
+            <td class="numeric">$45,230</td>
+            <td class="numeric">$52,100</td>
+            <td class="numeric">$48,950</td>
+            <td class="numeric">$61,200</td>
+            <td class="numeric"><strong>$207,480</strong></td>
+        </tr>
+        <tr>
+            <td>P002</td>
+            <td>Gadget Plus</td>
+            <td>Electronics</td>
+            <td class="numeric">$32,100</td>
+            <td class="numeric">$38,450</td>
+            <td class="numeric">$41,200</td>
+            <td class="numeric">$39,800</td>
+            <td class="numeric"><strong>$151,550</strong></td>
+        </tr>
+        <tr>
+            <td>P003</td>
+            <td>Smart Home Hub</td>
+            <td>Home Automation</td>
+            <td class="numeric">$28,900</td>
+            <td class="numeric">$31,450</td>
+            <td class="numeric">$35,100</td>
+            <td class="numeric">$42,300</td>
+            <td class="numeric"><strong>$137,750</strong></td>
+        </tr>
+        <tr>
+            <td>P004</td>
+            <td>Fitness Tracker</td>
+            <td>Wearables</td>
+            <td class="numeric">$51,200</td>
+            <td class="numeric">$48,900</td>
+            <td class="numeric">$52,450</td>
+            <td class="numeric">$55,100</td>
+            <td class="numeric"><strong>$207,650</strong></td>
+        </tr>
+        <tr>
+            <td>P005</td>
+            <td>Wireless Earbuds</td>
+            <td>Audio</td>
+            <td class="numeric">$67,800</td>
+            <td class="numeric">$71,200</td>
+            <td class="numeric">$69,500</td>
+            <td class="numeric">$73,900</td>
+            <td class="numeric"><strong>$282,400</strong></td>
+        </tr>
+    </tbody>
+    <tfoot>
+        <tr style="background-color: #4CAF50; color: white; font-weight: bold;">
+            <td colspan="3">Grand Total</td>
+            <td class="numeric">$225,230</td>
+            <td class="numeric">$242,100</td>
+            <td class="numeric">$247,200</td>
+            <td class="numeric">$272,300</td>
+            <td class="numeric">$986,830</td>
+        </tr>
+    </tfoot>
+</table>
+
+<h2>Table 2: Employee Schedule (with rowspan/colspan)</h2>
+<table>
+    <caption>Weekly Work Schedule</caption>
+    <thead>
+        <tr>
+            <th>Employee</th>
+            <th>Monday</th>
+            <th>Tuesday</th>
+            <th>Wednesday</th>
+            <th>Thursday</th>
+            <th>Friday</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Alice Johnson</td>
+            <td>9AM-5PM</td>
+            <td>9AM-5PM</td>
+            <td colspan="2" style="background: #ffffcc; text-align: center;">Training Session</td>
+            <td>9AM-5PM</td>
+        </tr>
+        <tr>
+            <td>Bob Smith</td>
+            <td>10AM-6PM</td>
+            <td rowspan="2" style="background: #ffcccc; text-align: center; vertical-align: middle;">Team Meeting</td>
+            <td>10AM-6PM</td>
+            <td>10AM-6PM</td>
+            <td>10AM-6PM</td>
+        </tr>
+        <tr>
+            <td>Carol Davis</td>
+            <td>8AM-4PM</td>
+            <td>8AM-4PM</td>
+            <td>8AM-4PM</td>
+            <td>8AM-4PM</td>
+        </tr>
+        <tr>
+            <td>David Wilson</td>
+            <td colspan="5" style="background: #ccffcc; text-align: center;">Vacation</td>
+        </tr>
+        <tr>
+            <td>Emma Brown</td>
+            <td>9AM-5PM</td>
+            <td>9AM-5PM</td>
+            <td>Remote</td>
+            <td>9AM-5PM</td>
+            <td>9AM-5PM</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Table 3: Pricing Comparison</h2>
+<table>
+    <caption>Product Feature Comparison</caption>
+    <thead>
+        <tr>
+            <th>Feature</th>
+            <th>Basic Plan<br><small>$9.99/mo</small></th>
+            <th>Pro Plan<br><small>$19.99/mo</small></th>
+            <th>Enterprise<br><small>$49.99/mo</small></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Storage Space</td>
+            <td>10 GB</td>
+            <td>100 GB</td>
+            <td>Unlimited</td>
+        </tr>
+        <tr>
+            <td>Users</td>
+            <td>1</td>
+            <td>5</td>
+            <td>Unlimited</td>
+        </tr>
+        <tr>
+            <td>API Access</td>
+            <td>❌</td>
+            <td>✅</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>Priority Support</td>
+            <td>❌</td>
+            <td>✅</td>
+            <td>✅ 24/7</td>
+        </tr>
+        <tr>
+            <td>Custom Branding</td>
+            <td>❌</td>
+            <td>❌</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>SLA Guarantee</td>
+            <td>❌</td>
+            <td>99.9%</td>
+            <td>99.99%</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Table 4: Nested Table Example</h2>
+<table>
+    <tr>
+        <th>Main Category</th>
+        <th>Details</th>
+    </tr>
+    <tr>
+        <td>Hardware</td>
+        <td>
+            <table style="width: 100%; border: 1px solid #ccc;">
+                <tr>
+                    <th style="background: #e0e0e0; color: black;">Component</th>
+                    <th style="background: #e0e0e0; color: black;">Status</th>
+                </tr>
+                <tr>
+                    <td>CPU</td>
+                    <td style="color: green;">✅ Operational</td>
+                </tr>
+                <tr>
+                    <td>Memory</td>
+                    <td style="color: green;">✅ Operational</td>
+                </tr>
+                <tr>
+                    <td>Storage</td>
+                    <td style="color: orange;">⚠️ Warning</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    <tr>
+        <td>Software</td>
+        <td>
+            <table style="width: 100%; border: 1px solid #ccc;">
+                <tr>
+                    <th style="background: #e0e0e0; color: black;">Service</th>
+                    <th style="background: #e0e0e0; color: black;">Version</th>
+                </tr>
+                <tr>
+                    <td>API Server</td>
+                    <td>v2.1.3</td>
+                </tr>
+                <tr>
+                    <td>Database</td>
+                    <td>v15.2</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<p>
+    These tables test HyperRender's ability to handle complex table layouts including colspan,
+    rowspan, nested tables, and various styling options.
+</p>
+</body>
+</html>
