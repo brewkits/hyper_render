@@ -57,12 +57,12 @@ This document lists CSS property support in HyperRender.
 | `visibility` | ❌ | - | Use `display: none` instead |
 | `opacity` | ✅ | 0-1 | |
 | `overflow` | ⚠️ | hidden, visible | No scroll support |
-| `position` | ⚠️ | static, relative, absolute | Fixed not supported |
-| `top` | ⚠️ | px, % | For absolute positioning |
-| `right` | ⚠️ | px, % | For absolute positioning |
-| `bottom` | ⚠️ | px, % | For absolute positioning |
-| `left` | ⚠️ | px, % | For absolute positioning |
-| `z-index` | ⚠️ | integer | Basic stacking context |
+| `position: static` | ✅ | static | Default |
+| `position: relative` | ✅ | relative | Supported |
+| `position: absolute` | ❌ | — | Not supported; elements stay in normal flow |
+| `position: fixed` | ❌ | — | Not supported |
+| `top` / `right` / `bottom` / `left` | ❌ | — | Requires absolute/fixed; not supported |
+| `z-index` | ❌ | — | Stacking contexts not implemented |
 
 ---
 
@@ -111,7 +111,7 @@ This document lists CSS property support in HyperRender.
 | `white-space` | ✅ | normal, nowrap, pre, pre-wrap | |
 | `word-break` | ✅ | normal, break-all, keep-all | |
 | `vertical-align` | ⚠️ | baseline, sub, super | Limited support |
-| `text-shadow` | ✅ | Full shadow syntax | Multiple shadows supported |
+| `text-shadow` | ❌ | — | Not rendered (see Filters & Effects) |
 
 ---
 
@@ -129,11 +129,11 @@ This document lists CSS property support in HyperRender.
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
 | `background-color` | ✅ | All CSS colors | |
-| `background-image` | ❌ | - | Planned for v3.x |
-| `background-size` | ❌ | - | Planned for v3.x |
-| `background-position` | ❌ | - | Planned for v3.x |
-| `background-repeat` | ❌ | - | Planned for v3.x |
-| `background` | ⚠️ | color only | Shorthand only for color |
+| `background-image` | ⚠️ | url() only | Only `url()` for network/asset images; gradients not rendered |
+| `background-size` | ❌ | — | Not supported |
+| `background-position` | ❌ | — | Not supported |
+| `background-repeat` | ❌ | — | Not supported |
+| `background` | ⚠️ | color or url() | Shorthand: color supported; image = url() only |
 
 ---
 
@@ -162,14 +162,14 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `transform` | ⚠️ | translate, scale, rotate | Basic support |
-| `transform-origin` | ⚠️ | px, % | Basic support |
-| `transition` | ✅ | property duration timing | |
-| `transition-property` | ✅ | all, specific properties | |
-| `transition-duration` | ✅ | ms, s | |
-| `transition-timing-function` | ✅ | ease, linear, ease-in, ease-out | |
-| `animation` | ⚠️ | Basic keyframes | Limited support |
-| `@keyframes` | ⚠️ | - | Basic support, needs expansion |
+| `transform` | ❌ | — | Not supported; use Flutter's `Transform` widget via `widgetBuilder` |
+| `transform-origin` | ❌ | — | Not supported |
+| `transition` | ❌ | — | Planned v1.1 |
+| `transition-property` | ❌ | — | Planned v1.1 |
+| `transition-duration` | ❌ | — | Planned v1.1 |
+| `transition-timing-function` | ❌ | — | Planned v1.1 |
+| `animation` | ❌ | — | Use `HyperAnimatedWidget` instead; CSS `@keyframes` planned |
+| `@keyframes` | ❌ | — | Not parsed; use `HyperAnimatedWidget` |
 
 ---
 
@@ -236,10 +236,10 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `filter` | ❌ | - | Planned for future |
-| `backdrop-filter` | ❌ | - | Planned for future |
-| `box-shadow` | ✅ | Full shadow syntax | Multiple shadows supported |
-| `text-shadow` | ✅ | Full shadow syntax | Multiple shadows supported |
+| `filter` | ❌ | — | Not supported |
+| `backdrop-filter` | ❌ | — | Not supported |
+| `box-shadow` | ❌ | — | Not rendered |
+| `text-shadow` | ❌ | — | Not rendered |
 
 ---
 
