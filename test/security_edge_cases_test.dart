@@ -79,6 +79,7 @@ void main() {
 
       test('blocks event handlers with spaces', () {
         const html = '<div on click="bad()">Content</div>';
+        // ignore: unused_local_variable
         final result = HtmlSanitizer.sanitize(html);
 
         // Current implementation may not catch spaces, document limitation
@@ -91,8 +92,16 @@ void main() {
         const html = '<a href="vbscript:msgbox(1)">Link</a>';
         final result = HtmlSanitizer.sanitize(html);
 
-        // Note: Current implementation only blocks javascript:
-        // Consider adding vbscript: to dangerous patterns
+        expect(result, isNot(contains('vbscript:')));
+        expect(result, contains('Link')); // text preserved
+      });
+
+      test('blocks SVG data URL (can embed script)', () {
+        const html =
+            '<img src="data:image/svg+xml,<svg><script>alert(1)</script></svg>">';
+        final result = HtmlSanitizer.sanitize(html);
+
+        expect(result, isNot(contains('data:image/svg')));
       });
 
       test('allows safe protocols', () {
@@ -148,20 +157,27 @@ void main() {
         expect(result, contains('color: red'));
       });
 
-      test('does not validate CSS content (limitation)', () {
-        // Note: Current implementation doesn't validate CSS
-        // In production, consider adding CSS sanitization
+      test('blocks CSS style with javascript: url', () {
         const html = '<p style="background: url(javascript:alert(1))">Text</p>';
         final result = HtmlSanitizer.sanitize(html);
 
-        // Will keep style attribute - document this limitation
-        expect(result, contains('style'));
+        // style attribute is stripped because it contains javascript:
+        expect(result, isNot(contains('javascript:')));
+      });
+
+      test('blocks CSS expression() in style attribute', () {
+        const html = '<p style="width: expression(alert(1))">Text</p>';
+        final result = HtmlSanitizer.sanitize(html);
+
+        expect(result, isNot(contains('expression(')));
+        expect(result, contains('Text')); // text preserved
       });
     });
 
     group('Comment Attacks', () {
       test('preserves HTML comments', () {
         const html = '<!-- Comment --><p>Text</p><!-- Another -->';
+        // ignore: unused_local_variable
         final result = HtmlSanitizer.sanitize(html);
 
         // Note: Current implementation may keep comments
@@ -259,6 +275,7 @@ void main() {
     group('Whitelist Bypass Attempts', () {
       test('cannot bypass with similar tag names', () {
         const html = '<scr<script>ipt>alert(1)</script>';
+        // ignore: unused_local_variable
         final result = HtmlSanitizer.sanitize(html);
 
         // Note: Regex-based sanitizer has limitations
@@ -322,14 +339,27 @@ void main() {
     });
 
     group('Known Limitations', () {
-      test('DOCUMENT: CSS injection not prevented', () {
-        // Current implementation doesn't validate CSS content
-        // Users should be warned about this limitation
+      test('blocks IE CSS expression() attack', () {
         const html = '<p style="expression(alert(1))">IE only</p>';
         final result = HtmlSanitizer.sanitize(html);
 
-        // Will keep style - document this
-        expect(result, contains('style'));
+        expect(result, isNot(contains('expression(')));
+        expect(result, contains('IE only')); // text preserved
+      });
+
+      test('containsDangerousContent flags vbscript', () {
+        expect(
+          HtmlSanitizer.containsDangerousContent('<a href="vbscript:foo">'),
+          isTrue,
+        );
+      });
+
+      test('containsDangerousContent flags expression()', () {
+        expect(
+          HtmlSanitizer.containsDangerousContent(
+              '<p style="expression(alert(1))">'),
+          isTrue,
+        );
       });
 
       test('DOCUMENT: HTML5 new attack vectors may not be covered', () {

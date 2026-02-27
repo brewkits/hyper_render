@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API Documentation - HyperViewer Widget</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .sidebar {
+            float: left;
+            width: 200px;
+            margin-right: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .sidebar a {
+            display: block;
+            padding: 5px 0;
+            color: #1976D2;
+            text-decoration: none;
+        }
+        .content {
+            margin-left: 260px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #7f8c8d;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        pre code {
+            background: none;
+            color: inherit;
+        }
+        .parameter {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 10px 15px;
+            margin: 10px 0;
+        }
+        .parameter-name {
+            font-weight: bold;
+            color: #2980b9;
+        }
+        .parameter-type {
+            color: #27ae60;
+            font-style: italic;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background: #34495e;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <h4>Contents</h4>
+    <a href="#constructor">Constructor</a>
+    <a href="#properties">Properties</a>
+    <a href="#methods">Methods</a>
+    <a href="#examples">Examples</a>
+    <a href="#performance">Performance</a>
+    <a href="#security">Security</a>
+</div>
+
+<div class="content">
+    <h1>HyperViewer Widget</h1>
+
+    <p>
+        <code>HyperViewer</code> is the main widget for rendering HTML, Markdown, and Quill Delta
+        content in Flutter applications with high performance and perfect text selection.
+    </p>
+
+    <h2 id="constructor">Constructor</h2>
+
+    <pre><code>HyperViewer({
+  Key? key,
+  String? html,
+  String? baseUrl,
+  TextStyle? baseStyle,
+  OnLinkTap? onLinkTap,
+  bool selectable = true,
+  bool sanitize = true,
+  List&lt;String&gt;? allowedTags,
+  HyperRenderMode mode = HyperRenderMode.auto,
+  OnPerformanceReport? onPerformanceReport,
+  WidgetBuilder? onLoadingBuilder,
+  HyperWidgetBuilder? widgetBuilder,
+})</code></pre>
+
+    <h2 id="properties">Properties</h2>
+
+    <h3>html</h3>
+    <div class="parameter">
+        <span class="parameter-name">html</span>
+        <span class="parameter-type">String?</span>
+        <p>The HTML content to render. Can be null for placeholder display.</p>
+    </div>
+
+    <h3>baseUrl</h3>
+    <div class="parameter">
+        <span class="parameter-name">baseUrl</span>
+        <span class="parameter-type">String?</span>
+        <p>
+            Base URL for resolving relative URLs in links and images. If provided, relative URLs
+            like <code>img src="/photo.jpg"</code> will be resolved to
+            <code>baseUrl + "/photo.jpg"</code>.
+        </p>
+    </div>
+
+    <h3>baseStyle</h3>
+    <div class="parameter">
+        <span class="parameter-name">baseStyle</span>
+        <span class="parameter-type">TextStyle?</span>
+        <p>
+            Base text style for the document. If not provided, uses
+            <code>Theme.of(context).textTheme.bodyMedium</code>.
+        </p>
+    </div>
+
+    <h3>onLinkTap</h3>
+    <div class="parameter">
+        <span class="parameter-name">onLinkTap</span>
+        <span class="parameter-type">void Function(String url)?</span>
+        <p>
+            Callback when a link is tapped. Receives the URL as parameter.
+        </p>
+    </div>
+
+    <div class="note">
+        <strong>Important:</strong> Always validate URLs before opening them to prevent
+        security issues. See <a href="#security">Security</a> section.
+    </div>
+
+    <h3>selectable</h3>
+    <div class="parameter">
+        <span class="parameter-name">selectable</span>
+        <span class="parameter-type">bool</span>
+        <p>
+            Whether text can be selected. Default: <code>true</code>.
+            Set to <code>false</code> for better performance if selection is not needed.
+        </p>
+    </div>
+
+    <h3>sanitize</h3>
+    <div class="parameter">
+        <span class="parameter-name">sanitize</span>
+        <span class="parameter-type">bool</span>
+        <p>
+            Whether to sanitize HTML content. Default: <code>true</code>.
+        </p>
+    </div>
+
+    <div class="warning">
+        <strong>Security Warning:</strong> Never set <code>sanitize: false</code> for
+        user-generated content. This can expose your app to XSS attacks.
+    </div>
+
+    <h3>allowedTags</h3>
+    <div class="parameter">
+        <span class="parameter-name">allowedTags</span>
+        <span class="parameter-type">List&lt;String&gt;?</span>
+        <p>
+            Whitelist of allowed HTML tags when sanitization is enabled. If null, uses default
+            safe tags. Example: <code>['p', 'a', 'strong', 'em']</code>.
+        </p>
+    </div>
+
+    <h3>mode</h3>
+    <div class="parameter">
+        <span class="parameter-name">mode</span>
+        <span class="parameter-type">HyperRenderMode</span>
+        <p>
+            Rendering mode. Options:
+        </p>
+        <ul>
+            <li><code>HyperRenderMode.sync</code> - Synchronous parsing, best for small content</li>
+            <li><code>HyperRenderMode.virtualized</code> - Async parsing with view virtualization</li>
+            <li><code>HyperRenderMode.auto</code> - Automatically chooses based on content size (default)</li>
+        </ul>
+    </div>
+
+    <h2 id="examples">Examples</h2>
+
+    <h3>Basic Usage</h3>
+    <pre><code>HyperViewer(
+  html: '&lt;p&gt;Hello &lt;strong&gt;World&lt;/strong&gt;!&lt;/p&gt;',
+)</code></pre>
+
+    <h3>With Link Handler</h3>
+    <pre><code>HyperViewer(
+  html: articleHtml,
+  onLinkTap: (url) {
+    if (Uri.tryParse(url)?.scheme == 'https') {
+      launchUrl(Uri.parse(url));
+    }
+  },
+)</code></pre>
+
+    <h3>With Base URL</h3>
+    <pre><code>HyperViewer(
+  html: '&lt;img src="/images/photo.jpg"&gt;',
+  baseUrl: 'https://example.com',
+  // Image will load from: https://example.com/images/photo.jpg
+)</code></pre>
+
+    <h3>Custom Styling</h3>
+    <pre><code>HyperViewer(
+  html: content,
+  baseStyle: TextStyle(
+    fontSize: 16,
+    color: Colors.black87,
+    height: 1.5,
+  ),
+)</code></pre>
+
+    <h2 id="performance">Performance Tips</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Content Size</th>
+                <th>Recommended Mode</th>
+                <th>Tips</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>&lt; 10KB</td>
+                <td><code>sync</code> or <code>auto</code></td>
+                <td>Fast initial render</td>
+            </tr>
+            <tr>
+                <td>10KB - 50KB</td>
+                <td><code>auto</code></td>
+                <td>Balanced performance</td>
+            </tr>
+            <tr>
+                <td>&gt; 50KB</td>
+                <td><code>virtualized</code></td>
+                <td>Enable async parsing</td>
+            </tr>
+            <tr>
+                <td>&gt; 500KB</td>
+                <td><code>virtualized</code></td>
+                <td>Required for smooth scrolling</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 id="security">Security Best Practices</h2>
+
+    <h3>Always Sanitize User Content</h3>
+    <pre><code>// ✅ SAFE
+HyperViewer(
+  html: userGeneratedContent,
+  sanitize: true, // Default
+)
+
+// ❌ DANGEROUS
+HyperViewer(
+  html: userGeneratedContent,
+  sanitize: false, // DON'T DO THIS!
+)</code></pre>
+
+    <h3>Validate URLs</h3>
+    <pre><code>bool isSafeUrl(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null) return false;
+
+  // Block dangerous protocols
+  if (uri.scheme == 'javascript' || uri.scheme == 'data') {
+    return false;
+  }
+
+  // Only allow HTTPS
+  return uri.scheme == 'https';
+}
+
+HyperViewer(
+  html: content,
+  onLinkTap: (url) {
+    if (isSafeUrl(url)) {
+      launchUrl(Uri.parse(url));
+    }
+  },
+)</code></pre>
+
+    <h3>Restrict Allowed Tags</h3>
+    <pre><code>HyperViewer(
+  html: userComment,
+  sanitize: true,
+  allowedTags: [
+    'p', 'br', 'strong', 'em', 'a', 'ul', 'ol', 'li'
+  ],
+)</code></pre>
+
+    <h2>See Also</h2>
+    <ul>
+        <li><a href="#">HyperRenderMode enum</a></li>
+        <li><a href="#">Performance tuning guide</a></li>
+        <li><a href="#">Security best practices</a></li>
+        <li><a href="#">CSS properties support</a></li>
+    </ul>
+</div>
+</body>
+</html>

@@ -15,8 +15,8 @@ Markdown parsing plugin for HyperRender with GitHub Flavored Markdown support.
 
 ```yaml
 dependencies:
-  hyper_render_core: ^2.0.0
-  hyper_render_markdown: ^2.0.0
+  hyper_render_core: ^1.0.0
+  hyper_render_markdown: ^1.0.0
 ```
 
 ## Usage

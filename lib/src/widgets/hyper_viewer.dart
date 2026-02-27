@@ -9,6 +9,7 @@ import '../plugins/default_delta_parser.dart';
 import '../plugins/default_html_parser.dart';
 import '../plugins/default_markdown_parser.dart';
 import '../style/resolver.dart';
+import '../utils/html_heuristics.dart';
 import '../utils/html_sanitizer.dart';
 import 'hyper_render_widget.dart';
 import 'hyper_selection_overlay.dart';
@@ -185,6 +186,43 @@ class HyperViewer extends StatefulWidget {
   /// Default: false
   final bool excludeSemantics;
 
+  /// Called instead of the normal render pipeline when
+  /// [HtmlHeuristics.isComplex] detects content that hyper_render may not
+  /// handle correctly (complex tables, unsupported CSS, streaming media, …).
+  ///
+  /// Typical use: provide a WebView widget for complex documents while keeping
+  /// hyper_render for the common case.
+  ///
+  /// ```dart
+  /// HyperViewer(
+  ///   html: content,
+  ///   fallbackBuilder: (ctx) => WebViewWidget(controller: _controller),
+  /// )
+  /// ```
+  ///
+  /// When `null` (default), hyper_render renders all content regardless of
+  /// complexity.
+  final WidgetBuilder? fallbackBuilder;
+
+  /// Key for screenshot/print export via [HyperCaptureExtension].
+  ///
+  /// When provided, wraps the rendered content in a [RepaintBoundary] so
+  /// [HyperCaptureExtension.toImage()] and [toPngBytes()] work correctly.
+  ///
+  /// ## Usage
+  /// ```dart
+  /// final captureKey = GlobalKey();
+  ///
+  /// HyperViewer(
+  ///   html: content,
+  ///   captureKey: captureKey,
+  /// )
+  ///
+  /// // Later:
+  /// final png = await captureKey.toPngBytes();
+  /// ```
+  final GlobalKey? captureKey;
+
   /// Creates a HyperViewer for HTML content (default)
   ///
   /// ```dart
@@ -204,6 +242,7 @@ class HyperViewer extends StatefulWidget {
     this.onLinkTap,
     this.widgetBuilder,
     this.placeholderBuilder,
+    this.fallbackBuilder,
     this.enableZoom = false,
     this.minScale = 0.5,
     this.maxScale = 4.0,
@@ -221,6 +260,7 @@ class HyperViewer extends StatefulWidget {
     this.baseUrl,
     this.customCss,
     this.debugShowHyperRenderBounds = false,
+    this.captureKey,
   })  : content = html,
         contentType = HyperContentType.html;
 
@@ -239,6 +279,7 @@ class HyperViewer extends StatefulWidget {
     this.onLinkTap,
     this.widgetBuilder,
     this.placeholderBuilder,
+    this.fallbackBuilder,
     this.enableZoom = false,
     this.minScale = 0.5,
     this.maxScale = 4.0,
@@ -256,6 +297,7 @@ class HyperViewer extends StatefulWidget {
     this.baseUrl,
     this.customCss,
     this.debugShowHyperRenderBounds = false,
+    this.captureKey,
   })  : content = delta,
         contentType = HyperContentType.delta;
 
@@ -274,6 +316,7 @@ class HyperViewer extends StatefulWidget {
     this.onLinkTap,
     this.widgetBuilder,
     this.placeholderBuilder,
+    this.fallbackBuilder,
     this.enableZoom = false,
     this.minScale = 0.5,
     this.maxScale = 4.0,
@@ -291,6 +334,7 @@ class HyperViewer extends StatefulWidget {
     this.baseUrl,
     this.customCss,
     this.debugShowHyperRenderBounds = false,
+    this.captureKey,
   })  : content = markdown,
         contentType = HyperContentType.markdown;
 
@@ -305,6 +349,10 @@ class _HyperViewerState extends State<HyperViewer> {
   // Dùng cho chế độ Virtualized
   List<DocumentNode>? _sections;
   bool _isLoading = true;
+
+  /// Monotonically-increasing counter that prevents stale isolate results
+  /// from overwriting a newer parse when the content changes rapidly.
+  int _parseId = 0;
 
   @override
   void initState() {
@@ -342,11 +390,21 @@ class _HyperViewerState extends State<HyperViewer> {
 
   void _parseContent() {
     String contentToRender = widget.content;
+    // CSS collected from <style> tags + customCss (applied to resolver directly,
+    // not injected as a <style> tag so the sanitizer cannot strip it).
+    String cssToApply = '';
 
     if (widget.contentType == HyperContentType.html) {
-      // 1. Inject customCss before document styles
+      // 1. Extract CSS from <style> elements BEFORE sanitization.
+      //    The sanitizer strips <style> tags, so we must grab them first.
+      final adapter = HtmlAdapter();
+      final docCss = adapter.extractCss(contentToRender);
+
+      // customCss is lower priority (applied first); docCss wins on conflict.
       if (widget.customCss != null && widget.customCss!.isNotEmpty) {
-        contentToRender = '<style>${widget.customCss}</style>$contentToRender';
+        cssToApply = '${widget.customCss!}\n$docCss';
+      } else {
+        cssToApply = docCss;
       }
 
       // 2. Resolve relative URLs against baseUrl
@@ -354,7 +412,7 @@ class _HyperViewerState extends State<HyperViewer> {
         contentToRender = _resolveRelativeUrls(contentToRender, widget.baseUrl!);
       }
 
-      // 3. Sanitize (after URL resolution so absolute URLs are validated)
+      // 3. Sanitize (strips <style> tags — safe, CSS already extracted above)
       if (widget.sanitize) {
         contentToRender = HtmlSanitizer.sanitize(
           contentToRender,
@@ -370,22 +428,24 @@ class _HyperViewerState extends State<HyperViewer> {
     final parser = _getDefaultParser();
 
     if (!useVirtualization) {
-      // 1. Sync Parsing (Fast path for small content)
+      // Sync parsing (fast path for small content)
       setState(() {
         _syncDocument = parser.parse(contentToRender);
-        StyleResolver().resolveStyles(_syncDocument!);
+        final resolver = StyleResolver();
+        if (cssToApply.isNotEmpty) resolver.parseCss(cssToApply);
+        resolver.resolveStyles(_syncDocument!);
         _sections = null;
         _isLoading = false;
       });
     } else {
-      // 2. Async Parsing (Isolate path for large content)
-      // Note: For virtualized mode, we only support HTML currently
-      // Delta and Markdown are parsed synchronously
+      // Async parsing (isolate path for large HTML content)
       if (widget.contentType == HyperContentType.html) {
         setState(() => _isLoading = true);
 
-        compute(_parseAndChunk, contentToRender).then((sections) {
-          if (mounted) {
+        // Capture parse ID before async gap to detect stale results.
+        final currentParseId = ++_parseId;
+        compute(_parseAndChunk, (contentToRender, cssToApply)).then((sections) {
+          if (mounted && _parseId == currentParseId) {
             setState(() {
               _sections = sections;
               _syncDocument = null;
@@ -397,7 +457,9 @@ class _HyperViewerState extends State<HyperViewer> {
         // Fallback to sync parsing for Delta/Markdown
         setState(() {
           _syncDocument = parser.parse(contentToRender);
-          StyleResolver().resolveStyles(_syncDocument!);
+          final resolver = StyleResolver();
+          if (cssToApply.isNotEmpty) resolver.parseCss(cssToApply);
+          resolver.resolveStyles(_syncDocument!);
           _sections = null;
           _isLoading = false;
         });
@@ -425,18 +487,19 @@ class _HyperViewerState extends State<HyperViewer> {
     );
   }
 
-  // Hàm static để chạy trong Isolate (không được dính context)
-  static List<DocumentNode> _parseAndChunk(String html) {
+  // Static function that runs in an isolate — must not capture context.
+  // Accepts a (html, css) record so CSS rules are available inside the isolate.
+  static List<DocumentNode> _parseAndChunk((String, String) args) {
+    final (html, css) = args;
     final adapter = HtmlAdapter();
-    // Increased chunkSize from 12000 to 25000 for better performance:
-    // - 800K HTML → ~32 sections (vs 67 sections with 12000)
-    // - Larger sections mean fewer layout passes
-    // - ListView.builder still virtualizes efficiently
-    // - Each section renders independently, so larger = fewer re-layouts
-    final sections = adapter.parseToSections(html, chunkSize: 25000);
+    // chunkSize 6000: keeps each RenderHyperBox well under GPU texture limits
+    // (~4096px physical on most devices). Smaller chunks spread layout cost
+    // across frames and reduce peak memory vs the old 25000 setting.
+    final sections = adapter.parseToSections(html, chunkSize: 6000);
 
-    // Resolve styles luôn trong isolate để main thread nhẹ gánh
+    // Resolve styles in the isolate so the main thread doesn't bear the cost.
     final resolver = StyleResolver();
+    if (css.isNotEmpty) resolver.parseCss(css);
     for (var section in sections) {
       resolver.resolveStyles(section);
     }
@@ -446,12 +509,25 @@ class _HyperViewerState extends State<HyperViewer> {
 
   @override
   Widget build(BuildContext context) {
-    final content = AnimatedSwitcher(
+    // Delegate to fallbackBuilder when the content exceeds hyper_render's
+    // supported subset (only checked for HTML; Delta/Markdown are always safe).
+    if (widget.fallbackBuilder != null &&
+        widget.contentType == HyperContentType.html &&
+        HtmlHeuristics.isComplex(widget.content)) {
+      return widget.fallbackBuilder!(context);
+    }
+
+    Widget content = AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       switchInCurve: Curves.easeOut,
       switchOutCurve: Curves.easeIn,
       child: _buildContent(context),
     );
+
+    // Wrap with RepaintBoundary for screenshot capture if captureKey is set
+    if (widget.captureKey != null) {
+      content = RepaintBoundary(key: widget.captureKey, child: content);
+    }
 
     // Wrap with Semantics for accessibility (unless excluded)
     return widget.excludeSemantics
@@ -480,20 +556,24 @@ class _HyperViewerState extends State<HyperViewer> {
       return KeyedSubtree(
         key: const ValueKey('virtualized'),
         child: ListView.builder(
-          // Increased cacheExtent to 1500 for smoother scrolling with large documents:
-          // - Pre-renders ~1-2 screens ahead/behind
-          // - Reduces visible lag during fast scrolling
-          // - Trade-off: slightly higher memory usage
-          cacheExtent: 1500,
+          // cacheExtent 800: pre-renders ~1 screen ahead/behind. Smaller than
+          // the old 1500 because chunks are now 6000 chars (was 25000), so
+          // each item is cheaper — we need fewer pixels of pre-render buffer.
+          cacheExtent: 800,
           physics: const BouncingScrollPhysics(),
           itemCount: _sections!.length,
           itemBuilder: (context, index) {
-            return HyperRenderWidget(
-              document: _sections![index],
-              selectable: widget.selectable,
-              onLinkTap: widget.onLinkTap,
-              widgetBuilder: widget.widgetBuilder,
-              debugShowBounds: widget.debugShowHyperRenderBounds,
+            // RepaintBoundary isolates each chunk into its own GPU layer.
+            // Prevents a re-paint in one chunk from invalidating neighbours,
+            // and keeps each composited layer well under GL_MAX_TEXTURE_SIZE.
+            return RepaintBoundary(
+              child: HyperRenderWidget(
+                document: _sections![index],
+                selectable: widget.selectable,
+                onLinkTap: widget.onLinkTap,
+                widgetBuilder: widget.widgetBuilder,
+                debugShowBounds: widget.debugShowHyperRenderBounds,
+              ),
             );
           },
         ),

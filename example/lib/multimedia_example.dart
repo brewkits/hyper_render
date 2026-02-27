@@ -24,6 +24,7 @@ import 'package:hyper_render/hyper_render.dart';
 // ============================================================================
 
 /// Validates if a URL is safe and well-formed
+// ignore: unused_element
 bool _isValidUrl(String? url) {
   if (url == null || url.isEmpty) return false;
 

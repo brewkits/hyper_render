@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:hyper_render_core/src/style/design_tokens.dart';
+import 'package:hyper_render_core/hyper_render_core.dart' show DesignTokens;
 import '../core/render_hyper_box.dart';
 import '../model/node.dart';
 import 'hyper_render_widget.dart';

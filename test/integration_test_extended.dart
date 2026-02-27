@@ -479,7 +479,11 @@ void main() {
 
         // Verify widget rendered
         expect(find.byType(HyperRenderWidget), findsOneWidget);
-        // Note: Full tap testing requires precise hit testing
+
+        // Tap the widget (verifies no crash on tap; link hit-testing requires
+        // exact coordinates that depend on text layout at runtime)
+        await tester.tap(find.byType(HyperRenderWidget));
+        await tester.pumpAndSettle();
       });
 
       testWidgets('onSelectionChanged is called when selection changes',
@@ -567,12 +571,13 @@ void main() {
       test('parent references are set correctly', () {
         final text = TextNode('Child');
         final p = BlockNode.p(children: [text]);
-        // ignore: unused_local_variable
         final doc = DocumentNode(children: [p]);
 
-        // After construction, parent should be set
-        // (depends on implementation)
+        // Children list membership
         expect(p.children.contains(text), isTrue);
+        // Parent back-references
+        expect(text.parent, equals(p));
+        expect(p.parent, equals(doc));
       });
     });
 
@@ -935,7 +940,10 @@ void main() {
         await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
         await tester.pump();
 
-        // Note: Full keyboard testing depends on focus handling implementation
+        // Verify the widget is still rendered after keyboard interaction
+        // (Ctrl+A triggers the shortcut handler; full selection state testing
+        // requires the widget to have proper focus in the test environment)
+        expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
     });
 

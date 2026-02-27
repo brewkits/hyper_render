@@ -58,6 +58,23 @@ class HtmlAdapter {
     return _parseDocument(document);
   }
 
+  /// Extracts the concatenated text of all `<style>` elements in [html].
+  ///
+  /// Call this **before** sanitizing so that `<style>` tags are not stripped
+  /// before the CSS rules are collected.
+  String extractCss(String html) {
+    final document = html_parser.parse(html);
+    final buffer = StringBuffer();
+    for (final el in document.querySelectorAll('style')) {
+      final text = el.text;
+      if (text.isNotEmpty) {
+        buffer.write(text);
+        buffer.write('\n');
+      }
+    }
+    return buffer.toString();
+  }
+
   List<DocumentNode> parseToSections(String html, {int chunkSize = 3000}) {
     final document = html_parser.parse(html);
     final body = document.body;
@@ -162,6 +179,18 @@ class HtmlAdapter {
       final element = node as dom.Element;
       final tagName = element.localName?.toLowerCase() ?? 'div';
       final defaultStyle = _defaultStyles[tagName] ?? ComputedStyle();
+
+      // Inline SVG: serialize the entire <svg> element to a string
+      if (tagName == 'svg') {
+        final svgStr = element.outerHtml;
+        final width = double.tryParse(element.attributes['width'] ?? '');
+        final height = double.tryParse(element.attributes['height'] ?? '');
+        return AtomicNode.svg(
+          svgData: svgStr,
+          width: width,
+          height: height,
+        );
+      }
 
       if (_isAtomic(element)) {
         if (tagName == 'br' || tagName == 'hr') {

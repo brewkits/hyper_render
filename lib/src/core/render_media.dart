@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../model/node.dart';
@@ -92,6 +94,15 @@ enum MediaType {
   video,
 }
 
+/// Convenience extension on [AtomicNode] for media-related helpers.
+///
+/// Defined here (not in node.dart) to avoid a circular import:
+/// render_media.dart imports node.dart, not the other way around.
+extension AtomicNodeMediaExtension on AtomicNode {
+  /// Returns a [MediaInfo] built from this node's attributes.
+  MediaInfo get mediaInfo => MediaInfo.fromNode(this);
+}
+
 /// Default media widget - shows a placeholder with play button
 ///
 /// This is used when no custom MediaWidgetBuilder is provided.
@@ -129,8 +140,28 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
   }
 
   Widget _buildVideoPlaceholder() {
-    final width = widget.mediaInfo.width ?? 320;
-    final height = widget.mediaInfo.height ?? 180;
+    return LayoutBuilder(
+      builder: (context, constraints) => _buildVideoContainer(constraints),
+    );
+  }
+
+  Widget _buildVideoContainer(BoxConstraints constraints) {
+    final maxW = constraints.maxWidth == double.infinity ? 320.0 : constraints.maxWidth;
+    final intrinsicW = widget.mediaInfo.width;
+    final intrinsicH = widget.mediaInfo.height;
+
+    double width, height;
+    if (intrinsicW != null && intrinsicH != null) {
+      final scale = intrinsicW > maxW ? maxW / intrinsicW : 1.0;
+      width = intrinsicW * scale;
+      height = intrinsicH * scale;
+    } else if (intrinsicW != null) {
+      width = math.min(intrinsicW, maxW);
+      height = width * 9.0 / 16.0;
+    } else {
+      width = maxW;
+      height = maxW * 9.0 / 16.0;
+    }
 
     return Container(
       width: width,
@@ -232,8 +263,16 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
   }
 
   Widget _buildAudioPlaceholder() {
-    final width = widget.mediaInfo.width ?? 300;
+    return LayoutBuilder(builder: (ctx, constraints) {
+      final maxW = constraints.maxWidth == double.infinity ? 300.0 : constraints.maxWidth;
+      final width = widget.mediaInfo.width != null
+          ? math.min(widget.mediaInfo.width!, maxW)
+          : maxW;
+      return _buildAudioContainer(ctx, width);
+    });
+  }
 
+  Widget _buildAudioContainer(BuildContext context, double width) {
     return Container(
       width: width,
       padding: const EdgeInsets.all(12),

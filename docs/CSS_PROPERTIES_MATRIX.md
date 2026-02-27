@@ -16,7 +16,7 @@ This document lists CSS property support in HyperRender.
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| `!important` | ❌ Not Supported | `!important` declarations are silently ignored. Rules are resolved by specificity only. Use inline styles or increase selector specificity as a workaround. |
+| `!important` | ✅ Full Support | Declarations marked `!important` override inline styles per CSS cascade spec. Important rules are collected separately and applied after all other declarations. |
 
 ---
 
@@ -53,7 +53,7 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `display` | ✅ | block, inline, inline-block, flex, table, none | |
+| `display` | ✅ | block, inline, inline-block, flex, grid, table, none | |
 | `visibility` | ❌ | - | Use `display: none` instead |
 | `opacity` | ✅ | 0-1 | |
 | `overflow` | ⚠️ | hidden, visible | No scroll support |
@@ -129,10 +129,10 @@ This document lists CSS property support in HyperRender.
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
 | `background-color` | ✅ | All CSS colors | |
-| `background-image` | ❌ | - | Planned for v1.1 |
-| `background-size` | ❌ | - | Planned for v1.1 |
-| `background-position` | ❌ | - | Planned for v1.1 |
-| `background-repeat` | ❌ | - | Planned for v1.1 |
+| `background-image` | ❌ | - | Planned for v3.x |
+| `background-size` | ❌ | - | Planned for v3.x |
+| `background-position` | ❌ | - | Planned for v3.x |
+| `background-repeat` | ❌ | - | Planned for v3.x |
 | `background` | ⚠️ | color only | Shorthand only for color |
 
 ---
@@ -177,10 +177,58 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `display: grid` | 🔜 | - | Planned for v2.0 |
-| `grid-template-columns` | 🔜 | - | Planned for v2.0 |
-| `grid-template-rows` | 🔜 | - | Planned for v2.0 |
-| `grid-gap` | 🔜 | - | Planned for v2.0 |
+| `display: grid` | ✅ | grid | Supported in v1.0.0 |
+| `grid-template-columns` | ✅ | px, fr, auto, repeat(N, size) | Fractional units resolved via LayoutBuilder |
+| `grid-template-rows` | ⚠️ | Parsed, auto height per row | Explicit row sizing pending |
+| `grid-column` | ✅ | span N, start / end | Auto-placement with span support |
+| `grid-row` | ⚠️ | start / end | Basic parsing; explicit row placement pending |
+| `gap` / `row-gap` / `column-gap` | ✅ | px | Full support |
+| `grid-auto-flow` | ⚠️ | row | Column/dense not yet implemented |
+| `justify-items` | ⚠️ | Parsed | Layout pending |
+| `align-content` | ⚠️ | Parsed | Layout pending |
+
+---
+
+## CSS Variables & calc()
+
+| Feature | Status | Supported Values | Notes |
+|---------|--------|------------------|-------|
+| `--custom-property` | ✅ | Any value | Custom properties are inherited along parent chain. |
+| `var(--name)` | ✅ | — | Resolved at cascade time with parent-chain lookup |
+| `var(--name, fallback)` | ✅ | — | Fallback used when variable not defined |
+| `calc()` | ✅ | px, em, rem, unitless | Correct operator precedence (`*`/`/` before `+`/`-`) |
+| `calc()` with `var()` | ✅ | — | `var()` resolved first, then arithmetic |
+
+---
+
+## Text Direction & BiDi
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| `direction: ltr` | ✅ | Default |
+| `direction: rtl` | ✅ | Applied per-fragment in TextPainter. |
+| `dir=` HTML attribute | ✅ | Parsed on any element, including `<html dir="rtl">` |
+| Bi-directional text mixing | ⚠️ | Relies on Flutter's Unicode BiDi algorithm; complex cases may vary |
+
+---
+
+## SVG
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Inline `<svg>` elements | ✅ | Serialized and rendered as placeholder (flutter_svg integration optional) |
+| `<img src="*.svg">` | ⚠️ | Treated as network image; SVG-specific rendering requires flutter_svg |
+| SVG width / height attributes | ✅ | Used for intrinsic sizing |
+
+---
+
+## Screenshot / Export
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| `captureKey` on HyperViewer | ✅ | Pass a `GlobalKey` to enable capture. |
+| `captureKey.toImage()` | ✅ | Returns `ui.Image` at given pixel ratio |
+| `captureKey.toPngBytes()` | ✅ | Returns `Uint8List` PNG bytes |
 
 ---
 
@@ -248,6 +296,8 @@ This document lists CSS property support in HyperRender.
 | `vh` | ❌ | Not supported |
 | `vw` | ❌ | Not supported |
 | `pt` | ⚠️ | Converted to px |
+| `calc()` | ✅ | Arithmetic expressions with px/em/rem/unitless |
+| `var()` | ✅ | CSS custom properties (--name) |
 
 ---
 
@@ -270,16 +320,24 @@ This document lists CSS property support in HyperRender.
 - CSS Float Layout: HyperRender is the only Flutter HTML library with proper float/clear support
 - Kinsoku Line-Breaking: Professional CJK typography rules
 - Ruby Annotations: Furigana rendering for Japanese
+- CSS Grid: fr-unit layout with repeat() and column-span support
+- CSS Variables: `--custom-property` / `var()` with full inheritance chain
+- CSS calc(): arithmetic expressions with correct operator precedence
+- RTL/BiDi: per-fragment text direction from `direction` property or `dir=` attribute
+- Screenshot export: `GlobalKey.toPngBytes()` via `HyperCaptureExtension`
+- DevTools extension: UDT tree inspector at `packages/hyper_render_devtools/`
 
 ### Performance Considerations
 - CSS rule matching uses indexed lookup for better performance
 - Style resolution cached during layout
 - Computed styles memoized per node
+- TextPainter cache uses 9-tuple composite key (no XOR collisions)
+- Image loading uses priority queue (viewport-first)
+- Incremental layout with dirty checking
 
 ### Roadmap
-- **v1.1**: SVG support, Grid layout (basic), Background images
-- **v1.2**: Pseudo-elements (::before, ::after), More pseudo-classes
-- **v2.0**: Full Grid layout, Advanced filters, Gradient backgrounds
+- **v3.x**: Background images, Gradient backgrounds, CSS filters
+- **v4.0**: Pseudo-elements (::before, ::after), More pseudo-classes, `vh`/`vw` units
 
 ---
 
