@@ -27,6 +27,8 @@ import 'sprint3_demo.dart';
 import 'html_heuristics_demo.dart';
 import 'smart_table_demo.dart';
 import 'formula_demo.dart';
+import 'manga_demo.dart';
+import 'email_demo.dart';
 
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
@@ -105,7 +107,7 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.view_column,
             title: 'Flexbox Layout',
-            subtitle: 'Modern CSS Flexbox: justify-content, align-items, gap, flex-direction, flex-wrap (90% coverage)',
+            subtitle: 'Modern CSS Flexbox: justify-content, align-items, gap, flex-direction, flex-wrap',
             color: DemoColors.primary,
             onTap: () => Navigator.push(
               context,
@@ -143,6 +145,17 @@ class DemoHomePage extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const RubyDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.menu_book,
+            title: 'Manga & CJK Typography ⭐',
+            subtitle: 'Furigana · Panel grid layout · Japanese story · RTL',
+            color: const Color(0xFFB71C1C),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MangaDemo()),
             ),
           ),
           _buildDemoCard(
@@ -255,6 +268,19 @@ class DemoHomePage extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const MarkdownDemo()),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSectionHeader(context, '📬 Real-World Use Cases'),
+          _buildDemoCard(
+            context,
+            icon: Icons.email,
+            title: 'HTML Email Renderer ⭐',
+            subtitle: 'Render HTML emails natively — no WebView, no 20MB overhead',
+            color: DemoColors.primary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EmailDemo()),
             ),
           ),
           const SizedBox(height: 16),
