@@ -1,0 +1,45 @@
+name: example
+description: "Example app for hyper_render - The Universal Content Engine for Flutter"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Reference to parent package
+  hyper_render:
+    path: ../
+
+  # Core package (for DesignTokens, LoadingSkeleton)
+  hyper_render_core:
+    path: ../packages/hyper_render_core
+
+  # Competitor libraries for comparison
+  flutter_html: ^3.0.0-beta.2
+  flutter_widget_from_html: ^0.17.1
+  flutter_widget_from_html_core: ^0.17.0
+
+  # For opening HTML in browser
+  url_launcher: ^6.2.0
+  path_provider: ^2.1.0
+
+  # HTTP client for fetching real-world content
+  http: ^1.2.0
+
+  # For sharing content
+  share_plus: ^10.1.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,26 @@
+name: hyper_render_markdown
+description: Markdown parser plugin for HyperRender - Converts Markdown to Universal Document Tree (UDT).
+version: 1.0.0
+homepage: https://github.com/brewkits/hyper_render
+repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_markdown
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # NOTE: For publishing to pub.dev, replace path with version:
+  #   hyper_render_core: ^1.0.0
+  # See PUBLISH.md for detailed publishing instructions.
+  hyper_render_core:
+    path: ../hyper_render_core
+
+  markdown: ^7.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0

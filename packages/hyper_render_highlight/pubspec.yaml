@@ -1,0 +1,27 @@
+name: hyper_render_highlight
+description: Syntax highlighting plugin for HyperRender using flutter_highlight. Supports 180+ programming languages with multiple themes.
+version: 1.0.0
+homepage: https://github.com/brewkits/hyper_render
+repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_highlight
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # NOTE: For publishing to pub.dev, replace path with version:
+  #   hyper_render_core: ^1.0.0
+  # See PUBLISH.md for detailed publishing instructions.
+  hyper_render_core:
+    path: ../hyper_render_core
+
+  flutter_highlight: ^0.7.0
+  highlight: ^0.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
