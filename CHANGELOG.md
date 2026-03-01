@@ -7,9 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [1.0.0] - 2026-02-11
+## [1.0.0] - 2026-03-01
 
 First stable release. Core features, plugin architecture, and cross-platform support are production-ready.
+
+### Pre-publish fixes (2026-03-01)
+
+- **`docs/` → `doc/`** — renamed documentation directory to follow pub.dev layout convention
+- **`HyperViewer`** — removed `implementation_imports` lint violations; added `onError` callback; parsing is now async via `Future.microtask` (non-blocking UI); `HyperRenderMode.virtualized` now renders each top-level block as an independent `HyperRenderWidget` inside `ListView.builder`; `enableZoom` now correctly wraps content in `InteractiveViewer`; `_isComplexHtml` cached instead of recomputed on every `build()`
+- **`HyperRenderWidget`** — removed null-guard around `childWidget`; removed unused import
+- **`DefaultCssParser`** — fixed redundant `?.` null-check on non-nullable `String.trim()`
+- **Sub-packages** — SDK constraint `>=3.5.0 <4.0.0`; `vector_math: ^2.2.0`; `share_plus: ^10.0.0`; `topics` added to all sub-package pubspecs
 
 ### Rendering Engine
 
@@ -136,7 +144,7 @@ CSS lookup: 3–16 µs median (100–5,000 rules). Source: `benchmark/RESULTS.md
 
 ### Tests
 
-97 unit and integration tests passing (style, layout, accessibility, security, golden images).
+600+ unit and integration tests passing (style, layout, accessibility, security, performance, widget capture).
 
 ---
 

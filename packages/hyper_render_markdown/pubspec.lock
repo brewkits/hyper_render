@@ -81,7 +81,7 @@ packages:
       path: "../hyper_render_core"
       relative: true
     source: path
-    version: "2.0.0"
+    version: "1.0.0"
   leak_tracker:
     dependency: transitive
     description:

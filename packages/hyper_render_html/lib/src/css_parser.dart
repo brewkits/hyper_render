@@ -78,12 +78,12 @@ class DefaultCssParser implements CssParserInterface {
     // Iterate the individual term spans first for an accurate reconstruction.
     if (expression is css_ast.Expressions) {
       final termText = expression.expressions
-          .map<String>((t) => t.span?.text?.trim() ?? '')
+          .map<String>((t) => t.span?.text.trim() ?? '')
           .where((s) => s.isNotEmpty)
           .join(' ');
       if (termText.isNotEmpty) return termText;
     }
-    return expression.span?.text?.trim() ?? '';
+    return expression.span?.text.trim() ?? '';
   }
 
   /// Calculate CSS specificity for a selector

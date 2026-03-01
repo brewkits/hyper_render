@@ -26,7 +26,12 @@ dependencies:
   path_provider: ^2.1.0
 
   # Share functionality
-  share_plus: ^7.2.0
+  share_plus: ^10.0.0
+
+topics:
+  - flutter
+  - clipboard
+  - image-copy
 
 dev_dependencies:
   flutter_test:

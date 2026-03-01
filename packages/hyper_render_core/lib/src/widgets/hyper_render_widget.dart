@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:hyper_render_core/src/interfaces/selection_types.dart';
 import '../core/render_table.dart';
-import 'hyper_selection_overlay.dart';
 
 /// Selection changed callback
 typedef SelectionChangedCallback = void Function(HyperTextSelection? selection);
@@ -116,9 +115,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
         }
       }
 
-      if (childWidget != null) {
-        children.add(_HyperChildWidget(node: node, child: childWidget));
-      }
+      children.add(_HyperChildWidget(node: node, child: childWidget));
       return;
     }
 
@@ -141,9 +138,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       final atomicNode = node as AtomicNode;
       childWidget = widgetBuilder?.call(atomicNode);
       childWidget ??= _buildDefaultAtomicWidget(atomicNode, onLinkTap: onLinkTap);
-      if (childWidget != null) {
-        children.add(_HyperChildWidget(node: node, child: childWidget));
-      }
+      children.add(_HyperChildWidget(node: node, child: childWidget));
     } else {
       for (final child in node.children) {
         _collectAtomicChildren(child, children, widgetBuilder, codeHighlighter, onLinkTap, selectable);

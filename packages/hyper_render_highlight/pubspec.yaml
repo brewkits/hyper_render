@@ -5,8 +5,13 @@ homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_highlight
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
-  flutter: ">=3.10.0"
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+topics:
+  - flutter
+  - syntax-highlighting
+  - code-highlight
 
 dependencies:
   flutter:

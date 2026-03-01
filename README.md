@@ -458,47 +458,6 @@ HyperRender is well-suited for: news apps, blog readers, email clients, document
 
 ---
 
-## Roadmap
-
-### Implemented
-
-- HTML5 parsing → Unified Document Tree
-- Full CSS cascade (specificity, inheritance, `!important`)
-- CSS Float layout (unique among Flutter HTML libraries)
-- Text selection with copy menu (crash-free on large documents)
-- W3C two-pass table layout (colspan, rowspan, three overflow strategies)
-- Flexbox (`flex-direction`, `justify-content`, `align-items`, `flex-wrap`, `flex-grow/shrink/basis`, `gap`)
-- CSS Grid (`display: grid`, fr units, `gap`)
-- CJK Kinsoku line-breaking + Ruby/Furigana
-- `<details>/<summary>` collapsible sections
-- CSS Variables (`--custom-props`, `var()`)
-- CSS `calc()` (px, em, rem arithmetic, bracket-aware tokenizer)
-- RTL / BiDi (`dir` attribute)
-- Screenshot export (`captureKey` + `HyperCaptureExtension`)
-- `HtmlHeuristics` + `fallbackBuilder` hybrid WebView pattern
-- Quill Delta adapter
-- Markdown adapter
-- HTML sanitization (XSS, `vbscript:`, SVG data URLs, CSS `expression()`)
-- Base URL resolution for relative src/href
-- Loading placeholders and error states
-- View virtualization via `ListView.builder`
-- Image LRU cache (50 MB limit, GPU objects disposed on eviction)
-- Viewport culling during paint
-
-### In progress
-
-- Full SVG rendering (currently shows a placeholder)
-- Video/audio player integration (`video_player` plugin)
-
-### Planned
-
-- `position: absolute/fixed` layout via a positioning context
-- Vanilla JS execution via QuickJS (Dart FFI) — show/hide, accordion, form validation; no React/Vue
-- `clip-path` polygon and circle masks
-- Print/PDF export via the `printing` package
-
----
-
 ## Packages
 
 | Package | Purpose | Status |
@@ -522,18 +481,28 @@ flutter test          # all tests must pass before submitting a PR
 cd example && flutter run
 ```
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) and the Architecture Decision Records in [docs/adr/](docs/adr/) for context on design decisions.
+See [doc/CONTRIBUTING.md](doc/CONTRIBUTING.md) and the Architecture Decision Records in [doc/adr/](doc/adr/) for context on design decisions.
 
 ---
 
 ## Further reading
 
-- [Comparison Matrix](docs/COMPARISON_MATRIX.md) — feature comparison with FWFH and WebView
-- [CSS Properties Matrix](docs/CSS_PROPERTIES_MATRIX.md) — full CSS support status
-- [Supported HTML Elements](docs/SUPPORTED_HTML.md) — tags and attributes
-- [Known Limitations](docs/LIMITATIONS.md) — honest list of unsupported features
+- [Comparison Matrix](doc/COMPARISON_MATRIX.md) — feature comparison with FWFH and WebView
+- [CSS Properties Matrix](doc/CSS_PROPERTIES_MATRIX.md) — full CSS support status
+- [Supported HTML Elements](doc/SUPPORTED_HTML.md) — tags and attributes
+- [Known Limitations](doc/LIMITATIONS.md) — honest list of unsupported features
 - [Migration Guide](MIGRATION.md) — coming from `flutter_html` or `flutter_widget_from_html`
-- [Architecture Decision Records](docs/adr/) — background on key design choices
+- [Architecture Decision Records](doc/adr/) — background on key design choices
+
+---
+
+## See also
+
+Other open-source Flutter packages by the same team:
+
+| Package | Description |
+|---------|-------------|
+| [`native_workmanager`](https://github.com/brewkits/native_workmanager) | High-performance background task manager using native Kotlin/Swift workers — executes tasks without spawning the Flutter Engine, saving up to 90% RAM and extending battery life. |
 
 ---
 

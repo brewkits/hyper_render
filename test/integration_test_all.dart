@@ -6,8 +6,6 @@
 /// ```
 library;
 
-import "package:hyper_render/hyper_render.dart";
-
 import 'integration/real_world_html_test.dart' as real_world;
 import 'integration/large_document_test.dart' as large_doc;
 import 'integration/performance_regression_test.dart' as performance;

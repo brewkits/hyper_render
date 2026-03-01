@@ -10,8 +10,8 @@ topics:
   - html
   - rendering
   - richtext
-  - quill
   - css
+  - markdown
 
 environment:
   sdk: '>=3.5.0 <4.0.0'

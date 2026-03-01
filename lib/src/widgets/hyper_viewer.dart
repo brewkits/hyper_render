@@ -1,10 +1,70 @@
 import 'package:flutter/material.dart';
 
 import 'package:hyper_render_core/hyper_render_core.dart';
-import 'package:hyper_render_core/src/style/css_rule_index.dart';
-import 'package:hyper_render_core/src/interfaces/selection_types.dart';
 import 'package:hyper_render_html/hyper_render_html.dart';
 import 'package:hyper_render_markdown/hyper_render_markdown.dart';
+
+// ---------------------------------------------------------------------------
+// Isolate helpers
+// ---------------------------------------------------------------------------
+
+/// Parameters passed to the background isolate for parsing.
+class _ParseParams {
+  final String content;
+  final String contentType; // 'html' | 'markdown' | 'delta'
+  final bool sanitize;
+  final List<String>? allowedTags;
+  final bool allowDataAttributes;
+  final String? baseUrl;
+  final String customCss;
+
+  const _ParseParams({
+    required this.content,
+    required this.contentType,
+    required this.sanitize,
+    this.allowedTags,
+    required this.allowDataAttributes,
+    this.baseUrl,
+    required this.customCss,
+  });
+}
+
+/// Top-level function required by [compute] — runs in a separate isolate.
+DocumentNode _parseInIsolate(_ParseParams p) {
+  // Must set the static parser inside THIS isolate's global state.
+  CssRuleIndex.parser = DefaultHtmlParser();
+
+  String content = p.content;
+  if (p.contentType == 'html' && p.sanitize) {
+    content = HtmlSanitizer.sanitize(
+      content,
+      allowedTags: p.allowedTags,
+      allowDataAttributes: p.allowDataAttributes,
+    );
+  }
+
+  final ContentParser parser;
+  switch (p.contentType) {
+    case 'markdown':
+      parser = const MarkdownContentParser();
+      break;
+    case 'delta':
+      parser = DeltaAdapter();
+      break;
+    default:
+      parser = DefaultHtmlParser();
+  }
+
+  return parser.parseWithOptions(
+    content,
+    baseUrl: p.baseUrl,
+    customCss: p.customCss,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// HyperViewer
+// ---------------------------------------------------------------------------
 
 /// A high-level widget that renders HTML, Markdown, or Quill Delta content
 /// using HyperRender's custom layout engine.
@@ -121,10 +181,14 @@ class HyperViewer extends StatefulWidget {
   /// a PNG image.
   final GlobalKey? captureKey;
 
+  /// Called when content parsing fails. Provides the error and stack trace.
+  final void Function(Object error, StackTrace stackTrace)? onError;
+
   // Selection customization
 
   /// Builder for custom context-menu actions shown when text is selected.
-  final List<SelectionMenuAction> Function(SelectionOverlayController)? selectionMenuActionsBuilder;
+  final List<SelectionMenuAction> Function(SelectionOverlayController)?
+      selectionMenuActionsBuilder;
 
   /// Colour of the drag-handle indicators shown at the edges of the selection.
   final Color? selectionHandleColor;
@@ -166,6 +230,7 @@ class HyperViewer extends StatefulWidget {
     this.customCss,
     this.debugShowHyperRenderBounds = false,
     this.captureKey,
+    this.onError,
     this.selectionMenuActionsBuilder,
     this.selectionHandleColor,
     this.selectionColor,
@@ -202,6 +267,7 @@ class HyperViewer extends StatefulWidget {
     this.customCss,
     this.debugShowHyperRenderBounds = false,
     this.captureKey,
+    this.onError,
     this.selectionMenuActionsBuilder,
     this.selectionHandleColor,
     this.selectionColor,
@@ -239,6 +305,7 @@ class HyperViewer extends StatefulWidget {
     this.customCss,
     this.debugShowHyperRenderBounds = false,
     this.captureKey,
+    this.onError,
     this.selectionMenuActionsBuilder,
     this.selectionHandleColor,
     this.selectionColor,
@@ -250,109 +317,143 @@ class HyperViewer extends StatefulWidget {
 }
 
 class _HyperViewerState extends State<HyperViewer> {
-  DocumentNode? _syncDocument;
+  DocumentNode? _document;
   bool _isLoading = true;
+  bool _isComplexHtml = false;
   int _parseId = 0;
 
   @override
   void initState() {
     super.initState();
+    _updateComplexityCache();
     _parseContent();
   }
 
   @override
-  void didUpdateWidget(covariant HyperViewer oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.content != widget.content || oldWidget.contentType != widget.contentType) {
+  void didUpdateWidget(covariant HyperViewer old) {
+    super.didUpdateWidget(old);
+    if (old.content != widget.content ||
+        old.contentType != widget.contentType) {
+      _updateComplexityCache();
       _parseContent();
     }
   }
 
-  void _parseContent() {
-    final currentParseId = ++_parseId;
-    setState(() => _isLoading = true);
+  void _updateComplexityCache() {
+    _isComplexHtml = widget.contentType == HyperContentType.html &&
+        widget.fallbackBuilder != null &&
+        HtmlHeuristics.isComplex(widget.content);
+  }
 
-    String contentToRender = widget.content;
-    String cssToApply = widget.customCss ?? '';
-
-    if (widget.contentType == HyperContentType.html) {
-      if (widget.sanitize) {
-        contentToRender = HtmlSanitizer.sanitize(contentToRender, allowedTags: widget.allowedTags);
-      }
-    }
-
-    // Register CSS parser
-    CssRuleIndex.parser = DefaultHtmlParser();
-
-    ContentParser parser;
-    if (widget.contentType == HyperContentType.markdown) {
-      parser = const MarkdownContentParser();
-    } else if (widget.contentType == HyperContentType.delta) {
-      parser = DeltaAdapter();
-    } else {
-      parser = DefaultHtmlParser();
-    }
-
+  Future<void> _parseContent() async {
+    final id = ++_parseId;
+    if (mounted) setState(() => _isLoading = true);
     try {
-      final doc = parser.parseWithOptions(contentToRender, baseUrl: widget.baseUrl, customCss: cssToApply);
-
-      if (mounted && _parseId == currentParseId) {
+      final params = _ParseParams(
+        content: widget.content,
+        contentType: widget.contentType.name,
+        sanitize: widget.sanitize,
+        allowedTags: widget.allowedTags,
+        allowDataAttributes: widget.allowDataAttributes,
+        baseUrl: widget.baseUrl,
+        customCss: widget.customCss ?? '',
+      );
+      final doc = await Future.microtask(() => _parseInIsolate(params));
+      if (mounted && _parseId == id) {
         setState(() {
-          _syncDocument = doc;
+          _document = doc;
           _isLoading = false;
         });
       }
-    } catch (e) {
-      if (mounted && _parseId == currentParseId) {
+    } catch (e, st) {
+      if (mounted && _parseId == id) {
         setState(() => _isLoading = false);
+        widget.onError?.call(e, st);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Invoke fallbackBuilder when the HTML content is too complex to render correctly
-    if (widget.fallbackBuilder != null &&
-        widget.contentType == HyperContentType.html &&
-        HtmlHeuristics.isComplex(widget.content)) {
-      return widget.fallbackBuilder!(context);
-    }
+    if (_isComplexHtml) return widget.fallbackBuilder!(context);
 
     Widget body;
 
     if (_isLoading) {
-      body = widget.placeholderBuilder?.call(context) ?? const Center(child: CircularProgressIndicator());
-    } else if (_syncDocument == null) {
+      body = widget.placeholderBuilder?.call(context) ??
+          const Center(child: CircularProgressIndicator());
+    } else if (_document == null) {
       body = const Center(child: Text('Error loading content'));
     } else {
-      body = SingleChildScrollView(
-        child: HyperRenderWidget(
-          document: _syncDocument!,
-          selectable: widget.selectable,
-          onLinkTap: widget.onLinkTap,
-          widgetBuilder: widget.widgetBuilder,
-          selectionMenuActionsBuilder: widget.selectionMenuActionsBuilder,
-          selectionHandleColor: widget.selectionHandleColor,
-          selectionColor: widget.selectionColor,
-          debugShowHyperRenderBounds: widget.debugShowHyperRenderBounds,
-        ),
-      );
+      body = _buildDocumentView();
     }
 
     if (widget.captureKey != null) {
       body = RepaintBoundary(key: widget.captureKey, child: body);
     }
-
+    if (widget.enableZoom) {
+      body = InteractiveViewer(
+        minScale: widget.minScale,
+        maxScale: widget.maxScale,
+        child: body,
+      );
+    }
     if (widget.excludeSemantics) {
       return Semantics(excludeSemantics: true, child: body);
     }
-
     return Semantics(
       label: widget.semanticLabel ?? 'Article content',
       child: body,
     );
   }
+
+  Widget _buildDocumentView() {
+    final doc = _document!;
+    final useVirtualized =
+        widget.mode == HyperRenderMode.virtualized ||
+            (widget.mode == HyperRenderMode.auto &&
+                widget.content.length > 30000);
+
+    if (useVirtualized && doc.children.isNotEmpty) {
+      return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: doc.children.length,
+        itemBuilder: (ctx, i) {
+          final block = doc.children[i];
+          final blockDoc = DocumentNode(children: [block])..style = doc.style;
+          return HyperRenderWidget(
+            document: blockDoc,
+            selectable: widget.selectable,
+            onLinkTap: widget.onLinkTap,
+            widgetBuilder: widget.widgetBuilder,
+            selectionMenuActionsBuilder: widget.selectionMenuActionsBuilder,
+            selectionHandleColor: widget.selectionHandleColor,
+            selectionColor: widget.selectionColor,
+            debugShowHyperRenderBounds: widget.debugShowHyperRenderBounds,
+          );
+        },
+      );
+    }
+
+    return SingleChildScrollView(
+      child: HyperRenderWidget(
+        document: doc,
+        selectable: widget.selectable,
+        onLinkTap: widget.onLinkTap,
+        widgetBuilder: widget.widgetBuilder,
+        selectionMenuActionsBuilder: widget.selectionMenuActionsBuilder,
+        selectionHandleColor: widget.selectionHandleColor,
+        selectionColor: widget.selectionColor,
+        debugShowHyperRenderBounds: widget.debugShowHyperRenderBounds,
+      ),
+    );
+  }
 }
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
 
 /// Rendering strategy for [HyperViewer].
 enum HyperRenderMode {
