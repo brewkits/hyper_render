@@ -302,6 +302,43 @@ void main() {
       });
     });
 
+    group('BUG-D — ARIA / accessibility attributes preserved (regression)', () {
+      test('aria-label is kept through sanitization', () {
+        const html = '<a href="/home" aria-label="Go to homepage">Home</a>';
+        final result = HtmlSanitizer.sanitize(html);
+        expect(result, contains('aria-label'));
+        expect(result, contains('Go to homepage'));
+      });
+
+      test('role attribute is kept through sanitization', () {
+        const html = '<div role="button" aria-label="Close">X</div>';
+        final result = HtmlSanitizer.sanitize(html);
+        expect(result, contains('role="button"'));
+        expect(result, contains('aria-label="Close"'));
+      });
+
+      test('aria-hidden is kept through sanitization', () {
+        const html = '<span aria-hidden="true">decorative</span>';
+        final result = HtmlSanitizer.sanitize(html);
+        expect(result, contains('aria-hidden="true"'));
+      });
+
+      test('aria-expanded is kept through sanitization', () {
+        const html = '<nav aria-label="Main navigation" aria-expanded="true"><ul></ul></nav>';
+        final result = HtmlSanitizer.sanitize(html);
+        expect(result, contains('aria-label'));
+        expect(result, contains('aria-expanded'));
+      });
+
+      test('event handlers are still stripped even alongside aria attributes', () {
+        const html = '<div role="button" aria-label="Click me" onclick="evil()">X</div>';
+        final result = HtmlSanitizer.sanitize(html);
+        expect(result, contains('role="button"'));
+        expect(result, contains('aria-label'));
+        expect(result, isNot(contains('onclick')));
+      });
+    });
+
     group('Danger Detection', () {
       test('detects script tags', () {
         const html = '<p>Hello</p><script>alert(1)</script>';

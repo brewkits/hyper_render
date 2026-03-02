@@ -28,10 +28,9 @@ class DefaultCssParser implements CssParserInterface {
 
     for (final topLevel in stylesheet.topLevels) {
       if (topLevel is css_ast.RuleSet) {
-        final rule = _convertRuleSet(topLevel);
-        if (rule != null) {
-          rules.add(rule);
-        }
+        // Each individual selector in a comma group gets its own ParsedCssRule
+        // so that specificity is computed per-selector (CSS spec §16.1).
+        rules.addAll(_expandRuleSet(topLevel));
       }
     }
 
@@ -40,35 +39,59 @@ class DefaultCssParser implements CssParserInterface {
     return rules;
   }
 
-  ParsedCssRule? _convertRuleSet(css_ast.RuleSet ruleSet) {
-    // Extract selector text
-    final selector = _extractSelector(ruleSet.selectorGroup);
-    if (selector.isEmpty) return null;
-
-    // Extract declarations
+  /// Expand a RuleSet into one [ParsedCssRule] per individual selector.
+  ///
+  /// `h1, h2 { color: red }` → two rules: one for `h1`, one for `h2`, each
+  /// with its own specificity value.  Comma-grouped rules are no longer
+  /// collapsed into a single selector string, which was the root cause of
+  /// them being mis-indexed and mis-matched as descendant selectors.
+  List<ParsedCssRule> _expandRuleSet(css_ast.RuleSet ruleSet) {
+    // Extract declarations (shared across all selectors in this rule set)
     final declarations = <String, String>{};
+    final importantDeclarations = <String, String>{};
     for (final declaration in ruleSet.declarationGroup.declarations) {
       if (declaration is css_ast.Declaration) {
         final property = declaration.property;
         final value = _extractValue(declaration.expression);
         if (property.isNotEmpty && value.isNotEmpty) {
-          declarations[property] = value;
+          if (declaration.important == true) {
+            importantDeclarations[property] = value;
+          } else {
+            declarations[property] = value;
+          }
         }
       }
     }
 
-    if (declarations.isEmpty) return null;
+    if (declarations.isEmpty && importantDeclarations.isEmpty) return const [];
 
-    return ParsedCssRule(
-      selector: selector,
-      declarations: declarations,
-      specificity: _calculateSpecificity(selector),
-    );
+    final selectorGroup = ruleSet.selectorGroup;
+    if (selectorGroup == null) return const [];
+
+    final results = <ParsedCssRule>[];
+    for (final selector in selectorGroup.selectors) {
+      final selectorText = selector.span?.text?.trim() ?? '';
+      if (selectorText.isEmpty) continue;
+      results.add(ParsedCssRule(
+        selector: selectorText,
+        declarations: declarations,
+        importantDeclarations: importantDeclarations.isEmpty
+            ? null
+            : importantDeclarations,
+        specificity: _calculateSpecificity(selectorText),
+      ));
+    }
+    return results;
   }
 
   String _extractSelector(css_ast.SelectorGroup? selectorGroup) {
     if (selectorGroup == null) return '';
-    return selectorGroup.selectors.map((s) => s.span?.text ?? '').join(', ');
+    // Filter out null/empty spans to avoid malformed selectors like "div, , p".
+    return selectorGroup.selectors
+        .map((s) => s.span?.text?.trim())
+        .whereType<String>()
+        .where((s) => s.isNotEmpty)
+        .join(', ');
   }
 
   String _extractValue(css_ast.Expression? expression) {
@@ -124,7 +147,10 @@ class DefaultCssParser implements CssParserInterface {
       final colonIndex = decl.indexOf(':');
       if (colonIndex > 0) {
         final property = decl.substring(0, colonIndex).trim();
-        final value = decl.substring(colonIndex + 1).trim();
+        final rawValue = decl.substring(colonIndex + 1).trim();
+        // Strip !important — not supported in inline styles; use specificity instead.
+        final value = rawValue.replaceAll(
+            RegExp(r'\s*!important\s*$', caseSensitive: false), '');
         if (property.isNotEmpty && value.isNotEmpty) {
           result[property] = value;
         }

@@ -332,15 +332,24 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         } else if (node.intrinsicWidth != null) {
           // Only width specified - maintain aspect ratio
           width = node.intrinsicWidth!;
-          height = width * (imageHeight / imageWidth);
+          // Guard: imageWidth == 0 would produce Infinity; fall back to square.
+          height = imageWidth > 0
+              ? width * (imageHeight / imageWidth)
+              : width;
         } else if (node.intrinsicHeight != null) {
           // Only height specified - maintain aspect ratio
           height = node.intrinsicHeight!;
-          width = height * (imageWidth / imageHeight);
+          // Guard: imageHeight == 0 would produce Infinity; fall back to square.
+          width = imageHeight > 0
+              ? height * (imageWidth / imageHeight)
+              : height;
         } else {
           // No dimensions - use actual image size, constrained to maxWidth
           width = math.min(imageWidth, _maxWidth - 32); // Leave some margin
-          height = width * (imageHeight / imageWidth);
+          // Guard: imageWidth == 0 would produce NaN/Infinity.
+          height = imageWidth > 0
+              ? width * (imageHeight / imageWidth)
+              : width / RenderHyperBox._defaultAspectRatio;
         }
       } else {
         // Image not loaded yet - use specified dimensions or smart placeholder

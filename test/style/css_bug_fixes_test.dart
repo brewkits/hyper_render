@@ -456,6 +456,317 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
+  // QA-BUG-A: CssRuleIndex — ancestor-class misindex (regression)
+  // -------------------------------------------------------------------------
+
+  group('QA-BUG-A — CssRuleIndex combinator guard (ancestor-class misindex)', () {
+    test('descendant selector: nav.menu li applies to li inside nav.menu', () {
+      const html = '''
+<style>nav.main-nav li { color: #E53935; }</style>
+<nav class="main-nav"><ul><li>Menu item</li></ul></nav>
+''';
+      final style = _styleOfTag(html, 'li');
+      expect(style, isNotNull);
+      // Rule was previously missed because nav.main-nav li was indexed under
+      // .main-nav (ancestor), not found when li was looked up.
+      expect((style!.color.r * 255).round(), greaterThan(200),
+          reason: 'li should be red from "nav.main-nav li" descendant rule');
+    });
+
+    test('descendant selector: .sidebar .widget applies to .widget inside .sidebar', () {
+      const html = '''
+<style>.sidebar .widget { color: #1565C0; }</style>
+<div class="sidebar"><div class="widget">Widget</div></div>
+''';
+      final style = _resolvedStyle(html, (n) => n.classList.contains('widget'));
+      expect(style, isNotNull);
+      expect(
+        (style!.color.b * 255).round(),
+        greaterThan((style.color.r * 255).round()),
+        reason: '.widget should be blue from ".sidebar .widget" rule',
+      );
+    });
+
+    test('child selector: article > p applies color to direct p children', () {
+      const html = '''
+<style>article > p { color: #E53935; }</style>
+<article><p>Direct child</p></article>
+''';
+      final style = _styleOfTag(html, 'p');
+      expect(style, isNotNull);
+      expect((style!.color.r * 255).round(), greaterThan(200),
+          reason: 'p should be red from "article > p" child rule');
+    });
+
+    test('child selector with class on ancestor: section.blog > h2 applies', () {
+      const html = '''
+<style>section.blog > h2 { color: #1565C0; }</style>
+<section class="blog"><h2>Blog heading</h2></section>
+''';
+      final style = _styleOfTag(html, 'h2');
+      expect(style, isNotNull);
+      expect(
+        (style!.color.b * 255).round(),
+        greaterThan((style.color.r * 255).round()),
+        reason: 'h2 should be blue from "section.blog > h2" rule',
+      );
+    });
+
+    test('simple class selector still indexed correctly (no regression)', () {
+      const html = '<style>.lead { color: #E53935; }</style><p class="lead">Text</p>';
+      final style = _styleOfTag(html, 'p');
+      expect(style, isNotNull);
+      expect((style!.color.r * 255).round(), greaterThan(200),
+          reason: '.lead simple selector should still work');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // QA-BUG-B: image aspect-ratio division by zero (regression)
+  // -------------------------------------------------------------------------
+
+  group('QA-BUG-B — Image layout: zero-dimension image does not crash', () {
+    testWidgets('img with explicit width/height renders without error',
+        (tester) async {
+      // Even with a broken/0-pixel image the widget should not throw.
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HyperViewer(
+              html: '<img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="'
+                  ' width="200" height="100">',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('img with only width specified renders without error',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HyperViewer(
+              html: '<img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="'
+                  ' width="300">',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('img with only height specified renders without error',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HyperViewer(
+              html: '<img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="'
+                  ' height="150">',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // QA-BUG-2: CSS comma-separated selector groups (regression)
+  // -------------------------------------------------------------------------
+
+  group('QA-BUG-2 — CSS comma-separated selector groups', () {
+    test('h1, h2 rule applies color to both h1 and h2', () {
+      const html =
+          '<style>h1, h2 { color: #E53935; }</style><h1>Heading 1</h1><h2>Heading 2</h2>';
+
+      final styleH1 = _styleOfTag(html, 'h1');
+      final styleH2 = _styleOfTag(html, 'h2');
+
+      expect(styleH1, isNotNull);
+      expect(styleH2, isNotNull);
+      expect((styleH1!.color.r * 255).round(), greaterThan(200),
+          reason: 'h1 should be red from comma rule');
+      expect((styleH2!.color.r * 255).round(), greaterThan(200),
+          reason: 'h2 should be red from comma rule');
+    });
+
+    test('h1, h2, h3 rule applies to all three elements', () {
+      const html = '''
+<style>h1, h2, h3 { color: #1565C0; }</style>
+<h1>H1</h1><h2>H2</h2><h3>H3</h3>
+''';
+
+      for (final tag in ['h1', 'h2', 'h3']) {
+        final style = _styleOfTag(html, tag);
+        expect(style, isNotNull, reason: 'Style for <$tag> must not be null');
+        expect(
+          (style!.color.b * 255).round(),
+          greaterThan((style.color.r * 255).round()),
+          reason: '<$tag> should be blue from comma rule',
+        );
+      }
+    });
+
+    test('comma rule does not apply to elements outside the group', () {
+      const html = '''
+<style>h1, h2 { color: #E53935; }</style>
+<h3>Not in group</h3>
+''';
+      final style = _styleOfTag(html, 'h3');
+      // h3 is not in the comma-group; default text is dark, not red
+      expect((style!.color.r * 255).round(), lessThan(200));
+    });
+
+    test('each selector in a comma group has independent specificity', () {
+      // h1.special (class+element = specificity 0x0101) wins over
+      // h1 from the comma group (element only = 0x0001); h2 still uses comma rule.
+      const html = '''
+<style>
+  h1, h2   { color: #9E9E9E; }
+  h1.special { color: #E53935; }
+</style>
+<h1 class="special">H1 special</h1>
+<h2>H2 plain</h2>
+''';
+      final styleH1 = _styleOfTag(html, 'h1');
+      final styleH2 = _styleOfTag(html, 'h2');
+
+      // h1.special has higher specificity → red wins for h1
+      expect((styleH1!.color.r * 255).round(), greaterThan(200),
+          reason: 'h1.special should override comma rule');
+      // h2 has no competing rule → gets grey from comma rule
+      expect((styleH2!.color.r * 255).round(), closeTo(0x9E, 20),
+          reason: 'h2 should get grey from comma rule');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // QA-BUG-5: !important in stylesheet rules (regression)
+  // -------------------------------------------------------------------------
+
+  group('QA-BUG-5 — !important in stylesheet rules', () {
+    test('!important beats a later rule with higher specificity', () {
+      const html = '''
+<style>
+  p          { color: #E53935 !important; }
+  p.override { color: #9E9E9E; }
+</style>
+<p class="override">Should be red from !important</p>
+''';
+      final style = _styleOfTag(html, 'p');
+      expect(style, isNotNull);
+      expect((style!.color.r * 255).round(), greaterThan(200),
+          reason: '!important should override higher-specificity normal rule');
+    });
+
+    test('!important stylesheet rule beats inline style', () {
+      const html = '''
+<style>h2 { color: #1565C0 !important; }</style>
+<h2 style="color:#E53935">Should be blue from !important</h2>
+''';
+      final style = _styleOfTag(html, 'h2');
+      expect(style, isNotNull);
+      expect(
+        (style!.color.b * 255).round(),
+        greaterThan((style.color.r * 255).round()),
+        reason: '!important stylesheet rule should override inline style',
+      );
+    });
+
+    test('!important on a comma-grouped selector applies to all members', () {
+      const html = '''
+<style>p, span { color: #E53935 !important; }</style>
+<p>Red paragraph</p>
+<span>Red span</span>
+''';
+      final styleP = _styleOfTag(html, 'p');
+      final styleSpan = _styleOfTag(html, 'span');
+
+      expect(styleP, isNotNull);
+      expect(styleSpan, isNotNull);
+      expect((styleP!.color.r * 255).round(), greaterThan(200),
+          reason: 'p should be red');
+      expect((styleSpan!.color.r * 255).round(), greaterThan(200),
+          reason: 'span should be red');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // QA-BUG-1: Link tap — onLinkTap callback wiring (regression)
+  // -------------------------------------------------------------------------
+
+  group('QA-BUG-1 — Link tap callback wiring', () {
+    testWidgets('HyperViewer with onLinkTap renders a link without error',
+        (tester) async {
+      String? tappedUrl;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HyperViewer(
+              html:
+                  '<p>Visit <a href="https://flutter.dev">Flutter</a> today</p>',
+              onLinkTap: (url) => tappedUrl = url,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      // Callback wired but not yet fired (no tap performed yet)
+      expect(tappedUrl, isNull);
+    });
+
+    testWidgets(
+        'link with nested inline content renders without error (ancestor-walk regression)',
+        (tester) async {
+      // Regression: link contains <strong> → the TextNode's sourceNode.tagName
+      // is '#text', not 'a'. Without the ancestor-walk fix in handleEvent(),
+      // tapping would silently do nothing instead of firing onLinkTap.
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HyperViewer(
+              html:
+                  '<p><a href="https://example.com"><strong>Bold link</strong></a></p>',
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('multiple links in document all render without error',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HyperViewer(
+              html: '''
+<p><a href="https://a.com">Link A</a></p>
+<p><a href="https://b.com"><em>Italic <strong>bold</strong> link</em></a></p>
+<p><a href="https://c.com">Link C</a> and plain text after</p>
+''',
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Full pipeline integration: all bug-fix areas together
   // -------------------------------------------------------------------------
 

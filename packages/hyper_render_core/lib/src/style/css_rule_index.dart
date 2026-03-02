@@ -131,12 +131,35 @@ class CssRuleIndex {
   }
 
   /// Analyze a selector to determine the best index key
+  ///
+  /// **Important**: Complex selectors (those containing descendant/child/sibling
+  /// combinators — space, `>`, `+`, `~`) are routed to the `_universal` bucket
+  /// regardless of whether they contain a `#` or `.`.
+  ///
+  /// Rationale: The index must be keyed by the *subject* (rightmost) component
+  /// of the selector. For a rule like `nav.menu li`, the subject is `li`, not
+  /// `.menu`. Detecting the rightmost component without a full selector parser
+  /// is error-prone, so any selector with a combinator is placed in `_universal`
+  /// and filtered by `_matchesSelector()` at call time — which is correct,
+  /// though slightly less efficient than precise bucket placement.
   _SelectorIndexKey _analyzeSelector(String selector) {
-    // Remove whitespace for analysis
     final trimmed = selector.trim();
 
-    // ID selector (highest specificity)
-    // Examples: #header, #footer, div#main
+    // ── Complex selectors with combinators → universal bucket ─────────────────
+    // Must check BEFORE `.` / `#` tests because `nav.menu li` contains `.` but
+    // its subject is `li`, not `.menu`. Indexing by `.menu` would cause the rule
+    // to be missed when `li` elements are matched.
+    final hasDescendant = trimmed.contains(' ');
+    final hasChild = trimmed.contains('>');
+    final hasSibling = trimmed.contains('+') || trimmed.contains('~');
+    if (hasDescendant || hasChild || hasSibling) {
+      return _SelectorIndexKey(_SelectorType.universal, trimmed);
+    }
+
+    // ── Simple / compound selectors only below this line ──────────────────────
+
+    // ID selector (highest specificity), no combinators
+    // Examples: #header, #footer, div#main, a#nav-link
     if (trimmed.contains('#')) {
       final match = RegExp(r'#([\w-]+)').firstMatch(trimmed);
       if (match != null) {
@@ -144,8 +167,8 @@ class CssRuleIndex {
       }
     }
 
-    // Class selector
-    // Examples: .button, .card, div.container
+    // Class selector, no combinators
+    // Examples: .button, .card, div.container, p.lead
     if (trimmed.contains('.')) {
       final match = RegExp(r'\.([\w-]+)').firstMatch(trimmed);
       if (match != null) {
@@ -153,13 +176,9 @@ class CssRuleIndex {
       }
     }
 
-    // Simple tag selector (no spaces, no combinators)
+    // Simple tag selector (no combinators, no class/id/attr)
     // Examples: div, p, h1, span
     if (trimmed.isNotEmpty &&
-        !trimmed.contains(' ') &&
-        !trimmed.contains('>') &&
-        !trimmed.contains('+') &&
-        !trimmed.contains('~') &&
         !trimmed.contains('.') &&
         !trimmed.contains('#') &&
         !trimmed.contains('[') &&
@@ -167,21 +186,14 @@ class CssRuleIndex {
       return _SelectorIndexKey(_SelectorType.tag, trimmed.toLowerCase());
     }
 
-    // Tag with attributes/pseudo-classes but no combinators
-    // Examples: div[attr], p:first-child, a:hover
-    if (!trimmed.contains(' ') &&
-        !trimmed.contains('>') &&
-        !trimmed.contains('+') &&
-        !trimmed.contains('~')) {
-      // Extract the tag part before any bracket or colon
-      final tagMatch = RegExp(r'^([\w-]+)').firstMatch(trimmed);
-      if (tagMatch != null && tagMatch.group(1) != '*') {
-        return _SelectorIndexKey(_SelectorType.tag, tagMatch.group(1)!.toLowerCase());
-      }
+    // Compound tag+attribute/pseudo-class but no combinators
+    // Examples: div[attr], p:first-child, a:hover, input[type="text"]
+    final tagMatch = RegExp(r'^([\w-]+)').firstMatch(trimmed);
+    if (tagMatch != null && tagMatch.group(1) != '*') {
+      return _SelectorIndexKey(_SelectorType.tag, tagMatch.group(1)!.toLowerCase());
     }
 
-    // Universal or complex selector (descendant, child, sibling, etc.)
-    // Examples: *, div p, div > p, p + span
+    // Universal or attribute-only selectors: *, [lang], :root
     return _SelectorIndexKey(_SelectorType.universal, trimmed);
   }
 }

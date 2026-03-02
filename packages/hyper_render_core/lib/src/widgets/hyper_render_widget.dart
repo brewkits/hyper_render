@@ -21,6 +21,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// Link tap callback
   final HyperLinkTapCallback? onLinkTap;
 
+  /// Callback invoked when the user taps an `<img>` element. Receives the
+  /// resolved image URL. Has no effect when [widgetBuilder] handles `<img>`.
+  final void Function(String url)? onImageTap;
+
   /// Custom widget builder for atomic elements
   final HyperWidgetBuilder? widgetBuilder;
 
@@ -53,6 +57,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     required this.document,
     this.baseStyle = const TextStyle(fontSize: 16, color: Color(0xFF000000)),
     this.onLinkTap,
+    this.onImageTap,
     this.widgetBuilder,
     this.imageLoader,
     this.selectable = true,
@@ -62,7 +67,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.selectionColor,
     this.codeHighlighter,
     this.debugShowHyperRenderBounds = false,
-  }) : super(children: _buildChildren(document, widgetBuilder, codeHighlighter, onLinkTap, selectable));
+  }) : super(children: _buildChildren(document, widgetBuilder, codeHighlighter, onLinkTap, onImageTap, selectable));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
   static List<Widget> _buildChildren(
@@ -70,10 +75,11 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     HyperWidgetBuilder? widgetBuilder,
     CodeHighlighter? codeHighlighter,
     HyperLinkTapCallback? onLinkTap,
+    void Function(String url)? onImageTap,
     bool selectable,
   ) {
     final children = <Widget>[];
-    _collectAtomicChildren(document, children, widgetBuilder, codeHighlighter, onLinkTap, selectable);
+    _collectAtomicChildren(document, children, widgetBuilder, codeHighlighter, onLinkTap, onImageTap, selectable);
     return children;
   }
 
@@ -83,6 +89,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     HyperWidgetBuilder? widgetBuilder,
     CodeHighlighter? codeHighlighter,
     HyperLinkTapCallback? onLinkTap,
+    void Function(String url)? onImageTap,
     bool selectable,
   ) {
     Widget? childWidget;
@@ -90,14 +97,14 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     // Is it a float?
     if (node.style.float != HyperFloat.none) {
       childWidget = widgetBuilder?.call(node);
-      
+
       if (childWidget == null) {
         if (node is AtomicNode) {
-          childWidget = _buildDefaultAtomicWidget(node, onLinkTap: onLinkTap);
+          childWidget = _buildDefaultAtomicWidget(node, onLinkTap: onLinkTap, onImageTap: onImageTap);
         } else {
           final nestedChildren = <Widget>[];
           for (final child in node.children) {
-            _collectAtomicChildren(child, nestedChildren, widgetBuilder, codeHighlighter, onLinkTap, selectable);
+            _collectAtomicChildren(child, nestedChildren, widgetBuilder, codeHighlighter, onLinkTap, onImageTap, selectable);
           }
           childWidget = Container(
             width: node.style.width,
@@ -137,16 +144,20 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (node.type == NodeType.atomic) {
       final atomicNode = node as AtomicNode;
       childWidget = widgetBuilder?.call(atomicNode);
-      childWidget ??= _buildDefaultAtomicWidget(atomicNode, onLinkTap: onLinkTap);
+      childWidget ??= _buildDefaultAtomicWidget(atomicNode, onLinkTap: onLinkTap, onImageTap: onImageTap);
       children.add(_HyperChildWidget(node: node, child: childWidget));
     } else {
       for (final child in node.children) {
-        _collectAtomicChildren(child, children, widgetBuilder, codeHighlighter, onLinkTap, selectable);
+        _collectAtomicChildren(child, children, widgetBuilder, codeHighlighter, onLinkTap, onImageTap, selectable);
       }
     }
   }
 
-  static Widget _buildDefaultAtomicWidget(AtomicNode node, {HyperLinkTapCallback? onLinkTap}) {
+  static Widget _buildDefaultAtomicWidget(
+    AtomicNode node, {
+    HyperLinkTapCallback? onLinkTap,
+    void Function(String url)? onImageTap,
+  }) {
     if (node.tagName == 'img' && node.src != null && node.src!.isNotEmpty) {
       final src = node.src!;
       if (src.startsWith('data:')) {
@@ -155,22 +166,30 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
           final commaIndex = src.indexOf(',');
           if (commaIndex > 0) {
             final bytes = base64Decode(src.substring(commaIndex + 1));
-            return Image.memory(
+            Widget image = Image.memory(
               bytes,
               semanticLabel: node.alt,
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             );
+            if (onImageTap != null) {
+              return GestureDetector(onTap: () => onImageTap(src), child: image);
+            }
+            return image;
           }
         } catch (_) {
           // Fall through to empty widget
         }
         return const SizedBox.shrink();
       }
-      return Image.network(
+      Widget image = Image.network(
         src,
         semanticLabel: node.alt,
         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       );
+      if (onImageTap != null) {
+        return GestureDetector(onTap: () => onImageTap(src), child: image);
+      }
+      return image;
     }
     return const SizedBox.shrink();
   }

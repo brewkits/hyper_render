@@ -70,6 +70,8 @@ class HtmlSanitizer {
     'colspan', 'rowspan', 'headers', 'scope',
     'open',
     'datetime', 'cite',
+    // ARIA / accessibility — role + aria-* are semantic-only (no executable content)
+    'role',
     // Media attributes
     'controls', 'autoplay', 'loop', 'muted', 'poster', 'preload',
     'type', 'media', 'kind', 'srclang', 'label', 'default',
@@ -180,6 +182,9 @@ class HtmlSanitizer {
       // Allow data-* if requested.
       if (allowDataAttributes && name.startsWith('data-')) continue;
 
+      // Always allow aria-* — purely semantic labels, no executable content.
+      if (name.startsWith('aria-')) continue;
+
       if (!allowedAttrs.contains(name)) {
         toRemove.add(entry.key);
         continue;
@@ -194,10 +199,12 @@ class HtmlSanitizer {
 
       // Strip style attributes containing CSS expression() or javascript:.
       // expression() is an IE-era attack; javascript: can appear in url().
+      // @import is blocked to prevent external stylesheet loading.
       if (name == 'style') {
         final styleVal = entry.value.toLowerCase();
         if (styleVal.contains('expression(') ||
-            styleVal.contains('javascript:')) {
+            styleVal.contains('javascript:') ||
+            styleVal.contains('@import')) {
           toRemove.add(entry.key);
           continue;
         }
@@ -236,6 +243,7 @@ class HtmlSanitizer {
     if (lower.contains('javascript:')) return true;
     if (lower.contains('vbscript:')) return true;
     if (lower.contains('expression(')) return true;
+    if (lower.contains('@import')) return true;
     for (final attr in dangerousAttributes) {
       if (lower.contains('$attr=')) return true;
     }

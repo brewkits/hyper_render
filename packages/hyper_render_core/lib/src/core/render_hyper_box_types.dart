@@ -87,6 +87,12 @@ class _LruCache<K, V> {
   }
 
   void put(K key, V value) {
+    // Guard: a zero/negative maxSize means caching is disabled — evict and discard.
+    if (_maxSize <= 0) {
+      _onEvict?.call(value);
+      return;
+    }
+
     // Remove existing to update access order
     final existing = _cache.remove(key);
     if (existing != null) {

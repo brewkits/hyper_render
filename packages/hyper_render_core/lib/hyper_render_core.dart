@@ -23,6 +23,9 @@ export 'src/style/design_tokens.dart';
 // Layout
 export 'src/layout/layout_cache.dart';
 
+// Configuration
+export 'src/core/render_config.dart';
+
 // Core rendering
 export 'src/adapter/delta_adapter.dart';
 export 'src/core/capture_extension.dart';

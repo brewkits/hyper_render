@@ -14,6 +14,7 @@ class _ParseParams {
   final String contentType; // 'html' | 'markdown' | 'delta'
   final bool sanitize;
   final List<String>? allowedTags;
+  final List<String>? allowedAttributes;
   final bool allowDataAttributes;
   final String? baseUrl;
   final String customCss;
@@ -23,6 +24,7 @@ class _ParseParams {
     required this.contentType,
     required this.sanitize,
     this.allowedTags,
+    this.allowedAttributes,
     required this.allowDataAttributes,
     this.baseUrl,
     required this.customCss,
@@ -39,6 +41,7 @@ DocumentNode _parseInIsolate(_ParseParams p) {
     content = HtmlSanitizer.sanitize(
       content,
       allowedTags: p.allowedTags,
+      allowedAttributes: p.allowedAttributes,
       allowDataAttributes: p.allowDataAttributes,
     );
   }
@@ -123,6 +126,10 @@ class HyperViewer extends StatefulWidget {
   /// Callback invoked when the user taps a hyperlink. Receives the resolved URL.
   final Function(String)? onLinkTap;
 
+  /// Callback invoked when the user taps an image. Receives the image URL.
+  /// Only fires for `<img>` elements not already handled by [widgetBuilder].
+  final void Function(String url)? onImageTap;
+
   /// Builder for custom widgets to replace atomic elements (e.g. `<img>`,
   /// `<video>`, custom HTML elements). Return `null` to fall back to the
   /// default behaviour.
@@ -136,6 +143,11 @@ class HyperViewer extends StatefulWidget {
   final String? baseUrl;
 
   /// Additional CSS injected after the document's own `<style>` blocks.
+  ///
+  /// ⚠️ **Security**: Do not pass user-supplied CSS strings here without
+  /// server-side sanitization. Unlike the [html] parameter (which is sanitized
+  /// by default), [customCss] is trusted as-is and injected directly into
+  /// the style resolver.
   final String? customCss;
 
   /// When `true`, draws coloured outlines around each render box for debugging.
@@ -157,6 +169,11 @@ class HyperViewer extends StatefulWidget {
   /// Additional HTML tags to allow when [sanitize] is `true`. Extends the
   /// default allowlist rather than replacing it.
   final List<String>? allowedTags;
+
+  /// Override the default allowed attribute list when [sanitize] is `true`.
+  /// When set, replaces [HtmlSanitizer.defaultAllowedAttributes] entirely.
+  /// When `null` (default), the built-in safe subset is used.
+  final List<String>? allowedAttributes;
 
   /// Whether to preserve `data-*` attributes during sanitization.
   final bool allowDataAttributes;
@@ -215,6 +232,7 @@ class HyperViewer extends StatefulWidget {
     this.mode = HyperRenderMode.auto,
     this.selectable = true,
     this.onLinkTap,
+    this.onImageTap,
     this.widgetBuilder,
     this.placeholderBuilder,
     this.fallbackBuilder,
@@ -223,6 +241,7 @@ class HyperViewer extends StatefulWidget {
     this.maxScale = 4.0,
     this.sanitize = true,
     this.allowedTags,
+    this.allowedAttributes,
     this.allowDataAttributes = false,
     this.semanticLabel,
     this.excludeSemantics = false,
@@ -252,6 +271,7 @@ class HyperViewer extends StatefulWidget {
     this.mode = HyperRenderMode.auto,
     this.selectable = true,
     this.onLinkTap,
+    this.onImageTap,
     this.widgetBuilder,
     this.placeholderBuilder,
     this.fallbackBuilder,
@@ -260,6 +280,7 @@ class HyperViewer extends StatefulWidget {
     this.maxScale = 4.0,
     this.sanitize = true,
     this.allowedTags,
+    this.allowedAttributes,
     this.allowDataAttributes = false,
     this.semanticLabel,
     this.excludeSemantics = false,
@@ -290,6 +311,7 @@ class HyperViewer extends StatefulWidget {
     this.mode = HyperRenderMode.auto,
     this.selectable = true,
     this.onLinkTap,
+    this.onImageTap,
     this.widgetBuilder,
     this.placeholderBuilder,
     this.fallbackBuilder,
@@ -298,6 +320,7 @@ class HyperViewer extends StatefulWidget {
     this.maxScale = 4.0,
     this.sanitize = false,
     this.allowedTags,
+    this.allowedAttributes,
     this.allowDataAttributes = false,
     this.semanticLabel,
     this.excludeSemantics = false,
@@ -354,6 +377,7 @@ class _HyperViewerState extends State<HyperViewer> {
         contentType: widget.contentType.name,
         sanitize: widget.sanitize,
         allowedTags: widget.allowedTags,
+        allowedAttributes: widget.allowedAttributes,
         allowDataAttributes: widget.allowDataAttributes,
         baseUrl: widget.baseUrl,
         customCss: widget.customCss ?? '',
@@ -426,6 +450,7 @@ class _HyperViewerState extends State<HyperViewer> {
             document: blockDoc,
             selectable: widget.selectable,
             onLinkTap: widget.onLinkTap,
+            onImageTap: widget.onImageTap,
             widgetBuilder: widget.widgetBuilder,
             selectionMenuActionsBuilder: widget.selectionMenuActionsBuilder,
             selectionHandleColor: widget.selectionHandleColor,
@@ -441,6 +466,7 @@ class _HyperViewerState extends State<HyperViewer> {
         document: doc,
         selectable: widget.selectable,
         onLinkTap: widget.onLinkTap,
+        onImageTap: widget.onImageTap,
         widgetBuilder: widget.widgetBuilder,
         selectionMenuActionsBuilder: widget.selectionMenuActionsBuilder,
         selectionHandleColor: widget.selectionHandleColor,

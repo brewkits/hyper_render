@@ -66,13 +66,18 @@ class HtmlAdapter {
   }
 
   /// Extracts concatenated text content from all `<style>` tags in [html].
+  ///
+  /// `@import` directives are stripped to prevent loading external stylesheets.
   String extractCss(String html) {
     final document = html_parser.parse(html);
     final buffer = StringBuffer();
     for (final style in document.querySelectorAll('style')) {
       buffer.writeln(style.text);
     }
-    return buffer.toString();
+    final css = buffer.toString();
+    // Strip @import to prevent external stylesheet loading.
+    return css.replaceAll(
+        RegExp(r'@import\s+[^;]+;', caseSensitive: false), '');
   }
 
   List<DocumentNode> parseToSections(String html, {int chunkSize = 3000, String? baseUrl}) {
@@ -241,7 +246,7 @@ class HtmlAdapter {
           if (child.nodeType == dom.Node.TEXT_NODE) {
             baseText += child.text ?? '';
           } else if (child.nodeType == dom.Node.ELEMENT_NODE && (child as dom.Element).localName == 'rt') {
-            rubyText += child.text;
+            rubyText += child.text ?? '';
           }
         }
         return RubyNode(

@@ -26,6 +26,12 @@ class LruCache<K, V> {
   }
 
   void put(K key, V value) {
+    // Guard: a zero/negative maxSize means caching is disabled — evict and discard.
+    if (_maxSize <= 0) {
+      _onEvict?.call(value);
+      return;
+    }
+
     final existing = _cache.remove(key);
     if (existing != null) {
       _onEvict?.call(existing);
@@ -282,6 +288,62 @@ void main() {
 
         cache.clear();
         expect(disposeCount, equals(3));
+      });
+    });
+
+    group('maxSize <= 0 — disabled cache (BUG-3 regression)', () {
+      test('maxSize 0: put immediately evicts without storing', () {
+        final evicted = <String>[];
+        final cache = LruCache<int, String>(
+          maxSize: 0,
+          onEvict: (value) => evicted.add(value),
+        );
+
+        cache.put(1, 'one');
+
+        expect(cache.length, equals(0));
+        expect(cache.get(1), isNull);
+        expect(evicted, equals(['one']));
+      });
+
+      test('maxSize 0: multiple puts call onEvict for each value', () {
+        final evicted = <String>[];
+        final cache = LruCache<int, String>(
+          maxSize: 0,
+          onEvict: (value) => evicted.add(value),
+        );
+
+        cache.put(1, 'one');
+        cache.put(2, 'two');
+        cache.put(3, 'three');
+
+        expect(cache.length, equals(0));
+        expect(evicted, equals(['one', 'two', 'three']));
+      });
+
+      test('maxSize -1: caching disabled same as maxSize 0', () {
+        final cache = LruCache<int, String>(maxSize: -1);
+
+        cache.put(1, 'one');
+
+        expect(cache.length, equals(0));
+        expect(cache.get(1), isNull);
+      });
+
+      test('maxSize 0: containsKey always returns false', () {
+        final cache = LruCache<int, String>(maxSize: 0);
+
+        cache.put(1, 'one');
+
+        expect(cache.containsKey(1), isFalse);
+      });
+
+      test('maxSize 0: no StateError thrown (regression for crash with keys.first)', () {
+        final cache = LruCache<int, String>(maxSize: 0);
+
+        // Previously crashed with StateError: No element
+        expect(() => cache.put(1, 'one'), returnsNormally);
+        expect(() => cache.put(2, 'two'), returnsNormally);
       });
     });
 

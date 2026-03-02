@@ -18,13 +18,12 @@ import 'design_tokens.dart';
 /// 3. Inline Styles - style attribute on elements
 /// 4. Inheritance - Properties like color, font-family from parent
 ///
-/// **Known Limitation — `!important`**
+/// **`!important` support**
 ///
-/// CSS `!important` declarations are **not supported** and will be silently
-/// ignored. Rules are applied purely by CSS specificity order.
-/// If you need a declaration to always win, use inline styles (which have
-/// the highest specificity in the cascade) or increase the selector
-/// specificity instead.
+/// CSS `!important` declarations in `<style>` blocks are honoured: they are
+/// applied in a separate pass (step 4) after inline styles, so they win over
+/// both normal author rules and inline `style=""` attributes, matching the
+/// CSS cascade specification.
 class StyleResolver {
   /// Parsed CSS rules (provided externally via CssParserInterface)
   final List<ParsedCssRule> _cssRules = [];
@@ -338,6 +337,13 @@ class StyleResolver {
   /// Check if a node matches a CSS selector
   bool _matchesSelector(UDTNode node, String selector) {
     selector = selector.trim();
+
+    // Comma-separated selector group: `h1, h2, h3` — check each part independently.
+    // Must be checked BEFORE the space/combinator checks because `"div, p"` contains
+    // a space and would otherwise be mis-parsed as a descendant selector.
+    if (selector.contains(',')) {
+      return selector.split(',').any((s) => _matchesSelector(node, s.trim()));
+    }
 
     // Child selector: `parent > child`
     if (selector.contains(' > ')) {

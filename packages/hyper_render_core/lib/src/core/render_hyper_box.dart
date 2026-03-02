@@ -12,6 +12,7 @@ import '../model/node.dart';
 import '../interfaces/selection_types.dart';
 import 'image_provider.dart';
 import 'kinsoku_processor.dart';
+import 'render_config.dart';
 
 part 'render_hyper_box_types.dart';
 part 'render_hyper_box_fragments.dart';
@@ -75,12 +76,10 @@ class RenderHyperBox extends RenderBox
   final List<_FloatArea> _rightFloats = [];
 
   /// Text painters cache (for measuring and painting text)
-  /// Uses LRU cache with max 5000 entries for large documents (e.g., novel reading apps)
-  /// The LRU eviction ensures memory stays bounded while keeping frequently used painters
-  /// Larger cache = better performance for stress tests with 500+ pages
-  /// 5000 entries ≈ ~20MB memory for typical text styles
+  /// Uses LRU cache with max entries configured via [HyperRenderConfig.textPainterCacheMaxEntries].
+  /// The LRU eviction ensures memory stays bounded while keeping frequently used painters.
   late final _LruCache<int, TextPainter> _textPainters = _LruCache(
-    maxSize: 5000,
+    maxSize: HyperRenderConfig.textPainterCacheMaxEntries,
     onEvict: (painter) => painter.dispose(),
   );
 
@@ -99,8 +98,9 @@ class RenderHyperBox extends RenderBox
   /// Total bytes of loaded images currently in cache
   int _imageCacheBytes = 0;
 
-  /// Maximum image cache size: 50 MB
-  static const int _imageCacheMaxBytes = 50 * 1024 * 1024;
+  /// Maximum image cache size, driven by [HyperRenderConfig.imageCacheMaxMb].
+  static int get _imageCacheMaxBytes =>
+      HyperRenderConfig.imageCacheMaxMb * 1024 * 1024;
 
   /// Current text selection
   HyperTextSelection? _selection;
@@ -681,16 +681,21 @@ class RenderHyperBox extends RenderBox
     if (event is PointerDownEvent) {
       final position = event.localPosition;
 
-      // Check for link tap
+      // Check for link tap — walk the ancestor chain because text fragments
+      // use TextNode as sourceNode (tagName '#text'), not the parent <a> node.
       final clickedFragment = _findFragmentAtPosition(position);
       if (clickedFragment != null) {
-        final node = clickedFragment.sourceNode;
-        if (node.tagName == 'a') {
-          final href = node.attributes['href'];
-          if (href != null && _onLinkTap != null) {
-            _onLinkTap!(href);
-            return;
+        UDTNode? node = clickedFragment.sourceNode;
+        while (node != null) {
+          if (node.tagName == 'a') {
+            final href = node.attributes['href'];
+            if (href != null && _onLinkTap != null) {
+              _onLinkTap!(href);
+              return;
+            }
+            break; // Found <a> but no href — stop walking.
           }
+          node = node.parent;
         }
       }
 

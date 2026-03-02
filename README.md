@@ -14,6 +14,15 @@
 
 ---
 
+## Visual Showcase
+
+| **CSS Float — Magazine Layout** | **60 FPS Performance** | **Flexbox & Smart Tables** |
+|:---:|:---:|:---:|
+| ![CSS Float Demo](assets/float_demo.gif) | ![Performance Demo](assets/performance_demo.gif) | ![Flexbox Demo](assets/layout_demo.gif) |
+| *Text wrapping around images — impossible in widget-tree renderers.* | *Smooth scrolling on 25k+ character documents.* | *Flexbox gap/wrap and auto-scaling tables.* |
+
+---
+
 ## The architectural problem with widget-based HTML renderers
 
 Most Flutter HTML libraries (`flutter_widget_from_html`, `flutter_html`) work by mapping each HTML tag to a Flutter widget — `Column`, `Row`, `Padding`, `Wrap`, `RichText`. A typical 3,000-word news article produces 400–600 widgets deep in a tree.

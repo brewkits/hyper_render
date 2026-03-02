@@ -50,8 +50,8 @@ dependencies:
   hyper_render_highlight:
     path: packages/hyper_render_highlight
 
-  # hyper_render_clipboard: # Commented out due to share_plus/mime version conflict
-  #   path: packages/hyper_render_clipboard
+  hyper_render_clipboard:
+    path: packages/hyper_render_clipboard
 
   # Fixed version constraints for pub.dev compliance
   flutter_highlight: ^0.7.0
@@ -74,3 +74,7 @@ dev_dependencies:
   build_runner: ^2.4.8
 
 flutter:
+  assets:
+    - assets/float_demo.gif
+    - assets/performance_demo.gif
+    - assets/layout_demo.gif

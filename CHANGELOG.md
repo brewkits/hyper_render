@@ -19,6 +19,34 @@ First stable release. Core features, plugin architecture, and cross-platform sup
 - **`DefaultCssParser`** — fixed redundant `?.` null-check on non-nullable `String.trim()`
 - **Sub-packages** — SDK constraint `>=3.5.0 <4.0.0`; `vector_math: ^2.2.0`; `share_plus: ^10.0.0`; `topics` added to all sub-package pubspecs
 
+### Bug Fixes
+
+- **`CssRuleIndex` ancestor-class misindex (CRITICAL)** — `_analyzeSelector()` previously checked for `.` and `#` *before* checking for combinator characters, so a rule like `nav.main-nav li` or `.sidebar .widget` was indexed under the ancestor's class instead of the universal bucket. Target elements never retrieved those rules as candidates, making an entire category of real-world CSS rules silently ignored. Fixed by adding a combinator-presence guard (space, `>`, `+`, `~`) before the class/ID branch.
+
+- **Image layout division-by-zero (MAJOR)** — When a `ui.Image` with zero width or zero height was used for aspect-ratio calculation (e.g., corrupt images, edge-case decoding), the expression `imageHeight / imageWidth` produced `double.infinity` or `NaN`, propagating into Flutter's layout constraints and causing assertion errors. All three aspect-ratio branches in `_layoutAtomicImage()` now guard with `imageWidth > 0` / `imageHeight > 0` checks.
+
+- **Ruby `<rt>` text null dereference (MINOR)** — `HtmlAdapter._buildRubyNode()` accessed `child.text` without `?? ''` for `<rt>` element children, while the adjacent `TEXT_NODE` branch correctly used `?? ''`. Fixed by adding `?? ''`.
+
+- **`HtmlSanitizer` strips ARIA/accessibility attributes (MEDIUM)** — `aria-label`, `aria-hidden`, `aria-expanded`, `role`, and all `aria-*` attributes were silently removed by the default sanitizer allowlist, making the documented ARIA/accessibility features non-functional when `sanitize: true` (the default). Fixed by adding `'role'` to `defaultAllowedAttributes` and adding an `aria-*` prefix passthrough in `_sanitizeAttributes`.
+
+- **`@import` blocked in CSS** — `@import` directives are now stripped from `<style>` tag CSS (via `HtmlAdapter.extractCss`) and rejected in inline `style` attributes (via `HtmlSanitizer`). `HtmlSanitizer.containsDangerousContent` also flags `@import` in its quick-check heuristic.
+
+- **`!important` stripped from inline styles** — `parseInlineStyle()` in `DefaultCssParser` now strips trailing `!important` tokens from property values, preventing them from leaking into `ComputedStyle`.
+
+### Security
+
+- **`customCss` security note** — dartdoc for `HyperViewer.customCss` now includes an explicit warning that user-supplied strings must be server-side sanitized before passing.
+
+### New Features
+
+- **`onImageTap` callback** — `HyperViewer` and `HyperRenderWidget` now accept `onImageTap: (url) {}` to handle image tap events.
+- **`allowedAttributes` parameter** — `HyperViewer` now exposes `allowedAttributes` (all 3 constructors) to override the sanitizer's default attribute allowlist.
+- **`HyperRenderConfig`** — new static-field class for configuring global rendering defaults before app startup:
+  - `HyperRenderConfig.imageCacheMaxMb` (default: 50 MB)
+  - `HyperRenderConfig.textPainterCacheMaxEntries` (default: 5000)
+  - `HyperRenderConfig.configure({imageCacheMaxMb, textPainterCacheMaxEntries})`
+- **`hyper_render_clipboard` re-enabled** — the clipboard sub-package is now included in `pubspec.yaml` and exported from `lib/hyper_render.dart`.
+
 ### Rendering Engine
 
 - Custom `RenderObject`-based layout engine (`RenderHyperBox`) — no widget tree overhead per text node
@@ -144,7 +172,7 @@ CSS lookup: 3–16 µs median (100–5,000 rules). Source: `benchmark/RESULTS.md
 
 ### Tests
 
-600+ unit and integration tests passing (style, layout, accessibility, security, performance, widget capture).
+164 unit and integration tests passing (style, layout, accessibility, security, performance, widget capture).
 
 ---
 
