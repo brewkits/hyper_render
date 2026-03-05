@@ -7,7 +7,7 @@ import 'package:hyper_render/hyper_render.dart';
 
 void main() {
   group('CSS4 Named Colors', () {
-    Widget _widget(String style) => MaterialApp(
+    Widget widget(String style) => MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<span style="color: $style">text</span>',
@@ -16,57 +16,57 @@ void main() {
         );
 
     testWidgets('basic colors still work', (tester) async {
-      await tester.pumpWidget(_widget('red'));
+      await tester.pumpWidget(widget('red'));
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
     testWidgets('aliceblue resolves without error', (tester) async {
-      await tester.pumpWidget(_widget('aliceblue'));
+      await tester.pumpWidget(widget('aliceblue'));
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
     testWidgets('crimson resolves without error', (tester) async {
-      await tester.pumpWidget(_widget('crimson'));
+      await tester.pumpWidget(widget('crimson'));
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
     testWidgets('deepskyblue resolves without error', (tester) async {
-      await tester.pumpWidget(_widget('deepskyblue'));
+      await tester.pumpWidget(widget('deepskyblue'));
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
     testWidgets('rebeccapurple resolves without error', (tester) async {
-      await tester.pumpWidget(_widget('rebeccapurple'));
+      await tester.pumpWidget(widget('rebeccapurple'));
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
     testWidgets('darkslateblue resolves without error', (tester) async {
-      await tester.pumpWidget(_widget('darkslateblue'));
+      await tester.pumpWidget(widget('darkslateblue'));
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
     testWidgets('lightgoldenrodyellow resolves without error', (tester) async {
-      await tester.pumpWidget(_widget('lightgoldenrodyellow'));
+      await tester.pumpWidget(widget('lightgoldenrodyellow'));
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
     testWidgets('grey (alias) resolves same as gray', (tester) async {
-      await tester.pumpWidget(_widget('grey'));
+      await tester.pumpWidget(widget('grey'));
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
     testWidgets('aqua (alias for cyan) resolves', (tester) async {
-      await tester.pumpWidget(_widget('aqua'));
+      await tester.pumpWidget(widget('aqua'));
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
     testWidgets('fuchsia (alias for magenta) resolves', (tester) async {
-      await tester.pumpWidget(_widget('fuchsia'));
+      await tester.pumpWidget(widget('fuchsia'));
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
     testWidgets('unknown color falls back gracefully', (tester) async {
-      await tester.pumpWidget(_widget('notacolor'));
+      await tester.pumpWidget(widget('notacolor'));
       expect(find.byType(HyperViewer), findsOneWidget);
     });
   });

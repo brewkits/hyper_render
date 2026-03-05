@@ -313,6 +313,12 @@ Enable `sanitize: true` (default in HyperRender) when rendering user-generated c
 | Form inputs | ❌ | ❌ | ❌ | ✅ Read-only | ✅ |
 | Interactive buttons | ❌ | ❌ | ❌ | ✅ | ✅ |
 | Light editing | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **Security & Enterprise** | | | | | |
+| Interface-based Sanitizer | ❌ Static only | ❌ | ❌ | ❌ | **✅ DI support** |
+| Custom XSS filters | ❌ | ❌ | ❌ | ❌ | **✅ Pluggable** |
+| TextPainter abstraction | ❌ Direct usage | ⚠️ Partial | ⚠️ | ✅ Full | ✅ |
+| Fuzzing test suite | ❌ | **✅ HTML/XSS** | ✅ | ✅ | ✅ |
+| Flutter master CI | ❌ | **✅ Advisory** | ✅ | ✅ | ✅ |
 
 ---
 

@@ -70,7 +70,7 @@ class DefaultCssParser implements CssParserInterface {
 
     final results = <ParsedCssRule>[];
     for (final selector in selectorGroup.selectors) {
-      final selectorText = selector.span?.text?.trim() ?? '';
+      final selectorText = selector.span?.text.trim() ?? '';
       if (selectorText.isEmpty) continue;
       results.add(ParsedCssRule(
         selector: selectorText,
@@ -82,16 +82,6 @@ class DefaultCssParser implements CssParserInterface {
       ));
     }
     return results;
-  }
-
-  String _extractSelector(css_ast.SelectorGroup? selectorGroup) {
-    if (selectorGroup == null) return '';
-    // Filter out null/empty spans to avoid malformed selectors like "div, , p".
-    return selectorGroup.selectors
-        .map((s) => s.span?.text?.trim())
-        .whereType<String>()
-        .where((s) => s.isNotEmpty)
-        .join(', ');
   }
 
   String _extractValue(css_ast.Expression? expression) {

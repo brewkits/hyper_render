@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
-import 'package:hyper_render_core/hyper_render_core.dart'
-    show DesignTokens, SkeletonParagraph, SkeletonListItem, SkeletonCard;
 
 /// Advanced Features Showcase
 /// Demonstrates Error Boundaries, Performance, Dark Mode, Skeletons, Animations

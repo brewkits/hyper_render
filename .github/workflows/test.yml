@@ -45,3 +45,43 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.flutter-channel }}
           path: test/**/*.dart
+
+  # Test on Flutter master channel (early warning for breaking changes)
+  # Failures are allowed but will be reported for investigation
+  test-master:
+    name: Run Tests (Flutter Master - Advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Don't block CI if master channel breaks
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter (master channel)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: master
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze
+        continue-on-error: true
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Report master channel status
+        if: failure()
+        run: |
+          echo "::warning::Tests failed on Flutter master channel. This may indicate upcoming breaking changes."
+          echo "::warning::Review failures and consider updating code if breaking changes are confirmed."
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-master-advisory
+          path: test/**/*.dart

@@ -1,5 +1,4 @@
 import 'package:hyper_render_core/hyper_render_core.dart';
-import 'package:hyper_render_core/src/interfaces/css_parser.dart';
 
 import 'html_adapter.dart';
 import 'css_parser.dart';

@@ -31,6 +31,9 @@ import 'manga_demo.dart';
 import 'email_demo.dart';
 import 'wikipedia_demo.dart';
 import 'table_advanced_demo.dart';
+import 'details_summary_demo.dart';
+import 'transform_demo.dart';
+import 'error_edge_cases_demo.dart';
 
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
@@ -252,7 +255,7 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.play_circle_filled,
-            title: 'Video & Media (IMPROVED ⭐)',
+            title: 'Video & Media ⭐',
             subtitle: 'Functional video playback - Tap to play externally',
             color: DemoColors.warning,
             onTap: () => _push(context, const ImprovedVideoDemo()),
@@ -264,6 +267,30 @@ class DemoHomePage extends StatelessWidget {
             subtitle: 'Pinch-to-zoom and pan gestures with InteractiveViewer',
             color: DemoColors.warning,
             onTap: () => _push(context, const ZoomDemo()),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.expand_more,
+            title: 'Details/Summary Interactive',
+            subtitle: 'HTML5 <details> expand/collapse widget',
+            color: Colors.blue,
+            onTap: () => _push(context, const DetailsSummaryDemo()),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.transform,
+            title: 'CSS Transform ⭐',
+            subtitle: 'Translate, rotate, scale with Matrix4',
+            color: Colors.purple,
+            onTap: () => _push(context, const TransformDemo()),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.bug_report,
+            title: 'Error Edge Cases',
+            subtitle: 'Real-world errors: 404, malformed HTML, timeouts',
+            color: Colors.red.shade700,
+            onTap: () => _push(context, const ErrorEdgeCasesDemo()),
           ),
           const SizedBox(height: 16),
           _buildSectionHeader(context, 'Input Formats'),
@@ -1272,9 +1299,9 @@ class TableDemo extends StatelessWidget {
       <th>Email</th>
     </tr>
     <tr>
-      <td>Viet Nguyen</td>
+      <td>John Smith</td>
       <td>Engineer</td>
-      <td>viet.nguyen@example.com</td>
+      <td>john.smith@example.com</td>
     </tr>
     <tr>
       <td>John Doe</td>
@@ -1308,11 +1335,11 @@ class TableDemo extends StatelessWidget {
     </tr>
     <tr>
       <td>Name</td>
-      <td>Viet Nguyen</td>
+      <td>John Smith</td>
     </tr>
     <tr>
       <td>Email</td>
-      <td>viet.nguyen@example.com</td>
+      <td>john.smith@example.com</td>
     </tr>
      <tr>
       <td colspan="3" style="text-align: center;">A note spanning all columns</td>

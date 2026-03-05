@@ -6,13 +6,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';
-import 'package:hyper_render_core/hyper_render_core.dart';
-import 'package:hyper_render_html/hyper_render_html.dart';
 
 void main() {
   group('Image LRU cache', () {
     /// Build a [HyperRenderWidget] with the given HTML and loader.
-    Widget _build(String html, HyperImageLoader loader) {
+    Widget build(String html, HyperImageLoader loader) {
       final adapter = HtmlAdapter();
       final document = adapter.parse(html);
       return MaterialApp(
@@ -31,7 +29,7 @@ void main() {
 
     testWidgets('imageLoader is called for img tags', (tester) async {
       int callCount = 0;
-      await tester.pumpWidget(_build(
+      await tester.pumpWidget(build(
         '<img src="https://example.com/img.png">',
         (src, onLoad, onError) {
           callCount++;
@@ -56,7 +54,7 @@ void main() {
         onError(Exception('loader B'));
       }
 
-      await tester.pumpWidget(_build(
+      await tester.pumpWidget(build(
         '<img src="https://example.com/img.png">',
         loaderA,
       ));
@@ -86,7 +84,7 @@ void main() {
       final imgs = List.generate(50, (i) =>
           '<img src="http://img$i.example.com/pic.jpg">').join();
 
-      await tester.pumpWidget(_build(
+      await tester.pumpWidget(build(
         '<div>$imgs</div>',
         (src, onLoad, onError) => onError(Exception('no network')),
       ));
@@ -95,7 +93,7 @@ void main() {
     });
 
     testWidgets('dispose clears image cache cleanly', (tester) async {
-      await tester.pumpWidget(_build(
+      await tester.pumpWidget(build(
         '<img src="https://example.com/a.png">',
         (src, onLoad, onError) => onError(Exception('failing')),
       ));

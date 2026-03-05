@@ -246,7 +246,7 @@ class HtmlAdapter {
           if (child.nodeType == dom.Node.TEXT_NODE) {
             baseText += child.text ?? '';
           } else if (child.nodeType == dom.Node.ELEMENT_NODE && (child as dom.Element).localName == 'rt') {
-            rubyText += child.text ?? '';
+            rubyText += child.text;
           }
         }
         return RubyNode(
