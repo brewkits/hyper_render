@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:hyper_render_core/hyper_render_core.dart';
@@ -371,6 +372,15 @@ class _HyperViewerState extends State<HyperViewer> {
   Future<void> _parseContent() async {
     final id = ++_parseId;
     if (mounted) setState(() => _isLoading = true);
+
+    // Performance warnings in debug mode (only for HTML)
+    if (kDebugMode && widget.contentType == HyperContentType.html) {
+      final analysisResult = PerformanceAnalyzer.analyze(widget.content);
+      if (analysisResult.count > 0) {
+        analysisResult.printWarnings();
+      }
+    }
+
     try {
       final params = _ParseParams(
         content: widget.content,

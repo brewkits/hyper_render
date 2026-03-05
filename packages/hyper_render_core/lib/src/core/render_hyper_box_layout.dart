@@ -62,21 +62,30 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     final style = node.style;
     final tagName = node.tagName?.toLowerCase();
 
+    // FLOAT CHECK FIRST - Floats are atomic in the outer layout.
+    // This prevents fragment stack imbalance.
+    if (style.float != HyperFloat.none) {
+      _fragments.add(_FloatFragment(
+        sourceNode: node,
+        style: style,
+        floatDirection: style.float,
+      ));
+      return;
+    }
+
     // Handle margin collapsing
     final marginTop = style.margin.top;
     final collapsedMargin = math.max(marginTop, _lastBlockMarginBottom);
     final effectiveMarginTop = collapsedMargin - _lastBlockMarginBottom;
 
-    if (effectiveMarginTop > 0 || _fragments.isNotEmpty) {
-      _fragments.add(_BlockStartFragment(
-        sourceNode: node,
-        style: style,
-        marginTop: effectiveMarginTop,
-        paddingTop: style.padding.top,
-        paddingLeft: style.padding.left,
-        paddingRight: style.padding.right,
-      ));
-    }
+    _fragments.add(_BlockStartFragment(
+      sourceNode: node,
+      style: style,
+      marginTop: effectiveMarginTop,
+      paddingTop: style.padding.top,
+      paddingLeft: style.padding.left,
+      paddingRight: style.padding.right,
+    ));
 
     // Add list marker for <li> elements
     if (tagName == 'li' && parentBlock != null) {
@@ -104,17 +113,6 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         isOrdered: isOrdered,
         index: index,
       ));
-    }
-
-    if (style.float != HyperFloat.none) {
-      _fragments.add(_FloatFragment(
-        sourceNode: node,
-        style: style,
-        floatDirection: style.float,
-      ));
-      // CRITICAL: Stop recursing into children if this is a float block.
-      // Float content is handled as a separate self-contained widget.
-      return;
     }
 
     // Code blocks (<pre>) are rendered as child widgets with syntax highlighting
@@ -517,11 +515,41 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   /// queue holds fragments that need to be processed next, eliminating costly
   /// list insertions in the middle of the fragments list.
   void _performLineLayout() {
+    // 🆕 NEW: Use refactored layout engines
+    // Part of God Object refactoring - Direct integration (no feature flag for public API)
+    // If new engines work, use them; otherwise fallback to legacy
+    final success = _performLineLayoutWithNewEngines();
+    if (success) {
+      // New engine succeeded - done!
+      return;
+    }
+
+    // LEGACY FALLBACK: Only used if new engines throw exception
+    // This ensures stability during refactoring without exposing internal flags to users
+    // Week 3-4: Now includes production monitoring for fallback cases
+    debugPrint('⚠️  New layout engine had error, using legacy fallback');
+
+    // Week 3-4: Start timing for legacy fallback metrics
+    final timer = LayoutTimer();
+    timer.start();
+
     _lines.clear();
     _leftFloats.clear();
     _rightFloats.clear();
 
-    if (_fragments.isEmpty) return;
+    if (_fragments.isEmpty) {
+      // Record empty document layout
+      final elapsedUs = timer.stop();
+      ProductionMonitor.instance.recordLayout(LayoutMetrics(
+        engineType: LayoutEngineType.legacyFallback,
+        layoutTimeUs: elapsedUs,
+        fragmentCount: 0,
+        lineCount: 0,
+        maxWidth: _maxWidth,
+        fallbackReason: 'Legacy fallback used (new engine failed earlier)',
+      ));
+      return;
+    }
 
     double currentY = 0;
     double currentX = 0;
@@ -838,6 +866,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     }
 
     finishLine();
+
+    // Week 3-4: Record legacy fallback metrics
+    final elapsedUs = timer.stop();
+    ProductionMonitor.instance.recordLayout(LayoutMetrics(
+      engineType: LayoutEngineType.legacyFallback,
+      layoutTimeUs: elapsedUs,
+      fragmentCount: _fragments.length,
+      lineCount: _lines.length,
+      maxWidth: _maxWidth,
+      fallbackReason: 'Legacy fallback used (new engine failed earlier)',
+    ));
   }
 
   void _updateLineMetrics(
@@ -1167,9 +1206,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     double left = 0;
     double right = _maxWidth;
 
-    const _maxFloatIterations = 200;
-    int _floatIterations = 0;
-    while (_floatIterations++ < _maxFloatIterations) {
+    const maxFloatIterations = 200;
+    int floatIterations = 0;
+    while (floatIterations++ < maxFloatIterations) {
       left = leftPaddingStack.last;
       right = _maxWidth - rightPaddingStack.last;
 
@@ -1202,7 +1241,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       if (nextY == double.infinity) break;
       floatY = nextY;
     }
-    if (_floatIterations >= _maxFloatIterations) {
+    if (floatIterations >= maxFloatIterations) {
       debugPrint('HyperRender: Float layout max iterations reached, floatY=$floatY');
     }
 

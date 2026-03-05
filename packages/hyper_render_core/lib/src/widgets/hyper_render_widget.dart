@@ -1,11 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'package:hyper_render_core/hyper_render_core.dart';
-import 'package:hyper_render_core/src/interfaces/selection_types.dart';
-import '../core/render_table.dart';
 
 /// Selection changed callback
 typedef SelectionChangedCallback = void Function(HyperTextSelection? selection);
@@ -67,7 +64,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.selectionColor,
     this.codeHighlighter,
     this.debugShowHyperRenderBounds = false,
-  }) : super(children: _buildChildren(document, widgetBuilder, codeHighlighter, onLinkTap, onImageTap, selectable));
+  }) : super(children: _buildChildren(document, widgetBuilder, codeHighlighter, onLinkTap, onImageTap, selectable, baseStyle, imageLoader, debugShowHyperRenderBounds));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
   static List<Widget> _buildChildren(
@@ -77,9 +74,12 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     HyperLinkTapCallback? onLinkTap,
     void Function(String url)? onImageTap,
     bool selectable,
+    TextStyle baseStyle,
+    HyperImageLoader? imageLoader,
+    bool debugShowHyperRenderBounds,
   ) {
     final children = <Widget>[];
-    _collectAtomicChildren(document, children, widgetBuilder, codeHighlighter, onLinkTap, onImageTap, selectable);
+    _collectAtomicChildren(document, children, widgetBuilder, codeHighlighter, onLinkTap, onImageTap, selectable, baseStyle, imageLoader, debugShowHyperRenderBounds);
     return children;
   }
 
@@ -91,6 +91,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     HyperLinkTapCallback? onLinkTap,
     void Function(String url)? onImageTap,
     bool selectable,
+    TextStyle baseStyle,
+    HyperImageLoader? imageLoader,
+    bool debugShowHyperRenderBounds,
   ) {
     Widget? childWidget;
 
@@ -102,10 +105,21 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
         if (node is AtomicNode) {
           childWidget = _buildDefaultAtomicWidget(node, onLinkTap: onLinkTap, onImageTap: onImageTap);
         } else {
-          final nestedChildren = <Widget>[];
-          for (final child in node.children) {
-            _collectAtomicChildren(child, nestedChildren, widgetBuilder, codeHighlighter, onLinkTap, onImageTap, selectable);
-          }
+          // Complex float content (e.g. <div>)
+          // We use a nested HyperRenderWidget to render its full content (text + children)
+          childWidget = HyperRenderWidget(
+            document: DocumentNode(children: node.children),
+            baseStyle: baseStyle.merge(node.style.toTextStyle()),
+            onLinkTap: onLinkTap,
+            onImageTap: onImageTap,
+            widgetBuilder: widgetBuilder,
+            imageLoader: imageLoader,
+            selectable: selectable,
+            codeHighlighter: codeHighlighter,
+            debugShowHyperRenderBounds: debugShowHyperRenderBounds,
+          );
+
+          // Apply padding/border/background from the float node itself
           childWidget = Container(
             width: node.style.width,
             height: node.style.height,
@@ -117,7 +131,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
                   : null,
               borderRadius: node.style.borderRadius,
             ),
-            child: nestedChildren.length == 1 ? nestedChildren.first : Column(children: nestedChildren),
+            child: childWidget,
           );
         }
       }
@@ -148,7 +162,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       children.add(_HyperChildWidget(node: node, child: childWidget));
     } else {
       for (final child in node.children) {
-        _collectAtomicChildren(child, children, widgetBuilder, codeHighlighter, onLinkTap, onImageTap, selectable);
+        _collectAtomicChildren(child, children, widgetBuilder, codeHighlighter, onLinkTap, onImageTap, selectable, baseStyle, imageLoader, debugShowHyperRenderBounds);
       }
     }
   }

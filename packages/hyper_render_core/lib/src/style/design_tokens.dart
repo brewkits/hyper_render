@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../exceptions/hyper_render_exceptions.dart';
+
 /// Design tokens for HyperRender
 ///
 /// Based on Material Design 3 principles with 8pt grid system.
@@ -518,7 +520,11 @@ class DesignTokens {
           color: color,
         );
       default:
-        throw ArgumentError('Invalid heading level: $level');
+        throw ConfigurationException.invalidParameter(
+          parameter: 'level',
+          reason: 'Heading level must be between 1 and 6',
+          validValues: '1, 2, 3, 4, 5, 6',
+        );
     }
   }
 

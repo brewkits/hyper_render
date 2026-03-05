@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vector_math/vector_math_64.dart' show Matrix4;
 
 /// Display type for CSS display property
 enum DisplayType {

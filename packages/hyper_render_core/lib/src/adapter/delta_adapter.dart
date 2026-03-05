@@ -70,9 +70,13 @@ class DeltaAdapter extends ContentParser {
     }
     if (attributes['size'] != null) {
       final size = attributes['size'].toString();
-      if (size == 'small') style.fontSize = 12;
-      else if (size == 'large') style.fontSize = 18;
-      else if (size == 'huge') style.fontSize = 24;
+      if (size == 'small') {
+        style.fontSize = 12;
+      } else if (size == 'large') {
+        style.fontSize = 18;
+      } else if (size == 'huge') {
+        style.fontSize = 24;
+      }
     }
   }
 }

@@ -8,15 +8,19 @@ import 'package:flutter/widgets.dart';
 
 import '../model/computed_style.dart';
 import '../model/fragment.dart';
+import '../model/fragment_types.dart';
 import '../model/node.dart';
 import '../interfaces/selection_types.dart';
+import '../layout/layout_engines.dart';
 import 'image_provider.dart';
 import 'kinsoku_processor.dart';
 import 'render_config.dart';
+import 'production_monitor.dart'; // Week 3-4: Production validation monitoring
 
 part 'render_hyper_box_types.dart';
 part 'render_hyper_box_fragments.dart';
 part 'render_hyper_box_layout.dart';
+part 'render_hyper_box_layout_engines.dart';
 part 'render_hyper_box_paint.dart';
 part 'render_hyper_box_selection.dart';
 part 'render_hyper_box_accessibility.dart';
@@ -54,7 +58,7 @@ class RenderHyperBox extends RenderBox
   TextStyle _baseStyle;
 
   /// Link tap callback
-  HyperLinkTapCallback? _onLinkTap;
+  HyperLinkTapCallback? onLinkTap;
 
   /// Custom image loader (defaults to defaultImageLoader if not provided)
   HyperImageLoader? _imageLoader;
@@ -125,12 +129,7 @@ class RenderHyperBox extends RenderBox
   final Map<UDTNode, int> _listItemIndices = {};
 
   /// Custom selection menu actions builder
-  List<SelectionMenuAction> Function(SelectionOverlayController)? _selectionMenuActionsBuilder;
-  List<SelectionMenuAction> Function(SelectionOverlayController)? get selectionMenuActionsBuilder => _selectionMenuActionsBuilder;
-  set selectionMenuActionsBuilder(List<SelectionMenuAction> Function(SelectionOverlayController)? value) {
-    if (_selectionMenuActionsBuilder == value) return;
-    _selectionMenuActionsBuilder = value;
-  }
+  List<SelectionMenuAction> Function(SelectionOverlayController)? selectionMenuActionsBuilder;
 
   /// Custom color for selection handles
   Color? _selectionHandleColor;
@@ -199,10 +198,10 @@ class RenderHyperBox extends RenderBox
     bool debugShowHyperRenderBounds = false,
   })  : _document = document,
         _baseStyle = baseStyle,
-        _onLinkTap = onLinkTap,
+        onLinkTap = onLinkTap,
         _imageLoader = imageLoader,
         _selectable = selectable,
-        _selectionMenuActionsBuilder = selectionMenuActionsBuilder,
+        selectionMenuActionsBuilder = selectionMenuActionsBuilder,
         _selectionHandleColor = selectionHandleColor,
         _selectionColor = selectionColor,
         _debugShowHyperRenderBounds = debugShowHyperRenderBounds;
@@ -225,11 +224,6 @@ class RenderHyperBox extends RenderBox
     _baseStyle = value;
     _invalidateLayout();
     markNeedsLayout();
-  }
-
-  HyperLinkTapCallback? get onLinkTap => _onLinkTap;
-  set onLinkTap(HyperLinkTapCallback? value) {
-    _onLinkTap = value;
   }
 
   bool get selectable => _selectable;
@@ -689,8 +683,8 @@ class RenderHyperBox extends RenderBox
         while (node != null) {
           if (node.tagName == 'a') {
             final href = node.attributes['href'];
-            if (href != null && _onLinkTap != null) {
-              _onLinkTap!(href);
+            if (href != null && onLinkTap != null) {
+              onLinkTap!(href);
               return;
             }
             break; // Found <a> but no href — stop walking.

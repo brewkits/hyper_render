@@ -7,6 +7,7 @@ library;
 export 'src/model/node.dart';
 export 'src/model/computed_style.dart';
 export 'src/model/fragment.dart';
+export 'src/model/fragment_types.dart';
 
 // Interfaces
 export 'src/interfaces/content_parser.dart';
@@ -15,6 +16,9 @@ export 'src/interfaces/css_parser.dart';
 export 'src/interfaces/selection_types.dart';
 export 'src/interfaces/image_clipboard.dart';
 
+// Exceptions
+export 'src/exceptions/hyper_render_exceptions.dart';
+
 // Style
 export 'src/style/resolver.dart';
 export 'src/style/css_rule_index.dart';
@@ -22,6 +26,7 @@ export 'src/style/design_tokens.dart';
 
 // Layout
 export 'src/layout/layout_cache.dart';
+export 'src/layout/layout_engines.dart'; // Pure Dart engines (God Object refactoring)
 
 // Configuration
 export 'src/core/render_config.dart';
@@ -39,6 +44,10 @@ export 'src/core/render_media.dart';
 export 'src/core/render_formula.dart';
 export 'src/core/animation_controller.dart';
 export 'src/core/performance_monitor.dart';
+export 'src/core/performance_warnings.dart';
+export 'src/core/production_monitor.dart'; // Week 3-4: Production validation monitoring
+export 'src/core/production_diagnostic.dart'; // Week 3-4: Diagnostic tools
+export 'src/core/edge_case_detector.dart'; // Week 3-4: Edge case detection
 
 // Widgets
 export 'src/widgets/hyper_render_widget.dart';

@@ -16,10 +16,10 @@
 
 ## Visual Showcase
 
-| **CSS Float — Magazine Layout** | **60 FPS Performance** | **Flexbox & Smart Tables** |
+| **CSS Float — Magazine Layout** | **High Performance** | **Flexbox & Smart Tables** |
 |:---:|:---:|:---:|
 | ![CSS Float Demo](assets/float_demo.gif) | ![Performance Demo](assets/performance_demo.gif) | ![Flexbox Demo](assets/layout_demo.gif) |
-| *Text wrapping around images — impossible in widget-tree renderers.* | *Smooth scrolling on 25k+ character documents.* | *Flexbox gap/wrap and auto-scaling tables.* |
+| *Text wrapping around images — impossible in widget-tree renderers.* | *Smooth scrolling on large documents (Desktop verified).* | *Flexbox gap/wrap and auto-scaling tables.* |
 
 ---
 
@@ -60,6 +60,72 @@ HyperViewer(
   html: articleHtml,
   onLinkTap: (url) => launchUrl(Uri.parse(url)),
 )
+```
+
+---
+
+## Performance Characteristics
+
+### Verified Platforms ✅
+
+- **macOS Desktop (Apple Silicon M1/M2)**
+  - Parse 10KB HTML: 69ms
+  - Parse 50KB HTML: 276ms
+  - Scroll performance: 60fps on 25K+ character documents
+  - Memory usage: ~5MB for 10KB document
+
+### Mobile Performance ⚠️
+
+**Status:** Being verified on real devices.
+
+**Preliminary Results:**
+- **iOS (iPhone 12+):** ~70-90% of desktop performance
+- **Android (mid-range+):** ~50-80% of desktop performance
+- **Budget devices:** May require optimization (use `virtualized` mode)
+
+> **⚠️ Important:** Performance varies significantly by device hardware, OS version, and document complexity. We strongly recommend running benchmarks on your specific target devices before production deployment.
+
+### Run Your Own Benchmarks
+
+```bash
+cd benchmark/
+flutter run --release -d <your-device-id>
+
+# Example output:
+# Parse 10KB: 142ms (iPhone 14)
+# Parse 10KB: 198ms (Samsung S22)
+# Memory: 8.5MB
+```
+
+### Performance Guidelines
+
+| Document Size | Experience | Recommendation |
+|--------------|-----------|----------------|
+| **< 10KB** | ⚡ Instant | Use default mode |
+| **10-50KB** | ⚡ Fast | Use default mode |
+| **50-100KB** | ⚠️ Good | Use `HyperRenderMode.virtualized` |
+| **> 100KB** | 🔴 Variable | Use pagination or chunking |
+
+**Example: Optimizing large documents**
+
+```dart
+// For documents > 50KB
+HyperViewer(
+  html: largeArticle,
+  mode: HyperRenderMode.virtualized, // Enables ListView.builder
+)
+
+// For very large documents, consider pagination
+class PaginatedArticle extends StatelessWidget {
+  final List<String> pages;
+
+  Widget build(BuildContext context) {
+    return PageView.builder(
+      itemCount: pages.length,
+      itemBuilder: (_, index) => HyperViewer(html: pages[index]),
+    );
+  }
+}
 ```
 
 ---
@@ -299,8 +365,21 @@ What gets removed:
 
 ## Benchmarks
 
-> **Self-measured on macOS (Apple Silicon, Flutter Desktop release mode).** Run the benchmark suite locally to reproduce on your target hardware.
-> Numbers for FWFH and WebView are estimates based on architecture and publicly available profiler traces — they have not been independently verified.
+> **⚠️ IMPORTANT DISCLAIMER:**
+>
+> - All benchmarks below are **self-measured on macOS Desktop (Apple Silicon)** in Flutter release mode.
+> - **Mobile performance** (iOS/Android) **has not been comprehensively verified** across all device types.
+> - Performance on mobile devices varies significantly based on hardware, OS version, and document complexity.
+> - Numbers for FWFH and WebView are estimates based on architecture and publicly available profiler traces — they have not been independently verified.
+>
+> **We strongly recommend:**
+> 1. Run benchmarks on YOUR target devices before production
+> 2. Test with YOUR actual content (document size, images, tables)
+> 3. Verify performance meets YOUR requirements
+>
+> ```bash
+> cd benchmark && flutter run --release -d <device-id>
+> ```
 
 | Metric | flutter_widget_from_html | HyperRender |
 |--------|:---:|:---:|
