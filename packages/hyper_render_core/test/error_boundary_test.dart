@@ -295,8 +295,15 @@ void main() {
       );
 
       await tester.tap(find.text('Copy Error'));
-      await tester.pumpAndSettle();
+      await tester.pump(); // Start clipboard
+      await tester.pump(const Duration(milliseconds: 200)); // Wait for clipboard
+      await tester.pump(); // Show snackbar
+      await tester.pump(const Duration(milliseconds: 200)); // Animate snackbar
 
+      expect(
+        find.byType(SnackBar),
+        findsOneWidget,
+      );
       expect(
         find.text('Error details copied to clipboard'),
         findsOneWidget,
@@ -348,6 +355,7 @@ void main() {
     });
 
     testWidgets('ErrorBoundaryNode within document tree', (tester) async {
+      final semantics = tester.ensureSemantics();
       final document = DocumentNode(children: [
         BlockNode.h1(children: [TextNode('Title')]),
         ErrorBoundaryNode(
@@ -367,9 +375,11 @@ void main() {
       );
 
       // Should render normal content and error boundary
-      expect(find.text('Title'), findsOneWidget);
+      // Note: Normal content is rendered by RenderHyperBox and exposed via semantics,
+      // while ErrorBoundaryWidget uses a standard Text widget.
+      expect(find.bySemanticsLabel(RegExp(r'Title')), findsOneWidget);
       expect(find.text('Section failed to render'), findsOneWidget);
-      expect(find.text('More content'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp(r'More content')), findsOneWidget);
     });
 
     testWidgets('widgetBuilder can customize error boundary',

@@ -27,12 +27,14 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Enhanced Selection Menu'),
         centerTitle: false,
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: false,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -51,13 +53,19 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
             description: 'Copy, Select All, Share, Search on Google',
             child: HyperViewer(
               html: '''
-                <h2>Try Selecting Text Here!</h2>
-                <p>HyperRender is a powerful Flutter package for rendering HTML content
-                with advanced features like text selection, float layout, and more.</p>
-                <p><strong>Long press or drag</strong> to select text and see the enhanced menu.</p>
-                <blockquote>
-                  "The best way to predict the future is to invent it." - Alan Kay
-                </blockquote>
+                <div style="background: #F3E5F5; padding: 24px; border-radius: 12px; border: 2px solid #9C27B0;">
+                  <h2 style="color: #4A148C; margin: 0 0 16px 0; line-height: 1.3;">Try Selecting Text Here!</h2>
+                  <p style="color: #6A1B9A; font-size: 16px; line-height: 2.0; margin: 0 0 16px 0;">
+                    HyperRender is a powerful Flutter package for rendering HTML content
+                    with advanced features like text selection, float layout, and more.
+                  </p>
+                  <p style="color: #6A1B9A; font-size: 16px; line-height: 2.0; margin: 0 0 16px 0;">
+                    <strong style="color: #4A148C;">Long press or drag</strong> to select text and see the enhanced menu.
+                  </p>
+                  <blockquote style="background: rgba(156, 39, 176, 0.1); border-left: 4px solid #9C27B0; padding: 16px; margin: 0; color: #4A148C; font-style: italic; line-height: 1.8;">
+                    "The best way to predict the future is to invent it." - Alan Kay
+                  </blockquote>
+                </div>
               ''',
               selectable: true,
               selectionMenuActionsBuilder: (overlayState) {
@@ -98,19 +106,23 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
             description: 'Copy, All, Share, Search, Translate, Define, Highlight',
             child: HyperViewer(
               html: '''
-                <article>
-                  <h2>Advanced Selection Features</h2>
-                  <p>Flutter is Google's UI toolkit for building beautiful, natively
-                  compiled applications for mobile, web, and desktop from a single codebase.</p>
+                <article style="background: #E3F2FD; padding: 24px; border-radius: 12px; border: 2px solid #1976D2;">
+                  <h2 style="color: #0D47A1; margin: 0 0 16px 0; line-height: 1.3;">Advanced Selection Features</h2>
+                  <p style="color: #1565C0; font-size: 16px; line-height: 2.0; margin: 0 0 20px 0;">
+                    Flutter is Google's UI toolkit for building beautiful, natively
+                    compiled applications for mobile, web, and desktop from a single codebase.
+                  </p>
 
-                  <h3>Key Features:</h3>
-                  <ul>
-                    <li>Fast Development with Hot Reload</li>
-                    <li>Expressive and Flexible UI</li>
-                    <li>Native Performance</li>
+                  <h3 style="color: #1976D2; margin: 0 0 12px 0; line-height: 1.3;">Key Features:</h3>
+                  <ul style="color: #1565C0; font-size: 15px; line-height: 2.0; margin: 0 0 20px 0; padding-left: 24px;">
+                    <li style="margin-bottom: 8px;">Fast Development with Hot Reload</li>
+                    <li style="margin-bottom: 8px;">Expressive and Flexible UI</li>
+                    <li style="margin-bottom: 8px;">Native Performance</li>
                   </ul>
 
-                  <p>Select any text to see <em>7 different actions</em> in the context menu!</p>
+                  <p style="color: #0D47A1; font-size: 16px; line-height: 2.0; margin: 0;">
+                    Select any text to see <em style="font-weight: bold;">7 different actions</em> in the context menu!
+                  </p>
                 </article>
               ''',
               selectable: true,
@@ -165,11 +177,11 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
             child: HyperViewer(
               html: '''
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            padding: 24px; border-radius: 12px; color: white;">
-                  <h2 style="color: white;">Gradient Theme</h2>
-                  <p style="color: rgba(255,255,255,0.9);">
+                            padding: 28px; border-radius: 12px; border: 3px solid #5E35B1; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                  <h2 style="color: white; margin: 0 0 16px 0; font-size: 22px; font-weight: bold; line-height: 1.3;">Gradient Theme</h2>
+                  <p style="color: rgba(255,255,255,0.95); font-size: 16px; line-height: 2.0; margin: 0;">
                     This example shows custom selection handle colors.
-                    Try selecting this text to see purple handles and a custom menu!
+                    Try selecting this text to see <strong style="color: #FFD54F;">purple handles</strong> and a custom menu!
                   </p>
                 </div>
               ''',
@@ -324,9 +336,10 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: Colors.grey.shade900,
           ),
         ),
         const SizedBox(height: 4),
@@ -340,6 +353,7 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
         ),
         const SizedBox(height: 12),
         Card(
+          color: Colors.white,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: child,

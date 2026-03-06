@@ -154,6 +154,15 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       return;
     }
 
+    // Is it an error boundary?
+    if (node.type == NodeType.errorBoundary) {
+      final errorNode = node as ErrorBoundaryNode;
+      childWidget = widgetBuilder?.call(errorNode) ??
+          ErrorBoundaryWidget(errorNode: errorNode);
+      children.add(_HyperChildWidget(node: node, child: childWidget));
+      return;
+    }
+
     // Is it an atomic element?
     if (node.type == NodeType.atomic) {
       final atomicNode = node as AtomicNode;
