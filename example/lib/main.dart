@@ -172,35 +172,39 @@ class DemoHomePage extends StatelessWidget {
             color: DemoColors.primary,
             onTap: () => _push(context, const FloatLayoutDemo()),
           ),
-          _buildDemoCard(
-            context,
-            icon: Icons.select_all,
-            title: 'Text Selection (Enhanced ⭐)',
-            subtitle: 'Rich menu: Copy, Share, Search, Translate, Define...',
-            color: DemoColors.secondary,
-            onTap: () => _push(context, const EnhancedSelectionDemo()),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.translate,
-            title: 'Ruby Annotation',
-            subtitle: '振り仮名 (Furigana) for Japanese/Chinese',
-            color: DemoColors.secondary,
-            onTap: () => _push(context, const RubyDemo()),
-          ),
+          const SizedBox(height: 16),
+          _buildSectionHeader(context, '🌏 CJK & International Typography'),
           _buildDemoCard(
             context,
             icon: Icons.menu_book,
             title: 'Manga & CJK Typography ⭐',
-            subtitle: 'Furigana · Panel grid layout · Japanese story · RTL',
+            subtitle: 'Complete Japanese manga layout with furigana, panel grids, vertical text',
             color: const Color(0xFFB71C1C),
             onTap: () => _push(context, const MangaDemo()),
           ),
           _buildDemoCard(
             context,
+            icon: Icons.translate,
+            title: 'Ruby Annotation (振り仮名)',
+            subtitle: 'Furigana for Japanese · Pinyin for Chinese · Poetry · Complex sentences',
+            color: const Color(0xFFE91E63),
+            onTap: () => _push(context, const RubyDemo()),
+          ),
+          const SizedBox(height: 16),
+          _buildSectionHeader(context, '✨ Advanced Features'),
+          _buildDemoCard(
+            context,
+            icon: Icons.select_all,
+            title: 'Enhanced Selection Menu ⭐',
+            subtitle: 'Copy, Share, Search, Translate, Define - Rich context menu',
+            color: const Color(0xFF9C27B0),
+            onTap: () => _push(context, const EnhancedSelectionDemo()),
+          ),
+          _buildDemoCard(
+            context,
             icon: Icons.widgets,
             title: 'Widget Injection',
-            subtitle: 'Embed Flutter Widgets in HTML',
+            subtitle: 'Embed interactive Flutter Widgets inside HTML content',
             color: DemoColors.secondary,
             onTap: () => _push(context, const WidgetInjectionDemo()),
           ),
@@ -678,40 +682,69 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
   int _subscribeCount = 0;
 
   final String htmlContent = '''
-<div style="font-family: sans-serif; line-height: 1.6;">
-  <div style="background: #667eea; padding: 24px; border-radius: 16px; margin-bottom: 24px;">
-    <h1 style="color: white; margin: 0;">🚀 HyperRender Engine</h1>
-    <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0;">The Universal Content Engine for Flutter</p>
+<div style="font-family: sans-serif; color: #212121;">
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 16px; margin-bottom: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+    <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold; line-height: 1.3;">🚀 HyperRender Engine</h1>
+    <p style="color: rgba(255,255,255,0.95); margin: 12px 0 0 0; font-size: 16px; line-height: 1.6;">The Universal Content Engine for Flutter</p>
   </div>
 
-  <h2 style="color: #1976D2; border-left: 4px solid #1976D2; padding-left: 12px;">1. Float Layout</h2>
-  <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/100/100?random=1" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px;" />
-    <p style="margin: 0;">
+  <h2 style="color: #1976D2; border-left: 4px solid #1976D2; padding-left: 12px; font-weight: bold; margin: 0 0 16px 0; line-height: 1.3;">1. Float Layout</h2>
+  <div style="margin: 0 0 24px 0; min-height: 110px;">
+    <img src="https://picsum.photos/100/100?random=1" style="float: left; width: 100px; height: 100px; margin: 0 20px 16px 0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+    <p style="margin: 0; color: #424242; font-size: 16px; line-height: 2.0;">
       This is an example of <strong style="color: #E91E63;">Float Layout</strong>. This text will automatically
-      wrap around the image on the left. HyperRender uses the IFC algorithm like web browsers.
+      wrap around the image on the left. HyperRender uses the IFC algorithm like web browsers for accurate text flow.
+      This enables magazine-style layouts with images and text flowing naturally together.
     </p>
+    <div style="clear: both;"></div>
   </div>
-  <div style="clear: both; height: 16px;"></div>
 
-  <h2 style="color: #9C27B0; border-left: 4px solid #9C27B0; padding-left: 12px;">2. Widget Injection</h2>
-  <div style="text-align: center; margin: 16px 0; padding: 16px; background: #FFF3E0; border-radius: 12px;">
-    <p style="margin: 0 0 12px 0; font-weight: bold;">🔔 Subscribe to receive notifications!</p>
+  <h2 style="color: #9C27B0; border-left: 4px solid #9C27B0; padding-left: 12px; font-weight: bold; margin: 0 0 16px 0; line-height: 1.3;">2. Widget Injection</h2>
+  <div style="text-align: center; margin: 0 0 24px 0; padding: 24px; background: #FFF3E0; border-radius: 12px; border: 2px solid #FFB300;">
+    <p style="margin: 0 0 16px 0; font-weight: bold; color: #E65100; font-size: 16px; line-height: 1.6;">🔔 Subscribe to receive notifications!</p>
     <subscribe-button></subscribe-button>
   </div>
 
-  <h2 style="color: #00BCD4; border-left: 4px solid #00BCD4; padding-left: 12px;">3. Ruby Annotation</h2>
-  <div style="background: #E0F7FA; padding: 16px; border-radius: 12px; margin: 16px 0;">
-    <p style="font-size: 20px; margin: 0;">
+  <h2 style="color: #00BCD4; border-left: 4px solid #00BCD4; padding-left: 12px; font-weight: bold; margin: 0 0 16px 0; line-height: 1.3;">3. Ruby Annotation (日本語)</h2>
+  <div style="background: #E0F7FA; padding: 24px; border-radius: 12px; margin: 0 0 24px 0; border: 2px solid #00ACC1;">
+    <p style="font-size: 20px; margin: 0; color: #006064; line-height: 2.4;">
       <ruby>日本語<rt>にほんご</rt></ruby>の<ruby>文章<rt>ぶんしょう</rt></ruby>を
       <ruby>完璧<rt>かんぺき</rt></ruby>に<ruby>表示<rt>ひょうじ</rt></ruby>できます。
     </p>
   </div>
 
-  <h2 style="color: #607D8B; border-left: 4px solid #607D8B; padding-left: 12px;">4. Text Selection</h2>
-  <div style="background: #ECEFF1; padding: 16px; border-radius: 12px;">
-    <p style="margin: 0;">👆 <strong>Long press</strong> on text to show Copy menu!</p>
-    <p style="margin: 8px 0 0 0;">Or drag to select, then long press to copy.</p>
+  <h2 style="color: #4CAF50; border-left: 4px solid #4CAF50; padding-left: 12px; font-weight: bold; margin: 0 0 16px 0; line-height: 1.3;">4. Text Selection</h2>
+  <div style="background: #E8F5E9; padding: 24px; border-radius: 12px; margin: 0 0 24px 0; border: 2px solid #66BB6A;">
+    <p style="margin: 0 0 12px 0; color: #1B5E20; font-weight: 600; font-size: 16px; line-height: 1.8;">👆 <strong>Long press</strong> on any text to show Copy menu!</p>
+    <p style="margin: 0; color: #2E7D32; font-size: 15px; line-height: 1.8;">Or drag to select text, then long press to copy to clipboard.</p>
+  </div>
+
+  <h2 style="color: #FF5722; border-left: 4px solid #FF5722; padding-left: 12px; font-weight: bold; margin: 0 0 16px 0; line-height: 1.3;">5. CSS Styling & Typography</h2>
+  <div style="background: #FBE9E7; padding: 24px; border-radius: 12px; margin: 0 0 24px 0; border: 2px solid #FF7043;">
+    <p style="margin: 0 0 16px 0; color: #BF360C; font-size: 16px; line-height: 1.8;">
+      <span style="font-size: 18px; font-weight: bold; color: #D84315;">Rich text styling</span> with
+      <em style="color: #E64A19;">italics</em>, <strong style="color: #F4511E;">bold</strong>,
+      <u style="color: #FF5722;">underline</u>, and
+      <span style="background: #FFEB3B; padding: 2px 6px; border-radius: 4px;">highlights</span>.
+    </p>
+    <p style="margin: 0; color: #3E2723; font-family: monospace; background: #FFF8E1; padding: 12px; border-radius: 4px; font-size: 14px; line-height: 1.6;">
+      &lt;code&gt; blocks with monospace font &lt;/code&gt;
+    </p>
+  </div>
+
+  <h2 style="color: #795548; border-left: 4px solid #795548; padding-left: 12px; font-weight: bold; margin: 0 0 16px 0; line-height: 1.3;">6. Lists & Nested Content</h2>
+  <div style="background: #EFEBE9; padding: 24px; border-radius: 12px; margin: 0 0 24px 0; border: 2px solid #A1887F;">
+    <ul style="margin: 0; padding-left: 20px; color: #3E2723; font-size: 16px; line-height: 1.8;">
+      <li style="margin-bottom: 12px;"><strong>Feature-rich rendering</strong> - Complex HTML support</li>
+      <li style="margin-bottom: 12px;"><strong>High performance</strong> - Optimized for mobile devices</li>
+      <li style="margin-bottom: 12px;"><strong>Cross-platform</strong> - Works on iOS, Android, Web</li>
+    </ul>
+  </div>
+
+  <div style="background: #F3E5F5; padding: 24px; border-radius: 12px; margin: 0; text-align: center; border: 2px solid #BA68C8;">
+    <p style="margin: 0; color: #4A148C; font-size: 16px; font-weight: bold; line-height: 1.6;">
+      ✨ This demo showcases core HyperRender capabilities in one place ✨
+    </p>
   </div>
 </div>
 ''';
@@ -719,12 +752,14 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Ensure white background for proper contrast
       appBar: AppBar(
         title: const Text('Kitchen Sink Demo'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
+        automaticallyImplyLeading: false, // Custom back button from _BackBlockedPage
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: HyperViewer(
           html: htmlContent,
@@ -801,55 +836,61 @@ class FloatLayoutDemo extends StatelessWidget {
   const FloatLayoutDemo({super.key});
 
   static const html = '''
-<div style="font-family: sans-serif; line-height: 1.6;">
-  <h2 style="color: #1976D2;">Float Left</h2>
-  <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/120/120?random=10" style="float: left; width: 120px; height: 120px; margin: 0 16px 8px 0; border-radius: 12px;" />
-    <p>
-      This is an example of <strong>float: left</strong>. Text will automatically wrap around the image on the left.
+<div style="font-family: sans-serif; color: #212121;">
+  <h2 style="color: #1976D2; font-weight: bold; margin: 0 0 20px 0; line-height: 1.3;">Float Left</h2>
+  <div style="margin: 0 0 32px 0; background: #E3F2FD; padding: 24px; border-radius: 12px; border: 2px solid #1976D2; min-height: 140px;">
+    <img src="https://picsum.photos/120/120?random=10" style="float: left; width: 120px; height: 120px; margin: 0 20px 16px 0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" />
+    <p style="margin: 0 0 20px 0; color: #0D47A1; font-size: 16px; line-height: 2.0;">
+      This is an example of <strong style="color: #1565C0;">float: left</strong>. Text will automatically wrap around the image on the left.
       When the text is long enough, it will continue below the image naturally. This is a feature
-      that flutter_html and flutter_widget_from_html do NOT support.
+      that <strong>flutter_html</strong> and <strong>flutter_widget_from_html</strong> do NOT support.
     </p>
-    <p>
-      HyperRender uses the IFC (Inline Formatting Context) algorithm like real web browsers
-      to calculate the remaining space of each line and fill it with text fragments.
+    <p style="margin: 0; color: #1565C0; font-size: 15px; line-height: 2.0;">
+      HyperRender uses the <strong>IFC (Inline Formatting Context)</strong> algorithm like real web browsers
+      to calculate the remaining space of each line and fill it with text fragments. This enables magazine-style layouts.
     </p>
+    <div style="clear: both;"></div>
   </div>
 
-  <div style="clear: both; height: 32px;"></div>
-
-  <h2 style="color: #9C27B0;">Float Right</h2>
-  <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/100/100?random=11" style="float: right; width: 100px; height: 100px; margin: 0 0 8px 16px; border-radius: 50%;" />
-    <p>
-      Float also works on the <strong>right side</strong>! This circle floats right and text
+  <h2 style="color: #9C27B0; font-weight: bold; margin: 0 0 20px 0; line-height: 1.3;">Float Right</h2>
+  <div style="margin: 0 0 32px 0; background: #F3E5F5; padding: 24px; border-radius: 12px; border: 2px solid #9C27B0; min-height: 120px;">
+    <img src="https://picsum.photos/100/100?random=11" style="float: right; width: 100px; height: 100px; margin: 0 0 16px 20px; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" />
+    <p style="margin: 0 0 20px 0; color: #4A148C; font-size: 16px; line-height: 2.0;">
+      Float also works on the <strong style="color: #6A1B9A;">right side</strong>! This circle floats right and text
       will fill the empty space on the left naturally.
     </p>
-    <p>
-      Try rotating the screen to see how smoothly the layout adapts.
+    <p style="margin: 0; color: #6A1B9A; font-size: 15px; line-height: 2.0;">
+      Try rotating the screen to see how smoothly the layout adapts. The text will reflow automatically
+      based on the available width.
     </p>
+    <div style="clear: both;"></div>
   </div>
 
-  <div style="clear: both; height: 32px;"></div>
-
-  <h2 style="color: #FF5722;">Multiple Floats</h2>
-  <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/80/80?random=12" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px;" />
-    <img src="https://picsum.photos/80/80?random=13" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px;" />
-    <p>
-      Nhiều float elements có thể xếp cạnh nhau. Văn bản sẽ wrap xung quanh tất cả chúng.
-      Đây là layout kiểu magazine/newspaper rất phổ biến.
+  <h2 style="color: #FF5722; font-weight: bold; margin: 0 0 20px 0; line-height: 1.3;">Multiple Floats</h2>
+  <div style="margin: 0 0 32px 0; background: #FBE9E7; padding: 24px; border-radius: 12px; border: 2px solid #FF5722; min-height: 100px;">
+    <img src="https://picsum.photos/80/80?random=12" style="float: left; width: 80px; height: 80px; margin: 0 16px 16px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" />
+    <img src="https://picsum.photos/80/80?random=13" style="float: left; width: 80px; height: 80px; margin: 0 16px 16px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" />
+    <p style="margin: 0; color: #BF360C; font-size: 16px; line-height: 2.0;">
+      <strong>Nhiều float elements</strong> có thể xếp cạnh nhau. Văn bản sẽ wrap xung quanh tất cả chúng.
+      Đây là layout kiểu <strong>magazine/newspaper</strong> rất phổ biến trong thiết kế web hiện đại.
+      Text flows naturally around multiple floated images, creating professional editorial layouts.
     </p>
+    <div style="clear: both;"></div>
   </div>
 </div>
 ''';
 
   @override
   Widget build(BuildContext context) {
-    return DemoScaffold(
-      title: 'Float Layout Demo',
-      html: html,
-      child: const Padding(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Float Layout Demo'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
+      ),
+      body: const Padding(
         padding: EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: HyperViewer(html: html, selectable: true),
@@ -929,43 +970,87 @@ class RubyDemo extends StatelessWidget {
   const RubyDemo({super.key});
 
   static const html = '''
-<div style="font-family: sans-serif; line-height: 2;">
-  <h2 style="color: #E91E63;">Ruby Annotation (振り仮名)</h2>
-  <p>Ruby annotation hiển thị reading aids (furigana) phía trên kanji.</p>
-
-  <div style="background: #FCE4EC; padding: 16px; border-radius: 12px; margin: 16px 0;">
-    <h3 style="margin: 0 0 12px 0;">基本的な例 (Basic Examples)</h3>
-    <p style="font-size: 22px; margin: 8px 0;">
-      <ruby>日本語<rt>にほんご</rt></ruby>を<ruby>勉強<rt>べんきょう</rt></ruby>しています。
-    </p>
-    <p style="color: #666; font-size: 14px; margin: 0;">= I am studying Japanese.</p>
+<div style="font-family: sans-serif; color: #212121;">
+  <div style="background: linear-gradient(135deg, #E91E63 0%, #F06292 100%); padding: 24px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+    <h2 style="color: white; margin: 0; font-size: 24px; line-height: 1.3;">Ruby Annotation (振り仮名)</h2>
+    <p style="color: rgba(255,255,255,0.95); margin: 12px 0 0 0; font-size: 15px; line-height: 1.6;">Furigana reading aids above kanji characters</p>
   </div>
 
-  <div style="background: #E8F5E9; padding: 16px; border-radius: 12px; margin: 16px 0;">
-    <h3 style="margin: 0 0 12px 0;">文学作品 (Literature)</h3>
-    <p style="font-size: 20px; margin: 8px 0; font-style: italic;">
+  <div style="background: #FCE4EC; padding: 24px; border-radius: 12px; margin: 0 0 24px 0; border: 2px solid #F06292;">
+    <h3 style="margin: 0 0 16px 0; color: #C2185B; font-weight: bold; line-height: 1.3;">基本的な例 (Basic Examples)</h3>
+    <p style="font-size: 22px; margin: 0 0 16px 0; color: #880E4F; line-height: 2.6;">
+      <ruby>日本語<rt>にほんご</rt></ruby>を<ruby>勉強<rt>べんきょう</rt></ruby>しています。
+    </p>
+    <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.6;">= I am studying Japanese.</p>
+  </div>
+
+  <div style="background: #E8F5E9; padding: 24px; border-radius: 12px; margin: 0 0 24px 0; border: 2px solid #66BB6A;">
+    <h3 style="margin: 0 0 16px 0; color: #2E7D32; font-weight: bold; line-height: 1.3;">文学作品 (Literature)</h3>
+    <p style="font-size: 20px; margin: 0 0 16px 0; font-style: italic; color: #1B5E20; line-height: 2.6;">
       <ruby>吾輩<rt>わがはい</rt></ruby>は<ruby>猫<rt>ねこ</rt></ruby>である。
       <ruby>名前<rt>なまえ</rt></ruby>はまだない。
     </p>
-    <p style="color: #666; font-size: 14px; margin: 0;">— 夏目漱石「吾輩は猫である」</p>
+    <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.6;">— 夏目漱石「吾輩は猫である」(Natsume Sōseki, "I Am a Cat")</p>
   </div>
 
-  <div style="background: #E3F2FD; padding: 16px; border-radius: 12px; margin: 16px 0;">
-    <h3 style="margin: 0 0 12px 0;">地名 (Place Names)</h3>
-    <p style="font-size: 20px; margin: 4px 0;">
+  <div style="background: #F3E5F5; padding: 24px; border-radius: 12px; margin: 0 0 24px 0; border: 2px solid #BA68C8;">
+    <h3 style="margin: 0 0 16px 0; color: #6A1B9A; font-weight: bold; line-height: 1.3;">複雑な文章 (Complex Sentence)</h3>
+    <p style="font-size: 19px; margin: 0 0 16px 0; line-height: 2.8; color: #4A148C;">
+      <ruby>昨日<rt>きのう</rt></ruby>、<ruby>友達<rt>ともだち</rt></ruby>と<ruby>一緒<rt>いっしょ</rt></ruby>に
+      <ruby>新宿<rt>しんじゅく</rt></ruby>で<ruby>映画<rt>えいが</rt></ruby>を<ruby>見<rt>み</rt></ruby>ました。
+      とても<ruby>面白<rt>おもしろ</rt></ruby>かったです。
+    </p>
+    <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.6;">= Yesterday, I watched a movie in Shinjuku with friends. It was very interesting.</p>
+  </div>
+
+  <div style="background: #E3F2FD; padding: 24px; border-radius: 12px; margin: 0 0 24px 0; border: 2px solid #42A5F5;">
+    <h3 style="margin: 0 0 16px 0; color: #1565C0; font-weight: bold; line-height: 1.3;">地名 (Place Names)</h3>
+    <p style="font-size: 20px; margin: 0; color: #0D47A1; line-height: 2.6;">
       <ruby>東京<rt>とうきょう</rt></ruby> •
       <ruby>大阪<rt>おおさか</rt></ruby> •
       <ruby>京都<rt>きょうと</rt></ruby> •
-      <ruby>北海道<rt>ほっかいどう</rt></ruby>
+      <ruby>北海道<rt>ほっかいどう</rt></ruby> •
+      <ruby>沖縄<rt>おきなわ</rt></ruby>
     </p>
   </div>
 
-  <div style="background: #FFF3E0; padding: 16px; border-radius: 12px; margin: 16px 0;">
-    <h3 style="margin: 0 0 12px 0;">中文拼音 (Chinese Pinyin)</h3>
-    <p style="font-size: 20px; margin: 4px 0;">
+  <div style="background: #FFF3E0; padding: 24px; border-radius: 12px; margin: 0 0 24px 0; border: 2px solid #FFA726;">
+    <h3 style="margin: 0 0 16px 0; color: #E65100; font-weight: bold; line-height: 1.3;">中文拼音 (Chinese Pinyin)</h3>
+    <p style="font-size: 20px; margin: 0; color: #BF360C; line-height: 2.6;">
       <ruby>你好<rt>nǐ hǎo</rt></ruby> •
       <ruby>谢谢<rt>xiè xiè</rt></ruby> •
-      <ruby>中国<rt>zhōng guó</rt></ruby>
+      <ruby>中国<rt>zhōng guó</rt></ruby> •
+      <ruby>欢迎<rt>huān yíng</rt></ruby> •
+      <ruby>再见<rt>zài jiàn</rt></ruby>
+    </p>
+  </div>
+
+  <div style="background: #E0F2F1; padding: 24px; border-radius: 12px; margin: 0 0 24px 0; border: 2px solid #26A69A;">
+    <h3 style="margin: 0 0 16px 0; color: #00695C; font-weight: bold; line-height: 1.3;">詩 (Poetry)</h3>
+    <p style="font-size: 18px; margin: 0 0 16px 0; line-height: 3.0; color: #004D40;">
+      <ruby>春眠<rt>しゅんみん</rt></ruby><ruby>暁<rt>あかつき</rt></ruby>を<ruby>覚<rt>おぼ</rt></ruby>えず<br/>
+      <ruby>処処<rt>しょしょ</rt></ruby><ruby>啼鳥<rt>ていちょう</rt></ruby>を<ruby>聞<rt>き</rt></ruby>く<br/>
+      <ruby>夜来<rt>やらい</rt></ruby><ruby>風雨<rt>ふうう</rt></ruby>の<ruby>声<rt>こえ</rt></ruby><br/>
+      <ruby>花<rt>はな</rt></ruby><ruby>落<rt>お</rt></ruby>つること<ruby>知<rt>し</rt></ruby>る<ruby>多少<rt>たしょう</rt></ruby>
+    </p>
+    <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.6;">— 孟浩然「春暁」(Meng Haoran, "Spring Dawn")</p>
+  </div>
+
+  <div style="background: #FBE9E7; padding: 24px; border-radius: 12px; margin: 0 0 24px 0; border: 2px solid #FF7043;">
+    <h3 style="margin: 0 0 16px 0; color: #D84315; font-weight: bold; line-height: 1.3;">難しい漢字 (Difficult Kanji)</h3>
+    <p style="font-size: 19px; margin: 0; color: #BF360C; line-height: 2.6;">
+      <ruby>憂鬱<rt>ゆううつ</rt></ruby> •
+      <ruby>薔薇<rt>ばら</rt></ruby> •
+      <ruby>檸檬<rt>れもん</rt></ruby> •
+      <ruby>林檎<rt>りんご</rt></ruby> •
+      <ruby>葡萄<rt>ぶどう</rt></ruby> •
+      <ruby>麒麟<rt>きりん</rt></ruby>
+    </p>
+  </div>
+
+  <div style="background: #F1F8E9; padding: 20px; border-radius: 12px; margin: 16px 0; text-align: center; border: 2px solid #9CCC65;">
+    <p style="margin: 0; color: #33691E; font-size: 15px; font-weight: bold;">
+      ✨ Ruby annotations enable perfect Japanese & Chinese typography ✨
     </p>
   </div>
 </div>
@@ -973,12 +1058,14 @@ class RubyDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Ruby Annotation Demo'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
       ),
-      body: const Padding(
+      body: const SingleChildScrollView(
         padding: EdgeInsets.all(16.0),
         child: HyperViewer(html: html, selectable: true),
       ),

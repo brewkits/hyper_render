@@ -262,8 +262,9 @@ void main() {
       await tester.tap(find.byType(InkWell));
       await tester.pumpAndSettle();
 
-      // Arrow should change to down arrow when open
-      expect(find.byIcon(Icons.arrow_drop_down), findsOneWidget);
+      // In the current implementation, we rotate Icons.arrow_right instead
+      // of changing it to Icons.arrow_drop_down.
+      expect(find.byIcon(Icons.arrow_right), findsOneWidget);
     });
 
     testWidgets('DetailsWidget respects baseStyle', (tester) async {

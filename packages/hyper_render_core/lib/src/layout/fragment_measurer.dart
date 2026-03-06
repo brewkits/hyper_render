@@ -68,8 +68,9 @@ class FragmentMeasurer {
   void _measureText(Fragment fragment) {
     if (fragment.text == null) return;
 
+    final textStyle = _buildTextStyle(fragment.style);
     final painter = TextLayoutEngine.createPainter(
-      text: TextSpan(text: fragment.text!, style: _buildTextStyle(fragment.style)),
+      text: TextSpan(text: fragment.text!, style: textStyle),
       textDirection: TextDirection.ltr,
     );
 
@@ -77,6 +78,13 @@ class FragmentMeasurer {
       painter: painter,
       maxWidth: double.infinity, // Text fragments are pre-split by line-breaker
     );
+
+    // DEBUG: Log measurement results
+    if (size.height < 10) {
+      print('🔴 MEASURE BUG: text="${fragment.text?.substring(0, fragment.text!.length > 20 ? 20 : fragment.text!.length)}", '
+          'fontSize=${fragment.style.fontSize}, textStyle.height=${textStyle.height}, '
+          'measuredSize=$size');
+    }
 
     fragment.measuredSize = size;
   }
