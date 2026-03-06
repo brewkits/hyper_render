@@ -190,8 +190,22 @@ class LineBreakingEngine {
 
     // Helper: Update line metrics
     void updateLineMetrics(Fragment fragment) {
-      if (fragment.height > lineHeight) {
-        lineHeight = fragment.height;
+      // CRITICAL FIX: Respect CSS line-height property!
+      // If line-height is specified in CSS (e.g., line-height: 2.0),
+      // use it to calculate the effective line height.
+      final effectiveLineHeight = fragment.style.lineHeight != null
+          ? fragment.height * fragment.style.lineHeight!
+          : fragment.height;
+
+      // DEBUG: Log line-height calculations
+      if (fragment.style.lineHeight != null) {
+        print('🐛 LineHeight DEBUG: text="${fragment.text?.substring(0, fragment.text!.length > 20 ? 20 : fragment.text!.length)}", '
+            'cssLineHeight=${fragment.style.lineHeight}, fragHeight=${fragment.height}, '
+            'effectiveHeight=$effectiveLineHeight');
+      }
+
+      if (effectiveLineHeight > lineHeight) {
+        lineHeight = effectiveLineHeight;
       }
 
       // Calculate baseline

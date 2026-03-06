@@ -589,7 +589,7 @@ void main() {
 
     testWidgets('Performance: Auto mode selects appropriate strategy',
         (tester) async {
-      const mediumHtml = '''
+      final mediumHtml = '''
 <article>
   ${List.generate(50, (i) => '<p>Paragraph $i content here.</p>').join()}
 </article>

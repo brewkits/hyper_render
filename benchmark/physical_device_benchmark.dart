@@ -409,7 +409,7 @@ Number of Processors: ${Platform.numberOfProcessors}
   }
 
   Future<BenchmarkResultDetailed> _benchmarkNewsArticle() async {
-    const html = '''
+    final html = '''
 <article>
   <h1>Breaking News Article</h1>
   <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
@@ -464,7 +464,7 @@ Number of Processors: ${Platform.numberOfProcessors}
   }
 
   Future<BenchmarkResultDetailed> _benchmarkDocumentation() async {
-    const html = '''
+    final html = '''
 <div>
   <h1>API Documentation</h1>
   <h2>Class: HyperViewer</h2>

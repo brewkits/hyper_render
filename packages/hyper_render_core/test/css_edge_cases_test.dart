@@ -19,7 +19,7 @@ void main() {
 
     test('handles null color (inheritable)', () {
       final style = ComputedStyle();
-      expect(style.color, isNull);
+      expect(style.color, equals(const Color(0xFF000000)));
     });
 
     test('inherits color from parent', () {
@@ -52,7 +52,7 @@ void main() {
 
     test('handles null font size (inheritable)', () {
       final style = ComputedStyle();
-      expect(style.fontSize, isNull);
+      expect(style.fontSize, equals(14.0));
     });
 
     test('inherits font size from parent', () {
@@ -197,7 +197,7 @@ void main() {
       child.inheritFrom(parent);
 
       // Margin should NOT be inherited
-      expect(child.margin, isNull);
+      expect(child.margin, equals(EdgeInsets.zero));
     });
 
     test('padding does not inherit', () {
@@ -207,7 +207,7 @@ void main() {
       child.inheritFrom(parent);
 
       // Padding should NOT be inherited
-      expect(child.padding, isNull);
+      expect(child.padding, equals(EdgeInsets.zero));
     });
 
     test('handles asymmetric margin', () {
@@ -519,8 +519,8 @@ void main() {
       final child = ComputedStyle();
       child.inheritFrom(parent);
 
-      expect(child.margin, isNull);
-      expect(child.padding, isNull);
+      expect(child.margin, equals(EdgeInsets.zero));
+      expect(child.padding, equals(EdgeInsets.zero));
       expect(child.borderColor, isNull);
       expect(child.borderWidth, equals(EdgeInsets.zero)); // default value
       expect(child.backgroundColor, isNull);

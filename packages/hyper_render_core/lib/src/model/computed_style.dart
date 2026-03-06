@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../exceptions/hyper_render_exceptions.dart';
+
 /// Display type for CSS display property
 enum DisplayType {
   block,
@@ -148,46 +150,25 @@ enum ListStyleType {
 
 /// CSS transition definition
 class HyperTransition {
-  final String? property;
-  final int duration;
+  final String property;
+  final Duration duration;
   final HyperTimingFunction timingFunction;
-  final int delay;
+  final Duration delay;
 
   const HyperTransition({
-    this.property,
-    this.duration = 0,
+    required this.property,
+    required this.duration,
     this.timingFunction = HyperTimingFunction.ease,
-    this.delay = 0,
+    this.delay = Duration.zero,
   });
-
-  bool get isDefined => duration > 0;
 }
 
-/// The resolved CSS style for a single node in the Unified Document Tree.
+/// Computed style for a UDT node
 ///
-/// `ComputedStyle` is produced by the style resolver after applying the CSS
-/// cascade (UA defaults → author rules → inline styles → inheritance). It
-/// covers the full CSS2/CSS3 box model, typography, flexbox, grid, animation,
-/// and transform properties.
+/// Contains resolved style properties after CSS cascade and inheritance.
+/// Optimized for fast access during layout and painting.
 ///
-/// **Inheritance** — call [inheritFrom] to copy inheritable text properties
-/// (color, fontSize, fontFamily, etc.) from a parent node's style.
-///
-/// **Serialisation** — call [toTextStyle] to obtain a Flutter [TextStyle]
-/// suitable for painting text fragments.
-///
-/// **Immutable snapshots** — call [copyWith] to produce a new `ComputedStyle`
-/// with selected fields overridden while preserving all others.
-///
-/// ```dart
-/// final style = ComputedStyle(
-///   fontSize: 18,
-///   fontWeight: FontWeight.bold,
-///   color: Colors.black87,
-/// );
-///
-/// final larger = style.copyWith(fontSize: 24);
-/// ```
+/// Reference: doc1.txt - "Style System"
 class ComputedStyle {
   final Set<String> _explicitlySet = {};
 
@@ -294,17 +275,17 @@ class ComputedStyle {
     this.borderWidth = EdgeInsets.zero,
     this.borderColor,
     this.borderRadius,
-    this.color = const Color(0xFF000000),
-    this.fontSize = 14.0,
-    this.fontWeight = FontWeight.normal,
-    this.fontStyle = FontStyle.normal,
-    this.fontFamily,
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    FontStyle? fontStyle,
     this.textDecoration,
     this.textDecorationColor,
+    this.fontFamily,
     this.lineHeight,
     this.letterSpacing,
     this.wordSpacing,
-    this.textAlign = HyperTextAlign.left,
+    HyperTextAlign? textAlign,
     this.verticalAlign = HyperVerticalAlign.baseline,
     this.textTransform,
     this.whiteSpace,
@@ -340,22 +321,68 @@ class ComputedStyle {
     this.animationIterationCount,
     this.animationDirection = HyperAnimationDirection.normal,
     this.animationFillMode = HyperAnimationFillMode.none,
+    this.gridTemplateColumns,
+    this.gridTemplateRows,
+    this.gridAutoFlow,
+    this.gridColumnStart = 0,
+    this.gridColumnEnd = 0,
+    this.gridRowStart = 0,
+    this.gridRowEnd = 0,
+    this.gridColumnSpan = 1,
+    this.gridRowSpan = 1,
     this.colspan = 1,
     this.rowspan = 1,
-  });
+  })  : color = color ?? const Color(0xFF000000),
+        fontSize = fontSize ?? 14.0,
+        fontWeight = fontWeight ?? FontWeight.normal,
+        fontStyle = fontStyle ?? FontStyle.normal,
+        textAlign = textAlign ?? HyperTextAlign.left {
+    if (color != null) markExplicitlySet('color');
+    if (fontSize != null) markExplicitlySet('font-size');
+    if (fontWeight != null) markExplicitlySet('font-weight');
+    if (fontStyle != null) markExplicitlySet('font-style');
+    if (textAlign != null) markExplicitlySet('text-align');
+    if (textDecoration != null) markExplicitlySet('text-decoration');
+
+    if (this.fontSize < 0) {
+      throw ArgumentError.value(this.fontSize, 'fontSize', 'fontSize cannot be negative');
+    }
+    if (width != null && width! < 0) {
+      throw ArgumentError.value(width, 'width', 'width cannot be negative');
+    }
+    if (height != null && height! < 0) {
+      throw ArgumentError.value(height, 'height', 'height cannot be negative');
+    }
+    if (minWidth != null && minWidth! < 0) {
+      throw ArgumentError.value(minWidth, 'minWidth', 'minWidth cannot be negative');
+    }
+    if (maxWidth != null && maxWidth! < 0) {
+      throw ArgumentError.value(maxWidth, 'maxWidth', 'maxWidth cannot be negative');
+    }
+    if (minHeight != null && minHeight! < 0) {
+      throw ArgumentError.value(minHeight, 'minHeight', 'minHeight cannot be negative');
+    }
+    if (maxHeight != null && maxHeight! < 0) {
+      throw ArgumentError.value(maxHeight, 'maxHeight', 'maxHeight cannot be negative');
+    }
+    if (opacity < 0.0 || opacity > 1.0) {
+      throw ArgumentError.value(opacity, 'opacity', 'opacity must be between 0.0 and 1.0');
+    }
+  }
 
   void inheritFrom(ComputedStyle parent) {
-    color = parent.color;
-    fontSize = parent.fontSize;
-    fontWeight = parent.fontWeight;
-    fontStyle = parent.fontStyle;
-    fontFamily ??= parent.fontFamily;
-    lineHeight ??= parent.lineHeight;
-    letterSpacing ??= parent.letterSpacing;
-    wordSpacing ??= parent.wordSpacing;
-    textAlign = parent.textAlign;
-    whiteSpace ??= parent.whiteSpace;
-    listStyleType ??= parent.listStyleType;
+    if (!isExplicitlySet('color')) color = parent.color;
+    if (!isExplicitlySet('font-size')) fontSize = parent.fontSize;
+    if (!isExplicitlySet('font-weight')) fontWeight = parent.fontWeight;
+    if (!isExplicitlySet('font-style')) fontStyle = parent.fontStyle;
+    if (!isExplicitlySet('font-family')) fontFamily ??= parent.fontFamily;
+    if (!isExplicitlySet('line-height')) lineHeight ??= parent.lineHeight;
+    if (!isExplicitlySet('letter-spacing')) letterSpacing ??= parent.letterSpacing;
+    if (!isExplicitlySet('word-spacing')) wordSpacing ??= parent.wordSpacing;
+    if (!isExplicitlySet('text-align')) textAlign = parent.textAlign;
+    if (!isExplicitlySet('white-space')) whiteSpace ??= parent.whiteSpace;
+    if (!isExplicitlySet('list-style-type')) listStyleType ??= parent.listStyleType;
+    if (!isExplicitlySet('text-decoration')) textDecoration ??= parent.textDecoration;
   }
 
   TextStyle toTextStyle() {
@@ -426,10 +453,9 @@ class ComputedStyle {
     double? flexBasis,
     double? gap,
     int? order,
-    // Transform / opacity
+    // Transform/Animation
     Matrix4? transform,
     double? opacity,
-    // Transition / animation
     HyperTransition? transition,
     String? animationName,
     int? animationDuration,
@@ -451,10 +477,8 @@ class ComputedStyle {
     // Table
     int? colspan,
     int? rowspan,
-    // Custom properties (merged with existing, not replaced)
-    Map<String, String>? customProperties,
   }) {
-    final style = ComputedStyle(
+    final result = ComputedStyle(
       width: width ?? this.width,
       height: height ?? this.height,
       minWidth: minWidth ?? this.minWidth,
@@ -512,29 +536,36 @@ class ComputedStyle {
       animationIterationCount: animationIterationCount ?? this.animationIterationCount,
       animationDirection: animationDirection ?? this.animationDirection,
       animationFillMode: animationFillMode ?? this.animationFillMode,
+      gridTemplateColumns: gridTemplateColumns ?? this.gridTemplateColumns,
+      gridTemplateRows: gridTemplateRows ?? this.gridTemplateRows,
+      gridAutoFlow: gridAutoFlow ?? this.gridAutoFlow,
+      gridColumnStart: gridColumnStart ?? this.gridColumnStart,
+      gridColumnEnd: gridColumnEnd ?? this.gridColumnEnd,
+      gridRowStart: gridRowStart ?? this.gridRowStart,
+      gridRowEnd: gridRowEnd ?? this.gridRowEnd,
+      gridColumnSpan: gridColumnSpan ?? this.gridColumnSpan,
+      gridRowSpan: gridRowSpan ?? this.gridRowSpan,
       colspan: colspan ?? this.colspan,
       rowspan: rowspan ?? this.rowspan,
     );
-    // Grid fields are not constructor params — set post-construction
-    style.gridTemplateColumns = gridTemplateColumns ?? this.gridTemplateColumns;
-    style.gridTemplateRows = gridTemplateRows ?? this.gridTemplateRows;
-    style.gridAutoFlow = gridAutoFlow ?? this.gridAutoFlow;
-    style.gridColumnStart = gridColumnStart ?? this.gridColumnStart;
-    style.gridColumnEnd = gridColumnEnd ?? this.gridColumnEnd;
-    style.gridRowStart = gridRowStart ?? this.gridRowStart;
-    style.gridRowEnd = gridRowEnd ?? this.gridRowEnd;
-    style.gridColumnSpan = gridColumnSpan ?? this.gridColumnSpan;
-    style.gridRowSpan = gridRowSpan ?? this.gridRowSpan;
-    // Merge custom properties: caller's values override existing
-    style.customProperties = customProperties != null
-        ? {...this.customProperties, ...customProperties}
-        : Map.of(this.customProperties);
-    style._explicitlySet.addAll(_explicitlySet);
-    return style;
+
+    // Copy explicit flags
+    result.markAllExplicitlySet(_explicitlySet);
+    if (width != null) result.markExplicitlySet('width');
+    if (height != null) result.markExplicitlySet('height');
+    if (color != null) result.markExplicitlySet('color');
+    if (fontSize != null) result.markExplicitlySet('font-size');
+    if (fontWeight != null) result.markExplicitlySet('font-weight');
+    if (fontStyle != null) result.markExplicitlySet('font-style');
+    if (textAlign != null) result.markExplicitlySet('text-align');
+    if (lineHeight != null) result.markExplicitlySet('line-height');
+    if (letterSpacing != null) result.markExplicitlySet('letter-spacing');
+    if (wordSpacing != null) result.markExplicitlySet('word-spacing');
+    if (whiteSpace != null) result.markExplicitlySet('white-space');
+    if (textDecoration != null) result.markExplicitlySet('text-decoration');
+
+    return result;
   }
 
-  static final ComputedStyle defaultStyle = ComputedStyle(
-    fontSize: 14.0,
-    lineHeight: 1.7,
-  );
+  static final ComputedStyle defaultStyle = ComputedStyle();
 }
