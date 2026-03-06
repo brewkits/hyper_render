@@ -33,9 +33,9 @@ void main() {
       });
 
       test('heading font weights are bold', () {
-        expect(DesignTokens.h1FontWeight, equals(FontWeight.w600));
-        expect(DesignTokens.h2FontWeight, equals(FontWeight.w600));
-        expect(DesignTokens.h3FontWeight, equals(FontWeight.w600));
+        expect(DesignTokens.h1FontWeight, equals(FontWeight.bold));
+        expect(DesignTokens.h2FontWeight, equals(FontWeight.bold));
+        expect(DesignTokens.h3FontWeight, equals(FontWeight.bold));
       });
 
       test('body font weights are regular', () {
@@ -131,8 +131,8 @@ void main() {
 
     group('Light Theme Colors', () {
       test('text colors have proper contrast hierarchy', () {
-        // Primary is darkest
-        expect(DesignTokens.textPrimary.toARGB32(), equals(0xFF000000));
+        // Primary is Material Gray 900 (softer than pure black)
+        expect(DesignTokens.textPrimary.toARGB32(), equals(0xFF212121));
 
         // Secondary is lighter (higher luminance)
         expect(

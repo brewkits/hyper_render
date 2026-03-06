@@ -481,7 +481,7 @@ void main() {
 
   group('Cross-Platform: Real-World Content', () {
     testWidgets('News article renders on $currentPlatform', (tester) async {
-      const html = '''
+      final html = '''
 <article>
   <h1>Platform Test Article</h1>
   <p class="byline">Testing on $currentPlatform</p>

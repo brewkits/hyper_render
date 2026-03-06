@@ -7,12 +7,14 @@ class FlexboxDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Ensure white background for proper contrast
       appBar: AppBar(
         title: const Text('Flexbox Demo'),
         centerTitle: false,
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: false, // Custom back button from _BackBlockedPage
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -226,16 +228,16 @@ class FlexboxDemo extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.purple.shade700,
+                    color: Colors.purple.shade900,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'This demo showcases HyperRender\'s implementation of CSS Flexbox properties. '
               'Scroll down to see various flex layouts in action.',
-              style: TextStyle(fontSize: 14, height: 1.5),
+              style: TextStyle(fontSize: 14, height: 1.5, color: Colors.grey.shade800),
             ),
           ],
         ),
@@ -248,10 +250,10 @@ class FlexboxDemo extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12, top: 8),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Colors.purple,
+          color: Colors.purple.shade900,
         ),
       ),
     );
@@ -259,6 +261,7 @@ class FlexboxDemo extends StatelessWidget {
 
   Widget _buildExample(String label, String html) {
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       child: Padding(
@@ -268,9 +271,10 @@ class FlexboxDemo extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
+                color: Colors.grey.shade900,
               ),
             ),
             const SizedBox(height: 8),
