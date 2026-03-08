@@ -589,24 +589,14 @@ See [doc/CONTRIBUTING.md](doc/CONTRIBUTING.md) and the Architecture Decision Rec
 
 ---
 
-## See also
+## Support
 
-Other open-source Flutter packages by the same team:
-
-| Package | Description |
-|---------|-------------|
-| [`native_workmanager`](https://github.com/brewkits/native_workmanager) | High-performance background task manager using native Kotlin/Swift workers — executes tasks without spawning the Flutter Engine, saving up to 90% RAM and extending battery life. |
+- [Issues](https://github.com/brewkits/hyper_render/issues) — bug reports and feature requests
+- [Discussions](https://github.com/brewkits/hyper_render/discussions) — questions and ideas
+- datacenter111@gmail.com — direct contact
 
 ---
 
-## License
+MIT License · **Nguyễn Tuấn Việt** · [BrewKits](https://brewkits.dev)
 
-MIT — see [LICENSE](LICENSE).
-
----
-
-<div align="center">
-
-[Get Started](#quick-start) · [Examples](example/) · [Report a Bug](https://github.com/brewkits/hyper_render/issues)
-
-</div>
+If HyperRender saves you time, a star on GitHub goes a long way — it helps other developers find the package.
