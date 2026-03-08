@@ -69,68 +69,24 @@ HyperViewer(
 
 ---
 
-## Performance Characteristics
+## Performance
 
-### Verified Platforms ✅
+> Benchmarks measured on macOS Desktop (Apple Silicon, Flutter release mode). Mobile performance has not been independently verified — run `cd benchmark && flutter run --release -d <device-id>` on your own hardware.
 
-- **macOS Desktop (Apple Silicon M1/M2)**
-  - Parse 10KB HTML: 69ms
-  - Parse 50KB HTML: 276ms
-  - Scroll performance: 60fps on 25K+ character documents
-  - Memory usage: ~5MB for 10KB document
+| Document size | Parse time (macOS) | Recommendation |
+|:---:|:---:|:---|
+| < 10 KB | ~27 ms | Default mode |
+| 10 KB | ~69 ms | Default mode |
+| 50 KB | ~276 ms | Default mode or `virtualized` |
+| > 50 KB | varies | `HyperRenderMode.virtualized` |
 
-### Mobile Performance ⚠️
-
-**Status:** Being verified on real devices.
-
-**Preliminary Results:**
-- **iOS (iPhone 12+):** ~70-90% of desktop performance
-- **Android (mid-range+):** ~50-80% of desktop performance
-- **Budget devices:** May require optimization (use `virtualized` mode)
-
-> **⚠️ Important:** Performance varies significantly by device hardware, OS version, and document complexity. We strongly recommend running benchmarks on your specific target devices before production deployment.
-
-### Run Your Own Benchmarks
-
-```bash
-cd benchmark/
-flutter run --release -d <your-device-id>
-
-# Example output:
-# Parse 10KB: 142ms (iPhone 14)
-# Parse 10KB: 198ms (Samsung S22)
-# Memory: 8.5MB
-```
-
-### Performance Guidelines
-
-| Document Size | Experience | Recommendation |
-|--------------|-----------|----------------|
-| **< 10KB** | ⚡ Instant | Use default mode |
-| **10-50KB** | ⚡ Fast | Use default mode |
-| **50-100KB** | ⚠️ Good | Use `HyperRenderMode.virtualized` |
-| **> 100KB** | 🔴 Variable | Use pagination or chunking |
-
-**Example: Optimizing large documents**
+For very large documents (> 200 KB), combine virtualized mode with server-side pagination.
 
 ```dart
-// For documents > 50KB
 HyperViewer(
   html: largeArticle,
-  mode: HyperRenderMode.virtualized, // Enables ListView.builder
+  mode: HyperRenderMode.virtualized,
 )
-
-// For very large documents, consider pagination
-class PaginatedArticle extends StatelessWidget {
-  final List<String> pages;
-
-  Widget build(BuildContext context) {
-    return PageView.builder(
-      itemCount: pages.length,
-      itemBuilder: (_, index) => HyperViewer(html: pages[index]),
-    );
-  }
-}
 ```
 
 ---
@@ -391,7 +347,7 @@ What gets removed:
 | Parse time — 1 KB HTML | ~50 ms | **27 ms** |
 | Parse time — 10 KB HTML | ~250 ms (est.) | **69 ms** |
 | Parse time — 50 KB HTML | ~600 ms (est.) | **276 ms** |
-| CSS rule lookup (5,000 rules) | O(n) scan | **3 µs median (O(1) index)** |
+| CSS rule lookup (5,000 rules) | O(n) scan | **3 µs median** |
 | Float layout | ❌ | ✅ |
 | Text selection on 100 K chars | ❌ Crashes | ✅ |
 | Ruby / Furigana | ❌ | ✅ |
@@ -432,7 +388,7 @@ HyperRender uses a four-layer pipeline:
 │    CSS Style Resolver                                │
 │    UA defaults → <style> rules → inline → inherit   │
 │    Specificity cascade · CSS Variables · calc()      │
-│    O(1) tag/class/ID index via CssRuleIndex          │
+│    Indexed tag/class/ID lookup via CssRuleIndex       │
 └──────────────────────────┬───────────────────────────┘
                            ▼
 ┌──────────────────────────────────────────────────────┐
@@ -446,7 +402,7 @@ HyperRender uses a four-layer pipeline:
 A few implementation details worth noting:
 
 - **Single RenderObject** — the entire document is painted by one `RenderBox`. This is what makes float layout and cross-document selection possible.
-- **O(1) CSS lookup** — rules are indexed by tag name, class, and ID. Lookup time stays constant regardless of stylesheet size (verified: 3 µs median with 5,000 rules).
+- **Indexed CSS lookup** — rules are indexed by tag name, class, and ID at parse time. Measured: 3 µs median with 5,000 rules (see `benchmark/RESULTS.md`).
 - **Image LRU cache** — bounded at 50 MB. The oldest loaded images are evicted when the limit is reached; `ui.Image` GPU objects are properly disposed.
 - **Viewport culling** — paint methods skip fragments that fall outside the current clip bounds, reducing work for off-screen content.
 - **One-shot `ImageStreamListener`** — removes itself on both success and error to prevent listener accumulation.
