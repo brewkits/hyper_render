@@ -1,10 +1,27 @@
-# Exclude benchmark runner (standalone Flutter project with unresolvable imports)
+# Build artifacts (normally in .gitignore, must re-declare here since .pubignore overrides .gitignore)
+build/
+**/build/
+.dart_tool/
+**/.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.dill
+*.dill.track.dill
+
+# Example app (not needed on pub.dev)
+example/
+
+# Benchmark runner (standalone Flutter project with unresolvable imports)
 benchmark/
 
-# Exclude CI/CD and scripts
+# CI/CD and dev scripts
 .github/
 scripts/
 
-# Exclude internal dev files
+# Internal publish helpers
 pubspec.yaml.backup
 pubspec_publish_ready.yaml
+
+# macOS artifacts
+**/.DS_Store
+**/Pods/
