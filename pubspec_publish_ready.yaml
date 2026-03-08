@@ -31,7 +31,7 @@ dependencies:
   hyper_render_html: ^1.0.0
   hyper_render_markdown: ^1.0.0
   hyper_render_highlight: ^1.0.0
-  hyper_render_clipboard: ^1.0.0
+  hyper_render_clipboard: ^1.0.2
 
   # External dependencies
   flutter_highlight: ^0.7.0

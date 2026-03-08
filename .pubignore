@@ -6,8 +6,14 @@ build/
 *.dill
 *.dill.track.dill
 
-# Example app — exclude platform-specific folders and build output,
-# but keep example/example.dart for pub.dev scoring.
+# Sub-packages are independent pub.dev packages — exclude from root upload
+packages/
+
+# Tests — not needed by package consumers
+test/
+
+# Example app — exclude platform dirs, tests, and extra files.
+# Keep only example/example.dart for pub.dev scoring.
 example/android/
 example/ios/
 example/macos/
@@ -23,8 +29,13 @@ example/pubspec.yaml
 example/pubspec.lock
 example/analysis_options.yaml
 example/.metadata
+example/README.md
+example/test/
 
-# Benchmark runner (standalone Flutter project with unresolvable imports)
+# Screenshots (raw frames, not referenced in pubspec.yaml assets)
+assets/screenshots/
+
+# Benchmark runner
 benchmark/
 
 # CI/CD and dev scripts
@@ -34,6 +45,11 @@ scripts/
 # Internal publish helpers
 pubspec.yaml.backup
 pubspec_publish_ready.yaml
+
+# IDE files
+*.iml
+.idea/
+.vscode/
 
 # macOS artifacts
 **/.DS_Store
