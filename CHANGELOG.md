@@ -7,6 +7,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.0.2] - 2026-03-08
+
+- Fix `.pubignore` to exclude `packages/`, `test/`, IDE files — reduces upload size
+- Bump `hyper_render_clipboard` to `^1.0.2` (share_plus 12.x + super_clipboard 0.9.x support)
+
 ## [1.0.1] - 2026-03-08
 
 - Add `example/example.dart` for pub.dev example scoring
@@ -181,5 +186,6 @@ CSS lookup: 3–16 µs median (100–5,000 rules). Source: `benchmark/RESULTS.md
 
 ---
 
+[1.0.2]: https://github.com/brewkits/hyper_render/releases/tag/v1.0.2
 [1.0.1]: https://github.com/brewkits/hyper_render/releases/tag/v1.0.1
 [1.0.0]: https://github.com/brewkits/hyper_render/releases/tag/v1.0.0
