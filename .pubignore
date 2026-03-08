@@ -1,15 +1,28 @@
-# Build artifacts (normally in .gitignore, must re-declare here since .pubignore overrides .gitignore)
+# Build artifacts (must re-declare since .pubignore overrides .gitignore)
 build/
 **/build/
 .dart_tool/
 **/.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
 *.dill
 *.dill.track.dill
 
-# Example app (not needed on pub.dev)
-example/
+# Example app — exclude platform-specific folders and build output,
+# but keep example/example.dart for pub.dev scoring.
+example/android/
+example/ios/
+example/macos/
+example/linux/
+example/windows/
+example/web/
+example/build/
+example/.dart_tool/
+example/.flutter-plugins
+example/.flutter-plugins-dependencies
+example/lib/
+example/pubspec.yaml
+example/pubspec.lock
+example/analysis_options.yaml
+example/.metadata
 
 # Benchmark runner (standalone Flutter project with unresolvable imports)
 benchmark/

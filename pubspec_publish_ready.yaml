@@ -1,6 +1,6 @@
 name: hyper_render
 description: "Flutter rendering engine for HTML, Markdown, and Quill Delta. Single RenderObject — no widget tree. Supports CSS Float, Flexbox, Grid, Ruby/Furigana, and text selection."
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render
 issue_tracker: https://github.com/brewkits/hyper_render/issues

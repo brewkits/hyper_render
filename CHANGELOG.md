@@ -1,3 +1,8 @@
+## 1.0.1
+
+- Add `example/example.dart` for pub.dev example scoring
+- Fix `.pubignore` to correctly exclude build artifacts while keeping example
+
 # Changelog
 
 All notable changes to HyperRender are documented in this file.
