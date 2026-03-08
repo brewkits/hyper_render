@@ -1,0 +1,17 @@
+# Build artifacts
+build/
+.dart_tool/
+*.dill
+*.dill.track.dill
+
+# Dev files
+pubspec.yaml.backup
+pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# macOS
+.DS_Store

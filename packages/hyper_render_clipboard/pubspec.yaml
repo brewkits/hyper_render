@@ -13,8 +13,7 @@ dependencies:
     sdk: flutter
 
   # Core hyper_render for interfaces
-  hyper_render_core:
-    path: ../hyper_render_core
+  hyper_render_core: ^1.0.0
 
   # Cross-platform clipboard with image support
   super_clipboard: ">=0.8.0 <1.0.0"
