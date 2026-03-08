@@ -16,10 +16,15 @@
 
 ## Visual Showcase
 
-| **CSS Float — Magazine Layout** | **High Performance** | **Flexbox & Smart Tables** |
+| **CSS Float — Magazine Layout** | **Ruby / Furigana** | **Text Selection** |
 |:---:|:---:|:---:|
-| ![CSS Float Demo](assets/float_demo.gif) | ![Performance Demo](assets/performance_demo.gif) | ![Flexbox Demo](assets/layout_demo.gif) |
-| *Text wrapping around images — impossible in widget-tree renderers.* | *Smooth scrolling on large documents (Desktop verified).* | *Flexbox gap/wrap and auto-scaling tables.* |
+| ![CSS Float Demo](assets/float_demo.gif) | ![Ruby Demo](assets/ruby_demo.gif) | ![Selection Demo](assets/selection_demo.gif) |
+| *Text wrapping around floated images — impossible in widget-tree renderers.* | *Furigana centered above base glyphs. Kinsoku rules applied across the full line.* | *Continuous span tree: select across headings, paragraphs, and table cells.* |
+
+| **Advanced Tables** | **HyperRender vs FWFH** | **Virtualized Mode** |
+|:---:|:---:|:---:|
+| ![Table Demo](assets/table_demo.gif) | ![Comparison Demo](assets/comparison_demo.gif) | ![Performance Demo](assets/performance_demo.gif) |
+| *colspan, rowspan, auto-scaling, and horizontal scroll strategies.* | *Side-by-side: same HTML in HyperRender vs flutter_widget_from_html.* | *Smooth scrolling in virtualized mode — only visible sections are built and painted.* |
 
 ---
 
