@@ -1,6 +1,6 @@
 name: hyper_render_clipboard
 description: Image clipboard support for HyperRender using super_clipboard. Enables copying, saving, and sharing images.
-version: 1.0.0
+version: 1.0.2
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_clipboard
 
@@ -13,11 +13,10 @@ dependencies:
     sdk: flutter
 
   # Core hyper_render for interfaces
-  hyper_render_core:
-    path: ../hyper_render_core
+  hyper_render_core: ^1.0.0
 
   # Cross-platform clipboard with image support
-  super_clipboard: ^0.8.0
+  super_clipboard: ">=0.8.0 <1.0.0"
 
   # HTTP for downloading images
   http: ^1.2.0
@@ -26,7 +25,7 @@ dependencies:
   path_provider: ^2.1.0
 
   # Share functionality
-  share_plus: ^10.0.0
+  share_plus: ">=10.0.0 <13.0.0"
 
 topics:
   - flutter

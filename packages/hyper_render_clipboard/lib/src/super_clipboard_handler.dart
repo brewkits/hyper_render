@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:share_plus/share_plus.dart' show SharePlus, ShareParams, XFile;
 import 'package:super_clipboard/super_clipboard.dart' show DataWriterItem, Formats, SystemClipboard;
 
 /// Image clipboard handler using super_clipboard package
@@ -169,10 +169,13 @@ class SuperClipboardHandler implements ImageClipboardHandler {
       final file = File('${tempDir.path}/$name');
       await file.writeAsBytes(bytes);
 
-      // Share using share_plus
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: text,
+      // Share using share_plus (SharePlus.instance.share is the current API;
+      // Share.shareXFiles is deprecated since share_plus 11.0.0)
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: text,
+        ),
       );
 
       return true;

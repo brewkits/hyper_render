@@ -1,8 +1,3 @@
-## 1.0.1
-
-- Add `example/example.dart` for pub.dev example scoring
-- Fix `.pubignore` to correctly exclude build artifacts while keeping example
-
 # Changelog
 
 All notable changes to HyperRender are documented in this file.
@@ -11,6 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+
+## [1.0.1] - 2026-03-08
+
+- Add `example/example.dart` for pub.dev example scoring
+- Fix `.pubignore` to correctly exclude build artifacts while keeping example
 
 ## [1.0.0] - 2026-03-01
 
@@ -181,4 +181,5 @@ CSS lookup: 3–16 µs median (100–5,000 rules). Source: `benchmark/RESULTS.md
 
 ---
 
+[1.0.1]: https://github.com/brewkits/hyper_render/releases/tag/v1.0.1
 [1.0.0]: https://github.com/brewkits/hyper_render/releases/tag/v1.0.0
