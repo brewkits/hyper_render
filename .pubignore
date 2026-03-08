@@ -7,7 +7,11 @@ build/
 *.dill.track.dill
 
 # Sub-packages are independent pub.dev packages — exclude from root upload
-packages/
+# NOTE: 'packages/' must NOT be listed here — dart pub walks up to the git root
+# and applies this file when publishing sub-packages too, which would exclude
+# all their files. Add 'packages/' back only when publishing the root package,
+# then remove it immediately after.
+packages/hyper_render_devtools/
 
 # Tests — not needed by package consumers
 test/
