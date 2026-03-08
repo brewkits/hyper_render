@@ -1,0 +1,10 @@
+# Exclude benchmark runner (standalone Flutter project with unresolvable imports)
+benchmark/
+
+# Exclude CI/CD and scripts
+.github/
+scripts/
+
+# Exclude internal dev files
+pubspec.yaml.backup
+pubspec_publish_ready.yaml
