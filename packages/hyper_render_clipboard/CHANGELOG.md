@@ -1,3 +1,8 @@
+## 1.0.3
+
+- Fix `share_plus` lower bound constraint: `>=10.0.0` → `>=11.0.0` to match `SharePlus`/`ShareParams` API availability
+- Add unit tests for `SuperClipboardHandler` and `DefaultImageClipboardHandler`
+
 ## 1.0.2
 
 - Migrate `share_plus` API: `Share.shareXFiles()` → `SharePlus.instance.share(ShareParams(...))` (compatible with share_plus 11+ / 12.x)

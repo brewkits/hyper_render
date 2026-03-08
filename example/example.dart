@@ -128,10 +128,11 @@ class _SelectionExample extends StatelessWidget {
       selectable: true,
       selectionMenuActionsBuilder: (ctrl) => [
         SelectionMenuAction(
+          icon: Icons.copy,
           label: 'Copy',
-          onTap: () {
+          onPressed: () {
             ctrl.copySelection();
-            ctrl.hideMenu();
+            ctrl.clearSelection();
           },
         ),
       ],
