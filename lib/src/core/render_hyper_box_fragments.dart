@@ -58,6 +58,14 @@ class _CodeBlockFragment extends Fragment {
   }) : super(type: FragmentType.atomic);
 }
 
+/// Fragment for <details>/<summary> elements rendered as child widgets
+class _DetailsFragment extends Fragment {
+  _DetailsFragment({
+    required super.sourceNode,
+    required super.style,
+  }) : super(type: FragmentType.atomic);
+}
+
 class _InlineStartFragment extends Fragment {
   _InlineStartFragment({
     required super.sourceNode,

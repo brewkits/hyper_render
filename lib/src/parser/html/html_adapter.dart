@@ -48,6 +48,8 @@ class HtmlAdapter {
     'ul': ComputedStyle(display: DisplayType.block, padding: const EdgeInsets.only(left: 40)),
     'ol': ComputedStyle(display: DisplayType.block, padding: const EdgeInsets.only(left: 40)),
     'li': ComputedStyle(display: DisplayType.block, margin: const EdgeInsets.symmetric(vertical: 4)),
+    'details': ComputedStyle(display: DisplayType.block, margin: const EdgeInsets.symmetric(vertical: 4)),
+    'summary': ComputedStyle(display: DisplayType.block),
   'thead': ComputedStyle(display: DisplayType.block),
   'tbody': ComputedStyle(display: DisplayType.block),
   'tfoot': ComputedStyle(display: DisplayType.block),

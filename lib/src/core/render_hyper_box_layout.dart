@@ -121,6 +121,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         style: style,
       ));
       // Skip tokenizing children - they're handled by CodeBlockWidget
+    } else if (tagName == 'details') {
+      _fragments.add(_DetailsFragment(
+        sourceNode: node,
+        style: style,
+      ));
+      // Skip tokenizing children - they're handled by HyperDetailsWidget
     } else {
       for (final child in node.children) {
         _tokenizeNode(child, node);
@@ -360,6 +366,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           fragment is _FloatFragment ||
           fragment is _TableFragment ||
           fragment is _CodeBlockFragment ||
+          fragment is _DetailsFragment ||
           fragment is _InlineStartFragment ||
           fragment is _InlineEndFragment) {
         fragment.measuredSize = Size.zero;
@@ -686,6 +693,28 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         fragment.measuredSize = Size(blockWidth, blockHeight);
         fragment.offset = Offset(leftInset, currentY);
         currentY += blockHeight + 8; // Add small margin after code block
+        return;
+      }
+
+      // Handle <details>/<summary> - rendered as HyperDetailsWidget child
+      if (fragment is _DetailsFragment) {
+        finishLine();
+        RenderBox? detailsChild = _findChildForFragment(fragment);
+        double blockHeight = 40.0; // Default fallback
+        double blockWidth = _maxWidth;
+
+        if (detailsChild != null) {
+          detailsChild.layout(
+            BoxConstraints(maxWidth: _maxWidth),
+            parentUsesSize: true,
+          );
+          blockHeight = detailsChild.size.height;
+          blockWidth = detailsChild.size.width;
+        }
+
+        fragment.measuredSize = Size(blockWidth, blockHeight);
+        fragment.offset = Offset(leftInset, currentY);
+        currentY += blockHeight + 4;
         return;
       }
 
@@ -1395,9 +1424,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       final isAtomicFragment = fragment.type == FragmentType.atomic;
       final isTableFragment = fragment is _TableFragment;
       final isCodeBlockFragment = fragment is _CodeBlockFragment;
+      final isDetailsFragment = fragment is _DetailsFragment;
       final isFloatFragment = fragment is _FloatFragment;
 
-      if (isAtomicFragment || isTableFragment || isCodeBlockFragment || isFloatFragment) {
+      if (isAtomicFragment || isTableFragment || isCodeBlockFragment || isDetailsFragment || isFloatFragment) {
         fragmentMap[fragment.sourceNode] = fragment;
       }
     }
@@ -1430,9 +1460,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       final isAtomicFragment = f.type == FragmentType.atomic;
       final isTableFragment = f is _TableFragment;
       final isCodeBlockFragment = f is _CodeBlockFragment;
+      final isDetailsFragment = f is _DetailsFragment;
       final isFloatFragment = f is _FloatFragment;
 
-      if (!(isAtomicFragment || isTableFragment || isCodeBlockFragment || isFloatFragment)) {
+      if (!(isAtomicFragment || isTableFragment || isCodeBlockFragment || isDetailsFragment || isFloatFragment)) {
         return false;
       }
 
