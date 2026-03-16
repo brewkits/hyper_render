@@ -2012,6 +2012,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
 
   int _currentTestIndex = 0;
   final Map<String, Duration> _renderTimes = {};
+  bool _showInfoPanel = false;
 
   String _getExpectedBehavior(int index) {
     switch (index) {
@@ -2141,9 +2142,8 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
             ),
           ),
 
-          // Feature comparison table
+          // Feature comparison table (collapsible)
           Container(
-            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
               border: Border(top: BorderSide(color: Colors.grey.shade300)),
@@ -2151,14 +2151,51 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Feature Support:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                // Toggle button row
+                InkWell(
+                  onTap: () => setState(() => _showInfoPanel = !_showInfoPanel),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.table_chart_outlined,
+                          size: 16,
+                          color: Colors.grey.shade700,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Feature Comparison',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          _showInfoPanel ? Icons.expand_less : Icons.expand_more,
+                          color: Colors.grey.shade600,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                _buildFeatureTable(),
-                const SizedBox(height: 12),
-                _buildPerformanceChart(),
+                if (_showInfoPanel)
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 300),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildFeatureTable(),
+                          const SizedBox(height: 12),
+                          _buildPerformanceChart(),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -2171,13 +2208,10 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
     return _buildTimedWidget(
       'HyperRender',
       () {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: HyperViewer(
-            html: html,
-            mode: HyperRenderMode.sync,
-            selectable: true, // Enable text selection for testing
-          ),
+        return HyperViewer(
+          html: html,
+          mode: HyperRenderMode.sync,
+          selectable: true,
         );
       },
     );
