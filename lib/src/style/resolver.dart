@@ -155,6 +155,13 @@ class StyleResolver {
       display: DisplayType.block,
       margin: const EdgeInsets.symmetric(vertical: 4),
     ),
+    'details': ComputedStyle(
+      display: DisplayType.block,
+      margin: const EdgeInsets.symmetric(vertical: 4),
+    ),
+    'summary': ComputedStyle(
+      display: DisplayType.block,
+    ),
     'table': ComputedStyle(
       display: DisplayType.table,
       margin: const EdgeInsets.symmetric(vertical: 16),
