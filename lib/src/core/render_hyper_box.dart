@@ -541,9 +541,13 @@ class RenderHyperBox extends RenderBox
       // Skipped when fragments and constraint width are both unchanged —
       // e.g. a repaint-only trigger (selection change, scroll) that happens
       // to call performLayout.  Version mismatch forces a full rebuild.
+      // <details> elements can change height dynamically (expand/collapse),
+      // so always redo line layout when the document contains any.
+      final bool hasDetailsFragments = _fragments.any((f) => f is _DetailsFragment);
       final bool needsLineLayout = _linesFragmentsVersion != _fragmentsVersion ||
           _linesMaxWidth != _maxWidth ||
-          _lines.isEmpty;
+          _lines.isEmpty ||
+          hasDetailsFragments;
 
       if (needsLineLayout) {
         // Step 2: Measure all fragments
