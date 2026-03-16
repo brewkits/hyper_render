@@ -218,7 +218,7 @@ const _welcomeEmail = '''
                   <td width="36" style="font-size:22px;">🚀</td>
                   <td>
                     <div style="font-size:14px; font-weight:700; color:#212121;">Free shipping on all orders</div>
-                    <div style="font-size:13px; color:#757575;">On orders over $50</div>
+                    <div style="font-size:13px; color:#757575;">On orders over \$50</div>
                   </td>
                 </tr>
               </table>
@@ -478,7 +478,7 @@ const _orderEmail = '''
             <div style="font-size:12px; color:#9E9E9E;">Digital download · License: 1 dev</div>
           </td>
           <td style="padding:12px 14px; text-align:center; font-size:14px; color:#424242;">1</td>
-          <td style="padding:12px 14px; text-align:right; font-size:14px; font-weight:600; color:#212121;">$79.00</td>
+          <td style="padding:12px 14px; text-align:right; font-size:14px; font-weight:600; color:#212121;">\$79.00</td>
         </tr>
         <tr style="border-top:1px solid #F0F0F0; background:#FAFAFA;">
           <td style="padding:12px 14px;">
@@ -486,7 +486,7 @@ const _orderEmail = '''
             <div style="font-size:12px; color:#9E9E9E;">12 months · Unlimited apps</div>
           </td>
           <td style="padding:12px 14px; text-align:center; font-size:14px; color:#424242;">1</td>
-          <td style="padding:12px 14px; text-align:right; font-size:14px; font-weight:600; color:#212121;">$49.00</td>
+          <td style="padding:12px 14px; text-align:right; font-size:14px; font-weight:600; color:#212121;">\$49.00</td>
         </tr>
         <tr style="border-top:1px solid #F0F0F0;">
           <td style="padding:12px 14px;">
@@ -494,27 +494,27 @@ const _orderEmail = '''
             <div style="font-size:12px; color:#9E9E9E;">Figma + Flutter components</div>
           </td>
           <td style="padding:12px 14px; text-align:center; font-size:14px; color:#424242;">2</td>
-          <td style="padding:12px 14px; text-align:right; font-size:14px; font-weight:600; color:#212121;">$38.00</td>
+          <td style="padding:12px 14px; text-align:right; font-size:14px; font-weight:600; color:#212121;">\$38.00</td>
         </tr>
         <!-- Totals -->
         <tr style="border-top:1px solid #E0E0E0; background:#F5F5F5;">
           <td colspan="2" style="padding:10px 14px; font-size:13px; color:#757575;">Subtotal</td>
-          <td style="padding:10px 14px; text-align:right; font-size:13px; color:#424242;">$166.00</td>
+          <td style="padding:10px 14px; text-align:right; font-size:13px; color:#424242;">\$166.00</td>
         </tr>
         <tr style="background:#F5F5F5;">
           <td colspan="2" style="padding:6px 14px; font-size:13px; color:#757575;">Discount (WELCOME20)</td>
-          <td style="padding:6px 14px; text-align:right; font-size:13px; color:#00897B;">−$33.20</td>
+          <td style="padding:6px 14px; text-align:right; font-size:13px; color:#00897B;">−\$33.20</td>
         </tr>
         <tr style="background:#F5F5F5;">
           <td colspan="2" style="padding:6px 14px; font-size:13px; color:#757575;">Tax (8.5%)</td>
-          <td style="padding:6px 14px; text-align:right; font-size:13px; color:#424242;">$11.28</td>
+          <td style="padding:6px 14px; text-align:right; font-size:13px; color:#424242;">\$11.28</td>
         </tr>
         <tr style="border-top:2px solid #E0E0E0; background:white;">
           <td colspan="2" style="padding:14px 14px; font-size:16px; font-weight:800; color:#212121;">
             Total
           </td>
           <td style="padding:14px 14px; text-align:right; font-size:16px; font-weight:800; color:#00897B;">
-            $144.08
+            \$144.08
           </td>
         </tr>
       </table>
@@ -539,7 +539,7 @@ const _orderEmail = '''
             </div>
             <div style="font-size:13px; color:#424242; line-height:1.6;">
               Visa ···· 4242<br/>
-              <span style="font-size:12px; color:#00897B;">✓ Charged $144.08</span>
+              <span style="font-size:12px; color:#00897B;">✓ Charged \$144.08</span>
             </div>
           </td>
         </tr>
@@ -637,7 +637,7 @@ HyperViewer(
                 child: _CodeBlock(label: e.key, code: e.value),
               )),
           const SizedBox(height: 8),
-          _SectionTitle('What's supported in HTML emails', color: DemoColors.primary),
+          _SectionTitle("What's supported in HTML emails", color: DemoColors.primary),
           const SizedBox(height: 8),
           _FeatureGrid(features: const [
             ('✅', 'Nested <table> layouts'),

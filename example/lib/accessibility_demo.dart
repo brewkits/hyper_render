@@ -323,7 +323,6 @@ MyWidget()        // Not as good</code></pre>
                     'Hide from screen readers (decorative content only)',
                   ),
                   value: _excludeFromSemantics,
-                  activeThumbColor: Colors.orange,
                   onChanged: (value) {
                     setState(() => _excludeFromSemantics = value);
                   },
