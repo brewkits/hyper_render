@@ -1376,10 +1376,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       } else if (parentData.fragment != null) {
         final fragment = parentData.fragment!;
         // Always layout to ensure parent data is properly cleaned
-        child.layout(
-          BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
-          parentUsesSize: true,
-        );
+        if (fragment is _DetailsFragment) {
+          // Use unconstrained height so HyperDetailsWidget is NOT a relayout boundary
+          // This ensures setState toggle propagates markNeedsLayout to parent RenderHyperBox
+          child.layout(BoxConstraints(maxWidth: _maxWidth), parentUsesSize: true);
+        } else {
+          child.layout(
+            BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
+            parentUsesSize: true,
+          );
+        }
         parentData.offset = fragment.offset ?? Offset.zero;
         wasLaidOut = true;
       } else if (parentData.sourceNode != null) {
@@ -1387,10 +1393,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final fragment = _findFragmentForNode(parentData.sourceNode!);
         if (fragment != null) {
           parentData.fragment = fragment;
-          child.layout(
-            BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
-            parentUsesSize: true,
-          );
+          if (fragment is _DetailsFragment) {
+            child.layout(BoxConstraints(maxWidth: _maxWidth), parentUsesSize: true);
+          } else {
+            child.layout(
+              BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
+              parentUsesSize: true,
+            );
+          }
           parentData.offset = fragment.offset ?? Offset.zero;
           wasLaidOut = true;
         }
