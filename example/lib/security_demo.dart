@@ -206,7 +206,6 @@ class _SecurityDemoState extends State<SecurityDemo> {
                     'Removes dangerous tags and attributes (RECOMMENDED)',
                   ),
                   value: _sanitizeEnabled,
-                  activeThumbColor: Colors.green,
                   onChanged: (value) {
                     setState(() => _sanitizeEnabled = value);
                   },

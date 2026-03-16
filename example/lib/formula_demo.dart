@@ -456,7 +456,6 @@ class _CustomBuilderTabState extends State<_CustomBuilderTab> {
                 Switch(
                   value: _useCustomBuilder,
                   onChanged: (v) => setState(() => _useCustomBuilder = v),
-                  activeThumbColor: Colors.indigo,
                 ),
               ],
             ),
