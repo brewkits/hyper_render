@@ -5,6 +5,33 @@ All notable changes to HyperRender will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-17
+
+### ✨ Aesthetic & Visual Quality Enhancements (Phase 1 & 2)
+
+#### 🎨 Advanced CSS Support
+- **CSS Box Shadow**: Full support for `box-shadow` property with multiple shadows, blur, and spread.
+- **CSS Gradients**: Support for `linear-gradient` in `background` and `background-image` properties.
+- **Typography Enhancements**: Enabled font features (ligatures, proportional figures) by default for superior readability.
+- **Consistent Text Rendering**: Implemented `TextHeightBehavior` for predictable vertical rhythm across all platforms.
+
+#### 🚀 Rendering Quality
+- **Retina-Ready Images**: Explicitly set `FilterQuality.medium` for all images, ensuring crisp rendering on high-DPI displays.
+- **Anti-Aliasing Guarantee**: Explicitly enabled anti-aliasing on all paint operations to eliminate jagged edges on borders and shapes.
+- **Crisp Borders**: Improved border rendering with `StrokeCap.square` for professional-looking corners.
+
+#### 🛠️ Core Improvements
+- **Adaptive Selection**: Native-feeling text selection colors that automatically adapt to the platform (iOS Blue vs Material Blue).
+- **Theme-Aware Selection**: Added `selectionColor` property to `HyperViewer` and `HyperRenderWidget` for custom branding.
+- **Stability**: Added comprehensive error boundaries to layout and paint cycles to prevent app crashes from malformed content.
+- **Security**: Reinforced JSON parsing error handling in Delta adapters.
+
+### 📦 Packages Updated
+- `hyper_render` (wrapper)
+- `hyper_render_core`
+
+---
+
 ## [1.0.0] - 2026-02-11
 
 ### 🎉 Initial Stable Release

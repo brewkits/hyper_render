@@ -83,6 +83,7 @@ parameter to delegate to a WebView or other renderer — see
 | `text-decoration` | underline, line-through, overline, none |
 | `text-transform` | uppercase, lowercase, capitalize |
 | `white-space` | normal, pre, pre-wrap, nowrap |
+| `text-overflow` | clip, ellipsis |
 | `direction` / `dir` attr | ltr, rtl |
 
 ### Box Model
@@ -94,6 +95,7 @@ parameter to delegate to a WebView or other renderer — see
 | `margin` | All shorthand forms; `auto` on block elements |
 | `padding` | All shorthand forms |
 | `border` | `border`, `border-width`, `border-color`, `border-style` |
+| `border-style` | solid, dashed, dotted, double, none |
 | `border-radius` | px, % |
 | `box-sizing` | border-box, content-box |
 | `overflow` | visible, hidden |
@@ -114,8 +116,8 @@ parameter to delegate to a WebView or other renderer — see
 | Property | Support |
 |----------|---------|
 | `background-color` | Full color support |
-| `background-image` | `url()` for network/asset images (basic) |
-| `background-size` | Not supported |
+| `background-image` | `url()`, `linear-gradient()` |
+| `background-size` | cover, contain, fill |
 | `background-position` | Not supported |
 
 ### Effects
@@ -123,8 +125,10 @@ parameter to delegate to a WebView or other renderer — see
 | Property | Support |
 |----------|---------|
 | `opacity` | Full (0.0–1.0) |
-| `box-shadow` | Not supported |
-| `text-shadow` | Not supported |
+| `box-shadow` | x y blur spread color (multiple shadows) |
+| `text-shadow` | x y blur color (multiple shadows) |
+| `filter` | blur, brightness, contrast |
+| `backdrop-filter` | blur (Glassmorphism) |
 | `transform` | Not supported |
 | `clip-path` | Not supported |
 
@@ -175,4 +179,4 @@ The following will **not** render correctly in hyper_render.  Use
 
 ---
 
-*Last updated: 2026-02-26*
+*Last updated: March 17, 2026*
