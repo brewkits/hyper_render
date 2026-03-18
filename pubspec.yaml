@@ -1,6 +1,6 @@
 name: hyper_render
 description: "The Universal Content Engine for Flutter - A high-performance rendering engine for HTML, Markdown, and Quill Delta with perfect text selection, advanced CSS support, and CJK typography."
-version: 1.0.0
+version: 1.1.0
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render
 issue_tracker: https://github.com/brewkits/hyper_render/issues

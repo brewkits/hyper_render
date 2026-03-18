@@ -59,6 +59,12 @@ class HyperSelectionOverlay extends StatefulWidget {
   final List<SelectionMenuAction> Function(HyperSelectionOverlayState)?
       menuActionsBuilder;
 
+  /// Color for text selection highlight
+  final Color? selectionColor;
+
+  /// Text direction for layout
+  final TextDirection? textDirection;
+
   /// Whether to show handles
   final bool showHandles;
 
@@ -73,6 +79,8 @@ class HyperSelectionOverlay extends StatefulWidget {
     this.widgetBuilder,
     this.selectable = true,
     this.handleColor = const Color(0xFF2196F3),
+    this.selectionColor,
+    this.textDirection,
     this.menuBackgroundColor,
     this.contextMenuBuilder,
     this.menuActionsBuilder,
@@ -313,6 +321,8 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
                   onLinkTap: widget.onLinkTap,
                   widgetBuilder: widget.widgetBuilder,
                   selectable: widget.selectable,
+                  textDirection: widget.textDirection ?? Directionality.of(context),
+                  selectionColor: widget.selectionColor,
                   onSelectionChanged: _onSelectionChanged,
                 ),
               ),
@@ -552,6 +562,7 @@ extension HyperRenderWidgetSelectionExtension on HyperRenderWidget {
   /// Wrap with selection overlay for full UX features
   Widget withSelectionOverlay({
     Color handleColor = const Color(0xFF2196F3),
+    Color? selectionColor,
     Widget Function(BuildContext, HyperSelectionOverlayState)?
         contextMenuBuilder,
   }) {
@@ -562,6 +573,7 @@ extension HyperRenderWidgetSelectionExtension on HyperRenderWidget {
       widgetBuilder: widgetBuilder,
       selectable: selectable,
       handleColor: handleColor,
+      selectionColor: selectionColor ?? this.selectionColor,
       contextMenuBuilder: contextMenuBuilder,
     );
   }

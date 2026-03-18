@@ -92,33 +92,13 @@ class DemoHomePage extends StatelessWidget {
         children: [
           _buildHeader(context),
           const SizedBox(height: 24),
-          _buildDemoCard(
-            context,
-            icon: Icons.auto_awesome,
-            title: 'Kitchen Sink',
-            subtitle: 'All features: Float, Selection, Ruby, Widget Injection',
-            color: DemoColors.primary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const KitchenSinkDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.view_column,
-            title: 'Flexbox Layout',
-            subtitle: 'Modern CSS Flexbox: justify-content, align-items, gap, flex-direction, flex-wrap',
-            color: DemoColors.primary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const FlexboxDemo()),
-            ),
-          ),
+          // ── Layout ────────────────────────────────────────────────────────
+          _buildSectionHeader(context, 'Layout'),
           _buildDemoCard(
             context,
             icon: Icons.view_quilt,
             title: 'Float Layout',
-            subtitle: 'CSS float: left/right - Text wrapping around images',
+            subtitle: 'Text wraps around left/right floated images — including 2-float and 4-corner layouts',
             color: DemoColors.primary,
             onTap: () => Navigator.push(
               context,
@@ -127,9 +107,44 @@ class DemoHomePage extends StatelessWidget {
           ),
           _buildDemoCard(
             context,
+            icon: Icons.view_column,
+            title: 'Flexbox Layout',
+            subtitle: 'CSS flexbox in pure Flutter — row/column, wrapping, alignment, gap',
+            color: DemoColors.primary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FlexboxDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.table_chart,
+            title: 'Tables',
+            subtitle: 'Simple, wide, nested, and complex tables with auto column sizing',
+            color: DemoColors.primary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TableDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.table_chart_outlined,
+            title: 'Wide Table Strategies',
+            subtitle: 'Tables wider than the screen — scroll, shrink-to-fit, or auto scale',
+            color: Colors.teal,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SmartTableDemo()),
+            ),
+          ),
+          // ── Text & Typography ─────────────────────────────────────────────
+          _buildSectionHeader(context, 'Text & Typography'),
+          _buildDemoCard(
+            context,
             icon: Icons.select_all,
-            title: 'Text Selection (Enhanced ⭐)',
-            subtitle: 'Rich menu: Copy, Share, Search, Translate, Define...',
+            title: 'Text Selection',
+            subtitle: 'Long-press to select, drag handles to resize, Copy/Share/Search from the popup menu',
             color: DemoColors.secondary,
             onTap: () => Navigator.push(
               context,
@@ -139,8 +154,8 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.translate,
-            title: 'Ruby Annotation',
-            subtitle: '振り仮名 (Furigana) for Japanese/Chinese',
+            title: 'Ruby Annotation (Furigana)',
+            subtitle: 'Phonetic guide text above kanji — used in Japanese and Chinese',
             color: DemoColors.secondary,
             onTap: () => Navigator.push(
               context,
@@ -150,8 +165,8 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.menu_book,
-            title: 'Manga & CJK Typography ⭐',
-            subtitle: 'Furigana · Panel grid layout · Japanese story · RTL',
+            title: 'Manga & CJK Typography',
+            subtitle: 'Furigana, vertical text, manga panel grid — Japanese/Chinese content',
             color: const Color(0xFFB71C1C),
             onTap: () => Navigator.push(
               context,
@@ -160,20 +175,9 @@ class DemoHomePage extends StatelessWidget {
           ),
           _buildDemoCard(
             context,
-            icon: Icons.widgets,
-            title: 'Widget Injection',
-            subtitle: 'Embed Flutter Widgets in HTML',
-            color: DemoColors.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const WidgetInjectionDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
             icon: Icons.format_paint,
-            title: 'Inline Decoration',
-            subtitle: 'Background and border wrap correctly on line breaks',
+            title: 'Inline Highlight & Decoration',
+            subtitle: 'Colored background and border on inline text that wraps across lines',
             color: DemoColors.secondary,
             onTap: () => Navigator.push(
               context,
@@ -182,42 +186,33 @@ class DemoHomePage extends StatelessWidget {
           ),
           _buildDemoCard(
             context,
-            icon: Icons.article,
-            title: 'Real Content',
-            subtitle: 'Blog post and novel with full features',
+            icon: Icons.style,
+            title: 'CSS Properties',
+            subtitle: 'text-shadow, text-overflow, border styles, writing direction, and 60+ more',
             color: DemoColors.primary,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const RealContentDemo()),
+              MaterialPageRoute(builder: (_) => const CssPropertiesDemo()),
             ),
           ),
           _buildDemoCard(
             context,
-            icon: Icons.table_chart,
-            title: 'Table Demos',
-            subtitle: 'Simple, wide, complex, and nested tables',
-            color: DemoColors.primary,
+            icon: Icons.calculate,
+            title: 'Math Formulas',
+            subtitle: 'Render Greek letters, fractions, physics equations via custom widget builder',
+            color: DemoColors.secondary,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const TableDemo()),
+              MaterialPageRoute(builder: (_) => const FormulaDemo()),
             ),
           ),
-          _buildDemoCard(
-            context,
-            icon: Icons.code,
-            title: 'Code Blocks',
-            subtitle: 'Syntax highlighting with <pre><code> elements',
-            color: DemoColors.accent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CodeBlockDemo()),
-            ),
-          ),
+          // ── Media ─────────────────────────────────────────────────────────
+          _buildSectionHeader(context, 'Media'),
           _buildDemoCard(
             context,
             icon: Icons.broken_image,
-            title: 'Image Handling',
-            subtitle: 'Automatic loading/error states for images',
+            title: 'Images',
+            subtitle: 'Loading placeholders, error fallback, network and asset images',
             color: DemoColors.warning,
             onTap: () => Navigator.push(
               context,
@@ -226,9 +221,20 @@ class DemoHomePage extends StatelessWidget {
           ),
           _buildDemoCard(
             context,
+            icon: Icons.zoom_in,
+            title: 'Zoom & Pan',
+            subtitle: 'Pinch to zoom and pan images — works with float and inline images',
+            color: DemoColors.warning,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ZoomDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
             icon: Icons.play_circle_filled,
-            title: 'Video & Media (IMPROVED ⭐)',
-            subtitle: 'Functional video playback - Tap to play externally',
+            title: 'Video',
+            subtitle: 'Video thumbnail with play button — tap to open in external player',
             color: DemoColors.warning,
             onTap: () => Navigator.push(
               context,
@@ -237,22 +243,46 @@ class DemoHomePage extends StatelessWidget {
           ),
           _buildDemoCard(
             context,
-            icon: Icons.zoom_in,
-            title: 'Zoom & Pan',
-            subtitle: 'Pinch-to-zoom and pan gestures with InteractiveViewer',
-            color: DemoColors.warning,
+            icon: Icons.code,
+            title: 'Code Blocks',
+            subtitle: 'Syntax-highlighted <pre><code> blocks with horizontal scroll',
+            color: DemoColors.accent,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const ZoomDemo()),
+              MaterialPageRoute(builder: (_) => const CodeBlockDemo()),
             ),
           ),
-          const SizedBox(height: 16),
+          // ── Widget Integration ────────────────────────────────────────────
+          _buildSectionHeader(context, 'Widget Integration'),
+          _buildDemoCard(
+            context,
+            icon: Icons.widgets,
+            title: 'Widget Injection',
+            subtitle: 'Embed live Flutter widgets (charts, buttons, sliders) inside HTML content',
+            color: DemoColors.secondary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WidgetInjectionDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.animation,
+            title: 'Animated Widgets',
+            subtitle: 'Injected widgets can animate — fade, slide, bounce inside HTML',
+            color: DemoColors.accent,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AnimationDemo()),
+            ),
+          ),
+          // ── Input Formats ─────────────────────────────────────────────────
           _buildSectionHeader(context, 'Input Formats'),
           _buildDemoCard(
             context,
             icon: Icons.data_object,
             title: 'Quill Delta',
-            subtitle: 'Render Quill Delta JSON format (from Quill.js editor)',
+            subtitle: 'Render JSON output from the Quill.js rich text editor',
             color: DemoColors.accent,
             onTap: () => Navigator.push(
               context,
@@ -263,34 +293,55 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.text_snippet,
             title: 'Markdown',
-            subtitle: 'Render Markdown content',
+            subtitle: 'Render .md content — headings, lists, bold, code, links',
             color: DemoColors.accent,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const MarkdownDemo()),
             ),
           ),
-          const SizedBox(height: 16),
-          _buildSectionHeader(context, '📬 Real-World Use Cases'),
+          // ── Real-World Use Cases ───────────────────────────────────────────
+          _buildSectionHeader(context, 'Real-World Use Cases'),
           _buildDemoCard(
             context,
             icon: Icons.email,
-            title: 'HTML Email Renderer ⭐',
-            subtitle: 'Render HTML emails natively — no WebView, no 20MB overhead',
+            title: 'HTML Email',
+            subtitle: 'Render real HTML emails natively — no WebView, no heavy dependencies',
             color: DemoColors.primary,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const EmailDemo()),
             ),
           ),
-          const SizedBox(height: 16),
-          _buildSectionHeader(context, 'Comparison & Stress Test'),
+          _buildDemoCard(
+            context,
+            icon: Icons.article,
+            title: 'Long-Form Content',
+            subtitle: 'Blog post and novel — headings, paragraphs, images, links, all together',
+            color: DemoColors.primary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const RealContentDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.auto_awesome,
+            title: 'Everything at Once',
+            subtitle: 'Float, selection, ruby, widget injection, tables, code — all in one page',
+            color: DemoColors.primary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const KitchenSinkDemo()),
+            ),
+          ),
+          // ── Comparison & Performance ───────────────────────────────────────
+          _buildSectionHeader(context, 'Comparison & Performance'),
           _buildDemoCard(
             context,
             icon: Icons.compare,
-            title: 'Library Comparison',
-            subtitle:
-                'Compare with flutter_html and flutter_widget_from_html',
+            title: 'vs flutter_html & fwfh',
+            subtitle: 'Side-by-side rendering of the same HTML in 3 libraries',
             color: DemoColors.success,
             onTap: () => Navigator.push(
               context,
@@ -300,8 +351,8 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.bug_report,
-            title: 'FWFH Issues Test ⭐',
-            subtitle: 'Test features that flutter_widget_from_html struggles with',
+            title: 'Features Other Libraries Miss',
+            subtitle: 'Float layout, ruby, details/summary, inline decoration — all unsupported elsewhere',
             color: DemoColors.success,
             onTap: () => Navigator.push(
               context,
@@ -311,8 +362,8 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.speed,
-            title: 'Stress Test',
-            subtitle: 'Test with 1000-page book - Measure performance',
+            title: 'Stress Test — 1000-Page Book',
+            subtitle: 'Render and scroll a very long document — measure frame time',
             color: DemoColors.error,
             onTap: () => Navigator.push(
               context,
@@ -322,8 +373,8 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.insights,
-            title: 'Performance Deep Dive ⚡',
-            subtitle: 'Pipeline breakdown, Isolate parsing, CSS indexing, Memory',
+            title: 'Performance Deep Dive',
+            subtitle: 'Step-by-step render pipeline breakdown — parse, tokenize, layout, paint',
             color: DemoColors.success,
             onTap: () => Navigator.push(
               context,
@@ -331,24 +382,46 @@ class DemoHomePage extends StatelessWidget {
                   builder: (_) => const PerformanceDeepDiveDemo()),
             ),
           ),
-          const SizedBox(height: 16),
-          _buildSectionHeader(context, '⚙️ Advanced Features'),
+          // ── Advanced ──────────────────────────────────────────────────────
+          _buildSectionHeader(context, 'Advanced'),
           _buildDemoCard(
             context,
-            icon: Icons.new_releases,
-            title: 'Advanced Features Showcase',
-            subtitle: 'Error Boundaries, Performance, Dark Mode, Skeletons, Animations',
+            icon: Icons.rocket_launch,
+            title: 'CSS Variables, Grid & More',
+            subtitle: 'CSS custom properties, grid layout, calc(), SVG, RTL/BiDi, screenshot export',
+            color: DemoColors.accent,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const Sprint3Demo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.link,
+            title: 'Base URL & Link Handling',
+            subtitle: 'Relative image/link URLs resolved against a base URL — tap callback demo',
             color: DemoColors.secondary,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const V21Showcase()),
+              MaterialPageRoute(builder: (_) => const BaseUrlDemo()),
+            ),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.auto_fix_high,
+            title: 'WebView Fallback',
+            subtitle: 'Detect HTML that is too complex and fall back to a WebView automatically',
+            color: DemoColors.warning,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HtmlHeuristicsDemo()),
             ),
           ),
           _buildDemoCard(
             context,
             icon: Icons.security,
-            title: 'Security Demo (XSS Protection)',
-            subtitle: 'HTML Sanitization - XSS attack prevention',
+            title: 'XSS Protection',
+            subtitle: 'Malicious <script> and event handlers are stripped before rendering',
             color: DemoColors.error,
             onTap: () => Navigator.push(
               context,
@@ -358,8 +431,8 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.accessibility,
-            title: 'Accessibility Demo (A11y)',
-            subtitle: 'Screen reader support - VoiceOver & TalkBack',
+            title: 'Accessibility',
+            subtitle: 'Semantic labels for screen readers — VoiceOver and TalkBack',
             color: DemoColors.success,
             onTap: () => Navigator.push(
               context,
@@ -369,7 +442,7 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.auto_awesome,
-            title: 'Aesthetic Quality Demo ✨',
+            title: 'Visual Quality',
             subtitle: 'Crisp images, anti-aliased borders, smooth gradients, text shadows',
             color: DemoColors.secondary,
             onTap: () => Navigator.push(
@@ -379,79 +452,13 @@ class DemoHomePage extends StatelessWidget {
           ),
           _buildDemoCard(
             context,
-            icon: Icons.style,
-            title: 'CSS Properties Showcase ⭐',
-            subtitle: 'text-shadow, text-overflow, border-style, direction, and 60+ properties',
-            color: DemoColors.primary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CssPropertiesDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.animation,
-            title: 'Widget Animations',
-            subtitle: 'Fade, slide, bounce animations (CSS animations planned)',
-            color: DemoColors.accent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AnimationDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.link,
-            title: 'Base URL & Links',
-            subtitle: 'Relative URL resolution and link tap handling',
+            icon: Icons.new_releases,
+            title: 'Dark Mode, Skeletons & Error Boundaries',
+            subtitle: 'Theme switching, skeleton loading placeholder, and render error recovery',
             color: DemoColors.secondary,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const BaseUrlDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.rocket_launch,
-            title: 'CSS Variables, Grid & More ✨',
-            subtitle: 'CSS Variables, Grid, calc(), SVG, RTL/BiDi, Screenshot export',
-            color: DemoColors.accent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const Sprint3Demo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.auto_fix_high,
-            title: 'HTML Heuristics & Fallback',
-            subtitle: 'Detect complex HTML and use WebView fallback when needed',
-            color: DemoColors.warning,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HtmlHeuristicsDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.table_chart,
-            title: 'SmartTable & TableStrategy',
-            subtitle: 'W3C 2-pass layout, fitWidth / horizontalScroll / autoScale',
-            color: Colors.teal,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SmartTableDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.calculate,
-            title: 'Formula / LaTeX Rendering',
-            subtitle: 'Greek letters, physics formulas, Quill Delta embeds, custom builder',
-            color: DemoColors.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const FormulaDemo()),
+              MaterialPageRoute(builder: (_) => const V21Showcase()),
             ),
           ),
         ],
@@ -832,13 +839,29 @@ class FloatLayoutDemo extends StatelessWidget {
 
   <div style="clear: both; height: 32px;"></div>
 
-  <h2 style="color: #FF5722;">Multiple Floats</h2>
+  <h2 style="color: #E91E63;">Left + Right</h2>
+  <div style="margin: 16px 0;">
+    <img src="https://picsum.photos/90/90?random=20" style="float: left; width: 90px; height: 90px; margin: 0 14px 8px 0; border-radius: 8px;" />
+    <img src="https://picsum.photos/90/90?random=21" style="float: right; width: 90px; height: 90px; margin: 0 0 8px 14px; border-radius: 8px;" />
+    <p>
+      Hai ảnh ở <strong>hai phía</strong> — một float left, một float right. Văn bản tự động
+      lấp đầy khoảng giữa. Layout engine phải tính toán đồng thời cả hai float boundary
+      để xác định vùng hợp lệ cho từng dòng chữ.
+    </p>
+    <p>
+      Đây là layout kiểu <em>tạp chí</em> — ảnh ghim hai góc, nội dung chảy ở giữa.
+    </p>
+  </div>
+
+  <div style="clear: both; height: 32px;"></div>
+
+  <h2 style="color: #FF5722;">Multiple Left Floats</h2>
   <div style="margin: 16px 0;">
     <img src="https://picsum.photos/80/80?random=12" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px;" />
     <img src="https://picsum.photos/80/80?random=13" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px;" />
     <p>
-      Nhiều float elements có thể xếp cạnh nhau. Văn bản sẽ wrap xung quanh tất cả chúng.
-      Đây là layout kiểu magazine/newspaper rất phổ biến.
+      Nhiều ảnh float left xếp cạnh nhau. Văn bản wrap quanh toàn bộ cụm ảnh.
+      Đây là cách hiển thị ảnh theo hàng ngang trong bài viết.
     </p>
   </div>
 </div>
@@ -1290,89 +1313,197 @@ class TableDemo extends StatelessWidget {
 
   static const html = '''
 <div style="font-family: sans-serif; line-height: 1.6;">
-  <h2 style="color: #4CAF50;">Simple Table</h2>
-  <p>A basic table with headers and borders.</p>
-  <table border="1" style="border-collapse: collapse; width: 100%;">
-    <tr style="background-color: #f2f2f2;">
-      <th>Name</th>
-      <th>Role</th>
-      <th>Email</th>
+
+  <!-- ── 1. Basic styled table ─────────────────────────────────────────── -->
+  <h2 style="color: #1976D2;">Basic Table</h2>
+  <p>Header row, alternating row colors, full-width.</p>
+  <table style="border-collapse: collapse; width: 100%;">
+    <thead>
+      <tr style="background: #1976D2; color: white;">
+        <th style="padding: 10px 14px; text-align: left;">Name</th>
+        <th style="padding: 10px 14px; text-align: left;">Role</th>
+        <th style="padding: 10px 14px; text-align: left;">Status</th>
+        <th style="padding: 10px 14px; text-align: left;">Joined</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="background: #ffffff;">
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;">Alice Chen</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;">Engineer</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;"><span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:12px;font-size:13px;">Active</span></td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;">2022-03</td>
+      </tr>
+      <tr style="background: #f8f9fa;">
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;">Bob Kim</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;">Designer</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;"><span style="background:#fff8e1;color:#f57f17;padding:2px 8px;border-radius:12px;font-size:13px;">Away</span></td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;">2021-11</td>
+      </tr>
+      <tr style="background: #ffffff;">
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;">Carol Smith</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;">Product</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;"><span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:12px;font-size:13px;">Active</span></td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e0e0e0;">2023-01</td>
+      </tr>
+      <tr style="background: #f8f9fa;">
+        <td style="padding: 8px 14px;">Dan Park</td>
+        <td style="padding: 8px 14px;">DevOps</td>
+        <td style="padding: 8px 14px;"><span style="background:#fce4ec;color:#c62828;padding:2px 8px;border-radius:12px;font-size:13px;">Offline</span></td>
+        <td style="padding: 8px 14px;">2020-06</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── 2. Colspan & Rowspan ───────────────────────────────────────────── -->
+  <h2 style="color: #7B1FA2; margin-top: 32px;">Colspan &amp; Rowspan</h2>
+  <p>Cells can span multiple columns or rows — used in schedules, reports, invoices.</p>
+  <table style="border-collapse: collapse; width: 100%; border: 1px solid #ce93d8;">
+    <tr style="background: #7B1FA2; color: white;">
+      <th style="padding: 10px; border: 1px solid #ce93d8;" colspan="3">Q1 Sales Report</th>
+      <th style="padding: 10px; border: 1px solid #ce93d8;" rowspan="2">YoY Change</th>
+    </tr>
+    <tr style="background: #f3e5f5;">
+      <th style="padding: 8px 12px; border: 1px solid #ce93d8;">Region</th>
+      <th style="padding: 8px 12px; border: 1px solid #ce93d8;">Jan</th>
+      <th style="padding: 8px 12px; border: 1px solid #ce93d8;">Feb</th>
     </tr>
     <tr>
-      <td>Viet Nguyen</td>
-      <td>Engineer</td>
-      <td>viet.nguyen@example.com</td>
+      <td style="padding: 8px 12px; border: 1px solid #e0e0e0;">North</td>
+      <td style="padding: 8px 12px; border: 1px solid #e0e0e0;">\$12,000</td>
+      <td style="padding: 8px 12px; border: 1px solid #e0e0e0;">\$14,500</td>
+      <td style="padding: 8px 12px; border: 1px solid #e0e0e0; color: #2e7d32; font-weight: bold;">+21%</td>
+    </tr>
+    <tr style="background: #fafafa;">
+      <td style="padding: 8px 12px; border: 1px solid #e0e0e0;">South</td>
+      <td style="padding: 8px 12px; border: 1px solid #e0e0e0;">\$9,800</td>
+      <td style="padding: 8px 12px; border: 1px solid #e0e0e0;">\$11,200</td>
+      <td style="padding: 8px 12px; border: 1px solid #e0e0e0; color: #2e7d32; font-weight: bold;">+14%</td>
     </tr>
     <tr>
-      <td>John Doe</td>
-      <td>Designer</td>
-      <td>john.doe@example.com</td>
+      <td style="padding: 8px 12px; border: 1px solid #e0e0e0; font-weight: bold;" colspan="2">Total</td>
+      <td style="padding: 8px 12px; border: 1px solid #e0e0e0; font-weight: bold;">\$25,700</td>
+      <td style="padding: 8px 12px; border: 1px solid #e0e0e0; font-weight: bold; color: #2e7d32;">+18%</td>
     </tr>
   </table>
 
-  <h2 style="color: #FF9800; margin-top: 32px;">Wide Table (with Horizontal Scroll)</h2>
-  <p>This table is wider than the screen and should scroll horizontally by default.</p>
-  <table border="1" style="border-collapse: collapse;">
-    <tr>
-      <th>Column 1</th><th>Column 2</th><th>Column 3</th><th>Column 4</th>
-      <th>Column 5</th><th>Column 6</th><th>Column 7</th><th>Column 8</th>
-    </tr>
-    <tr>
-      <td>Data 1.1</td><td>Data 1.2</td><td>Data 1.3</td><td>Data 1.4</td>
-      <td>Data 1.5</td><td>Data 1.6</td><td>Data 1.7</td><td>Data 1.8</td>
-    </tr>
-     <tr>
-      <td>Data 2.1</td><td>Data 2.2</td><td>Data 2.3</td><td>Data 2.4</td>
-      <td>Data 2.5</td><td>Data 2.6</td><td>Data 2.7</td><td>Data 2.8</td>
-    </tr>
+  <!-- ── 3. Inline rich content in cells ───────────────────────────────── -->
+  <h2 style="color: #E65100; margin-top: 32px;">Rich Content in Cells</h2>
+  <p>Cells can contain <strong>bold</strong>, <em>italic</em>, <a href="#">links</a>, <code>code</code>, and inline badges.</p>
+  <table style="border-collapse: collapse; width: 100%; border: 1px solid #ffccbc;">
+    <thead>
+      <tr style="background: #E65100; color: white;">
+        <th style="padding: 10px 14px; text-align: left;">Package</th>
+        <th style="padding: 10px 14px; text-align: left;">Version</th>
+        <th style="padding: 10px 14px; text-align: left;">Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #ffe0b2;"><code style="background:#fff3e0;padding:2px 6px;border-radius:4px;">hyper_render</code></td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #ffe0b2;"><strong>4.0.0</strong></td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #ffe0b2;">Current — <em>no WebView needed</em></td>
+      </tr>
+      <tr style="background: #fafafa;">
+        <td style="padding: 8px 14px; border-bottom: 1px solid #ffe0b2;"><code style="background:#fff3e0;padding:2px 6px;border-radius:4px;">flutter_html</code></td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #ffe0b2;">3.0.0</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #ffe0b2;"><span style="background:#fce4ec;color:#c62828;padding:2px 8px;border-radius:12px;font-size:12px;">No float support</span></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 14px;"><code style="background:#fff3e0;padding:2px 6px;border-radius:4px;">fwfh</code></td>
+        <td style="padding: 8px 14px;">0.15.0</td>
+        <td style="padding: 8px 14px;"><span style="background:#fce4ec;color:#c62828;padding:2px 8px;border-radius:12px;font-size:12px;">No ruby / details</span></td>
+      </tr>
+    </tbody>
   </table>
 
-  <h2 style="color: #E91E63; margin-top: 32px;">Complex Table with Colspan & Rowspan</h2>
-   <table border="1" style="border-collapse: collapse; width: 100%;">
-    <tr>
-      <th colspan="2">User Info</th>
-      <th rowspan="3">Notes</th>
-    </tr>
-    <tr>
-      <td>Name</td>
-      <td>Viet Nguyen</td>
-    </tr>
-    <tr>
-      <td>Email</td>
-      <td>viet.nguyen@example.com</td>
-    </tr>
-     <tr>
-      <td colspan="3" style="text-align: center;">A note spanning all columns</td>
-    </tr>
+  <!-- ── 4. Nested table ───────────────────────────────────────────────── -->
+  <h2 style="color: #00695C; margin-top: 32px;">Nested Table</h2>
+  <p>A full table inside a table cell — the inner table renders completely.</p>
+  <table style="border-collapse: collapse; width: 100%; border: 1px solid #b2dfdb;">
+    <thead>
+      <tr style="background: #00695C; color: white;">
+        <th style="padding: 10px 14px; text-align: left;">Department</th>
+        <th style="padding: 10px 14px; text-align: left;">Members</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 10px 14px; border-bottom: 1px solid #e0f2f1; vertical-align: top; font-weight: bold;">Engineering</td>
+        <td style="padding: 10px 14px; border-bottom: 1px solid #e0f2f1;">
+          <table style="border-collapse: collapse; width: 100%; background: #f0fffe;">
+            <tr style="background: #b2dfdb;">
+              <th style="padding: 5px 10px; text-align: left; font-size: 13px;">Name</th>
+              <th style="padding: 5px 10px; text-align: left; font-size: 13px;">Level</th>
+            </tr>
+            <tr>
+              <td style="padding: 5px 10px; border-top: 1px solid #e0f2f1; font-size: 13px;">Alice Chen</td>
+              <td style="padding: 5px 10px; border-top: 1px solid #e0f2f1; font-size: 13px;">Senior</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 10px; border-top: 1px solid #e0f2f1; font-size: 13px;">Bob Kim</td>
+              <td style="padding: 5px 10px; border-top: 1px solid #e0f2f1; font-size: 13px;">Mid</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr style="background: #fafafa;">
+        <td style="padding: 10px 14px; vertical-align: top; font-weight: bold;">Design</td>
+        <td style="padding: 10px 14px;">
+          <table style="border-collapse: collapse; width: 100%; background: #fffde7;">
+            <tr style="background: #fff9c4;">
+              <th style="padding: 5px 10px; text-align: left; font-size: 13px;">Name</th>
+              <th style="padding: 5px 10px; text-align: left; font-size: 13px;">Level</th>
+            </tr>
+            <tr>
+              <td style="padding: 5px 10px; border-top: 1px solid #f0e0a0; font-size: 13px;">Carol Smith</td>
+              <td style="padding: 5px 10px; border-top: 1px solid #f0e0a0; font-size: 13px;">Lead</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </tbody>
   </table>
 
-  <h2 style="color: #2196F3; margin-top: 32px;">Nested Table</h2>
-  <p>A table nested inside another table's cell.</p>
-  <table border="1" style="border-collapse: collapse; width: 100%;">
-    <tr>
-      <th>Main Header 1</th>
-      <th>Main Header 2 (Nested Table)</th>
-    </tr>
-    <tr>
-      <td>Main Cell 1</td>
-      <td>
-        <table border="1" style="border-collapse: collapse; width: 100%; background-color: #f0f8ff;">
-          <tr>
-            <th>Nested A</th>
-            <th>Nested B</th>
-          </tr>
-          <tr>
-            <td>Nested A1</td>
-            <td>Nested B1</td>
-          </tr>
-          <tr>
-            <td>Nested A2</td>
-            <td>Nested B2</td>
-          </tr>
-        </table>
-      </td>
-    </tr>
+  <!-- ── 5. Pricing / comparison table ─────────────────────────────────── -->
+  <h2 style="color: #1565C0; margin-top: 32px;">Pricing Table</h2>
+  <p>Common real-world table pattern with mixed alignment and styled cells.</p>
+  <table style="border-collapse: collapse; width: 100%; border: 1px solid #bbdefb;">
+    <thead>
+      <tr style="background: #1565C0; color: white;">
+        <th style="padding: 10px 14px; text-align: left;">Feature</th>
+        <th style="padding: 10px 14px; text-align: center;">Free</th>
+        <th style="padding: 10px 14px; text-align: center; background: #1976D2;">Pro</th>
+        <th style="padding: 10px 14px; text-align: center;">Enterprise</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd;">HTML rendering</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd; text-align: center; color: #2e7d32;">✓</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd; text-align: center; color: #2e7d32; background: #e3f2fd;">✓</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd; text-align: center; color: #2e7d32;">✓</td>
+      </tr>
+      <tr style="background: #fafafa;">
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd;">Float layout</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd; text-align: center; color: #c62828;">✗</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd; text-align: center; color: #2e7d32; background: #e3f2fd;">✓</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd; text-align: center; color: #2e7d32;">✓</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd;">Widget injection</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd; text-align: center; color: #c62828;">✗</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd; text-align: center; color: #2e7d32; background: #e3f2fd;">✓</td>
+        <td style="padding: 8px 14px; border-bottom: 1px solid #e3f2fd; text-align: center; color: #2e7d32;">✓</td>
+      </tr>
+      <tr style="background: #fafafa;">
+        <td style="padding: 8px 14px;">Priority support</td>
+        <td style="padding: 8px 14px; text-align: center; color: #c62828;">✗</td>
+        <td style="padding: 8px 14px; text-align: center; color: #c62828; background: #e3f2fd;">✗</td>
+        <td style="padding: 8px 14px; text-align: center; color: #2e7d32;">✓</td>
+      </tr>
+    </tbody>
   </table>
+
 </div>
 ''';
 
@@ -1893,6 +2024,24 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   <img src="https://picsum.photos/80/80?random=2" style="float: right; width: 80px; height: 80px; margin: 0 0 8px 12px; border-radius: 50%;" />
   <p>
     This paragraph has images floating on <strong>both sides</strong>. The text should wrap between them naturally, creating a magazine-style layout. This is a challenging layout scenario that tests the rendering engine's float handling capabilities. Additional text to make the wrapping more visible.
+  </p>
+</div>
+''',
+    },
+    {
+      'name': '4-Corner Floats',
+      'description': '4 images pinned to each corner with text filling the middle',
+      'html': '''
+<div style="font-family: sans-serif; line-height: 1.6;">
+  <img src="https://picsum.photos/90/90?random=41" style="float: left; width: 90px; height: 90px; margin: 0 14px 10px 0; border-radius: 8px;" />
+  <img src="https://picsum.photos/90/90?random=42" style="float: right; width: 90px; height: 90px; margin: 0 0 10px 14px; border-radius: 8px;" />
+  <p>
+    Two images anchor the <strong>top corners</strong>. Text flows naturally in the space between them, respecting both left and right float boundaries at the same time. This tests simultaneous multi-float layout.
+  </p>
+  <img src="https://picsum.photos/90/90?random=43" style="float: left; width: 90px; height: 90px; margin: 0 14px 0 0; border-radius: 8px;" />
+  <img src="https://picsum.photos/90/90?random=44" style="float: right; width: 90px; height: 90px; margin: 0 0 0 14px; border-radius: 8px;" />
+  <p>
+    Two more images anchor the <strong>bottom corners</strong>. The middle column of text continues to wrap correctly even when four floats are active across two rows. This is the most complex float scenario.
   </p>
 </div>
 ''',

@@ -31,17 +31,27 @@ class _InlineDecoration {
   final UDTNode node;
   final List<Rect> rects;
   final Color? backgroundColor;
+  final Gradient? backgroundGradient;
   final Color? borderColor;
   final double borderWidth;
+  final HyperBorderStyle borderStyle; // 🆕 ADDED
   final BorderRadius? borderRadius;
+  final List<BoxShadow>? boxShadow;
+  final ui.ImageFilter? filter;
+  final ui.ImageFilter? backdropFilter;
 
   _InlineDecoration({
     required this.node,
     required this.rects,
     this.backgroundColor,
+    this.backgroundGradient,
     this.borderColor,
     this.borderWidth = 0,
+    this.borderStyle = HyperBorderStyle.solid, // 🆕 ADDED
     this.borderRadius,
+    this.boxShadow,
+    this.filter,
+    this.backdropFilter,
   });
 }
 
@@ -50,17 +60,27 @@ class _BlockDecoration {
   final UDTNode node;
   final Rect rect;
   final Color? backgroundColor;
+  final Gradient? backgroundGradient;
   final Color? borderLeftColor;
   final double borderLeftWidth;
+  final HyperBorderStyle borderLeftStyle; // 🆕 ADDED
   final BorderRadius? borderRadius;
+  final List<BoxShadow>? boxShadow;
+  final ui.ImageFilter? filter;
+  final ui.ImageFilter? backdropFilter;
 
   _BlockDecoration({
     required this.node,
     required this.rect,
     this.backgroundColor,
+    this.backgroundGradient,
     this.borderLeftColor,
     this.borderLeftWidth = 0,
+    this.borderLeftStyle = HyperBorderStyle.solid, // 🆕 ADDED
     this.borderRadius,
+    this.boxShadow,
+    this.filter,
+    this.backdropFilter,
   });
 }
 

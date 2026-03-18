@@ -20,7 +20,7 @@ class _V21ShowcaseState extends State<V21Showcase>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
   }
 
   @override
@@ -54,6 +54,7 @@ class _V21ShowcaseState extends State<V21Showcase>
             controller: _tabController,
             isScrollable: true,
             tabs: const [
+              Tab(icon: Icon(Icons.auto_awesome), text: 'Visual Effects'),
               Tab(icon: Icon(Icons.error_outline), text: 'Error Boundaries'),
               Tab(icon: Icon(Icons.speed), text: 'Performance'),
               Tab(icon: Icon(Icons.dark_mode), text: 'Dark Mode'),
@@ -66,6 +67,7 @@ class _V21ShowcaseState extends State<V21Showcase>
         body: TabBarView(
           controller: _tabController,
           children: [
+            _VisualEffectsDemo(),
             _ErrorBoundariesDemo(),
             _PerformanceMonitoringDemo(),
             _DarkModeDemo(isDarkMode: _isDarkMode),
@@ -75,6 +77,75 @@ class _V21ShowcaseState extends State<V21Showcase>
           ],
         ),
       ),
+    );
+  }
+}
+
+// ============================================================================
+// Visual Effects Demo (Phase 3 & 4)
+// ============================================================================
+
+class _VisualEffectsDemo extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    const html = '''
+<article>
+  <h2 style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3); color: #1976D2;">✨ Visual Effects (Phase 3 & 4)</h2>
+  
+  <p>HyperRender now supports advanced visual effects that bring your content to life.</p>
+
+  <h3>1. Glassmorphism & Blur</h3>
+  <div style="position: relative; height: 120px; border-radius: 12px; overflow: hidden; background: url(https://picsum.photos/id/28/400/200); background-size: cover; margin-bottom: 16px;">
+    <div style="position: absolute; top: 20px; left: 20px; right: 20px; bottom: 20px; 
+                background: rgba(255, 255, 255, 0.2); 
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 8px;
+                backdrop-filter: blur(8px);
+                display: flex;
+                align-items: center;
+                justify-content: center;">
+      <strong style="color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">backdrop-filter: blur(8px)</strong>
+    </div>
+  </div>
+
+  <h3>2. Advanced Borders</h3>
+  <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+    <div style="flex: 1; border: 2px dashed #FF5722; padding: 12px; border-radius: 8px; text-align: center; background: #FFF3E0;">
+      <strong style="color: #E64A19;">dashed</strong>
+    </div>
+    <div style="flex: 1; border: 2px dotted #2196F3; padding: 12px; border-radius: 8px; text-align: center; background: #E3F2FD;">
+      <strong style="color: #1976D2;">dotted</strong>
+    </div>
+    <div style="flex: 1; border: 4px double #4CAF50; padding: 12px; border-radius: 8px; text-align: center; background: #E8F5E9;">
+      <strong style="color: #388E3C;">double</strong>
+    </div>
+  </div>
+
+  <h3>3. Box Shadows & Gradients</h3>
+  <div style="background: linear-gradient(to right, #6a11cb, #2575fc); padding: 20px; border-radius: 12px; color: white; box-shadow: 0 8px 24px rgba(106,17,203,0.4); margin-bottom: 16px;">
+    <h4 style="margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">Gradient + Box Shadow</h4>
+    <p style="margin: 8px 0 0 0; font-size: 12px; opacity: 0.9;">Professional depth and modern colors</p>
+  </div>
+
+  <h3>4. Professional Truncation</h3>
+  <div style="width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid #ddd; padding: 8px; border-radius: 4px; background: #f5f5f5; color: #666;">
+    This text is far too long for this small box and will be truncated with ellipsis.
+  </div>
+</article>
+''';
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: HyperViewer(
+              html: html,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

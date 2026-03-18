@@ -9,6 +9,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     _fragments = [];
     _lastBlockMarginBottom = 0;
     _fragmentsVersion++; // signal that line layout must be redone
+    // Reset list item counters so ordered-list numbering restarts from 1
+    _listItemIndices.clear();
     _tokenizeNode(_document!, null);
   }
 
@@ -91,11 +93,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         _listItemIndices[parentBlock] = index;
       }
 
-      // Get list-style-type from parent list (ul/ol)
-      final listStyleType = parentBlock.style.listStyleType;
-
-      // Generate marker text based on list-style-type
-      final marker = _generateListMarker(listStyleType, index, isOrdered);
+      // Create marker text
+      final marker = isOrdered ? '$index. ' : '• ';
 
       _fragments.add(_ListMarkerFragment(
         sourceNode: node,
@@ -122,6 +121,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         style: style,
       ));
       // Skip tokenizing children - they're handled by CodeBlockWidget
+    } else if (tagName == 'details') {
+      _fragments.add(_DetailsFragment(
+        sourceNode: node,
+        style: style,
+      ));
+      // Skip tokenizing children - they're handled by HyperDetailsWidget
     } else {
       for (final child in node.children) {
         _tokenizeNode(child, node);
@@ -141,7 +146,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   void _tokenizeInline(UDTNode node) {
     // Add inline start marker for decoration tracking
     final hasDecoration = node.style.backgroundColor != null ||
-        node.style.borderColor != null;
+        node.style.borderColor != null ||
+        node.style.backgroundGradient != null ||
+        node.style.boxShadow != null ||
+        node.style.filter != null ||
+        node.style.backdropFilter != null;
 
     if (hasDecoration) {
       _fragments.add(_InlineStartFragment(
@@ -211,102 +220,18 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         a.fontFamily == b.fontFamily &&
         a.backgroundColor == b.backgroundColor &&
         a.textDecoration == b.textDecoration &&
-        a.letterSpacing == b.letterSpacing;
+        a.letterSpacing == b.letterSpacing &&
+        a.wordBreak == b.wordBreak &&
+        a.overflowWrap == b.overflowWrap;
   }
 
   String _normalizeWhitespace(String text, String? whiteSpace) {
-    // Handle all CSS white-space property values
-    // Reference: https://developer.mozilla.org/en-US/docs/Web/CSS/white-space
-    switch (whiteSpace) {
-      case 'pre':
-      case 'pre-wrap':
-      case 'break-spaces':
-        // Preserve all whitespace (spaces, tabs, newlines)
-        return text;
-
-      case 'pre-line':
-        // Collapse spaces and tabs, but preserve newlines
-        return text.split('\n').map((line) {
-          // Collapse consecutive spaces/tabs within each line
-          return line.replaceAll(RegExp(r'[ \t]+'), ' ');
-        }).join('\n');
-
-      case 'nowrap':
-      case 'normal':
-      default:
-        // Collapse all whitespace (spaces, tabs, newlines) into single spaces
-        return text.replaceAll(RegExp(r'\s+'), ' ');
+    if (whiteSpace == 'pre' || whiteSpace == 'pre-wrap') {
+      return text;
     }
-  }
-
-  /// Generate list marker text based on list-style-type and index
-  String _generateListMarker(ListStyleType? listStyleType, int index, bool isOrdered) {
-    final type = listStyleType ?? (isOrdered ? ListStyleType.decimal : ListStyleType.disc);
-
-    switch (type) {
-      case ListStyleType.decimal:
-        return '$index. ';
-
-      case ListStyleType.lowerRoman:
-        return '${_toRomanNumeral(index).toLowerCase()}. ';
-
-      case ListStyleType.upperRoman:
-        return '${_toRomanNumeral(index)}. ';
-
-      case ListStyleType.lowerAlpha:
-        return '${_toAlphaNumeral(index).toLowerCase()}. ';
-
-      case ListStyleType.upperAlpha:
-        return '${_toAlphaNumeral(index)}. ';
-
-      case ListStyleType.disc:
-        return '• '; // Filled circle (default for ul)
-
-      case ListStyleType.circle:
-        return '○ '; // Hollow circle
-
-      case ListStyleType.square:
-        return '▪ '; // Filled square
-
-      case ListStyleType.none:
-        return '';
-    }
-  }
-
-  /// Convert number to roman numerals (I, II, III, IV, V, etc.)
-  String _toRomanNumeral(int num) {
-    if (num <= 0 || num > 3999) return '$num'; // Fallback for out of range
-
-    const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
-    const numerals = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
-
-    String result = '';
-    int remaining = num;
-
-    for (int i = 0; i < values.length; i++) {
-      while (remaining >= values[i]) {
-        result += numerals[i];
-        remaining -= values[i];
-      }
-    }
-
-    return result;
-  }
-
-  /// Convert number to alphabetical numeral (A, B, C, ..., Z, AA, AB, etc.)
-  String _toAlphaNumeral(int num) {
-    if (num <= 0) return 'A'; // Fallback
-
-    String result = '';
-    int n = num;
-
-    while (n > 0) {
-      n--; // Adjust for 0-based indexing
-      result = String.fromCharCode(65 + (n % 26)) + result;
-      n ~/= 26;
-    }
-
-    return result;
+    // Collapse multiple whitespace into single space
+    // but preserve at least one space between words
+    return text.replaceAll(RegExp(r'\s+'), ' ');
   }
 
   void _tokenizeAtomic(AtomicNode node) {
@@ -329,15 +254,23 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         } else if (node.intrinsicWidth != null) {
           // Only width specified - maintain aspect ratio
           width = node.intrinsicWidth!;
-          height = width * (imageHeight / imageWidth);
+          // Guard: avoid division by zero for degenerate images (width == 0).
+          height = imageWidth > 0 ? width * (imageHeight / imageWidth) : 0;
         } else if (node.intrinsicHeight != null) {
           // Only height specified - maintain aspect ratio
           height = node.intrinsicHeight!;
-          width = height * (imageWidth / imageHeight);
+          // Guard: avoid division by zero for degenerate images (height == 0).
+          width = imageHeight > 0 ? height * (imageWidth / imageHeight) : 0;
         } else {
-          // No dimensions - use actual image size, constrained to maxWidth
-          width = math.min(imageWidth, _maxWidth - 32); // Leave some margin
-          height = width * (imageHeight / imageWidth);
+          // No dimensions - use actual image size, constrained to maxWidth.
+          // Guard: degenerate images with zero width produce no output.
+          if (imageWidth > 0) {
+            width = math.min(imageWidth, _maxWidth - 32); // Leave some margin
+            height = width * (imageHeight / imageWidth);
+          } else {
+            width = 0;
+            height = 0;
+          }
         }
       } else {
         // Image not loaded yet - use specified dimensions or smart placeholder
@@ -357,8 +290,20 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           height = width / RenderHyperBox._defaultAspectRatio;
         }
       }
+    } else if (node.tagName == 'video') {
+      // Video: respect specified dimensions or use 16:9 default matching DefaultMediaWidget
+      final w = node.intrinsicWidth ??
+          math.min(320.0, _maxWidth > 32 ? _maxWidth - 32 : _maxWidth);
+      final h = node.intrinsicHeight ?? w / RenderHyperBox._defaultAspectRatio;
+      width = w;
+      height = h;
+    } else if (node.tagName == 'audio') {
+      // Audio: compact horizontal bar — matches DefaultMediaWidget._buildAudioPlaceholder
+      width = node.intrinsicWidth ??
+          math.min(300.0, _maxWidth > 32 ? _maxWidth - 32 : _maxWidth);
+      height = node.intrinsicHeight ?? 64.0;
     } else {
-      // Non-image atomic element
+      // Generic atomic element
       width = node.intrinsicWidth ?? RenderHyperBox.defaultFloatSize;
       height = node.intrinsicHeight ?? RenderHyperBox.defaultFloatSize;
     }
@@ -427,6 +372,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           fragment is _FloatFragment ||
           fragment is _TableFragment ||
           fragment is _CodeBlockFragment ||
+          fragment is _DetailsFragment ||
           fragment is _InlineStartFragment ||
           fragment is _InlineEndFragment) {
         fragment.measuredSize = Size.zero;
@@ -454,6 +400,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   }
 
   TextPainter _getTextPainter(String text, ComputedStyle style) {
+    // Per-fragment text direction (supports RTL via CSS direction: rtl)
+    final fragmentDirection = style.isRtl ? ui.TextDirection.rtl : textDirection;
+
     // Composite key using Object.hash to avoid XOR collision (a^b == b^a)
     final key = Object.hash(
       text,
@@ -464,6 +413,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       style.fontFamily,
       style.lineHeight,
       style.letterSpacing,
+      style.textOverflow, // 🆕 ADDED
+      style.textShadow != null ? Object.hashAll(style.textShadow!) : 0, // 🆕 ADDED
+      fragmentDirection,
     );
 
     final cached = _textPainters.get(key);
@@ -474,14 +426,24 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // FIXED: baseStyle is the foundation, computed style overrides it
     final mergedStyle = _baseStyle.merge(style.toTextStyle());
 
+    // Pre/pre-wrap fragments may contain multi-line text; allow unlimited lines
+    final isPreformatted =
+        style.whiteSpace == 'pre' || style.whiteSpace == 'pre-wrap';
+    final maxLines = isPreformatted ? null : 1;
+
     final painter = TextPainter(
       text: TextSpan(
         text: text,
         style: mergedStyle,
       ),
       strutStyle: StrutStyle.fromTextStyle(mergedStyle, forceStrutHeight: true),
-      textDirection: TextDirection.ltr,
-      maxLines: 1,
+      textDirection: fragmentDirection,
+      maxLines: maxLines,
+      ellipsis: style.textOverflow == TextOverflow.ellipsis ? '...' : null, // 🆕 ADDED
+      textHeightBehavior: const TextHeightBehavior(
+        applyHeightToFirstAscent: true,
+        applyHeightToLastDescent: true,
+      ),
     )..layout();
 
     _textPainters.put(key, painter);
@@ -541,11 +503,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       for (final frag in currentLineFragments) {
         lineInfo.add(frag);
       }
+      // BUG-F FIX: Guard against zero lineHeight. This happens when all
+      // fragments on the line have measuredSize == null (e.g., zero-dimension
+      // images) or a height of 0. A zero-height bounds rect causes the next
+      // line to paint at the same Y, producing overlapping content.
+      final safeLineHeight = lineHeight > 0 ? lineHeight : 1.0;
       // Set bounds after adding fragments
-      lineInfo.bounds = Rect.fromLTWH(leftInset, currentY, lineInfo.width, lineHeight);
+      lineInfo.bounds = Rect.fromLTWH(leftInset, currentY, lineInfo.width, safeLineHeight);
       _lines.add(lineInfo);
 
-      currentY += lineHeight;
+      currentY += safeLineHeight;
       currentLineFragments.clear();
       lineHeight = 0;
       maxBaseline = 0;
@@ -575,10 +542,45 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       return _maxWidth - leftInset - rightInset;
     }
 
+    /// Get the Y position needed to clear floats based on the clear property
+    /// Returns the current Y if no clearing is needed
+    double getClearPosition(HyperClear clear) {
+      if (clear == HyperClear.none) return currentY;
+
+      double clearY = currentY;
+
+      // Clear left floats
+      if (clear == HyperClear.left || clear == HyperClear.both) {
+        for (final float in _leftFloats) {
+          if (float.rect.bottom > clearY) {
+            clearY = float.rect.bottom;
+          }
+        }
+      }
+
+      // Clear right floats
+      if (clear == HyperClear.right || clear == HyperClear.both) {
+        for (final float in _rightFloats) {
+          if (float.rect.bottom > clearY) {
+            clearY = float.rect.bottom;
+          }
+        }
+      }
+
+      return clearY;
+    }
+
     // Process a single fragment - extracted for reuse with pending fragments
     void processFragment(Fragment fragment) {
       if (fragment is _BlockStartFragment) {
         finishLine();
+
+        // Apply CSS clear property - move below floats if needed
+        final clearY = getClearPosition(fragment.style.clear);
+        if (clearY > currentY) {
+          currentY = clearY;
+        }
+
         currentY += fragment.marginTop + fragment.paddingTop;
 
         // ACCUMULATE padding for nested blocks
@@ -593,7 +595,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
         // Track this block for decoration (background, border-left, border-radius)
         final style = fragment.style;
-        final hasBackground = style.backgroundColor != null;
+        final hasBackground = style.backgroundColor != null || style.backgroundGradient != null;
         final hasBorderLeft = style.borderColor != null && style.borderWidth.left > 0;
         if (hasBackground || hasBorderLeft) {
           // Calculate the edge positions (account for parent padding but not this block's)
@@ -634,9 +636,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
               node: fragment.sourceNode,
               rect: Rect.fromLTRB(blockLeftX, startY, blockRightX, currentY),
               backgroundColor: style.backgroundColor,
+              backgroundGradient: style.backgroundGradient,
               borderLeftColor: style.borderColor,
               borderLeftWidth: style.borderWidth.left,
+              borderLeftStyle: style.borderLeftStyle ?? style.borderStyle, // 🆕 ADDED
               borderRadius: style.borderRadius,
+              boxShadow: style.boxShadow,
+              filter: style.filter,
+              backdropFilter: style.backdropFilter,
             ));
           }
         }
@@ -646,7 +653,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         if (rightPaddingStack.length > 1) rightPaddingStack.removeLast();
 
         leftInset = leftPaddingStack.last;
-        rightInset = rightPaddingStack.last;
+        rightInset = leftPaddingStack.last;
         currentX = leftInset;
         return;
       }
@@ -703,6 +710,28 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         return;
       }
 
+      // Handle <details>/<summary> - rendered as HyperDetailsWidget child
+      if (fragment is _DetailsFragment) {
+        finishLine();
+        RenderBox? detailsChild = _findChildForFragment(fragment);
+        double blockHeight = 40.0; // Default fallback
+        double blockWidth = _maxWidth;
+
+        if (detailsChild != null) {
+          detailsChild.layout(
+            BoxConstraints(maxWidth: _maxWidth),
+            parentUsesSize: true,
+          );
+          blockHeight = detailsChild.size.height;
+          blockWidth = detailsChild.size.width;
+        }
+
+        fragment.measuredSize = Size(blockWidth, blockHeight);
+        fragment.offset = Offset(leftInset, currentY);
+        currentY += blockHeight + 4;
+        return;
+      }
+
       // Skip inline markers
       if (fragment is _InlineStartFragment ||
           fragment is _InlineEndFragment) {
@@ -716,17 +745,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
 
       final availableWidth = getAvailableWidth();
+      // If floats were placed before any text on this line, currentX may still
+      // be 0 (or behind the float boundary). Clamp it so remainingWidth is
+      // computed from the actual start of the float-clear zone, not from 0.
+      if (currentX < leftInset) currentX = leftInset;
       final remainingWidth = leftInset + availableWidth - currentX;
 
       // Check if fragment fits in remaining space
       if (fragment.width > remainingWidth) {
         if (fragment.type == FragmentType.text && fragment.text != null) {
-          // Check if wrapping is allowed based on white-space property
-          final whiteSpace = fragment.style.whiteSpace;
-          final allowWrap = (whiteSpace != 'nowrap' && whiteSpace != 'pre');
-
-          // Try to split text fragment (only if wrapping is allowed)
-          if (allowWrap && currentLineFragments.isNotEmpty && remainingWidth > 20) {
+          // Try to split text fragment
+          if (currentLineFragments.isNotEmpty && remainingWidth > 20) {
             // Try to fit part of text on current line
             final splitResult = _splitTextFragment(fragment, remainingWidth);
             if (splitResult != null) {
@@ -753,35 +782,28 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           // Now check if fragment is wider than full line width
           final fullLineWidth = getAvailableWidth();
           if (fragment.width > fullLineWidth && fragment.text!.length > 1) {
-            // Check if wrapping is allowed for force-split too
-            final whiteSpace = fragment.style.whiteSpace;
-            final allowWrap = (whiteSpace != 'nowrap' && whiteSpace != 'pre');
-
-            if (allowWrap) {
-              // Fragment is wider than entire line - FORCE split
-              final forceSplit = _forceSplitTextFragment(fragment, fullLineWidth);
-              if (forceSplit != null) {
-                final (firstPart, secondPart) = forceSplit;
-                currentLineFragments.add(firstPart);
-                _updateLineMetrics(firstPart, lineHeight, maxBaseline, (h, b) {
-                  lineHeight = h;
-                  maxBaseline = b;
-                });
-                finishLine();
-                currentX = leftInset;
-                // PERFORMANCE: Queue secondPart instead of inserting into list
-                pendingFragment = secondPart;
-                return;
-              }
+            // Fragment is wider than entire line - FORCE split
+            final forceSplit = _forceSplitTextFragment(fragment, fullLineWidth);
+            if (forceSplit != null) {
+              final (firstPart, secondPart) = forceSplit;
+              currentLineFragments.add(firstPart);
+              _updateLineMetrics(firstPart, lineHeight, maxBaseline, (h, b) {
+                lineHeight = h;
+                maxBaseline = b;
+              });
+              finishLine();
+              currentX = leftInset;
+              // PERFORMANCE: Queue secondPart instead of inserting into list
+              pendingFragment = secondPart;
+              return;
             }
-            // If nowrap/pre, let the text overflow (don't split)
           }
         } else {
           // Non-text fragment - just start new line if needed
           if (currentLineFragments.isNotEmpty) {
             finishLine();
-            currentX = leftInset;
             getAvailableWidth();
+            currentX = leftInset;
           }
         }
       }
@@ -862,7 +884,6 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     final charAfter = text[position];
 
     // If either side is CJK, consider it CJK context
-    // This allows Kinsoku rules to apply at CJK/Latin boundaries
     final isBeforeCjk = KinsokuProcessor.isCjkCharacter(charBefore);
     final isAfterCjk = KinsokuProcessor.isCjkCharacter(charAfter);
 
@@ -878,48 +899,60 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     int breakIndex = position.offset;
 
     if (breakIndex > 0 && breakIndex < text.length) {
-      final beforeBreak = text.substring(0, breakIndex);
-      final lastSpace = beforeBreak.lastIndexOf(' ');
+      final style = fragment.style;
+      final bool breakAll = style.wordBreak == 'break-all';
+      final bool overflowWrap = style.overflowWrap == 'break-word' || style.overflowWrap == 'anywhere';
 
-      if (lastSpace > 0) {
-        // Found a space before break point - use it
-        breakIndex = lastSpace + 1;
-      } else if (KinsokuProcessor.containsCjk(text)) {
-        // Text contains CJK - check if break position is within CJK context
-        final isCjkBreak = _isBreakInCjkContext(text, breakIndex);
+      if (breakAll) {
+        // word-break: break-all -> Break at any character
+      } else {
+        final beforeBreak = text.substring(0, breakIndex);
+        final lastSpace = beforeBreak.lastIndexOf(' ');
 
-        if (isCjkBreak) {
-          // Break is in CJK region - apply Kinsoku rules
-          breakIndex = KinsokuProcessor.findBreakPoint(text, breakIndex);
-          if (breakIndex < 0) breakIndex = position.offset;
+        if (lastSpace > 0) {
+          // Found a space before break point - use it
+          breakIndex = lastSpace + 1;
+        } else if (KinsokuProcessor.containsCjk(text)) {
+          // Text contains CJK - check if break position is within CJK context
+          final isCjkBreak = _isBreakInCjkContext(text, breakIndex);
+
+          if (isCjkBreak) {
+            // Break is in CJK region - apply Kinsoku rules
+            breakIndex = KinsokuProcessor.findBreakPoint(text, breakIndex);
+            if (breakIndex < 0) breakIndex = position.offset;
+          } else if (overflowWrap) {
+            // Latin-region break with overflow-wrap -> Break at character
+          } else {
+            // Break is in Latin region of mixed text - treat as Latin
+            // Look for next space AFTER break point to avoid breaking words
+            final afterBreak = text.substring(breakIndex);
+            final nextSpace = afterBreak.indexOf(' ');
+
+            if (nextSpace >= 0) {
+              // Found space after - but this means moving more to next line
+              return null;
+            }
+            // No space in Latin part - may need force split
+            return null;
+          }
+        } else if (overflowWrap) {
+          // Latin text with overflow-wrap: break-word -> Break at character if no space
         } else {
-          // Break is in Latin region of mixed text - treat as Latin
+          // Pure Latin text without space before break point
           // Look for next space AFTER break point to avoid breaking words
           final afterBreak = text.substring(breakIndex);
           final nextSpace = afterBreak.indexOf(' ');
 
           if (nextSpace >= 0) {
             // Found space after - but this means moving more to next line
+            // Return null to signal "can't fit any complete word on this line"
+            // The caller should start a new line and try again
             return null;
           }
-          // No space in Latin part - may need force split
+          // No space at all in text - this is a single long word
+          // Return null, let caller decide (may force split if word > line width)
           return null;
         }
-      } else {
-        // Pure Latin text without space before break point
-        // Look for next space AFTER break point to avoid breaking words
-        final afterBreak = text.substring(breakIndex);
-        final nextSpace = afterBreak.indexOf(' ');
-
-        if (nextSpace >= 0) {
-          // Found space after - but this means moving more to next line
-          // Return null to signal "can't fit any complete word on this line"
-          // The caller should start a new line and try again
-          return null;
-        }
-        // No space at all in text - this is a single long word
-        // Return null, let caller decide (may force split if word > line width)
-        return null;
       }
     }
 
@@ -937,9 +970,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     final firstPart = shouldTrim
         ? text.substring(0, breakIndex).trimRight()
         : text.substring(0, breakIndex);
-    final secondPart = shouldTrim
-        ? text.substring(breakIndex).trimLeft()
-        : text.substring(breakIndex);
+    final secondRaw = text.substring(breakIndex);
+    final secondPart = shouldTrim ? secondRaw.trimLeft() : secondRaw;
+    
+    // account for trimmed chars in offset
+    final trimmedLeading = shouldTrim ? secondRaw.length - secondPart.length : 0;
 
     if (firstPart.isEmpty || secondPart.isEmpty) {
       return null;
@@ -957,7 +992,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       text: secondPart,
       sourceNode: fragment.sourceNode,
       style: fragment.style,
-      characterOffset: fragment.characterOffset + breakIndex,
+      characterOffset: fragment.characterOffset + breakIndex + trimmedLeading,
     );
     _measureFragment(secondFragment);
 
@@ -1001,114 +1036,63 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
     }
 
-    // If we found a word boundary, use it
-    if (breakIndex > 0 && breakIndex < text.length) {
-      // Only trim spaces for normal/nowrap/pre-line modes
-      final whiteSpace = fragment.style.whiteSpace;
-      final shouldTrim = (whiteSpace != 'pre' &&
-                          whiteSpace != 'pre-wrap' &&
-                          whiteSpace != 'break-spaces');
+    // If no word boundary fits, but overflow-wrap is enabled, or word-break: break-all
+    // then force split at character level
+    final style = fragment.style;
+    final bool breakAll = style.wordBreak == 'break-all';
+    final bool overflowWrap = style.overflowWrap == 'break-word' || style.overflowWrap == 'anywhere';
 
-      final firstPart = shouldTrim
-          ? text.substring(0, breakIndex).trimRight()
-          : text.substring(0, breakIndex);
-      final secondPart = shouldTrim
-          ? text.substring(breakIndex).trimLeft()
-          : text.substring(breakIndex);
+    if (breakIndex == -1 && (breakAll || overflowWrap || KinsokuProcessor.containsCjk(text))) {
+      final painter = _getTextPainter(text, fragment.style);
+      final position = painter.getPositionForOffset(Offset(maxWidth, 0));
+      breakIndex = position.offset;
 
-      if (firstPart.isNotEmpty && secondPart.isNotEmpty) {
-        final firstFragment = Fragment.text(
-          text: firstPart,
-          sourceNode: fragment.sourceNode,
-          style: fragment.style,
-          characterOffset: fragment.characterOffset,
-        );
-        _measureFragment(firstFragment);
-
-        final secondFragment = Fragment.text(
-          text: secondPart,
-          sourceNode: fragment.sourceNode,
-          style: fragment.style,
-          characterOffset: fragment.characterOffset + breakIndex,
-        );
-        _measureFragment(secondFragment);
-
-        return (firstFragment, secondFragment);
+      // Adjust for CJK rules if applicable
+      if (KinsokuProcessor.containsCjk(text)) {
+        final kinsokuBreak = KinsokuProcessor.findBreakPoint(text, breakIndex);
+        if (kinsokuBreak > 0) breakIndex = kinsokuBreak;
       }
     }
 
-    // No word boundary fits - check if this is CJK text (OK to break mid-character)
-    if (KinsokuProcessor.containsCjk(text)) {
-      // Use binary search to find the best break point for CJK
-      int low = 1;
-      int high = text.length - 1;
-      int bestBreak = 1;
-
-      while (low <= high) {
-        final mid = (low + high) ~/ 2;
-        final testText = text.substring(0, mid);
-        final painter = _getTextPainter(testText, fragment.style);
-
-        if (painter.width <= maxWidth) {
-          bestBreak = mid;
-          low = mid + 1;
-        } else {
-          high = mid - 1;
-        }
-      }
-
-      if (bestBreak >= 1 && bestBreak < text.length) {
-        // Check if break is in CJK context for mixed text handling
-        int finalBreak;
-        if (_isBreakInCjkContext(text, bestBreak)) {
-          // In CJK region - apply Kinsoku rules
-          final kinsokuBreak = KinsokuProcessor.findBreakPoint(text, bestBreak);
-          finalBreak = kinsokuBreak > 0 ? kinsokuBreak : bestBreak;
-        } else {
-          // In Latin region - look for nearby space to avoid mid-word break
-          final beforeBreak = text.substring(0, bestBreak);
-          final lastSpace = beforeBreak.lastIndexOf(' ');
-          if (lastSpace > 0) {
-            // Found space before - use it
-            finalBreak = lastSpace + 1;
-          } else {
-            // No space found - use binary search result (will break mid-word)
-            finalBreak = bestBreak;
-          }
-        }
-
-        final firstPart = text.substring(0, finalBreak);
-        final secondPart = text.substring(finalBreak);
-
-        if (firstPart.isNotEmpty && secondPart.isNotEmpty) {
-          final firstFragment = Fragment.text(
-            text: firstPart,
-            sourceNode: fragment.sourceNode,
-            style: fragment.style,
-            characterOffset: fragment.characterOffset,
-          );
-          _measureFragment(firstFragment);
-
-          final secondFragment = Fragment.text(
-            text: secondPart,
-            sourceNode: fragment.sourceNode,
-            style: fragment.style,
-            characterOffset: fragment.characterOffset + finalBreak,
-          );
-          _measureFragment(secondFragment);
-
-          return (firstFragment, secondFragment);
-        }
-      }
+    if (breakIndex <= 0 || breakIndex >= text.length) {
+      return null;
     }
 
-    // For Latin text with a single word wider than the line - allow overflow
-    // Don't break mid-word, just return null and let the word overflow
-    return null;
+    final firstPart = text.substring(0, breakIndex);
+    final secondPart = text.substring(breakIndex);
+
+    final firstFragment = Fragment.text(
+      text: firstPart,
+      sourceNode: fragment.sourceNode,
+      style: fragment.style,
+      characterOffset: fragment.characterOffset,
+    );
+    _measureFragment(firstFragment);
+
+    final secondFragment = Fragment.text(
+      text: secondPart,
+      sourceNode: fragment.sourceNode,
+      style: fragment.style,
+      characterOffset: fragment.characterOffset + breakIndex,
+    );
+    _measureFragment(secondFragment);
+
+    return (firstFragment, secondFragment);
   }
 
   void _layoutFloat(Fragment fragment, double currentY) {
     if (fragment is! _FloatFragment) return;
+
+    // Compute margins FIRST so we can leave room when laying out the child.
+    final margin = fragment.style.margin;
+    const defaultFloatMargin = 8.0;
+    final rightMargin = margin.right > 0 ? margin.right : defaultFloatMargin;
+    final leftMargin = margin.left > 0 ? margin.left : defaultFloatMargin;
+    final bottomMargin = margin.bottom > 0 ? margin.bottom : defaultFloatMargin;
+
+    // Reserve horizontal margin space so totalWidth always fits in _maxWidth.
+    final hMargin = fragment.floatDirection == HyperFloat.left ? rightMargin : leftMargin;
+    final availableWidth = math.max(0.0, _maxWidth - hMargin);
 
     double width;
     double height;
@@ -1116,61 +1100,142 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // Try to get size from the actual child widget (for images, etc.)
     final child = _findChildForFragment(fragment);
     if (child != null) {
-      // Layout the child to get its actual size
-      child.layout(BoxConstraints(maxWidth: _maxWidth), parentUsesSize: true);
+      // Layout the child with the margin-reduced width so width + hMargin ≤ _maxWidth.
+      child.layout(BoxConstraints(maxWidth: availableWidth), parentUsesSize: true);
       width = child.size.width;
       height = child.size.height;
     } else {
-      // Fallback to CSS style or default size
-      width = fragment.style.width ?? RenderHyperBox.defaultFloatSize;
+      // Fallback to CSS style or default size, clamped to available width.
+      width = math.min(
+        fragment.style.width ?? RenderHyperBox.defaultFloatSize,
+        availableWidth,
+      );
       height = fragment.style.height ?? RenderHyperBox.defaultFloatSize;
     }
 
-    // Get margin from CSS style for proper text spacing
-    final margin = fragment.style.margin;
-
-    // Apply default margin if none specified for better text spacing
-    const defaultFloatMargin = 8.0;
-    final rightMargin = margin.right > 0 ? margin.right : defaultFloatMargin;
-    final leftMargin = margin.left > 0 ? margin.left : defaultFloatMargin;
-    final bottomMargin = margin.bottom > 0 ? margin.bottom : defaultFloatMargin;
-
     Rect floatRect;
+    double floatY = currentY;
 
     if (fragment.floatDirection == HyperFloat.left) {
       double left = 0;
-      for (final existing in _leftFloats) {
-        if (existing.rect.bottom > currentY) {
-          left = math.max(left, existing.rect.right);
+
+      // Find available position - may need to move down if float doesn't fit
+      // This handles multiple floats stacking correctly
+      bool foundPosition = false;
+      int iterations = 0;
+      const maxIterations = 100;
+
+      while (!foundPosition && iterations < maxIterations) {
+        left = 0;
+
+        // Check existing left floats at current Y position
+        for (final existing in _leftFloats) {
+          if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+            left = math.max(left, existing.rect.right);
+          }
         }
+
+        // Check right floats to ensure there's enough space
+        double rightEdge = _maxWidth;
+        for (final existing in _rightFloats) {
+          if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+            rightEdge = math.min(rightEdge, existing.rect.left);
+          }
+        }
+
+        // Check if float fits in available space
+        final totalWidth = width + rightMargin;
+        if (left + totalWidth <= rightEdge) {
+          foundPosition = true;
+        } else {
+          // Not enough space - move down below the lowest float at this Y
+          double lowestBottom = floatY + 1;
+          for (final existing in [..._leftFloats, ..._rightFloats]) {
+            if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+              lowestBottom = math.max(lowestBottom, existing.rect.bottom);
+            }
+          }
+          floatY = lowestBottom;
+        }
+        iterations++;
+      }
+
+      if (!foundPosition) {
+        // BUG-D FIX: assert() is erased in release builds — the bad floatY
+        // value was silently used, causing content overlap in production.
+        // Fall back to currentY (place float at the current line position)
+        // and always log so developers see it regardless of build mode.
+        debugPrint('HyperRender: left float exceeded maxIterations — '
+            'falling back to currentY. Reduce float density to avoid this.');
+        floatY = currentY;
       }
 
       // Float rect includes margin on right and bottom for text spacing
-      // Left and top margins are handled by positioning
       floatRect = Rect.fromLTWH(
         left,
-        currentY,
-        width + rightMargin,  // Add right margin so text doesn't stick
-        height + bottomMargin, // Add bottom margin for vertical spacing
+        floatY,
+        width + rightMargin,
+        height + bottomMargin,
       );
       _leftFloats.add(_FloatArea(rect: floatRect, direction: HyperFloat.left));
     } else {
       double right = _maxWidth;
-      for (final existing in _rightFloats) {
-        if (existing.rect.bottom > currentY) {
-          right = math.min(right, existing.rect.left);
+
+      // Find available position - may need to move down if float doesn't fit
+      bool foundPosition = false;
+      int iterations = 0;
+      const maxIterations = 100;
+
+      while (!foundPosition && iterations < maxIterations) {
+        right = _maxWidth;
+
+        // Check existing right floats at current Y position
+        for (final existing in _rightFloats) {
+          if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+            right = math.min(right, existing.rect.left);
+          }
         }
+
+        // Check left floats to ensure there's enough space
+        double leftEdge = 0;
+        for (final existing in _leftFloats) {
+          if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+            leftEdge = math.max(leftEdge, existing.rect.right);
+          }
+        }
+
+        // Check if float fits in available space
+        final totalWidth = width + leftMargin;
+        if (right - totalWidth >= leftEdge) {
+          foundPosition = true;
+        } else {
+          // Not enough space - move down below the lowest float at this Y
+          double lowestBottom = floatY + 1;
+          for (final existing in [..._leftFloats, ..._rightFloats]) {
+            if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+              lowestBottom = math.max(lowestBottom, existing.rect.bottom);
+            }
+          }
+          floatY = lowestBottom;
+        }
+        iterations++;
+      }
+
+      if (!foundPosition) {
+        // BUG-D FIX (right float): same fix as left float above.
+        debugPrint('HyperRender: right float exceeded maxIterations — '
+            'falling back to currentY. Reduce float density to avoid this.');
+        floatY = currentY;
       }
 
       // Float rect includes margin on left and bottom for text spacing
       floatRect = Rect.fromLTWH(
-        right - width - leftMargin, // Add left margin so text doesn't stick
-        currentY,
-        width + leftMargin,   // Total width including margin
+        right - width - leftMargin,
+        floatY,
+        width + leftMargin,
         height + bottomMargin,
       );
-      _rightFloats
-          .add(_FloatArea(rect: floatRect, direction: HyperFloat.right));
+      _rightFloats.add(_FloatArea(rect: floatRect, direction: HyperFloat.right));
     }
 
     fragment.measuredSize = Size(width, height);
@@ -1184,9 +1249,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   }
 
   /// Step 4: Position fragments within lines (baseline alignment)
+  /// Handles both LTR (left-to-right) and RTL (right-to-left) text directions
   void _positionFragments() {
     for (final line in _lines) {
-      double x = line.leftInset;
+      // For RTL, start from the right side and move left
+      // For LTR, start from the left side and move right
+      double x = isRTL
+          ? (_maxWidth - line.rightInset - line.width)
+          : line.leftInset;
 
       for (final fragment in line.fragments) {
         double fragmentBaseline;
@@ -1283,9 +1353,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           node: node,
           rects: rects,
           backgroundColor: style.backgroundColor,
+          backgroundGradient: style.backgroundGradient,
           borderColor: style.borderColor,
           borderWidth: style.borderWidth.top,
+          borderStyle: style.borderStyle, // 🆕 ADDED
           borderRadius: style.borderRadius,
+          boxShadow: style.boxShadow,
+          filter: style.filter,
+          backdropFilter: style.backdropFilter,
         ));
       }
     }
@@ -1343,10 +1418,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       } else if (parentData.fragment != null) {
         final fragment = parentData.fragment!;
         // Always layout to ensure parent data is properly cleaned
-        child.layout(
-          BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
-          parentUsesSize: true,
-        );
+        if (fragment is _DetailsFragment) {
+          // Use unconstrained height so HyperDetailsWidget is NOT a relayout boundary
+          // This ensures setState toggle propagates markNeedsLayout to parent RenderHyperBox
+          child.layout(BoxConstraints(maxWidth: _maxWidth), parentUsesSize: true);
+        } else {
+          child.layout(
+            BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
+            parentUsesSize: true,
+          );
+        }
         parentData.offset = fragment.offset ?? Offset.zero;
         wasLaidOut = true;
       } else if (parentData.sourceNode != null) {
@@ -1354,10 +1435,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final fragment = _findFragmentForNode(parentData.sourceNode!);
         if (fragment != null) {
           parentData.fragment = fragment;
-          child.layout(
-            BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
-            parentUsesSize: true,
-          );
+          if (fragment is _DetailsFragment) {
+            child.layout(BoxConstraints(maxWidth: _maxWidth), parentUsesSize: true);
+          } else {
+            child.layout(
+              BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
+              parentUsesSize: true,
+            );
+          }
           parentData.offset = fragment.offset ?? Offset.zero;
           wasLaidOut = true;
         }
@@ -1374,38 +1459,88 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     }
   }
 
-  /// Link child RenderBoxes to their corresponding fragments using ORDER-BASED matching
-  ///
-  /// This is critical for atomic elements (images, tables) to render correctly.
-  /// Since fragments and children are both created by traversing the UDT in the same order,
-  /// we can match them by iterating through both lists simultaneously.
+  /// Link child RenderBoxes to their corresponding fragments using sourceNode-based matching.
   void _linkFragmentsToChildrenByOrder() {
-    RenderBox? child = firstChild;
-
+    // Step 1: Build a map of sourceNode -> Fragment for quick lookup
+    final fragmentMap = <UDTNode, Fragment>{};
     for (final fragment in _fragments) {
-      if (child == null) break;
-
-      // Match atomic fragments (images, embeds) and special fragment types
       final isAtomicFragment = fragment.type == FragmentType.atomic;
       final isTableFragment = fragment is _TableFragment;
       final isCodeBlockFragment = fragment is _CodeBlockFragment;
+      final isDetailsFragment = fragment is _DetailsFragment;
       final isFloatFragment = fragment is _FloatFragment;
 
-      if (isAtomicFragment || isTableFragment || isCodeBlockFragment || isFloatFragment) {
-        final parentData = child.parentData as HyperBoxParentData;
+      if (isAtomicFragment || isTableFragment || isCodeBlockFragment || isDetailsFragment || isFloatFragment) {
+        fragmentMap[fragment.sourceNode] = fragment;
+      }
+    }
 
-        // Link fragment to child
+    // Step 2: Link children to fragments using sourceNode matching (primary method)
+    RenderBox? child = firstChild;
+    while (child != null) {
+      final parentData = child.parentData as HyperBoxParentData;
+
+      if (parentData.sourceNode != null) {
+        final matchedFragment = fragmentMap[parentData.sourceNode];
+        if (matchedFragment != null) {
+          parentData.fragment = matchedFragment;
+
+          // Set float info if applicable
+          if (matchedFragment is _FloatFragment) {
+            parentData.isFloat = true;
+            parentData.floatDirection = matchedFragment.floatDirection;
+          }
+        }
+      }
+
+      child = parentData.nextSibling;
+    }
+
+    // Step 3: Fallback - link remaining unlinked children by order
+    // This handles cases where sourceNode is null (rare, but possible)
+    child = firstChild;
+    final unlinkedFragments = _fragments.where((f) {
+      final isAtomicFragment = f.type == FragmentType.atomic;
+      final isTableFragment = f is _TableFragment;
+      final isCodeBlockFragment = f is _CodeBlockFragment;
+      final isDetailsFragment = f is _DetailsFragment;
+      final isFloatFragment = f is _FloatFragment;
+
+      if (!(isAtomicFragment || isTableFragment || isCodeBlockFragment || isDetailsFragment || isFloatFragment)) {
+        return false;
+      }
+
+      // Check if this fragment is already linked to a child
+      RenderBox? c = firstChild;
+      while (c != null) {
+        final pd = c.parentData as HyperBoxParentData;
+        if (pd.fragment == f) return false;
+        c = pd.nextSibling;
+      }
+      return true;
+    }).iterator;
+
+    while (child != null) {
+      final parentData = child.parentData as HyperBoxParentData;
+
+      // Skip children that are already linked
+      if (parentData.fragment != null) {
+        child = parentData.nextSibling;
+        continue;
+      }
+
+      // Try to get next unlinked fragment
+      if (unlinkedFragments.moveNext()) {
+        final fragment = unlinkedFragments.current;
         parentData.fragment = fragment;
 
-        // Set float info if applicable
         if (fragment is _FloatFragment) {
           parentData.isFloat = true;
           parentData.floatDirection = fragment.floatDirection;
         }
-
-        // Move to next child
-        child = parentData.nextSibling;
       }
+
+      child = parentData.nextSibling;
     }
   }
 

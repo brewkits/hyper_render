@@ -61,7 +61,7 @@ class FlexContainerWidget extends StatelessWidget {
         flexWidget = Row(
           mainAxisAlignment: mainAxisAlignment,
           crossAxisAlignment: crossAxisAlignment,
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           textDirection: isReverse ? TextDirection.rtl : TextDirection.ltr,
           children: processedChildren,
         );
@@ -69,7 +69,7 @@ class FlexContainerWidget extends StatelessWidget {
         flexWidget = Column(
           mainAxisAlignment: mainAxisAlignment,
           crossAxisAlignment: crossAxisAlignment,
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           verticalDirection:
               isReverse ? VerticalDirection.up : VerticalDirection.down,
           children: processedChildren,
@@ -235,25 +235,28 @@ class FlexItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Apply flex-grow, flex-shrink, flex-basis
-    if (style.flexGrow != null ||
-        style.flexShrink != null ||
-        style.flexBasis != null) {
-      final int flex = (style.flexGrow ?? 0).toInt();
-      final FlexFit fit = (style.flexShrink ?? 1) > 0
-          ? FlexFit.tight
-          : FlexFit.loose;
+    final int flex = (style.flexGrow ?? 0).toInt();
+    final bool canShrink = (style.flexShrink ?? 1) > 0;
 
-      if (flex > 0) {
-        return Flexible(
-          flex: flex,
-          fit: fit,
-          child: _wrapWithAlignSelf(child, style.alignSelf),
-        );
-      }
+    // Use Expanded for flex-grow (simpler than Flexible with tight fit)
+    if (flex > 0) {
+      return Expanded(
+        flex: flex,
+        child: _wrapWithAlignSelf(child, style.alignSelf),
+      );
     }
 
-    return _wrapWithAlignSelf(child, style.alignSelf);
+    // If item is not shrinkable, it's rigid. No need for Flexible.
+    if (!canShrink) {
+      return _wrapWithAlignSelf(child, style.alignSelf);
+    }
+
+    // For shrinkable items that don't grow, use Flexible with loose fit.
+    // This allows them to shrink if needed, but not grow.
+    return Flexible(
+      fit: FlexFit.loose,
+      child: _wrapWithAlignSelf(child, style.alignSelf),
+    );
   }
 
   Widget _wrapWithAlignSelf(Widget child, AlignItems? alignSelf) {
@@ -261,7 +264,7 @@ class FlexItemWidget extends StatelessWidget {
     // This is tricky in Flutter because CrossAxisAlignment is per-container
     // We can use Align widget to override for a specific child
     if (alignSelf != null) {
-      Alignment alignment;
+      Alignment? alignment;
       switch (alignSelf) {
         case AlignItems.flexStart:
           alignment = Alignment.topLeft;

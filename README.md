@@ -95,7 +95,10 @@ One RenderObject means:
 | **Ruby / Furigana** | ❌ Raw text | ❌ Not supported | **✅** |
 | **`<details>/<summary>`** | ❌ | ❌ | **✅ Interactive** |
 | **CSS Variables `var()`** | ❌ | ❌ | **✅** |
-| **Flexbox** | ❌ | ⚠️ Partial | **✅** |
+| **Flexbox / Grid** | ❌ | ⚠️ Partial | **✅ Full** |
+| **Shadows & Filters** | ❌ | ❌ | **✅ Advanced** |
+| **Backdrop Blur** | ❌ | ❌ | **✅ Glassmorphism** |
+| **Border Styles** | ⚠️ Solid only | ⚠️ Solid only | **✅ Dashed/Dotted** |
 
 > **Widgets created**: flutter_html / FWFH create one Flutter widget per HTML tag (~500–600 for a 3,000-word article).
 > HyperRender uses `ListView.builder` virtualization — large documents are split into ~3–5 `RenderHyperBox` chunks,
@@ -168,7 +171,22 @@ HyperViewer(
 
 ---
 
-### 🀄 Professional CJK Typography
+### ✨ Visual Effects & Aesthetic Polish *(Phase 3 & 4)*
+
+HyperRender doesn't just render HTML; it makes it **beautiful**. Because we control the paint
+cycle, we can apply advanced visual effects that are difficult or impossible with standard
+Flutter widgets:
+
+- **Glassmorphism**: `backdrop-filter: blur(10px)` for iOS-style translucent backgrounds.
+- **Advanced Shadows**: `box-shadow` and `text-shadow` with multiple layers and blur.
+- **CSS Filters**: `filter: blur(4px) brightness(1.2) contrast(0.8)` for real-time image effects.
+- **Gradients**: `background: linear-gradient(to right, #6a11cb, #2575fc)` support.
+- **Dashed/Dotted Borders**: Professional-looking `border-style: dashed` and `dotted` borders.
+- **Retina-Ready**: Automatically uses `FilterQuality.medium` for crisp images on high-DPI displays.
+
+---
+
+### ✨ Professional CJK Typography
 
 ```dart
 HyperViewer(

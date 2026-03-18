@@ -82,6 +82,12 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// Whether text selection is enabled
   final bool selectable;
 
+  /// Text direction for layout
+  final TextDirection textDirection;
+
+  /// Color for text selection highlight
+  final Color? selectionColor;
+
   /// Callback when selection changes (e.g., to show context menu)
   final VoidCallback? onSelectionChanged;
 
@@ -101,25 +107,29 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.widgetBuilder,
     this.imageLoader,
     this.selectable = true,
+    this.textDirection = TextDirection.ltr,
+    this.selectionColor,
     this.onSelectionChanged,
     this.debugShowBounds = false,
-  }) : super(children: _buildChildren(document, widgetBuilder));
+  }) : super(children: _buildChildren(document, widgetBuilder, selectable: selectable));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
   static List<Widget> _buildChildren(
     DocumentNode document,
-    HyperWidgetBuilder? widgetBuilder,
-  ) {
+    HyperWidgetBuilder? widgetBuilder, {
+    bool selectable = true,
+  }) {
     final children = <Widget>[];
-    _collectAtomicChildren(document, children, widgetBuilder);
+    _collectAtomicChildren(document, children, widgetBuilder, selectable: selectable);
     return children;
   }
 
   static void _collectAtomicChildren(
     UDTNode node,
     List<Widget> children,
-    HyperWidgetBuilder? widgetBuilder,
-  ) {
+    HyperWidgetBuilder? widgetBuilder, {
+    bool selectable = true,
+  }) {
     Widget? childWidget;
 
     // Is it a flex container?
@@ -187,7 +197,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     } else if (node.type == NodeType.table) {
       final tableNode = node as TableNode;
       childWidget = widgetBuilder?.call(tableNode);
-      childWidget ??= _buildDefaultTableWidget(tableNode);
+      childWidget ??= _buildDefaultTableWidget(tableNode, selectable: selectable);
       if (childWidget != null) {
         children.add(_HyperChildWidget(node: node, child: childWidget));
       }
@@ -197,7 +207,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     // (because its children are not part of the main render tree)
     if (childWidget == null) {
       for (final child in node.children) {
-        _collectAtomicChildren(child, children, widgetBuilder);
+        _collectAtomicChildren(child, children, widgetBuilder, selectable: selectable);
       }
     }
   }
@@ -344,7 +354,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     return null;
   }
 
-  static Widget? _buildDefaultTableWidget(TableNode node) {
+  static Widget? _buildDefaultTableWidget(TableNode node, {bool selectable = true}) {
     // Use the SmartTableWrapper for intelligent table rendering
     // Auto-detect strategy based on CSS width:
     // - If width is 100%, use fitWidth (table wraps to screen like fwfh)
@@ -368,6 +378,15 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       tableNode: node,
       strategy: strategy,
       minScaleFactor: 0.6,
+      selectable: selectable,
+      // Supply a cell builder so that cells containing block-level content
+      // (nested tables, paragraphs, images, …) are rendered via
+      // HyperRenderWidget instead of being silently dropped.
+      // selectable:false prevents a nested SelectionArea inside the outer one.
+      cellContentBuilder: (cellNode) => HyperRenderWidget(
+        document: DocumentNode(children: cellNode.children),
+        selectable: false,
+      ),
     );
   }
 
@@ -505,6 +524,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       onLinkTap: onLinkTap,
       imageLoader: imageLoader,
       selectable: selectable,
+      textDirection: textDirection,
+      selectionColor: selectionColor,
       onSelectionChanged: onSelectionChanged,
     )..debugShowBounds = debugShowBounds;
   }
@@ -525,6 +546,12 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     }
     if (renderObject.selectable != selectable) {
       renderObject.selectable = selectable;
+    }
+    if (renderObject.textDirection != textDirection) {
+      renderObject.textDirection = textDirection;
+    }
+    if (renderObject.selectionColor != selectionColor) {
+      renderObject.selectionColor = selectionColor;
     }
     if (renderObject.onSelectionChanged != onSelectionChanged) {
       renderObject.onSelectionChanged = onSelectionChanged;

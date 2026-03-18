@@ -146,7 +146,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   void _tokenizeInline(UDTNode node) {
     // Add inline start marker for decoration tracking
     final hasDecoration = node.style.backgroundColor != null ||
-        node.style.borderColor != null;
+        node.style.borderColor != null ||
+        node.style.backgroundGradient != null ||
+        node.style.boxShadow != null ||
+        node.style.filter != null ||
+        node.style.backdropFilter != null;
 
     if (hasDecoration) {
       _fragments.add(_InlineStartFragment(
@@ -216,7 +220,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         a.fontFamily == b.fontFamily &&
         a.backgroundColor == b.backgroundColor &&
         a.textDecoration == b.textDecoration &&
-        a.letterSpacing == b.letterSpacing;
+        a.letterSpacing == b.letterSpacing &&
+        a.wordBreak == b.wordBreak &&
+        a.overflowWrap == b.overflowWrap;
   }
 
   String _normalizeWhitespace(String text, String? whiteSpace) {
@@ -395,7 +401,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
   TextPainter _getTextPainter(String text, ComputedStyle style) {
     // Per-fragment text direction (supports RTL via CSS direction: rtl)
-    final fragmentDirection = style.isRtl ? ui.TextDirection.rtl : _textDirection;
+    final fragmentDirection = style.isRtl ? ui.TextDirection.rtl : textDirection;
 
     // Composite key using Object.hash to avoid XOR collision (a^b == b^a)
     final key = Object.hash(
@@ -586,7 +592,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
         // Track this block for decoration (background, border-left, border-radius)
         final style = fragment.style;
-        final hasBackground = style.backgroundColor != null;
+        final hasBackground = style.backgroundColor != null || style.backgroundGradient != null;
         final hasBorderLeft = style.borderColor != null && style.borderWidth.left > 0;
         if (hasBackground || hasBorderLeft) {
           // Calculate the edge positions (account for parent padding but not this block's)
@@ -627,9 +633,13 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
               node: fragment.sourceNode,
               rect: Rect.fromLTRB(blockLeftX, startY, blockRightX, currentY),
               backgroundColor: style.backgroundColor,
+              backgroundGradient: style.backgroundGradient,
               borderLeftColor: style.borderColor,
               borderLeftWidth: style.borderWidth.left,
               borderRadius: style.borderRadius,
+              boxShadow: style.boxShadow,
+              filter: style.filter,
+              backdropFilter: style.backdropFilter,
             ));
           }
         }
@@ -731,6 +741,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
 
       final availableWidth = getAvailableWidth();
+      // If floats were placed before any text on this line, currentX may still
+      // be 0 (or behind the float boundary). Clamp it so remainingWidth is
+      // computed from the actual start of the float-clear zone, not from 0.
+      if (currentX < leftInset) currentX = leftInset;
       final remainingWidth = leftInset + availableWidth - currentX;
 
       // Check if fragment fits in remaining space
@@ -784,8 +798,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           // Non-text fragment - just start new line if needed
           if (currentLineFragments.isNotEmpty) {
             finishLine();
-            currentX = leftInset;
             getAvailableWidth();
+            currentX = leftInset;
           }
         }
       }
@@ -856,6 +870,22 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     update(newHeight, newBaseline);
   }
 
+  /// Check if a break position is within a CJK context (surrounded by CJK characters)
+  /// This helps properly handle mixed CJK+Latin text by applying appropriate rules
+  bool _isBreakInCjkContext(String text, int position) {
+    if (position <= 0 || position >= text.length) return false;
+
+    // Check character before and after break position
+    final charBefore = text[position - 1];
+    final charAfter = text[position];
+
+    // If either side is CJK, consider it CJK context
+    final isBeforeCjk = KinsokuProcessor.isCjkCharacter(charBefore);
+    final isAfterCjk = KinsokuProcessor.isCjkCharacter(charAfter);
+
+    return isBeforeCjk || isAfterCjk;
+  }
+
   (Fragment, Fragment)? _splitTextFragment(Fragment fragment, double maxWidth) {
     final text = fragment.text!;
     if (text.isEmpty) return null;
@@ -865,31 +895,60 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     int breakIndex = position.offset;
 
     if (breakIndex > 0 && breakIndex < text.length) {
-      final beforeBreak = text.substring(0, breakIndex);
-      final lastSpace = beforeBreak.lastIndexOf(' ');
+      final style = fragment.style;
+      final bool breakAll = style.wordBreak == 'break-all';
+      final bool overflowWrap = style.overflowWrap == 'break-word' || style.overflowWrap == 'anywhere';
 
-      if (lastSpace > 0) {
-        // Found a space before break point - use it
-        breakIndex = lastSpace + 1;
-      } else if (KinsokuProcessor.containsCjk(text)) {
-        // CJK text - use kinsoku rules
-        breakIndex = KinsokuProcessor.findBreakPoint(text, breakIndex);
-        if (breakIndex < 0) breakIndex = position.offset;
+      if (breakAll) {
+        // word-break: break-all -> Break at any character
       } else {
-        // Latin text without space before break point
-        // Look for next space AFTER break point to avoid breaking words
-        final afterBreak = text.substring(breakIndex);
-        final nextSpace = afterBreak.indexOf(' ');
+        final beforeBreak = text.substring(0, breakIndex);
+        final lastSpace = beforeBreak.lastIndexOf(' ');
 
-        if (nextSpace >= 0) {
-          // Found space after - but this means moving more to next line
-          // Return null to signal "can't fit any complete word on this line"
-          // The caller should start a new line and try again
+        if (lastSpace > 0) {
+          // Found a space before break point - use it
+          breakIndex = lastSpace + 1;
+        } else if (KinsokuProcessor.containsCjk(text)) {
+          // Text contains CJK - check if break position is within CJK context
+          final isCjkBreak = _isBreakInCjkContext(text, breakIndex);
+
+          if (isCjkBreak) {
+            // Break is in CJK region - apply Kinsoku rules
+            breakIndex = KinsokuProcessor.findBreakPoint(text, breakIndex);
+            if (breakIndex < 0) breakIndex = position.offset;
+          } else if (overflowWrap) {
+            // Latin-region break with overflow-wrap -> Break at character
+          } else {
+            // Break is in Latin region of mixed text - treat as Latin
+            // Look for next space AFTER break point to avoid breaking words
+            final afterBreak = text.substring(breakIndex);
+            final nextSpace = afterBreak.indexOf(' ');
+
+            if (nextSpace >= 0) {
+              // Found space after - but this means moving more to next line
+              return null;
+            }
+            // No space in Latin part - may need force split
+            return null;
+          }
+        } else if (overflowWrap) {
+          // Latin text with overflow-wrap: break-word -> Break at character if no space
+        } else {
+          // Pure Latin text without space before break point
+          // Look for next space AFTER break point to avoid breaking words
+          final afterBreak = text.substring(breakIndex);
+          final nextSpace = afterBreak.indexOf(' ');
+
+          if (nextSpace >= 0) {
+            // Found space after - but this means moving more to next line
+            // Return null to signal "can't fit any complete word on this line"
+            // The caller should start a new line and try again
+            return null;
+          }
+          // No space at all in text - this is a single long word
+          // Return null, let caller decide (may force split if word > line width)
           return null;
         }
-        // No space at all in text - this is a single long word
-        // Return null, let caller decide (may force split if word > line width)
-        return null;
       }
     }
 
@@ -897,11 +956,21 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       return null;
     }
 
-    final firstPart = text.substring(0, breakIndex).trimRight();
+    // Only trim spaces for normal/nowrap/pre-line modes
+    // For pre/pre-wrap/break-spaces, preserve all whitespace
+    final whiteSpace = fragment.style.whiteSpace;
+    final shouldTrim = (whiteSpace != 'pre' &&
+                        whiteSpace != 'pre-wrap' &&
+                        whiteSpace != 'break-spaces');
+
+    final firstPart = shouldTrim
+        ? text.substring(0, breakIndex).trimRight()
+        : text.substring(0, breakIndex);
     final secondRaw = text.substring(breakIndex);
-    final secondPart = secondRaw.trimLeft();
-    // trimLeft() may remove leading whitespace — account for those chars in offset
-    final trimmedLeading = secondRaw.length - secondPart.length;
+    final secondPart = shouldTrim ? secondRaw.trimLeft() : secondRaw;
+    
+    // account for trimmed chars in offset
+    final trimmedLeading = shouldTrim ? secondRaw.length - secondPart.length : 0;
 
     if (firstPart.isEmpty || secondPart.isEmpty) {
       return null;
@@ -963,84 +1032,48 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
     }
 
-    // If we found a word boundary, use it
-    if (breakIndex > 0 && breakIndex < text.length) {
-      final firstPart = text.substring(0, breakIndex).trimRight();
-      final secondPart = text.substring(breakIndex).trimLeft();
+    // If no word boundary fits, but overflow-wrap is enabled, or word-break: break-all
+    // then force split at character level
+    final style = fragment.style;
+    final bool breakAll = style.wordBreak == 'break-all';
+    final bool overflowWrap = style.overflowWrap == 'break-word' || style.overflowWrap == 'anywhere';
 
-      if (firstPart.isNotEmpty && secondPart.isNotEmpty) {
-        final firstFragment = Fragment.text(
-          text: firstPart,
-          sourceNode: fragment.sourceNode,
-          style: fragment.style,
-          characterOffset: fragment.characterOffset,
-        );
-        _measureFragment(firstFragment);
+    if (breakIndex == -1 && (breakAll || overflowWrap || KinsokuProcessor.containsCjk(text))) {
+      final painter = _getTextPainter(text, fragment.style);
+      final position = painter.getPositionForOffset(Offset(maxWidth, 0));
+      breakIndex = position.offset;
 
-        final secondFragment = Fragment.text(
-          text: secondPart,
-          sourceNode: fragment.sourceNode,
-          style: fragment.style,
-          characterOffset: fragment.characterOffset + breakIndex,
-        );
-        _measureFragment(secondFragment);
-
-        return (firstFragment, secondFragment);
+      // Adjust for CJK rules if applicable
+      if (KinsokuProcessor.containsCjk(text)) {
+        final kinsokuBreak = KinsokuProcessor.findBreakPoint(text, breakIndex);
+        if (kinsokuBreak > 0) breakIndex = kinsokuBreak;
       }
     }
 
-    // No word boundary fits - check if this is CJK text (OK to break mid-character)
-    if (KinsokuProcessor.containsCjk(text)) {
-      // Use binary search to find the best break point for CJK
-      int low = 1;
-      int high = text.length - 1;
-      int bestBreak = 1;
-
-      while (low <= high) {
-        final mid = (low + high) ~/ 2;
-        final testText = text.substring(0, mid);
-        final painter = _getTextPainter(testText, fragment.style);
-
-        if (painter.width <= maxWidth) {
-          bestBreak = mid;
-          low = mid + 1;
-        } else {
-          high = mid - 1;
-        }
-      }
-
-      if (bestBreak >= 1 && bestBreak < text.length) {
-        final kinsokuBreak = KinsokuProcessor.findBreakPoint(text, bestBreak);
-        final finalBreak = kinsokuBreak > 0 ? kinsokuBreak : bestBreak;
-
-        final firstPart = text.substring(0, finalBreak);
-        final secondPart = text.substring(finalBreak);
-
-        if (firstPart.isNotEmpty && secondPart.isNotEmpty) {
-          final firstFragment = Fragment.text(
-            text: firstPart,
-            sourceNode: fragment.sourceNode,
-            style: fragment.style,
-            characterOffset: fragment.characterOffset,
-          );
-          _measureFragment(firstFragment);
-
-          final secondFragment = Fragment.text(
-            text: secondPart,
-            sourceNode: fragment.sourceNode,
-            style: fragment.style,
-            characterOffset: fragment.characterOffset + finalBreak,
-          );
-          _measureFragment(secondFragment);
-
-          return (firstFragment, secondFragment);
-        }
-      }
+    if (breakIndex <= 0 || breakIndex >= text.length) {
+      return null;
     }
 
-    // For Latin text with a single word wider than the line - allow overflow
-    // Don't break mid-word, just return null and let the word overflow
-    return null;
+    final firstPart = text.substring(0, breakIndex);
+    final secondPart = text.substring(breakIndex);
+
+    final firstFragment = Fragment.text(
+      text: firstPart,
+      sourceNode: fragment.sourceNode,
+      style: fragment.style,
+      characterOffset: fragment.characterOffset,
+    );
+    _measureFragment(firstFragment);
+
+    final secondFragment = Fragment.text(
+      text: secondPart,
+      sourceNode: fragment.sourceNode,
+      style: fragment.style,
+      characterOffset: fragment.characterOffset + breakIndex,
+    );
+    _measureFragment(secondFragment);
+
+    return (firstFragment, secondFragment);
   }
 
   void _layoutFloat(Fragment fragment, double currentY) {
@@ -1316,9 +1349,13 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           node: node,
           rects: rects,
           backgroundColor: style.backgroundColor,
+          backgroundGradient: style.backgroundGradient,
           borderColor: style.borderColor,
           borderWidth: style.borderWidth.top,
           borderRadius: style.borderRadius,
+          boxShadow: style.boxShadow,
+          filter: style.filter,
+          backdropFilter: style.backdropFilter,
         ));
       }
     }
@@ -1423,10 +1460,6 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   /// Since fragments and children are both created by traversing the UDT in the same order,
   /// we can match them by iterating through both lists simultaneously.
   /// Links fragments to their corresponding child RenderBoxes using sourceNode-based matching.
-  ///
-  /// This is more robust than order-based matching because it uses the unique sourceNode
-  /// reference to identify the correct fragment-child pair, preventing misalignment issues
-  /// when the widget tree and fragment list update asynchronously.
   void _linkFragmentsToChildrenByOrder() {
     // Step 1: Build a map of sourceNode -> Fragment for quick lookup
     final fragmentMap = <UDTNode, Fragment>{};

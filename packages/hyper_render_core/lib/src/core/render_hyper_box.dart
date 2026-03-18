@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -61,6 +62,9 @@ class RenderHyperBox extends RenderBox
   /// Whether text selection is enabled
   bool _selectable;
 
+  /// Text direction for layout (LTR or RTL)
+  TextDirection _textDirection;
+
   /// Max width constraint (for line wrapping)
   double _maxWidth = double.infinity;
 
@@ -115,6 +119,9 @@ class RenderHyperBox extends RenderBox
   /// Character offset to fragment mapping
   final Map<int, Fragment> _characterToFragment = {};
 
+  /// Color for text selection highlight
+  Color? _selectionColor;
+
   /// Callback when selection changes
   VoidCallback? onSelectionChanged;
 
@@ -150,12 +157,16 @@ class RenderHyperBox extends RenderBox
     HyperLinkTapCallback? onLinkTap,
     HyperImageLoader? imageLoader,
     bool selectable = true,
+    TextDirection textDirection = TextDirection.ltr,
+    Color? selectionColor,
     this.onSelectionChanged,
   })  : _document = document,
         _baseStyle = baseStyle,
         _onLinkTap = onLinkTap,
         _imageLoader = imageLoader,
-        _selectable = selectable;
+        _selectable = selectable,
+        _textDirection = textDirection,
+        _selectionColor = selectionColor;
 
   // ============================================
   // Properties
@@ -192,6 +203,17 @@ class RenderHyperBox extends RenderBox
     markNeedsPaint();
   }
 
+  TextDirection get textDirection => _textDirection;
+  set textDirection(TextDirection value) {
+    if (_textDirection == value) return;
+    _textDirection = value;
+    _invalidateLayout();
+    markNeedsLayout();
+  }
+
+  /// Whether the text direction is right-to-left
+  bool get isRTL => _textDirection == TextDirection.rtl;
+
   HyperImageLoader? get imageLoader => _imageLoader;
   set imageLoader(HyperImageLoader? value) {
     if (_imageLoader == value) return;
@@ -209,6 +231,13 @@ class RenderHyperBox extends RenderBox
     _selection = value;
     markNeedsPaint();
     onSelectionChanged?.call();
+  }
+
+  Color? get selectionColor => _selectionColor;
+  set selectionColor(Color? value) {
+    if (_selectionColor == value) return;
+    _selectionColor = value;
+    markNeedsPaint();
   }
 
   /// Notify selection changed (call after modifying _selection directly)
@@ -448,10 +477,12 @@ class RenderHyperBox extends RenderBox
       // Step 1.5: Link children to fragments (CRITICAL)
       _linkFragmentsToChildrenByOrder();
 
-      // Steps 2–6: Skipped when fragments and constraint width are unchanged.
+      // relayout logic for <details>
+      final bool hasDetailsFragments = _fragments.any((f) => f is _DetailsFragment);
       final bool needsLineLayout = _linesFragmentsVersion != _fragmentsVersion ||
           _linesMaxWidth != _maxWidth ||
-          _lines.isEmpty;
+          _lines.isEmpty ||
+          hasDetailsFragments;
 
       if (needsLineLayout) {
         // Step 2: Measure all fragments
@@ -486,6 +517,16 @@ class RenderHyperBox extends RenderBox
       for (final float in [..._leftFloats, ..._rightFloats]) {
         if (float.rect.bottom > height) {
           height = float.rect.bottom;
+        }
+      }
+
+      // Extend height from details if needed
+      for (final fragment in _fragments) {
+        if (fragment is _DetailsFragment || fragment is _TableFragment || fragment is _CodeBlockFragment) {
+          if (fragment.offset != null && fragment.measuredSize != null) {
+            final bottom = fragment.offset!.dy + fragment.measuredSize!.height;
+            if (bottom > height) height = bottom;
+          }
         }
       }
 
@@ -565,12 +606,10 @@ class RenderHyperBox extends RenderBox
 
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
-    // Custom hit test that skips children without valid size
     RenderBox? child = lastChild;
     while (child != null) {
       final childParentData = child.parentData as HyperBoxParentData;
 
-      // Skip children that don't have a valid size
       if (!child.hasSize) {
         child = childParentData.previousSibling;
         continue;
@@ -584,10 +623,7 @@ class RenderHyperBox extends RenderBox
         },
       );
 
-      if (isHit) {
-        return true;
-      }
-
+      if (isHit) return true;
       child = childParentData.previousSibling;
     }
     return false;
@@ -648,63 +684,6 @@ class RenderHyperBox extends RenderBox
   @override
   bool get isRepaintBoundary => true;
 
-  /// Builds semantic information for accessibility tools (TalkBack, VoiceOver)
-  @override
-  void describeSemanticsConfiguration(SemanticsConfiguration config) {
-    super.describeSemanticsConfiguration(config);
-
-    // Mark as semantics boundary - we handle our own semantic children
-    config.isSemanticBoundary = true;
-
-    // Enable text-based semantics
-    config.textDirection = TextDirection.ltr;
-
-    // If selectable, expose text selection actions
-    if (_selectable && _selection != null && !_selection!.isCollapsed) {
-      config.isSelected = true;
-      config.value = getSelectedText() ?? '';
-    }
-
-    // Build the full text content for this render object
-    final textContent = _buildTextContentForSemantics();
-    if (textContent.isNotEmpty) {
-      config.label = textContent;
-      config.isReadOnly = true;
-    }
-  }
-
-  /// Assembles semantic nodes for complex content (links, images, headings)
-  @override
-  void assembleSemanticsNode(
-    SemanticsNode node,
-    SemanticsConfiguration config,
-    Iterable<SemanticsNode> children,
-  ) {
-    // First, let the parent do its work with child widgets (images, tables, etc.)
-    super.assembleSemanticsNode(node, config, children);
-
-    // Now add semantic nodes for our inline content
-    final semanticChildren = <SemanticsNode>[];
-
-    // Process the document tree to extract semantic information
-    if (_document != null) {
-      _buildSemanticNodes(_document!, semanticChildren, node);
-    }
-
-    // Add any children from child render objects (images, tables, etc.)
-    for (final child in children) {
-      semanticChildren.add(child);
-    }
-
-    // Update the node with all children
-    if (semanticChildren.isNotEmpty) {
-      node.updateWith(
-        config: config,
-        childrenInInversePaintOrder: semanticChildren,
-      );
-    }
-  }
-
   // ============================================
   // Debug
   // ============================================
@@ -718,5 +697,26 @@ class RenderHyperBox extends RenderBox
     properties.add(IntProperty('rightFloats', _rightFloats.length));
     properties.add(IntProperty('totalCharacters', _totalCharacterCount));
     properties.add(DiagnosticsProperty('selection', _selection));
+  }
+
+  BoxFit _getBoxFit(String? cssValue) {
+    if (cssValue == null) return BoxFit.cover;
+    switch (cssValue.toLowerCase().trim()) {
+      case 'contain':
+        return BoxFit.contain;
+      case 'fill':
+        return BoxFit.fill;
+      case 'none':
+        return BoxFit.none;
+      case 'scale-down':
+        return BoxFit.scaleDown;
+      case 'fit-width':
+        return BoxFit.fitWidth;
+      case 'fit-height':
+        return BoxFit.fitHeight;
+      case 'cover':
+      default:
+        return BoxFit.cover;
+    }
   }
 }

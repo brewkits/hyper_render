@@ -113,6 +113,9 @@ class HyperViewer extends StatefulWidget {
   /// Color of selection handles (default: theme primary color)
   final Color? selectionHandleColor;
 
+  /// Color for text selection highlight (default: platform-adaptive blue)
+  final Color? selectionColor;
+
   /// Custom menu actions builder for the selection popup.
   /// If null, uses default Copy and Select All actions.
   final List<SelectionMenuAction> Function(HyperSelectionOverlayState)?
@@ -144,6 +147,9 @@ class HyperViewer extends StatefulWidget {
   /// HyperViewer(html: userInput)
   /// ```
   final bool sanitize;
+
+  /// Text direction for layout
+  final TextDirection? textDirection;
 
   /// Custom list of allowed HTML tags when [sanitize] is enabled.
   ///
@@ -223,6 +229,30 @@ class HyperViewer extends StatefulWidget {
   /// ```
   final GlobalKey? captureKey;
 
+  /// Whether the extent of the scroll view should be determined by the contents
+  /// being viewed.
+  ///
+  /// If the scroll view does not shrink wrap, then the scroll view will expand
+  /// to the maximum allowed size in the scrollDirection. If the scroll view
+  /// has unbounded constraints in the scrollDirection, then [shrinkWrap] must
+  /// be true.
+  ///
+  /// Shrink wrapping the content of the scroll view is significantly more
+  /// expensive than expanding to the maximum allowed size because the content
+  /// can expand and contract during scrolling, which means the size of the
+  /// scroll view needs to be recomputed whenever the scroll position changes.
+  ///
+  /// Defaults to false.
+  final bool shrinkWrap;
+
+  /// How the scroll view should respond to user input.
+  ///
+  /// For example, determines how the scroll view continues to animate after the
+  /// user stops dragging the scroll view.
+  ///
+  /// Defaults to [BouncingScrollPhysics].
+  final ScrollPhysics? physics;
+
   /// Creates a HyperViewer for HTML content (default)
   ///
   /// ```dart
@@ -250,9 +280,11 @@ class HyperViewer extends StatefulWidget {
     this.codeHighlighter,
     this.showSelectionMenu = true,
     this.selectionHandleColor,
+    this.selectionColor,
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
     this.sanitize = true,
+    this.textDirection,
     this.allowedTags,
     this.allowDataAttributes = false,
     this.semanticLabel,
@@ -261,6 +293,8 @@ class HyperViewer extends StatefulWidget {
     this.customCss,
     this.debugShowHyperRenderBounds = false,
     this.captureKey,
+    this.shrinkWrap = false,
+    this.physics,
   })  : content = html,
         contentType = HyperContentType.html;
 
@@ -287,9 +321,11 @@ class HyperViewer extends StatefulWidget {
     this.codeHighlighter,
     this.showSelectionMenu = true,
     this.selectionHandleColor,
+    this.selectionColor,
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
     this.sanitize = true,
+    this.textDirection,
     this.allowedTags,
     this.allowDataAttributes = false,
     this.semanticLabel,
@@ -298,6 +334,8 @@ class HyperViewer extends StatefulWidget {
     this.customCss,
     this.debugShowHyperRenderBounds = false,
     this.captureKey,
+    this.shrinkWrap = false,
+    this.physics,
   })  : content = delta,
         contentType = HyperContentType.delta;
 
@@ -324,9 +362,11 @@ class HyperViewer extends StatefulWidget {
     this.codeHighlighter,
     this.showSelectionMenu = true,
     this.selectionHandleColor,
+    this.selectionColor,
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
     this.sanitize = true,
+    this.textDirection,
     this.allowedTags,
     this.allowDataAttributes = false,
     this.semanticLabel,
@@ -335,6 +375,8 @@ class HyperViewer extends StatefulWidget {
     this.customCss,
     this.debugShowHyperRenderBounds = false,
     this.captureKey,
+    this.shrinkWrap = false,
+    this.physics,
   })  : content = markdown,
         contentType = HyperContentType.markdown;
 
@@ -560,7 +602,8 @@ class _HyperViewerState extends State<HyperViewer> {
           // the old 1500 because chunks are now 6000 chars (was 25000), so
           // each item is cheaper — we need fewer pixels of pre-render buffer.
           cacheExtent: 800,
-          physics: const BouncingScrollPhysics(),
+          shrinkWrap: widget.shrinkWrap,
+          physics: widget.physics ?? const BouncingScrollPhysics(),
           itemCount: _sections!.length,
           itemBuilder: (context, index) {
             // RepaintBoundary isolates each chunk into its own GPU layer.
@@ -570,6 +613,8 @@ class _HyperViewerState extends State<HyperViewer> {
               child: HyperRenderWidget(
                 document: _sections![index],
                 selectable: widget.selectable,
+                selectionColor: widget.selectionColor,
+                textDirection: widget.textDirection ?? Directionality.of(context),
                 onLinkTap: widget.onLinkTap,
                 widgetBuilder: widget.widgetBuilder,
                 debugShowBounds: widget.debugShowHyperRenderBounds,
@@ -617,19 +662,28 @@ class _HyperViewerState extends State<HyperViewer> {
             minScale: widget.minScale,
             maxScale: widget.maxScale,
             boundaryMargin: const EdgeInsets.all(20),
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: content,
-            ),
+            child: widget.shrinkWrap
+                ? content
+                : SingleChildScrollView(
+                    physics: widget.physics ?? const BouncingScrollPhysics(),
+                    child: content,
+                  ),
           ),
         );
       }
 
       // No zoom - standard scroll view
+      if (widget.shrinkWrap) {
+        return KeyedSubtree(
+          key: const ValueKey('sync'),
+          child: content,
+        );
+      }
+
       return KeyedSubtree(
         key: const ValueKey('sync'),
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: widget.physics ?? const BouncingScrollPhysics(),
           child: content,
         ),
       );

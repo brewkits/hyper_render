@@ -236,10 +236,10 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `filter` | ❌ | — | Not supported |
-| `backdrop-filter` | ❌ | — | Not supported |
-| `box-shadow` | ❌ | — | Not rendered |
-| `text-shadow` | ❌ | — | Not rendered |
+| `filter` | ✅ | blur, brightness, contrast | Native image processing effects |
+| `backdrop-filter` | ✅ | blur | Glassmorphism / Backdrop blurring |
+| `box-shadow` | ✅ | x y blur spread color | Full box-shadow support |
+| `text-shadow` | ✅ | x y blur color | Multiple text shadows supported |
 
 ---
 

@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 import 'package:vector_math/vector_math_64.dart' show Matrix4;
 
@@ -86,7 +87,7 @@ enum HyperClear {
 }
 
 /// Border style for CSS border-style property
-enum BorderStyle {
+enum HyperBorderStyle {
   /// No border
   none,
 
@@ -116,7 +117,7 @@ enum BorderStyle {
 }
 
 /// Text direction for CSS direction property
-enum TextDirection {
+enum HyperTextDirection {
   /// Left-to-right (default)
   ltr,
 
@@ -324,13 +325,13 @@ class ComputedStyle {
   BorderRadius? borderRadius;
 
   /// CSS border-style
-  BorderStyle borderStyle;
+  HyperBorderStyle borderStyle;
 
   /// Individual border styles (if different from borderStyle)
-  BorderStyle? borderTopStyle;
-  BorderStyle? borderRightStyle;
-  BorderStyle? borderBottomStyle;
-  BorderStyle? borderLeftStyle;
+  HyperBorderStyle? borderTopStyle;
+  HyperBorderStyle? borderRightStyle;
+  HyperBorderStyle? borderBottomStyle;
+  HyperBorderStyle? borderLeftStyle;
 
   // ============================================
   // Text Properties
@@ -381,8 +382,23 @@ class ComputedStyle {
   /// CSS text-overflow
   TextOverflow? textOverflow;
 
+  /// CSS word-break
+  String? wordBreak;
+
+  /// CSS overflow-wrap
+  String? overflowWrap;
+
   /// CSS text-shadow
   List<Shadow>? textShadow;
+
+  /// CSS box-shadow
+  List<BoxShadow>? boxShadow;
+
+  /// CSS filter (blur, brightness, etc.)
+  ui.ImageFilter? filter;
+
+  /// CSS backdrop-filter
+  ui.ImageFilter? backdropFilter;
 
   // ============================================
   // Background Properties
@@ -391,8 +407,14 @@ class ComputedStyle {
   /// CSS background-color
   Color? backgroundColor;
 
+  /// CSS background-gradient
+  Gradient? backgroundGradient;
+
   /// CSS background-image URL (simplified)
   String? backgroundImage;
+
+  /// CSS background-size
+  String? backgroundSize;
 
   // ============================================
   // Layout Properties
@@ -420,7 +442,10 @@ class ComputedStyle {
   int? zIndex;
 
   /// CSS direction (text direction)
-  TextDirection? direction;
+  HyperTextDirection? hyperDirection;
+
+  /// Whether the text direction is right-to-left
+  bool get isRtl => hyperDirection == HyperTextDirection.rtl;
 
   // ============================================
   // Transform Properties
@@ -568,7 +593,7 @@ class ComputedStyle {
     this.borderWidth = EdgeInsets.zero,
     this.borderColor,
     this.borderRadius,
-    this.borderStyle = BorderStyle.solid,
+    this.borderStyle = HyperBorderStyle.solid,
     this.borderTopStyle,
     this.borderRightStyle,
     this.borderBottomStyle,
@@ -588,9 +613,16 @@ class ComputedStyle {
     this.textTransform,
     this.whiteSpace,
     this.textOverflow,
+    this.wordBreak,
+    this.overflowWrap,
     this.textShadow,
+    this.boxShadow,
+    this.filter,
+    this.backdropFilter,
     this.backgroundColor,
+    this.backgroundGradient,
     this.backgroundImage,
+    this.backgroundSize,
     this.display = DisplayType.inline,
     this.overflowX = HyperOverflow.visible,
     this.overflowY = HyperOverflow.visible,
@@ -598,7 +630,7 @@ class ComputedStyle {
     this.float = HyperFloat.none,
     this.clear = HyperClear.none,
     this.zIndex,
-    this.direction,
+    this.hyperDirection,
     this.transform,
     this.opacity = 1.0,
     this.transition,
@@ -643,7 +675,7 @@ class ComputedStyle {
     whiteSpace = parent.whiteSpace;
 
     // CSS direction is inheritable
-    direction ??= parent.direction;
+    hyperDirection ??= parent.hyperDirection;
 
     // CSS custom properties are inherited — merge parent's into this element's map
     // (child-defined properties take priority over parent's)
@@ -653,10 +685,6 @@ class ComputedStyle {
 
     // Note: margin, padding, border DO NOT inherit
   }
-
-  /// Whether this element's text direction is right-to-left.
-  /// Use this in rendering code where `TextDirection` is hidden by import.
-  bool get isRtl => direction == TextDirection.rtl;
 
   /// Convert to Flutter TextStyle
   TextStyle toTextStyle() {
@@ -673,6 +701,10 @@ class ComputedStyle {
       wordSpacing: wordSpacing,
       shadows: textShadow,
       overflow: textOverflow,
+      fontFeatures: const [
+        FontFeature.proportionalFigures(), // Better number spacing
+        FontFeature.enable('liga'), // Ligatures (fi, fl, etc.)
+      ],
     );
   }
 
@@ -690,11 +722,11 @@ class ComputedStyle {
     EdgeInsets? borderWidth,
     Color? borderColor,
     BorderRadius? borderRadius,
-    BorderStyle? borderStyle,
-    BorderStyle? borderTopStyle,
-    BorderStyle? borderRightStyle,
-    BorderStyle? borderBottomStyle,
-    BorderStyle? borderLeftStyle,
+    HyperBorderStyle? borderStyle,
+    HyperBorderStyle? borderTopStyle,
+    HyperBorderStyle? borderRightStyle,
+    HyperBorderStyle? borderBottomStyle,
+    HyperBorderStyle? borderLeftStyle,
     // Text
     Color? color,
     double? fontSize,
@@ -711,10 +743,17 @@ class ComputedStyle {
     String? textTransform,
     String? whiteSpace,
     TextOverflow? textOverflow,
+    String? wordBreak,
+    String? overflowWrap,
     List<Shadow>? textShadow,
+    List<BoxShadow>? boxShadow,
+    ui.ImageFilter? filter,
+    ui.ImageFilter? backdropFilter,
     // Background
     Color? backgroundColor,
+    Gradient? backgroundGradient,
     String? backgroundImage,
+    String? backgroundSize,
     // Layout
     DisplayType? display,
     HyperOverflow? overflowX,
@@ -723,7 +762,7 @@ class ComputedStyle {
     HyperFloat? float,
     HyperClear? clear,
     int? zIndex,
-    TextDirection? direction,
+    HyperTextDirection? hyperDirection,
     // Transform / visual
     Matrix4? transform,
     double? opacity,
@@ -798,9 +837,16 @@ class ComputedStyle {
       textTransform: textTransform ?? this.textTransform,
       whiteSpace: whiteSpace ?? this.whiteSpace,
       textOverflow: textOverflow ?? this.textOverflow,
+      wordBreak: wordBreak ?? this.wordBreak,
+      overflowWrap: overflowWrap ?? this.overflowWrap,
       textShadow: textShadow ?? this.textShadow,
+      boxShadow: boxShadow ?? this.boxShadow,
+      filter: filter ?? this.filter,
+      backdropFilter: backdropFilter ?? this.backdropFilter,
       backgroundColor: backgroundColor ?? this.backgroundColor,
+      backgroundGradient: backgroundGradient ?? this.backgroundGradient,
       backgroundImage: backgroundImage ?? this.backgroundImage,
+      backgroundSize: backgroundSize ?? this.backgroundSize,
       display: display ?? this.display,
       overflowX: overflowX ?? this.overflowX,
       overflowY: overflowY ?? this.overflowY,
@@ -808,7 +854,7 @@ class ComputedStyle {
       float: float ?? this.float,
       clear: clear ?? this.clear,
       zIndex: zIndex ?? this.zIndex,
-      direction: direction ?? this.direction,
+      hyperDirection: hyperDirection ?? this.hyperDirection,
       transform: transform ?? this.transform,
       opacity: opacity ?? this.opacity,
       transition: transition ?? this.transition,

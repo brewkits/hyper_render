@@ -45,6 +45,9 @@ class SmartTableWrapper extends StatelessWidget {
   /// Whether text in table cells can be selected
   final bool selectable;
 
+  /// Custom builder for cell content (recursive rendering)
+  final Widget Function(TableCellNode)? cellContentBuilder;
+
   const SmartTableWrapper({
     super.key,
     required this.tableNode,
@@ -53,6 +56,7 @@ class SmartTableWrapper extends StatelessWidget {
     this.baseStyle,
     this.onLinkTap,
     this.selectable = true,
+    this.cellContentBuilder,
   });
 
   @override
@@ -94,6 +98,7 @@ class SmartTableWrapper extends StatelessWidget {
       baseStyle: baseStyle,
       onLinkTap: onLinkTap,
       selectable: selectable,
+      cellContentBuilder: cellContentBuilder,
     );
   }
 }
@@ -128,6 +133,9 @@ class HyperTable extends StatelessWidget {
   /// When true, wraps table with SelectionArea for cross-cell selection
   final bool selectable;
 
+  /// Custom builder for cell content
+  final Widget Function(TableCellNode)? cellContentBuilder;
+
   const HyperTable({
     super.key,
     required this.tableNode,
@@ -137,6 +145,7 @@ class HyperTable extends StatelessWidget {
     this.borderWidth = 1.0,
     this.cellPadding,
     this.selectable = true,
+    this.cellContentBuilder,
   });
 
   @override
@@ -179,6 +188,10 @@ class HyperTable extends StatelessWidget {
   }
 
   Widget _buildCellContent(TableCellNode cellNode) {
+    if (cellContentBuilder != null) {
+      return cellContentBuilder!(cellNode);
+    }
+
     // Build text spans from children
     final spans = <InlineSpan>[];
 
@@ -535,7 +548,7 @@ class _TableLayout extends StatelessWidget {
         ));
       }
 
-      // Determine if this is a header row (first row in thead section)
+      // Determine if this is a header row (first row in thread section)
       final isHeaderRow = grid.headerRowCount > 0 && rowIdx < grid.headerRowCount;
 
       // Calculate background color for zebra striping

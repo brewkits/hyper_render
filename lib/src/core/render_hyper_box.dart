@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -122,6 +123,9 @@ class RenderHyperBox extends RenderBox
   /// Character offset to fragment mapping
   final Map<int, Fragment> _characterToFragment = {};
 
+  /// Color for text selection highlight
+  Color? _selectionColor;
+
   /// Callback when selection changes
   VoidCallback? onSelectionChanged;
 
@@ -169,13 +173,15 @@ class RenderHyperBox extends RenderBox
     HyperImageLoader? imageLoader,
     bool selectable = true,
     TextDirection textDirection = TextDirection.ltr,
+    Color? selectionColor,
     this.onSelectionChanged,
   })  : _document = document,
         _baseStyle = baseStyle,
         _onLinkTap = onLinkTap,
         _imageLoader = imageLoader,
         _selectable = selectable,
-        _textDirection = textDirection;
+        _textDirection = textDirection,
+        _selectionColor = selectionColor;
 
   // ============================================
   // Properties
@@ -238,6 +244,13 @@ class RenderHyperBox extends RenderBox
     _textDirection = value;
     _invalidateLayout();
     markNeedsLayout();
+  }
+
+  Color? get selectionColor => _selectionColor;
+  set selectionColor(Color? value) {
+    if (_selectionColor == value) return;
+    _selectionColor = value;
+    markNeedsPaint();
   }
 
   /// Whether the text direction is right-to-left
@@ -788,63 +801,6 @@ class RenderHyperBox extends RenderBox
   @override
   bool get isRepaintBoundary => true;
 
-  /// Builds semantic information for accessibility tools (TalkBack, VoiceOver)
-  @override
-  void describeSemanticsConfiguration(SemanticsConfiguration config) {
-    super.describeSemanticsConfiguration(config);
-
-    // Mark as semantics boundary - we handle our own semantic children
-    config.isSemanticBoundary = true;
-
-    // Enable text-based semantics
-    config.textDirection = _textDirection;
-
-    // If selectable, expose text selection actions
-    if (_selectable && _selection != null && !_selection!.isCollapsed) {
-      config.isSelected = true;
-      config.value = getSelectedText() ?? '';
-    }
-
-    // Build the full text content for this render object
-    final textContent = _buildTextContentForSemantics();
-    if (textContent.isNotEmpty) {
-      config.label = textContent;
-      config.isReadOnly = true;
-    }
-  }
-
-  /// Assembles semantic nodes for complex content (links, images, headings)
-  @override
-  void assembleSemanticsNode(
-    SemanticsNode node,
-    SemanticsConfiguration config,
-    Iterable<SemanticsNode> children,
-  ) {
-    // First, let the parent do its work with child widgets (images, tables, etc.)
-    super.assembleSemanticsNode(node, config, children);
-
-    // Now add semantic nodes for our inline content
-    final semanticChildren = <SemanticsNode>[];
-
-    // Process the document tree to extract semantic information
-    if (_document != null) {
-      _buildSemanticNodes(_document!, semanticChildren, node);
-    }
-
-    // Add any children from child render objects (images, tables, etc.)
-    for (final child in children) {
-      semanticChildren.add(child);
-    }
-
-    // Update the node with all children
-    if (semanticChildren.isNotEmpty) {
-      node.updateWith(
-        config: config,
-        childrenInInversePaintOrder: semanticChildren,
-      );
-    }
-  }
-
   // ============================================
   // Debug / DevTools API
   // ============================================
@@ -905,5 +861,26 @@ class RenderHyperBox extends RenderBox
     properties.add(IntProperty('rightFloats', _rightFloats.length));
     properties.add(IntProperty('totalCharacters', _totalCharacterCount));
     properties.add(DiagnosticsProperty('selection', _selection));
+  }
+
+  BoxFit _getBoxFit(String? cssValue) {
+    if (cssValue == null) return BoxFit.cover;
+    switch (cssValue.toLowerCase().trim()) {
+      case 'contain':
+        return BoxFit.contain;
+      case 'fill':
+        return BoxFit.fill;
+      case 'none':
+        return BoxFit.none;
+      case 'scale-down':
+        return BoxFit.scaleDown;
+      case 'fit-width':
+        return BoxFit.fitWidth;
+      case 'fit-height':
+        return BoxFit.fitHeight;
+      case 'cover':
+      default:
+        return BoxFit.cover;
+    }
   }
 }

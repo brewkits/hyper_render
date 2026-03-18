@@ -54,7 +54,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
           linkNode.updateWith(
             config: SemanticsConfiguration()
               ..isLink = true
-              ..textDirection = _textDirection
+              ..textDirection = textDirection
               ..label = node.textContent
               ..hint = 'Link to $href'
               ..onTap = () {
@@ -81,7 +81,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
           headingNode.updateWith(
             config: SemanticsConfiguration()
               ..isHeader = true
-              ..textDirection = _textDirection
+              ..textDirection = textDirection
               ..label = node.textContent
               ..hint = 'Heading level $headingLevel',
           );
@@ -103,7 +103,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
         imgNode.updateWith(
           config: SemanticsConfiguration()
             ..isImage = true
-            ..textDirection = _textDirection
+            ..textDirection = textDirection
             ..label = node.alt ?? 'Image',
         );
 
@@ -123,7 +123,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
         buttonNode.updateWith(
           config: SemanticsConfiguration()
             ..isButton = true
-            ..textDirection = _textDirection
+            ..textDirection = textDirection
             ..label = label,
         );
         buttonNode.rect = rect;
@@ -145,7 +145,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
           btnNode.updateWith(
             config: SemanticsConfiguration()
               ..isButton = true
-              ..textDirection = _textDirection
+              ..textDirection = textDirection
               ..label = label,
           );
           btnNode.rect = rect;
@@ -165,7 +165,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
         listNode.updateWith(
           config: SemanticsConfiguration()
             ..isHeader = false
-            ..textDirection = _textDirection
+            ..textDirection = textDirection
             ..label = label
             ..hint = 'list',
         );
@@ -179,27 +179,8 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
       return;
     }
 
-    // Handle <li> — announce with ordinal position
-    if (node.tagName == 'li') {
-      final rect = _getNodeRect(node);
-      if (rect != null && rect.width > 0 && rect.height > 0) {
-        final position = _listItemPosition(node);
-        final liNode = SemanticsNode();
-        final labelText = _ariaLabel(node) ?? node.textContent;
-        final hint = position > 0 ? 'Item $position' : 'List item';
-        liNode.updateWith(
-          config: SemanticsConfiguration()
-            ..isHeader = false
-            ..textDirection = _textDirection
-            ..label = labelText
-            ..hint = hint,
-        );
-        liNode.rect = rect;
-        semanticNodes.add(liNode);
-      }
-      return;
-    }
-
+    // Handle <li> — handled in leafBlocks section below to ensure recursion
+    
     // Handle ARIA role attribute
     final role = node.attributes['role']?.toLowerCase();
     if (role != null) {
@@ -212,7 +193,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
             roleNode.updateWith(
               config: SemanticsConfiguration()
                 ..isButton = true
-                ..textDirection = _textDirection
+                ..textDirection = textDirection
                 ..label = label,
             );
             roleNode.rect = rect;
@@ -228,7 +209,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
             regionNode.updateWith(
               config: SemanticsConfiguration()
                 ..isHeader = false
-                ..textDirection = _textDirection
+                ..textDirection = textDirection
                 ..label = label,
             );
             regionNode.rect = rect;
@@ -247,7 +228,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
             headingNode.updateWith(
               config: SemanticsConfiguration()
                 ..isHeader = true
-                ..textDirection = _textDirection
+                ..textDirection = textDirection
                 ..label = label,
             );
             headingNode.rect = rect;
@@ -261,13 +242,13 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
 
     // Paragraph and landmark block elements — emit one SemanticsNode per block
     // so screen readers (VoiceOver, TalkBack) can navigate paragraph-by-paragraph.
-    // We cover: <p>, <blockquote>, <pre>, and landmark containers
+    // We cover: <p>, <blockquote>, <pre>, <li>, <div> and landmark containers
     // (<section>, <article>, <main>, <header>, <footer>, <nav>, <aside>).
     //
     // Landmark containers recurse into children AFTER emitting their own node
     // (they act as named regions). Leaf content blocks (<p>, <blockquote>, <pre>)
     // are treated as terminal — their full text goes into the label.
-    const leafBlocks = {'p', 'blockquote', 'pre'};
+    const leafBlocks = {'p', 'blockquote', 'pre', 'div', 'li'};
     const landmarkBlocks = {
       'section', 'article', 'main', 'header', 'footer', 'nav', 'aside'
     };
@@ -280,28 +261,51 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
           final blockNode = SemanticsNode();
           final config = SemanticsConfiguration()
             ..isReadOnly = true
-            ..textDirection = _textDirection
+            ..textDirection = textDirection
             ..label = text.trim();
           if (tag == 'blockquote') {
             config.hint = 'Block quote';
           } else if (tag == 'pre') {
             config.hint = 'Code block';
+          } else if (tag == 'li') {
+            final position = _listItemPosition(node);
+            config.hint = position > 0 ? 'Item $position' : 'List item';
           } else if (landmarkBlocks.contains(tag)) {
             // Landmark — use aria-label or tag name as hint
-            config.hint = _ariaLabel(node) != null ? '' : tag;
+            config.hint = _ariaLabel(node) ?? tag;
           }
           blockNode.updateWith(config: config);
           blockNode.rect = rect;
           semanticNodes.add(blockNode);
         }
-        if (landmarkBlocks.contains(tag)) {
-          // Landmarks contain navigable sub-structure — recurse.
-          for (final child in node.children) {
-            _buildSemanticNodes(child, semanticNodes, parentNode);
-          }
+        
+        // Recurse into blocks to find nested links/interactive elements.
+        // We always recurse because even a <p> might contain an <a>.
+        for (final child in node.children) {
+          _buildSemanticNodes(child, semanticNodes, parentNode);
         }
         return;
       }
+    }
+
+    // Handle loose text nodes (not inside a paragraph)
+    if (node is TextNode) {
+      final text = node.text.trim();
+      if (text.isNotEmpty) {
+        final rect = _getNodeRect(node);
+        if (rect != null && rect.width > 0 && rect.height > 0) {
+          final textNode = SemanticsNode();
+          textNode.updateWith(
+            config: SemanticsConfiguration()
+              ..isReadOnly = true
+              ..textDirection = textDirection
+              ..label = text,
+          );
+          textNode.rect = rect;
+          semanticNodes.add(textNode);
+        }
+      }
+      return;
     }
 
     // Generic: if aria-label / aria-labelledby is present, emit a labelled node
@@ -313,7 +317,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
         ariaNode.updateWith(
           config: SemanticsConfiguration()
             ..isHeader = false
-            ..textDirection = _textDirection
+            ..textDirection = textDirection
             ..label = ariaLabel,
         );
         ariaNode.rect = rect;

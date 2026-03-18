@@ -54,7 +54,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
           linkNode.updateWith(
             config: SemanticsConfiguration()
               ..isLink = true
-              ..textDirection = TextDirection.ltr
+              ..textDirection = textDirection
               ..label = node.textContent
               ..hint = 'Link to $href'
               ..onTap = () {
@@ -81,7 +81,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
           headingNode.updateWith(
             config: SemanticsConfiguration()
               ..isHeader = true
-              ..textDirection = TextDirection.ltr
+              ..textDirection = textDirection
               ..label = node.textContent
               ..hint = 'Heading level $headingLevel',
           );
@@ -103,7 +103,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
         imgNode.updateWith(
           config: SemanticsConfiguration()
             ..isImage = true
-            ..textDirection = TextDirection.ltr
+            ..textDirection = textDirection
             ..label = node.alt ?? 'Image',
         );
 
@@ -123,7 +123,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
         buttonNode.updateWith(
           config: SemanticsConfiguration()
             ..isButton = true
-            ..textDirection = TextDirection.ltr
+            ..textDirection = textDirection
             ..label = node.textContent,
         );
 

@@ -55,6 +55,11 @@ class SmartTableWrapper extends StatelessWidget {
   /// Whether text in table cells can be selected
   final bool selectable;
 
+  /// Optional builder for cells that contain block-level content (nested
+  /// tables, paragraphs, images, etc.) that cannot be represented as inline
+  /// spans. When null, such content is silently dropped.
+  final Widget Function(TableCellNode)? cellContentBuilder;
+
   const SmartTableWrapper({
     super.key,
     required this.tableNode,
@@ -64,6 +69,7 @@ class SmartTableWrapper extends StatelessWidget {
     this.baseStyle,
     this.onLinkTap,
     this.selectable = true,
+    this.cellContentBuilder,
   });
 
   @override
@@ -172,6 +178,7 @@ class SmartTableWrapper extends StatelessWidget {
       baseStyle: baseStyle,
       onLinkTap: onLinkTap,
       selectable: selectable,
+      cellContentBuilder: cellContentBuilder,
     );
   }
 }
@@ -206,6 +213,10 @@ class HyperTable extends StatelessWidget {
   /// When true, wraps table with SelectionArea for cross-cell selection
   final bool selectable;
 
+  /// Optional builder for cells that contain block-level content (nested
+  /// tables, paragraphs, images) that cannot be represented as inline spans.
+  final Widget Function(TableCellNode)? cellContentBuilder;
+
   const HyperTable({
     super.key,
     required this.tableNode,
@@ -215,6 +226,7 @@ class HyperTable extends StatelessWidget {
     this.borderWidth = 1.0,
     this.cellPadding = const EdgeInsets.all(8.0),
     this.selectable = true,
+    this.cellContentBuilder,
   });
 
   @override
@@ -245,14 +257,26 @@ class HyperTable extends StatelessWidget {
   }
 
   Widget _buildCellContent(TableCellNode cellNode) {
-    // Build text spans from children
+    // Try to build inline spans for all children.
+    // Any child that is not inline (nested table, block, image …) returns null
+    // from _buildSpan — track whether that happened.
     final spans = <InlineSpan>[];
+    bool hasNonInline = false;
 
     for (final child in cellNode.children) {
       final span = _buildSpan(child);
       if (span != null) {
         spans.add(span);
+      } else {
+        hasNonInline = true;
       }
+    }
+
+    // If there is block-level content that can't be an inline span, delegate
+    // to the external builder (e.g. a HyperRenderWidget closure supplied by
+    // hyper_render_widget.dart) so nested tables / paragraphs / images render.
+    if (hasNonInline && cellContentBuilder != null) {
+      return cellContentBuilder!(cellNode);
     }
 
     if (spans.isEmpty) {

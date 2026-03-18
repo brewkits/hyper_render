@@ -72,6 +72,13 @@ class _InlineEndFragment extends Fragment {
   }) : super(type: FragmentType.text, text: '');
 }
 
+class _DetailsFragment extends Fragment {
+  _DetailsFragment({
+    required super.sourceNode,
+    required super.style,
+  }) : super(type: FragmentType.atomic);
+}
+
 /// Fragment for list markers (bullets, numbers)
 class _ListMarkerFragment extends Fragment {
   /// The marker text (•, 1., 2., etc.)
