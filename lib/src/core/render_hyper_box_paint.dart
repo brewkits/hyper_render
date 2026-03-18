@@ -5,11 +5,53 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     for (final decoration in _blockDecorations) {
       final adjustedRect = decoration.rect.shift(offset);
 
-      // Paint background if specified
-      if (decoration.backgroundColor != null) {
-        final bgPaint = Paint()
-          ..color = decoration.backgroundColor!
-          ..isAntiAlias = true;
+      // 1. Backdrop Filter (Glassmorphism) - Paints BEFORE background
+      if (decoration.backdropFilter != null) {
+        canvas.saveLayer(adjustedRect, Paint());
+        final filterPaint = Paint()
+          ..imageFilter = decoration.backdropFilter
+          ..blendMode = BlendMode.srcOver;
+        canvas.drawRect(adjustedRect, filterPaint);
+        canvas.restore();
+      }
+
+      // 2. Filter (blur, etc.)
+      if (decoration.filter != null) {
+        canvas.saveLayer(adjustedRect, Paint()..imageFilter = decoration.filter);
+      }
+
+      // 3. Box shadows
+      if (decoration.boxShadow != null) {
+        for (final shadow in decoration.boxShadow!) {
+          final shadowPaint = shadow.toPaint();
+          final shadowRect = adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
+
+          if (decoration.borderRadius != null) {
+            canvas.drawRRect(
+              RRect.fromRectAndCorners(
+                shadowRect,
+                topLeft: decoration.borderRadius!.topLeft,
+                topRight: decoration.borderRadius!.topRight,
+                bottomLeft: decoration.borderRadius!.bottomLeft,
+                bottomRight: decoration.borderRadius!.bottomRight,
+              ),
+              shadowPaint,
+            );
+          } else {
+            canvas.drawRect(shadowRect, shadowPaint);
+          }
+        }
+      }
+
+      // Paint background or gradient if specified
+      if (decoration.backgroundColor != null || decoration.backgroundGradient != null) {
+        final bgPaint = Paint()..isAntiAlias = true;
+
+        if (decoration.backgroundGradient != null) {
+          bgPaint.shader = decoration.backgroundGradient!.createShader(adjustedRect);
+        } else {
+          bgPaint.color = decoration.backgroundColor!;
+        }
 
         if (decoration.borderRadius != null) {
           // Draw rounded rectangle for code blocks, etc.
@@ -34,13 +76,19 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           ..color = decoration.borderLeftColor!
           ..style = PaintingStyle.stroke
           ..strokeWidth = decoration.borderLeftWidth
-          ..isAntiAlias = true;
+          ..isAntiAlias = true
+          ..strokeCap = StrokeCap.square; // Crisp square ends for border lines
 
         canvas.drawLine(
           Offset(adjustedRect.left + decoration.borderLeftWidth / 2, adjustedRect.top),
           Offset(adjustedRect.left + decoration.borderLeftWidth / 2, adjustedRect.bottom),
           borderPaint,
         );
+      }
+
+      // Restore layer if filter was applied
+      if (decoration.filter != null) {
+        canvas.restore();
       }
     }
   }
@@ -50,11 +98,50 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       for (final rect in decoration.rects) {
         final adjustedRect = rect.shift(offset);
 
-        // Paint background
-        if (decoration.backgroundColor != null) {
-          final paint = Paint()
-            ..color = decoration.backgroundColor!
-            ..isAntiAlias = true;
+        // 1. Backdrop Filter
+        if (decoration.backdropFilter != null) {
+          canvas.saveLayer(adjustedRect, Paint());
+          canvas.drawRect(adjustedRect, Paint()..imageFilter = decoration.backdropFilter);
+          canvas.restore();
+        }
+
+        // 2. Filter (blur, etc.) - Apply to all subsequent painting for this rect
+        if (decoration.filter != null) {
+          canvas.saveLayer(adjustedRect, Paint()..imageFilter = decoration.filter);
+        }
+
+        // 3. Box shadows
+        if (decoration.boxShadow != null) {
+          for (final shadow in decoration.boxShadow!) {
+            final shadowPaint = shadow.toPaint();
+            final shadowRect = adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
+
+            if (decoration.borderRadius != null) {
+              canvas.drawRRect(
+                RRect.fromRectAndCorners(
+                  shadowRect,
+                  topLeft: decoration.borderRadius!.topLeft,
+                  topRight: decoration.borderRadius!.topRight,
+                  bottomLeft: decoration.borderRadius!.bottomLeft,
+                  bottomRight: decoration.borderRadius!.bottomRight,
+                ),
+                shadowPaint,
+              );
+            } else {
+              canvas.drawRect(shadowRect, shadowPaint);
+            }
+          }
+        }
+
+        // Paint background or gradient
+        if (decoration.backgroundColor != null || decoration.backgroundGradient != null) {
+          final paint = Paint()..isAntiAlias = true;
+
+          if (decoration.backgroundGradient != null) {
+            paint.shader = decoration.backgroundGradient!.createShader(adjustedRect);
+          } else {
+            paint.color = decoration.backgroundColor!;
+          }
 
           if (decoration.borderRadius != null) {
             canvas.drawRRect(
@@ -78,7 +165,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
             ..color = decoration.borderColor!
             ..style = PaintingStyle.stroke
             ..strokeWidth = decoration.borderWidth
-            ..isAntiAlias = true;
+            ..isAntiAlias = true
+            ..strokeCap = StrokeCap.square; // Crisp corners for borders
 
           if (decoration.borderRadius != null) {
             canvas.drawRRect(
@@ -95,13 +183,26 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
             canvas.drawRect(adjustedRect, paint);
           }
         }
+
+        // Restore layer if filter was applied
+        if (decoration.filter != null) {
+          canvas.restore();
+        }
       }
     }
   }
 
   void _paintSelection(Canvas canvas, Offset offset) {
+    // Determine selection color:
+    // 1. Explicit color passed from HyperViewer
+    // 2. Adaptive default based on platform
+    final selectionColor = _selectionColor ??
+        (Platform.isIOS || Platform.isMacOS
+            ? const Color(0x40007AFF) // iOS blue at 25% opacity
+            : const Color(0x404285F4)); // Material 3 blue at 25% opacity
+
     final selectionPaint = Paint()
-      ..color = const Color(0x40007AFF) // iOS blue with 25% opacity
+      ..color = selectionColor
       ..isAntiAlias = true;
 
     int currentOffset = 0;
@@ -283,7 +384,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         canvas: canvas,
         rect: rect,
         image: cached!.image!,
-        fit: BoxFit.cover,
+        fit: _getBoxFit(fragment.style.backgroundSize),
         filterQuality: FilterQuality.medium, // Crisp rendering on retina displays
       );
 
@@ -323,7 +424,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       ..color = const Color(0xFFE0E0E0)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
-      ..isAntiAlias = true;
+      ..isAntiAlias = true
+      ..strokeCap = StrokeCap.square;
     canvas.drawRRect(rrect, borderPaint);
 
     // Image icon in center
@@ -370,7 +472,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       ..color = const Color(0xFFE0E0E0)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
-      ..isAntiAlias = true;
+      ..isAntiAlias = true
+      ..strokeCap = StrokeCap.square;
     canvas.drawRRect(rrect, borderPaint);
 
     // Broken image icon
@@ -405,12 +508,14 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     final linePaint = Paint()
       ..color = const Color(0x66007BFF) // blue for line rows
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+      ..strokeWidth = 1.0
+      ..strokeCap = StrokeCap.square;
 
     final fragmentPaint = Paint()
       ..color = const Color(0x66FF6B00) // orange for individual fragments
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5;
+      ..strokeWidth = 0.5
+      ..strokeCap = StrokeCap.square;
 
     for (final line in _lines) {
       // Draw the full line row

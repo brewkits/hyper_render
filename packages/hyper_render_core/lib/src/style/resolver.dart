@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/painting.dart';
 
 import '../model/computed_style.dart';
@@ -603,11 +605,58 @@ class StyleResolver {
         break;
 
       case 'background':
+        // Shorthand for background-color, background-image, etc.
+        if (value.contains('gradient')) {
+          final gradient = _parseGradient(value);
+          if (gradient != null) {
+            style.backgroundGradient = gradient;
+            style.markExplicitlySet('background-gradient');
+          }
+        } else if (value.contains('url(')) {
+          final match = RegExp(r'url\(["'']?([^"''\)]+)["'']?\)').firstMatch(value);
+          if (match != null) {
+            style.backgroundImage = match.group(1);
+            style.markExplicitlySet('background-image');
+          }
+        } else {
+          final color = _parseColor(value);
+          if (color != null) {
+            style.backgroundColor = color;
+            style.markExplicitlySet('background-color');
+          }
+        }
+
+        // Check for background-size in shorthand (simplified)
+        if (value.contains('cover')) {
+          style.backgroundSize = 'cover';
+          style.markExplicitlySet('background-size');
+        } else if (value.contains('contain')) {
+          style.backgroundSize = 'contain';
+          style.markExplicitlySet('background-size');
+        }
+        break;
+
       case 'background-color':
         final color = _parseColor(value);
         if (color != null) {
           style.backgroundColor = color;
           style.markExplicitlySet('background-color');
+        }
+        break;
+
+      case 'background-image':
+        if (value.contains('gradient')) {
+          final gradient = _parseGradient(value);
+          if (gradient != null) {
+            style.backgroundGradient = gradient;
+            style.markExplicitlySet('background-gradient');
+          }
+        } else if (value.contains('url(')) {
+          final match = RegExp(r'url\(["'']?([^"''\)]+)["'']?\)').firstMatch(value);
+          if (match != null) {
+            style.backgroundImage = match.group(1);
+            style.markExplicitlySet('background-image');
+          }
         }
         break;
 
@@ -661,6 +710,77 @@ class StyleResolver {
         if (align != null) {
           style.textAlign = align;
           style.markExplicitlySet('text-align');
+        }
+        break;
+
+      case 'direction':
+        final direction = _parseDirection(value);
+        if (direction != null) {
+          style.hyperDirection = direction;
+          style.markExplicitlySet('direction');
+        }
+        break;
+
+      case 'text-overflow':
+        final textOverflow = _parseTextOverflow(value);
+        if (textOverflow != null) {
+          style.textOverflow = textOverflow;
+          style.markExplicitlySet('text-overflow');
+        }
+        break;
+
+      case 'word-break':
+        style.wordBreak = value.trim().toLowerCase();
+        style.markExplicitlySet('word-break');
+        break;
+
+      case 'overflow-wrap':
+        style.overflowWrap = value.trim().toLowerCase();
+        style.markExplicitlySet('overflow-wrap');
+        break;
+
+      case 'text-shadow':
+        final shadows = _parseTextShadow(value);
+        if (shadows != null && shadows.isNotEmpty) {
+          style.textShadow = shadows;
+          style.markExplicitlySet('text-shadow');
+        }
+        break;
+
+      case 'box-shadow':
+        final shadows = _parseBoxShadow(value);
+        if (shadows != null && shadows.isNotEmpty) {
+          style.boxShadow = shadows;
+          style.markExplicitlySet('box-shadow');
+        }
+        break;
+
+      case 'background-size':
+        style.backgroundSize = value.trim().toLowerCase();
+        style.markExplicitlySet('background-size');
+        break;
+
+      case 'filter':
+        final filter = _parseFilter(value);
+        if (filter != null) {
+          style.filter = filter;
+          style.markExplicitlySet('filter');
+        }
+        break;
+
+      case 'backdrop-filter':
+        final filter = _parseFilter(value);
+        if (filter != null) {
+          style.backdropFilter = filter;
+          style.markExplicitlySet('backdrop-filter');
+        }
+        break;
+
+      case 'border-style':
+        final borderStyle = _parseBorderStyle(value);
+        if (borderStyle != null) {
+          style.borderStyle = borderStyle;
+          style.markExplicitlySet('border-style');
         }
         break;
 
@@ -824,6 +944,11 @@ class StyleResolver {
       style.textAlign = parentStyle.textAlign;
     }
     style.whiteSpace ??= parentStyle.whiteSpace;
+
+    // Direction - inherit if not explicitly set
+    if (!style.isExplicitlySet('direction')) {
+      style.hyperDirection ??= parentStyle.hyperDirection;
+    }
 
     // CSS custom properties inherit
     if (parentStyle.customProperties.isNotEmpty && style.customProperties.isEmpty) {
@@ -1171,6 +1296,351 @@ class StyleResolver {
       case 'none': return HyperClear.none;
       default: return null;
     }
+  }
+
+  TextOverflow? _parseTextOverflow(String value) {
+    switch (value.toLowerCase().trim()) {
+      case 'clip':
+        return TextOverflow.clip;
+      case 'ellipsis':
+        return TextOverflow.ellipsis;
+      case 'fade':
+        return TextOverflow.fade;
+      case 'visible':
+        return TextOverflow.visible;
+      default:
+        return null;
+    }
+  }
+
+  /// Parse CSS filter property: blur(5px) brightness(1.5) contrast(0.8)
+  ui.ImageFilter? _parseFilter(String value) {
+    if (value.toLowerCase().trim() == 'none') return null;
+
+    final filterFuncs = RegExp(r'([a-z-]+)\(([^)]+)\)').allMatches(value.toLowerCase());
+    if (filterFuncs.isEmpty) return null;
+
+    final filters = <ui.ImageFilter>[];
+
+    for (final match in filterFuncs) {
+      final name = match.group(1);
+      final args = match.group(2)!;
+
+      switch (name) {
+        case 'blur':
+          final radius = _parseLength(args) ?? 0;
+          if (radius > 0) {
+            filters.add(ui.ImageFilter.blur(sigmaX: radius, sigmaY: radius));
+          }
+          break;
+        case 'brightness':
+          final amount = double.tryParse(args.replaceAll('%', '')) ?? 1.0;
+          final factor = args.contains('%') ? amount / 100.0 : amount;
+          if (factor != 1.0) {
+            final matrix = <double>[
+              factor, 0, 0, 0, 0,
+              0, factor, 0, 0, 0,
+              0, 0, factor, 0, 0,
+              0, 0, 0, 1, 0,
+            ];
+            filters.add(ui.ColorFilter.matrix(matrix));
+          }
+          break;
+        case 'contrast':
+          final amount = double.tryParse(args.replaceAll('%', '')) ?? 1.0;
+          final factor = args.contains('%') ? amount / 100.0 : amount;
+          if (factor != 1.0) {
+            final t = (1.0 - factor) / 2.0;
+            final matrix = <double>[
+              factor, 0, 0, 0, t * 255,
+              0, factor, 0, 0, t * 255,
+              0, 0, factor, 0, t * 255,
+              0, 0, 0, 1, 0,
+            ];
+            filters.add(ui.ColorFilter.matrix(matrix));
+          }
+          break;
+      }
+    }
+
+    if (filters.isEmpty) return null;
+    if (filters.length == 1) return filters.first;
+
+    return ui.ImageFilter.compose(
+      outer: filters[0],
+      inner: filters.length > 1 ? filters[1] : filters[0], // Simplified compose for 2
+    );
+  }
+
+  /// Parse direction value
+  HyperTextDirection? _parseDirection(String value) {
+    switch (value.toLowerCase().trim()) {
+      case 'ltr':
+        return HyperTextDirection.ltr;
+      case 'rtl':
+        return HyperTextDirection.rtl;
+      default:
+        return null;
+    }
+  }
+
+  /// Parse border-style value
+  HyperBorderStyle? _parseBorderStyle(String value) {
+    switch (value.toLowerCase().trim()) {
+      case 'none':
+        return HyperBorderStyle.none;
+      case 'solid':
+        return HyperBorderStyle.solid;
+      case 'dashed':
+        return HyperBorderStyle.dashed;
+      case 'dotted':
+        return HyperBorderStyle.dotted;
+      case 'double':
+        return HyperBorderStyle.double;
+      case 'groove':
+        return HyperBorderStyle.groove;
+      case 'ridge':
+        return HyperBorderStyle.ridge;
+      case 'inset':
+        return HyperBorderStyle.inset;
+      case 'outset':
+        return HyperBorderStyle.outset;
+      default:
+        return null;
+    }
+  }
+
+  /// Parse text-shadow value
+  /// Supports multiple shadows: "2px 2px 4px rgba(0,0,0,0.5), 1px 1px 2px red"
+  List<Shadow>? _parseTextShadow(String value) {
+    if (value.toLowerCase().trim() == 'none') return null;
+
+    final shadows = <Shadow>[];
+    // Split by comma for multiple shadows
+    final shadowDefinitions = value.split(',');
+
+    for (final shadowDef in shadowDefinitions) {
+      final parts = shadowDef.trim().split(RegExp(r'\s+'));
+      if (parts.length < 3) continue; // Need at least x y blur
+
+      double offsetX = 0;
+      double offsetY = 0;
+      double blurRadius = 0;
+      Color color = const Color(0x33000000); // Default semi-transparent black
+
+      // Parse values
+      int numIndex = 0;
+      for (final part in parts) {
+        // Try to parse as length
+        final length = _parseLength(part);
+        if (length != null) {
+          if (numIndex == 0) {
+            offsetX = length;
+          } else if (numIndex == 1) {
+            offsetY = length;
+          } else if (numIndex == 2) {
+            blurRadius = length;
+          }
+          numIndex++;
+          continue;
+        }
+
+        // Try to parse as color
+        final parsedColor = _parseColor(part);
+        if (parsedColor != null) {
+          color = parsedColor;
+        }
+      }
+
+      shadows.add(Shadow(
+        offset: Offset(offsetX, offsetY),
+        blurRadius: blurRadius,
+        color: color,
+      ));
+    }
+
+    return shadows.isEmpty ? null : shadows;
+  }
+
+  /// Parse box-shadow value
+  /// Supports multiple shadows: "2px 2px 4px rgba(0,0,0,0.5), 1px 1px 2px red"
+  List<BoxShadow>? _parseBoxShadow(String value) {
+    if (value.toLowerCase().trim() == 'none') return null;
+
+    final shadows = <BoxShadow>[];
+    // Split by comma for multiple shadows
+    final shadowDefinitions = value.split(',');
+
+    for (final shadowDef in shadowDefinitions) {
+      final parts = shadowDef.trim().split(RegExp(r'\s+'));
+      if (parts.length < 2) continue; // Need at least x y
+
+      double offsetX = 0;
+      double offsetY = 0;
+      double blurRadius = 0;
+      double spreadRadius = 0;
+      Color color = const Color(0x33000000); // Default semi-transparent black
+      bool isInset = false;
+
+      // Parse values
+      int numIndex = 0;
+      for (final part in parts) {
+        if (part.toLowerCase() == 'inset') {
+          isInset = true;
+          continue;
+        }
+
+        // Try to parse as length
+        final length = _parseLength(part);
+        if (length != null) {
+          if (numIndex == 0) {
+            offsetX = length;
+          } else if (numIndex == 1) {
+            offsetY = length;
+          } else if (numIndex == 2) {
+            blurRadius = length;
+          } else if (numIndex == 3) {
+            spreadRadius = length;
+          }
+          numIndex++;
+          continue;
+        }
+
+        // Try to parse as color
+        final parsedColor = _parseColor(part);
+        if (parsedColor != null) {
+          color = parsedColor;
+        }
+      }
+
+      shadows.add(BoxShadow(
+        offset: Offset(offsetX, offsetY),
+        blurRadius: blurRadius,
+        spreadRadius: spreadRadius,
+        color: color,
+        // Flutter doesn't have a direct 'inset' property in BoxShadow,
+        // but BlurStyle.inner can simulate it for some cases.
+        blurStyle: isInset ? BlurStyle.inner : BlurStyle.normal,
+      ));
+    }
+
+    return shadows.isEmpty ? null : shadows;
+  }
+
+  /// Parse CSS gradient
+  Gradient? _parseGradient(String value) {
+    final trimmed = value.trim();
+    if (trimmed.startsWith('linear-gradient(')) {
+      return _parseLinearGradient(trimmed);
+    }
+    return null;
+  }
+
+  /// Basic linear-gradient parser
+  Gradient? _parseLinearGradient(String value) {
+    // Format: linear-gradient([angle | to side]?, color-stop1, color-stop2, ...)
+    final contentMatch = RegExp(r'linear-gradient\((.*)\)').firstMatch(value);
+    if (contentMatch == null) return null;
+
+    final content = contentMatch.group(1)!;
+    final parts = _splitGradientParts(content);
+    if (parts.length < 2) return null;
+
+    Alignment begin = Alignment.topCenter;
+    Alignment end = Alignment.bottomCenter;
+    int colorStartIndex = 0;
+
+    // Check first part for direction
+    final firstPart = parts[0].toLowerCase();
+    if (firstPart.contains('to ')) {
+      if (firstPart.contains('right')) {
+        begin = Alignment.centerLeft;
+        end = Alignment.centerRight;
+        if (firstPart.contains('top')) begin = Alignment.bottomLeft;
+        if (firstPart.contains('bottom')) begin = Alignment.topLeft;
+      } else if (firstPart.contains('left')) {
+        begin = Alignment.centerRight;
+        end = Alignment.centerLeft;
+        if (firstPart.contains('top')) begin = Alignment.bottomRight;
+        if (firstPart.contains('bottom')) begin = Alignment.topRight;
+      } else if (firstPart.contains('bottom')) {
+        begin = Alignment.topCenter;
+        end = Alignment.bottomCenter;
+      } else if (firstPart.contains('top')) {
+        begin = Alignment.bottomCenter;
+        end = Alignment.topCenter;
+      }
+      colorStartIndex = 1;
+    } else if (RegExp(r'^\d+deg').hasMatch(firstPart)) {
+      // Simplified angle handling: 0deg=top, 90deg=right, 180deg=bottom, 270deg=left
+      final angle = double.tryParse(RegExp(r'^\d+').firstMatch(firstPart)?.group(0) ?? '180');
+      if (angle != null) {
+        if (angle >= 45 && angle < 135) {
+          begin = Alignment.centerLeft; end = Alignment.centerRight;
+        } else if (angle >= 135 && angle < 225) {
+          begin = Alignment.topCenter; end = Alignment.bottomCenter;
+        } else if (angle >= 225 && angle < 315) {
+          begin = Alignment.centerRight; end = Alignment.centerLeft;
+        } else {
+          begin = Alignment.bottomCenter; end = Alignment.topCenter;
+        }
+      }
+      colorStartIndex = 1;
+    }
+
+    final colors = <Color>[];
+    final stops = <double>[];
+
+    for (int i = colorStartIndex; i < parts.length; i++) {
+      final colorPart = parts[i].trim();
+      final colorMatch = RegExp(r'^([^(]+(?:\([^)]*\))?)\s*(.*)$').firstMatch(colorPart);
+      if (colorMatch == null) continue;
+
+      final colorStr = colorMatch.group(1)!.trim();
+      final stopStr = colorMatch.group(2)!.trim();
+
+      final color = _parseColor(colorStr);
+      if (color != null) {
+        colors.add(color);
+        if (stopStr.isNotEmpty) {
+          final stop = _parsePercent(stopStr);
+          if (stop != null) stops.add(stop);
+        }
+      }
+    }
+
+    if (colors.length < 2) return null;
+
+    return LinearGradient(
+      begin: begin,
+      end: end,
+      colors: colors,
+      stops: stops.length == colors.length ? stops : null,
+    );
+  }
+
+  double? _parsePercent(String value) {
+    final match = RegExp(r'(\d+(?:\.\d+)?)%').firstMatch(value);
+    if (match != null) {
+      return double.parse(match.group(1)!) / 100.0;
+    }
+    return null;
+  }
+
+  List<String> _splitGradientParts(String inner) {
+    final parts = <String>[];
+    int depth = 0;
+    int start = 0;
+    for (int i = 0; i < inner.length; i++) {
+      if (inner[i] == '(') depth++;
+      else if (inner[i] == ')') depth--;
+      else if (inner[i] == ',' && depth == 0) {
+        parts.add(inner.substring(start, i).trim());
+        start = i + 1;
+      }
+    }
+    parts.add(inner.substring(start).trim());
+    return parts;
   }
 
   static const Map<String, Color> _namedColors = {
