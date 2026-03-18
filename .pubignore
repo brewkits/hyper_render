@@ -1,0 +1,60 @@
+# Build artifacts (must re-declare since .pubignore overrides .gitignore)
+build/
+**/build/
+.dart_tool/
+**/.dart_tool/
+*.dill
+*.dill.track.dill
+
+# Sub-packages are independent pub.dev packages — exclude from root upload
+# NOTE: 'packages/' must NOT be listed here — dart pub walks up to the git root
+# and applies this file when publishing sub-packages too, which would exclude
+# all their files. Add 'packages/' back only when publishing the root package,
+# then remove it immediately after.
+packages/hyper_render_devtools/
+
+# Tests — not needed by package consumers
+test/
+
+# Example app — exclude platform dirs, tests, and extra files.
+# Keep only example/example.dart for pub.dev scoring.
+example/android/
+example/ios/
+example/macos/
+example/linux/
+example/windows/
+example/web/
+example/build/
+example/.dart_tool/
+example/.flutter-plugins
+example/.flutter-plugins-dependencies
+example/lib/
+example/pubspec.yaml
+example/pubspec.lock
+example/analysis_options.yaml
+example/.metadata
+example/README.md
+example/test/
+
+# Screenshots (raw frames, not referenced in pubspec.yaml assets)
+assets/screenshots/
+
+# Benchmark runner
+benchmark/
+
+# CI/CD and dev scripts
+.github/
+scripts/
+
+# Internal publish helpers
+pubspec.yaml.backup
+pubspec_publish_ready.yaml
+
+# IDE files
+*.iml
+.idea/
+.vscode/
+
+# macOS artifacts
+**/.DS_Store
+**/Pods/
