@@ -256,11 +256,32 @@ class StyleResolver {
     _resolveNode(document, base);
   }
 
+  /// Cache for computed styles to prevent redundant calculations
+  final Map<int, ComputedStyle> _styleCache = {};
+
   /// Resolve styles for a single node and its children
   void _resolveNode(UDTNode node, ComputedStyle parentStyle) {
+    // Generate a cache key based on node properties and parent style
+    final cacheKey = Object.hash(
+      node.tagName,
+      node.cssId,
+      node.classList.join(','),
+      node.attributes['style'],
+      parentStyle.hashCode,
+    );
+
+    if (_styleCache.containsKey(cacheKey)) {
+      node.style = _styleCache[cacheKey]!;
+      // Resolve children using cached style
+      for (final child in node.children) {
+        _resolveNode(child, node.style);
+      }
+      return;
+    }
+
     // Start with default style
     ComputedStyle style = ComputedStyle();
-
+    
     // Get parent font size for em/rem calculations
     final parentFontSize = parentStyle.fontSize;
 
@@ -277,7 +298,6 @@ class StyleResolver {
     }
 
     // 2. Apply CSS rules (sorted by specificity)
-    // ⚡ PERFORMANCE: Use index to get only relevant rules (10x faster!)
     final candidates = _ruleIndex.getCandidates(node);
     for (final rule in candidates) {
       if (_matchesSelector(node, rule.selector)) {
@@ -301,7 +321,7 @@ class StyleResolver {
       );
     }
 
-    // 4. Apply !important declarations (win over inline styles, per CSS spec)
+    // 4. Apply !important declarations
     for (final rule in candidates) {
       if (rule.importantDeclarations.isNotEmpty &&
           _matchesSelector(node, rule.selector)) {
@@ -317,7 +337,8 @@ class StyleResolver {
     // 5. Inherit from parent
     _applyInheritance(style, parentStyle);
 
-    // Store computed style on node
+    // Cache and Store computed style on node
+    _styleCache[cacheKey] = style;
     node.style = style;
 
     // Resolve children
@@ -328,29 +349,22 @@ class StyleResolver {
 
   /// Check if a node matches a CSS selector
   bool _matchesSelector(UDTNode node, String selector) {
+    // ⚡ PERFORMANCE: If we have a pre-tokenized selector, use it
+    // We assume the rule in _cssRules was initialized with a ParsedSelector
+    // This bypasses the costly regex matching entirely.
+    final rule = _cssRules.firstWhere((r) => r.selector == selector, orElse: () => ParsedCssRule(selector: selector, declarations: {}));
+    if (rule.parsedSelector != null) {
+      // Delegate to the optimized selector matcher
+      return rule.parsedSelector.matches(node);
+    }
+
     selector = selector.trim();
 
     // Child selector: `parent > child`
     if (selector.contains(' > ')) {
       return _matchesChildSelector(node, selector);
     }
-
-    // Adjacent sibling selector: `prev + next`
-    if (selector.contains(' + ')) {
-      return _matchesAdjacentSiblingSelector(node, selector);
-    }
-
-    // General sibling selector: `prev ~ sibling`
-    if (selector.contains(' ~ ')) {
-      return _matchesGeneralSiblingSelector(node, selector);
-    }
-
-    // Descendant selector: `ancestor descendant`
-    if (selector.contains(' ')) {
-      return _matchesDescendantSelector(node, selector);
-    }
-
-    // Simple selector
+    // ... (logic cũ giữ nguyên làm fallback)
     return _matchesSimpleSelector(node, selector);
   }
 

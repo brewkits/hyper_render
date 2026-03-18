@@ -74,101 +74,40 @@ class SmartTableWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Build the table widget
-        final table = _buildTable(context);
+    final table = _buildTable(context);
 
-        // Calculate effective strategy based on constraints
-        final effectiveStrategy = _calculateEffectiveStrategy(constraints);
+    switch (strategy) {
+      case TableStrategy.horizontalScroll:
+        // SingleChildScrollView does not need LayoutBuilder — works with
+        // IntrinsicHeight in ancestor table rows.
+        return _buildScrollableTable(table);
 
-        // Apply strategy based on configuration
-        switch (effectiveStrategy) {
-          case TableStrategy.fitWidth:
-            // Render table with width constraints
-            return ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: constraints.maxWidth),
-              child: table,
-            );
+      case TableStrategy.fitWidth:
+        // Table fills available width naturally — parent constraints propagate.
+        // LayoutBuilder is not used here because it blocks intrinsic dimension
+        // queries needed by IntrinsicHeight in parent table rows.
+        return table;
 
-          case TableStrategy.autoScale:
-            // Use FittedBox to scale down if needed
-            return FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.topLeft,
-              child: table,
-            );
-
-          case TableStrategy.horizontalScroll:
-            // Enable horizontal scrolling
-            return _buildScrollableTable(table);
-        }
-      },
-    );
-  }
-
-  /// Calculate the effective strategy based on table size and constraints
-  ///
-  /// If the requested strategy would result in columns that are too narrow,
-  /// automatically switch to horizontal scroll to prevent unreadable text.
-  TableStrategy _calculateEffectiveStrategy(BoxConstraints constraints) {
-    if (strategy == TableStrategy.horizontalScroll) {
-      return strategy; // Already using scroll, no change needed
+      case TableStrategy.autoScale:
+        // FittedBox scales down if wider than available space.
+        // IntrinsicWidth resolves unconstrained width that FittedBox gives its
+        // child, preventing unbounded-flex crashes in Row children.
+        // No LayoutBuilder — compatible with IntrinsicHeight ancestors.
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topLeft,
+          child: IntrinsicWidth(child: table),
+        );
     }
-
-    // Estimate table width based on column count
-    final columnCount = _estimateColumnCount();
-    if (columnCount == 0) return strategy;
-
-    final availableWidth = constraints.maxWidth;
-    final estimatedColumnWidth = availableWidth / columnCount;
-
-    // If columns would be too narrow, switch to horizontal scroll
-    if (estimatedColumnWidth < minColumnWidth) {
-      return TableStrategy.horizontalScroll;
-    }
-
-    // For autoScale, also check if scale factor would be too small
-    if (strategy == TableStrategy.autoScale) {
-      // Estimate natural table width (rough estimate based on column count and min width)
-      final naturalWidth = columnCount * minColumnWidth * 2; // Assume 2x min as natural
-      final scaleFactor = availableWidth / naturalWidth;
-
-      if (scaleFactor < minScaleFactor) {
-        return TableStrategy.horizontalScroll;
-      }
-    }
-
-    return strategy;
-  }
-
-  /// Estimate the number of columns in the table
-  int _estimateColumnCount() {
-    // TableNode stores rows as children
-    final rows = tableNode.children.whereType<TableRowNode>();
-    if (rows.isEmpty) return 0;
-
-    // Find the maximum number of cells in any row (accounting for colspan)
-    int maxColumns = 0;
-    for (final row in rows) {
-      int rowColumns = 0;
-      // TableRowNode stores cells as children
-      final cells = row.children.whereType<TableCellNode>();
-      for (final cell in cells) {
-        rowColumns += cell.colspan;
-      }
-      if (rowColumns > maxColumns) {
-        maxColumns = rowColumns;
-      }
-    }
-    return maxColumns;
   }
 
   Widget _buildScrollableTable(Widget table) {
+    // IntrinsicWidth lives here, outside any LayoutBuilder, so intrinsic
+    // dimension queries from IntrinsicHeight above us can propagate through.
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
-      child: table,
+      child: IntrinsicWidth(child: table),
     );
   }
 
@@ -480,28 +419,17 @@ class _TableLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Wrap in LayoutBuilder to handle unbounded constraints
-    // This fixes "NEEDS-LAYOUT" error when used in horizontal scroll
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final child = Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor, width: borderWidth),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _buildRows(),
-          ),
-        );
-
-        // If width is unbounded (e.g., in horizontal scroll),
-        // wrap in IntrinsicWidth to provide bounded constraints
-        if (constraints.maxWidth == double.infinity) {
-          return IntrinsicWidth(child: child);
-        }
-
-        return child;
-      },
+    // No LayoutBuilder here — IntrinsicWidth is placed by the caller
+    // (SmartTableWrapper._buildScrollableTable) so it sits outside any
+    // LayoutBuilder and intrinsic dimension queries can propagate freely.
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: borderColor, width: borderWidth),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: _buildRows(),
+      ),
     );
   }
 
@@ -509,7 +437,6 @@ class _TableLayout extends StatelessWidget {
     final rows = <Widget>[];
 
     for (int rowIdx = 0; rowIdx < grid.rowCount; rowIdx++) {
-      // Check if this row has any primary cells (not covered by rowspan from above)
       bool hasContent = false;
       for (int colIdx = 0; colIdx < grid.columnCount; colIdx++) {
         final cell = grid.cells[rowIdx][colIdx];
@@ -522,11 +449,7 @@ class _TableLayout extends StatelessWidget {
       if (!hasContent) continue;
 
       if (rows.isNotEmpty) {
-        // Add horizontal border between rows
-        rows.add(Container(
-          height: borderWidth,
-          color: borderColor,
-        ));
+        rows.add(Container(height: borderWidth, color: borderColor));
       }
 
       rows.add(IntrinsicHeight(

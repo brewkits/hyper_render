@@ -280,8 +280,24 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       final innerPaint = paint..strokeWidth = innerWidth;
       final innerRect = rect.deflate(innerWidth / 2); // Deflate for inner line
       if (borderRadius != null) {
-        // Adjust radius for inner border
-        final innerRadius = borderRadius.deflate(width / 1.5);
+        // Calculate the reduction amount for the radius.
+        // The original 'deflate(width / 1.5)' suggests a reduction.
+        // Let's assume it's the amount to subtract from each radius component.
+        // We clamp to 0 to prevent negative radii.
+        final double reduction = (width / 1.5).clamp(0.0, double.infinity);
+
+        final Radius newTopLeft = borderRadius.topLeft.x > 0 ? Radius.circular(math.max(0.0, borderRadius.topLeft.x - reduction)) : Radius.zero;
+        final Radius newTopRight = borderRadius.topRight.x > 0 ? Radius.circular(math.max(0.0, borderRadius.topRight.x - reduction)) : Radius.zero;
+        final Radius newBottomLeft = borderRadius.bottomLeft.x > 0 ? Radius.circular(math.max(0.0, borderRadius.bottomLeft.x - reduction)) : Radius.zero;
+        final Radius newBottomRight = borderRadius.bottomRight.x > 0 ? Radius.circular(math.max(0.0, borderRadius.bottomRight.x - reduction)) : Radius.zero;
+
+        final innerRadius = BorderRadius.only(
+          topLeft: newTopLeft,
+          topRight: newTopRight,
+          bottomLeft: newBottomLeft,
+          bottomRight: newBottomRight,
+        );
+
         canvas.drawRRect(RRect.fromRectAndCorners(innerRect,
           topLeft: innerRadius.topLeft, topRight: innerRadius.topRight,
           bottomLeft: innerRadius.bottomLeft, bottomRight: innerRadius.bottomRight), innerPaint);

@@ -874,9 +874,7 @@ class FloatLayoutDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -936,9 +934,7 @@ class SelectionDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -1219,9 +1215,7 @@ class InlineDecorationDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -1296,9 +1290,7 @@ class RealContentDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -1514,9 +1506,7 @@ class TableDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -1653,9 +1643,7 @@ flutter build apk --release</code></pre>
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -1770,9 +1758,7 @@ class ImageHandlingDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -3080,11 +3066,9 @@ class QuillDeltaDemo extends StatelessWidget {
       ),
       body: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer.delta(
-            delta: deltaJson,
-            selectable: true,
-          ),
+        child: HyperViewer.delta(
+          delta: deltaJson,
+          selectable: true,
         ),
       ),
     );
@@ -3389,11 +3373,9 @@ class FeedScreen extends ConsumerWidget {
       ),
       body: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer.markdown(
-            markdown: markdown,
-            selectable: true,
-          ),
+        child: HyperViewer.markdown(
+          markdown: markdown,
+          selectable: true,
         ),
       ),
     );

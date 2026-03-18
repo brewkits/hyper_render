@@ -355,11 +355,11 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   }
 
   static Widget? _buildDefaultTableWidget(TableNode node, {bool selectable = true}) {
-    // Use the SmartTableWrapper for intelligent table rendering
-    // Auto-detect strategy based on CSS width:
-    // - If width is 100%, use fitWidth (table wraps to screen like fwfh)
-    // - Otherwise, use autoScale (table scales down if too wide)
-    TableStrategy strategy = TableStrategy.autoScale;
+    // Use horizontalScroll by default — it works correctly inside IntrinsicHeight
+    // rows (LayoutBuilder blocks intrinsic dimension queries, so autoScale/fitWidth
+    // can only be used for top-level tables that are never measured intrinsically).
+    // fitWidth is still used for tables explicitly marked with a percentage width.
+    TableStrategy strategy = TableStrategy.horizontalScroll;
 
     // Check if table has width: 100% in inline style or width attribute
     final styleAttr = node.attributes['style'];

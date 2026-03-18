@@ -37,24 +37,24 @@ abstract class CssParserInterface {
 ///
 /// This is a simple data class that can be created by any CSS parser.
 class ParsedCssRule {
-  /// The CSS selector (e.g., "h1", ".class", "#id", "div > p")
+  /// The CSS selector string
   final String selector;
 
+  /// Pre-tokenized selector for high-performance matching (Optional)
+  final dynamic parsedSelector;
+
   /// CSS declarations as property -> value map
-  /// e.g., {"color": "red", "font-size": "16px"}
   final Map<String, String> declarations;
 
   /// Declarations marked with `!important`.
-  /// Applied after inline styles in the cascade, per CSS spec.
   final Map<String, String> importantDeclarations;
 
-  /// Selector specificity for cascade ordering
-  /// Format: [inline, id, class, element] as a single int
-  /// Higher value = higher priority
+  /// Selector specificity
   final int specificity;
 
   const ParsedCssRule({
     required this.selector,
+    this.parsedSelector,
     required this.declarations,
     Map<String, String>? importantDeclarations,
     this.specificity = 0,
