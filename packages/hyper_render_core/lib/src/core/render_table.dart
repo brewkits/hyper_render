@@ -758,127 +758,65 @@ class RenderHyperTable extends RenderBox
 
   @override
   void performLayout() {
-    // Calculate column widths
-    _columnWidths = _calculateColumnWidths(constraints.maxWidth);
+    // If maxWidth is infinity, use intrinsic width to calculate layout
+    final double targetWidth = constraints.maxWidth == double.infinity
+        ? computeMaxIntrinsicWidth(constraints.maxHeight)
+        : constraints.maxWidth;
 
-    // Calculate row heights
+    _columnWidths = _calculateColumnWidths(targetWidth);
     _rowHeights = _calculateRowHeights(_columnWidths!);
-
-    // Position cells
     _positionCells(_columnWidths!, _rowHeights!);
 
-    // Set size
-    final totalWidth = _columnWidths!.reduce((a, b) => a + b);
-    final totalHeight = _rowHeights!.reduce((a, b) => a + b);
+    final totalWidth = _columnWidths!.fold(0.0, (a, b) => a + b);
+    final totalHeight = _rowHeights!.fold(0.0, (a, b) => a + b);
     size = constraints.constrain(Size(totalWidth, totalHeight));
   }
 
   List<double> _calculateColumnWidths(double maxWidth) {
-    // Content-based width calculation
-    // Implements W3C table layout algorithm with proper colspan handling
-    // Reference: https://www.w3.org/TR/CSS22/tables.html#auto-table-layout
-
     // 1. Initialize array to store max intrinsic width of each column
     final List<double> colMaxContentWidths = List.filled(columnCount, 0.0);
 
-    // 2. First pass: Measure non-spanning cells to establish base column widths
+    // 2. Measure cells to establish column widths (handles colspan)
     RenderBox? child = firstChild;
     while (child != null) {
       final parentData = child.parentData as TableParentData;
       final int colIndex = parentData.column;
       final int colspan = parentData.colspan;
-
-      // Get max content width of the cell
       final double contentWidth = child.getMaxIntrinsicWidth(double.infinity);
 
-      // Only process non-spanning cells in first pass
       if (colspan == 1) {
         if (contentWidth > colMaxContentWidths[colIndex]) {
           colMaxContentWidths[colIndex] = contentWidth;
         }
-      }
-
-      child = childAfter(child);
-    }
-
-    // 3. Second pass: Handle spanning cells by distributing width proportionally
-    child = firstChild;
-    while (child != null) {
-      final parentData = child.parentData as TableParentData;
-      final int colIndex = parentData.column;
-      final int colspan = parentData.colspan;
-
-      if (colspan > 1) {
-        final double contentWidth = child.getMaxIntrinsicWidth(double.infinity);
-
-        // Calculate current total width of spanned columns
-        double currentTotal = 0.0;
+      } else {
+        // Distribute colspan width equally across spanned columns
+        final double perCol = contentWidth / colspan;
         for (int i = 0; i < colspan; i++) {
           if (colIndex + i < columnCount) {
-            currentTotal += colMaxContentWidths[colIndex + i];
-          }
-        }
-
-        // If spanning cell needs more width than current total
-        if (contentWidth > currentTotal) {
-          final double additionalWidth = contentWidth - currentTotal;
-
-          // Distribute additional width proportionally based on current widths
-          // If all spanned columns are 0-width, distribute evenly
-          if (currentTotal == 0) {
-            final double widthPerCol = additionalWidth / colspan;
-            for (int i = 0; i < colspan; i++) {
-              if (colIndex + i < columnCount) {
-                colMaxContentWidths[colIndex + i] += widthPerCol;
-              }
-            }
-          } else {
-            // Distribute proportionally to existing widths
-            for (int i = 0; i < colspan; i++) {
-              if (colIndex + i < columnCount) {
-                final double proportion =
-                    colMaxContentWidths[colIndex + i] / currentTotal;
-                colMaxContentWidths[colIndex + i] += additionalWidth * proportion;
-              }
+            if (perCol > colMaxContentWidths[colIndex + i]) {
+              colMaxContentWidths[colIndex + i] = perCol;
             }
           }
         }
       }
-
       child = childAfter(child);
     }
 
-    // 3. Calculate total desired width
-    double totalDesiredWidth = colMaxContentWidths.reduce((a, b) => a + b);
-
-    // Ensure we don't divide by zero
-    if (totalDesiredWidth == 0) totalDesiredWidth = 1;
-
-    // 4. Distribute actual width proportionally
-    final List<double> finalWidths = List.filled(columnCount, 0.0);
-
-    // Scale factor (if total content < maxWidth, expand; if > maxWidth, shrink)
-    double scale = maxWidth / totalDesiredWidth;
-
-    for (int i = 0; i < columnCount; i++) {
-      // Apply minimal constraint to prevent zero-width columns (1px for safety)
-      // Removed hardcoded 20px minimum that caused unnecessary table overflow
-      double w = colMaxContentWidths[i] * scale;
-      if (w < 1.0) w = 1.0;
-      finalWidths[i] = w;
+    // 3. Handle infinite constraint (no expansion possible)
+    if (maxWidth == double.infinity) {
+      return colMaxContentWidths;
     }
 
-    // 5. Re-normalize if minimum width constraints caused overflow
-    double currentTotal = finalWidths.reduce((a, b) => a + b);
-    if (currentTotal > maxWidth) {
-      // Shrink proportionally to fit maxWidth
-      double shrinkFactor = maxWidth / currentTotal;
+    // 4. Distribute surplus width if table content < maxWidth
+    double totalWidth = colMaxContentWidths.fold(0.0, (a, b) => a + b);
+    if (totalWidth < maxWidth && totalWidth > 0) {
+      final double surplus = maxWidth - totalWidth;
       for (int i = 0; i < columnCount; i++) {
-        finalWidths[i] *= shrinkFactor;
+        colMaxContentWidths[i] += surplus / columnCount;
       }
     }
-
-    return finalWidths;
+    
+    return colMaxContentWidths;
   }
 
   List<double> _calculateRowHeights(List<double> columnWidths) {

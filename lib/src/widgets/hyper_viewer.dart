@@ -384,7 +384,10 @@ class HyperViewer extends StatefulWidget {
   State<HyperViewer> createState() => _HyperViewerState();
 }
 
-class _HyperViewerState extends State<HyperViewer> {
+class _HyperViewerState extends State<HyperViewer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _contentFadeController;
+  late final Animation<double> _contentFadeAnimation;
   // Dùng cho chế độ Sync
   DocumentNode? _syncDocument;
 
@@ -399,6 +402,14 @@ class _HyperViewerState extends State<HyperViewer> {
   @override
   void initState() {
     super.initState();
+    _contentFadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _contentFadeAnimation = CurvedAnimation(
+      parent: _contentFadeController,
+      curve: Curves.easeOut,
+    );
     _parseContent();
   }
 
@@ -412,6 +423,12 @@ class _HyperViewerState extends State<HyperViewer> {
         oldWidget.customCss != widget.customCss) {
       _parseContent();
     }
+  }
+
+  @override
+  void dispose() {
+    _contentFadeController.dispose();
+    super.dispose();
   }
 
   /// Get the appropriate parser based on content type
@@ -471,6 +488,7 @@ class _HyperViewerState extends State<HyperViewer> {
 
     if (!useVirtualization) {
       // Sync parsing (fast path for small content)
+      _contentFadeController.reset();
       setState(() {
         _syncDocument = parser.parse(contentToRender);
         final resolver = StyleResolver();
@@ -479,9 +497,11 @@ class _HyperViewerState extends State<HyperViewer> {
         _sections = null;
         _isLoading = false;
       });
+      _contentFadeController.forward();
     } else {
       // Async parsing (isolate path for large HTML content)
       if (widget.contentType == HyperContentType.html) {
+        _contentFadeController.reset();
         setState(() => _isLoading = true);
 
         // Capture parse ID before async gap to detect stale results.
@@ -493,10 +513,12 @@ class _HyperViewerState extends State<HyperViewer> {
               _syncDocument = null;
               _isLoading = false;
             });
+            _contentFadeController.forward();
           }
         });
       } else {
         // Fallback to sync parsing for Delta/Markdown
+        _contentFadeController.reset();
         setState(() {
           _syncDocument = parser.parse(contentToRender);
           final resolver = StyleResolver();
@@ -505,6 +527,7 @@ class _HyperViewerState extends State<HyperViewer> {
           _sections = null;
           _isLoading = false;
         });
+        _contentFadeController.forward();
       }
     }
   }
@@ -559,12 +582,22 @@ class _HyperViewerState extends State<HyperViewer> {
       return widget.fallbackBuilder!(context);
     }
 
-    Widget content = AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      switchInCurve: Curves.easeOut,
-      switchOutCurve: Curves.easeIn,
-      child: _buildContent(context),
-    );
+    // Use FadeTransition instead of AnimatedSwitcher to avoid the
+    // '_RenderObjectSemantics.parentDataDirty' assertion in debug builds.
+    //
+    // AnimatedSwitcher internally holds both old and new children in a Stack
+    // during transitions. The Stack calls adoptChild() on its new child in the
+    // same frame that PipelineOwner.flushSemantics() runs its debug check
+    // (debugCheckForParentData), causing the assertion to fire.
+    //
+    // FadeTransition is a SingleChildRenderObjectWidget — it never reparents
+    // children, so no adoptChild() is called during the fade.
+    Widget content = _isLoading
+        ? _buildContent(context)
+        : FadeTransition(
+            opacity: _contentFadeAnimation,
+            child: _buildContent(context),
+          );
 
     // Wrap with RepaintBoundary for screenshot capture if captureKey is set
     if (widget.captureKey != null) {

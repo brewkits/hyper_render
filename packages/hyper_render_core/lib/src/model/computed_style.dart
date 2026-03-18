@@ -503,9 +503,34 @@ class ComputedStyle {
   /// rowspan attribute
   int rowspan;
 
-  // ============================================
-  // Constructor
-  // ============================================
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ComputedStyle &&
+          runtimeType == other.runtimeType &&
+          color == other.color &&
+          fontSize == other.fontSize &&
+          fontWeight == other.fontWeight &&
+          fontStyle == other.fontStyle &&
+          fontFamily == other.fontFamily &&
+          lineHeight == other.lineHeight &&
+          textAlign == other.textAlign &&
+          display == other.display &&
+          backgroundColor == other.backgroundColor;
+
+  @override
+  int get hashCode => Object.hash(
+        color,
+        fontSize,
+        fontWeight,
+        fontStyle,
+        fontFamily,
+        lineHeight,
+        textAlign,
+        display,
+        backgroundColor,
+      );
+
 
   ComputedStyle({
     this.width,

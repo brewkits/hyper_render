@@ -122,11 +122,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       ));
       // Skip tokenizing children - they're handled by CodeBlockWidget
     } else if (tagName == 'details') {
+      // Tokenize children of <details> so their content (like summary/icons)
+      // can be processed and linked to RenderBox children. Previously, this was skipped.
+      // The _DetailsFragment itself is added, but its children also need fragments.
+      for (final child in node.children) {
+        _tokenizeNode(child, node);
+      }
       _fragments.add(_DetailsFragment(
         sourceNode: node,
         style: style,
       ));
-      // Skip tokenizing children - they're handled by HyperDetailsWidget
     } else {
       for (final child in node.children) {
         _tokenizeNode(child, node);
@@ -190,13 +195,13 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           lastFragment.text!.length < 20 && // Don't merge long chunks
           normalizedText.length < 20 &&
           _canMergeStyles(lastFragment.style, node.style) &&
-          lastFragment.sourceNode.parent == node.parent) {
+          lastFragment.sourceNode?.parent == node.parent) { // Compare parent nodes for merge context
         // Merge small non-space fragments
         final mergedText = lastFragment.text! + normalizedText;
         _fragments.removeLast();
         _fragments.add(Fragment.text(
           text: mergedText,
-          sourceNode: lastFragment.sourceNode,
+          sourceNode: lastFragment.sourceNode, // Keep original sourceNode
           style: lastFragment.style,
           characterOffset: lastFragment.characterOffset,
         ));
@@ -453,7 +458,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   /// to avoid O(n²) complexity when splitting text fragments. The pendingFragments
   /// queue holds fragments that need to be processed next, eliminating costly
   /// list insertions in the middle of the fragments list.
-  void _performLineLayout() {
+  void _performLineLayout({bool intrinsicMode = false}) {
     _lines.clear();
     _leftFloats.clear();
     _rightFloats.clear();
@@ -667,13 +672,18 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         double tableWidth = _maxWidth;
 
         if (tableChild != null) {
-          // Layout the table to get its actual size
-          tableChild.layout(
-            BoxConstraints(maxWidth: _maxWidth),
-            parentUsesSize: true,
-          );
-          tableHeight = tableChild.size.height;
-          tableWidth = tableChild.size.width;
+          if (intrinsicMode) {
+            // During intrinsic measurement calling layout() + size is forbidden.
+            // Use intrinsic APIs instead.
+            tableHeight = tableChild.getMaxIntrinsicHeight(_maxWidth);
+          } else {
+            tableChild.layout(
+              BoxConstraints(maxWidth: _maxWidth),
+              parentUsesSize: true,
+            );
+            tableHeight = tableChild.size.height;
+            tableWidth = tableChild.size.width;
+          }
         }
 
         fragment.measuredSize = Size(tableWidth, tableHeight);
@@ -691,13 +701,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         double blockWidth = _maxWidth;
 
         if (codeBlockChild != null) {
-          // Layout the code block to get its actual size
-          codeBlockChild.layout(
-            BoxConstraints(maxWidth: _maxWidth),
-            parentUsesSize: true,
-          );
-          blockHeight = codeBlockChild.size.height;
-          blockWidth = codeBlockChild.size.width;
+          if (intrinsicMode) {
+            blockHeight = codeBlockChild.getMaxIntrinsicHeight(_maxWidth);
+          } else {
+            codeBlockChild.layout(
+              BoxConstraints(maxWidth: _maxWidth),
+              parentUsesSize: true,
+            );
+            blockHeight = codeBlockChild.size.height;
+            blockWidth = codeBlockChild.size.width;
+          }
         }
 
         fragment.measuredSize = Size(blockWidth, blockHeight);
@@ -714,12 +727,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         double blockWidth = _maxWidth;
 
         if (detailsChild != null) {
-          detailsChild.layout(
-            BoxConstraints(maxWidth: _maxWidth),
-            parentUsesSize: true,
-          );
-          blockHeight = detailsChild.size.height;
-          blockWidth = detailsChild.size.width;
+          if (intrinsicMode) {
+            blockHeight = detailsChild.getMaxIntrinsicHeight(_maxWidth);
+          } else {
+            detailsChild.layout(
+              BoxConstraints(maxWidth: _maxWidth),
+              parentUsesSize: true,
+            );
+            blockHeight = detailsChild.size.height;
+            blockWidth = detailsChild.size.width;
+          }
         }
 
         fragment.measuredSize = Size(blockWidth, blockHeight);
@@ -1050,9 +1067,21 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
     }
 
+    // *** MODIFICATION START ***
+    // Ensure a split always occurs if possible, even if it breaks mid-word or is a fallback.
+    // The previous logic returned null in many cases, causing fragments to be dropped.
     if (breakIndex <= 0 || breakIndex >= text.length) {
-      return null;
+      // If no suitable break point was found (or it's at the very beginning/end),
+      // default to splitting at the first character if the text is longer than 1 char.
+      // This ensures we always attempt a split to avoid dropping the fragment.
+      if (text.length > 1) {
+        breakIndex = 1;
+      } else {
+        // If text is only 1 character, it cannot be split.
+        return null;
+      }
     }
+    // *** MODIFICATION END ***
 
     final firstPart = text.substring(0, breakIndex);
     final secondPart = text.substring(breakIndex);
@@ -1381,7 +1410,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   /// Step 7: Layout child RenderBoxes
   void _layoutChildren() {
     // First, link children to their corresponding fragments
-    _linkChildrenToFragments();
+    _linkFragmentsToChildrenByOrder();
 
     // Then layout each child
     RenderBox? child = firstChild;
@@ -1423,7 +1452,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
             parentUsesSize: true,
           );
         }
-        parentData.offset = fragment.offset ?? Offset.zero;
+        if (parentData.offset != (fragment.offset ?? Offset.zero)) {
+          parentData.offset = fragment.offset ?? Offset.zero;
+          child.markNeedsSemanticsUpdate();
+        }
         wasLaidOut = true;
       } else if (parentData.sourceNode != null) {
         // Fallback: try to find fragment by source node
@@ -1438,7 +1470,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
               parentUsesSize: true,
             );
           }
-          parentData.offset = fragment.offset ?? Offset.zero;
+          if (parentData.offset != (fragment.offset ?? Offset.zero)) {
+            parentData.offset = fragment.offset ?? Offset.zero;
+            child.markNeedsSemanticsUpdate();
+          }
           wasLaidOut = true;
         }
       }
@@ -1469,9 +1504,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       final isCodeBlockFragment = fragment is _CodeBlockFragment;
       final isDetailsFragment = fragment is _DetailsFragment;
       final isFloatFragment = fragment is _FloatFragment;
+      // Text fragments only go in the map if they have a sourceNode.
+      final isTextFragmentWithSource = fragment.type == FragmentType.text && fragment.sourceNode != null;
 
-      if (isAtomicFragment || isTableFragment || isCodeBlockFragment || isDetailsFragment || isFloatFragment) {
-        fragmentMap[fragment.sourceNode] = fragment;
+      if (isAtomicFragment || isTableFragment || isCodeBlockFragment || isDetailsFragment || isFloatFragment || isTextFragmentWithSource) {
+        // Ensure sourceNode is not null before adding to map
+        if (fragment.sourceNode != null) {
+          fragmentMap[fragment.sourceNode!] = fragment;
+        }
       }
     }
 
@@ -1479,65 +1519,82 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     RenderBox? child = firstChild;
     while (child != null) {
       final parentData = child.parentData as HyperBoxParentData;
+      Fragment? matchedFragment;
 
       if (parentData.sourceNode != null) {
-        final matchedFragment = fragmentMap[parentData.sourceNode];
-        if (matchedFragment != null) {
-          parentData.fragment = matchedFragment;
+        matchedFragment = fragmentMap[parentData.sourceNode];
+      }
 
-          // Set float info if applicable
-          if (matchedFragment is _FloatFragment) {
-            parentData.isFloat = true;
-            parentData.floatDirection = matchedFragment.floatDirection;
-          }
+      if (matchedFragment != null) {
+        parentData.fragment = matchedFragment;
+        // Set float info if applicable
+        if (matchedFragment is _FloatFragment) {
+          parentData.isFloat = true;
+          parentData.floatDirection = matchedFragment.floatDirection;
         }
       }
+      // If not linked by sourceNode, it remains unlinked for now.
 
       child = parentData.nextSibling;
     }
 
     // Step 3: Fallback - link remaining unlinked children by order
-    // This handles cases where sourceNode is null (rare, but possible)
-    child = firstChild;
+    // This handles cases where sourceNode is null or doesn't match.
+    // Collect all fragments that *should* correspond to children and are not yet linked.
     final unlinkedFragments = _fragments.where((f) {
       final isAtomicFragment = f.type == FragmentType.atomic;
       final isTableFragment = f is _TableFragment;
       final isCodeBlockFragment = f is _CodeBlockFragment;
       final isDetailsFragment = f is _DetailsFragment;
       final isFloatFragment = f is _FloatFragment;
+      // Text fragments WITHOUT sourceNode are candidates for order-based linking.
+      final isTextFragmentWithoutSource = f.type == FragmentType.text && f.sourceNode == null;
 
-      if (!(isAtomicFragment || isTableFragment || isCodeBlockFragment || isDetailsFragment || isFloatFragment)) {
-        return false;
+      // Only consider fragments that are supposed to have a child RenderBox.
+      if (!(isAtomicFragment || isTableFragment || isCodeBlockFragment || isDetailsFragment || isFloatFragment || isTextFragmentWithoutSource)) {
+        return false; // Skip fragments that don't map to children or are already handled.
       }
 
-      // Check if this fragment is already linked to a child
+      // Check if this fragment is already linked to a child (via sourceNode).
+      // If it has a sourceNode, it would have been handled in Step 2.
+      // If it doesn't have sourceNode but is a text fragment, it's a candidate for fallback.
       RenderBox? c = firstChild;
       while (c != null) {
         final pd = c.parentData as HyperBoxParentData;
-        if (pd.fragment == f) return false;
+        if (pd.fragment == f) return false; // Already linked
         c = pd.nextSibling;
       }
+      // If it's an unlinked fragment of a relevant type, include it for fallback.
       return true;
-    }).iterator;
+    }).toList(); // Convert to list for easier indexed access.
 
+    int unlinkedFragmentIndex = 0;
+    child = firstChild;
     while (child != null) {
       final parentData = child.parentData as HyperBoxParentData;
 
-      // Skip children that are already linked
+      // Skip children that are already linked by sourceNode (Step 2).
       if (parentData.fragment != null) {
         child = parentData.nextSibling;
         continue;
       }
 
-      // Try to get next unlinked fragment
-      if (unlinkedFragments.moveNext()) {
-        final fragment = unlinkedFragments.current;
+      // Link remaining children using the order of unlinked fragments.
+      // This is the critical fallback.
+      if (unlinkedFragmentIndex < unlinkedFragments.length) {
+        final fragment = unlinkedFragments[unlinkedFragmentIndex];
         parentData.fragment = fragment;
 
+        // Set float info if applicable
         if (fragment is _FloatFragment) {
           parentData.isFloat = true;
           parentData.floatDirection = fragment.floatDirection;
         }
+        unlinkedFragmentIndex++;
+      } else {
+        // No unlinked fragment available for this child — leave it unlinked.
+        // _layoutChildren will fall through to the Size.zero fallback for any
+        // child whose parentData.fragment is still null after this pass.
       }
 
       child = parentData.nextSibling;

@@ -1428,7 +1428,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
             parentUsesSize: true,
           );
         }
-        parentData.offset = fragment.offset ?? Offset.zero;
+        if (parentData.offset != (fragment.offset ?? Offset.zero)) {
+          parentData.offset = fragment.offset ?? Offset.zero;
+          child.markNeedsSemanticsUpdate();
+        }
         wasLaidOut = true;
       } else if (parentData.sourceNode != null) {
         // Fallback: try to find fragment by source node
@@ -1443,7 +1446,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
               parentUsesSize: true,
             );
           }
-          parentData.offset = fragment.offset ?? Offset.zero;
+          if (parentData.offset != (fragment.offset ?? Offset.zero)) {
+            parentData.offset = fragment.offset ?? Offset.zero;
+            child.markNeedsSemanticsUpdate();
+          }
           wasLaidOut = true;
         }
       }

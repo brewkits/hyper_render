@@ -521,7 +521,7 @@ class RenderHyperBox extends RenderBox
 
     _maxWidth = width;
     _ensureFragments();
-    _performLineLayout();
+    _performLineLayout(intrinsicMode: true);
 
     if (_lines.isEmpty) return 0;
 
