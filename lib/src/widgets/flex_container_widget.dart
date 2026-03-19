@@ -9,11 +9,13 @@ import '../model/computed_style.dart' hide TextDirection, BorderStyle;
 class FlexContainerWidget extends StatelessWidget {
   final UDTNode node;
   final List<Widget> children;
+  final bool selectable;
 
   const FlexContainerWidget({
     super.key,
     required this.node,
     required this.children,
+    this.selectable = false,
   });
 
   @override
@@ -46,33 +48,57 @@ class FlexContainerWidget extends StatelessWidget {
 
     if (style.flexWrap == FlexWrap.nowrap) {
       // Use Row/Column for no-wrap flex
-      // Wrap children that are NOT FlexItemWidget to prevent overflow
-      final processedChildren = _buildChildrenWithGap(children, mainAxisSpacing, axis)
-          .map((child) {
-            // FlexItemWidget handles its own Flexible wrapping
-            if (child is FlexItemWidget) {
-              return child;
-            }
-            // Wrap other widgets in Flexible to prevent overflow
-            return Flexible(fit: FlexFit.loose, child: child);
-          }).toList();
+      final gappedChildren = _buildChildrenWithGap(children, mainAxisSpacing, axis);
 
       if (axis == Axis.horizontal) {
-        flexWidget = Row(
+        // Wrap horizontal children in Flexible to prevent overflow.
+        final processedChildren = gappedChildren.map((child) {
+          if (child is FlexItemWidget) return child;
+          return Flexible(fit: FlexFit.loose, child: child);
+        }).toList();
+
+        Widget row = Row(
           mainAxisAlignment: mainAxisAlignment,
           crossAxisAlignment: crossAxisAlignment,
           mainAxisSize: MainAxisSize.max,
           textDirection: isReverse ? TextDirection.rtl : TextDirection.ltr,
           children: processedChildren,
         );
+        // CSS align-items:stretch on a horizontal flex requires bounded height.
+        // Wrap with IntrinsicHeight so children stretch to the tallest sibling
+        // height instead of trying to fill an infinite parent (e.g. ListView).
+        if (crossAxisAlignment == CrossAxisAlignment.stretch) {
+          row = IntrinsicHeight(child: row);
+        }
+        flexWidget = row;
       } else {
+        // For vertical flex (column), avoid Flexible children when height may be
+        // unbounded (e.g. inside a grid cell or scroll view). Flexible with
+        // non-zero flex inside an unbounded-height Column throws a Flutter error.
+        // Use MainAxisSize.min unless an explicit height is set.
+        final hasExplicitHeight = style.height != null;
         flexWidget = Column(
           mainAxisAlignment: mainAxisAlignment,
           crossAxisAlignment: crossAxisAlignment,
-          mainAxisSize: MainAxisSize.max,
+          mainAxisSize: hasExplicitHeight ? MainAxisSize.max : MainAxisSize.min,
           verticalDirection:
               isReverse ? VerticalDirection.up : VerticalDirection.down,
-          children: processedChildren,
+          children: gappedChildren.map((child) {
+            if (child is FlexItemWidget) {
+              // FlexItemWidget with flex-grow > 0 produces Expanded(flex: N).
+              // Expanded inside a Column with unbounded height throws:
+              // "RenderFlex children have non-zero flex but incoming height
+              // constraints are unbounded." Fall back to natural sizing.
+              if (!hasExplicitHeight) return child.child;
+              return child;
+            }
+            // Only use Flexible for columns with a known height — otherwise
+            // Flexible(flex>0) + unbounded height = assertion error.
+            if (hasExplicitHeight) {
+              return Flexible(fit: FlexFit.loose, child: child);
+            }
+            return child;
+          }).toList(),
         );
       }
     } else {
@@ -91,7 +117,7 @@ class FlexContainerWidget extends StatelessWidget {
     }
 
     // Apply container styling (padding, margin, background, border)
-    return Container(
+    final container = Container(
       margin: style.margin,
       padding: style.padding,
       width: style.width,
@@ -122,6 +148,8 @@ class FlexContainerWidget extends StatelessWidget {
       ),
       child: flexWidget,
     );
+    if (selectable) return SelectionArea(child: container);
+    return container;
   }
 
   Axis _getAxis(FlexDirection direction) {

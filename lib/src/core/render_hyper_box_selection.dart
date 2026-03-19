@@ -134,21 +134,37 @@ extension RenderHyperBoxSelection on RenderHyperBox {
             final selectEnd = math.min(
                 fragment.text!.length, _selection!.end - fragmentStart);
 
-            final painter = _getTextPainter(fragment.text!, fragment.style);
-            final startOffset = painter
-                .getOffsetForCaret(TextPosition(offset: selectStart), Rect.zero)
-                .dx;
-            final endOffset = painter
-                .getOffsetForCaret(TextPosition(offset: selectEnd), Rect.zero)
-                .dx;
+            // Trim whitespace for visual bounds (same as _paintSelection)
+            final text = fragment.text!;
+            int visualStart = selectStart;
+            int visualEnd = selectEnd;
+            while (visualStart < visualEnd && text[visualStart] == ' ') {
+              visualStart++;
+            }
+            while (visualEnd > visualStart && text[visualEnd - 1] == ' ') {
+              visualEnd--;
+            }
+            if (visualStart >= visualEnd) {
+              currentOffset = fragmentEnd;
+              continue;
+            }
+
+            final painter = _getTextPainter(text, fragment.style);
+            final boxes = painter.getBoxesForSelection(
+              TextSelection(baseOffset: visualStart, extentOffset: visualEnd),
+              boxHeightStyle: ui.BoxHeightStyle.tight,
+            );
 
             final fragmentOffset = fragment.offset ?? Offset.zero;
-            rects.add(Rect.fromLTWH(
-              fragmentOffset.dx + startOffset,
-              fragmentOffset.dy,
-              endOffset - startOffset,
-              fragment.height,
-            ));
+            for (final box in boxes) {
+              if (box.right <= box.left) continue;
+              rects.add(Rect.fromLTRB(
+                fragmentOffset.dx + box.left,
+                fragmentOffset.dy + box.top,
+                fragmentOffset.dx + box.right,
+                fragmentOffset.dy + box.bottom,
+              ));
+            }
           }
 
           currentOffset = fragmentEnd;

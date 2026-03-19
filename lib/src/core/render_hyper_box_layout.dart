@@ -69,6 +69,34 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     final collapsedMargin = math.max(marginTop, _lastBlockMarginBottom);
     final effectiveMarginTop = collapsedMargin - _lastBlockMarginBottom;
 
+    // Flex containers are rendered as FlexContainerWidget child widgets.
+    // The widget handles its own padding/border internally, so we only inject
+    // margin spacing via a zero-padding _BlockStartFragment.
+    if (style.display == DisplayType.flex) {
+      if (effectiveMarginTop > 0 || _fragments.isNotEmpty) {
+        _fragments.add(_BlockStartFragment(
+          sourceNode: node,
+          style: style,
+          marginTop: effectiveMarginTop,
+          paddingTop: 0, // FlexContainerWidget handles its own padding
+          paddingLeft: 0,
+          paddingRight: 0,
+        ));
+      }
+      _fragments.add(_FlexFragment(
+        sourceNode: node,
+        style: style,
+      ));
+      _fragments.add(_BlockEndFragment(
+        sourceNode: node,
+        style: style,
+        marginBottom: style.margin.bottom,
+        paddingBottom: 0, // FlexContainerWidget handles its own padding
+      ));
+      _lastBlockMarginBottom = style.margin.bottom;
+      return;
+    }
+
     if (effectiveMarginTop > 0 || _fragments.isNotEmpty) {
       _fragments.add(_BlockStartFragment(
         sourceNode: node,
@@ -375,6 +403,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       if (fragment is _BlockStartFragment ||
           fragment is _BlockEndFragment ||
           fragment is _FloatFragment ||
+          fragment is _FlexFragment ||
           fragment is _TableFragment ||
           fragment is _CodeBlockFragment ||
           fragment is _DetailsFragment ||
@@ -661,6 +690,33 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
       if (fragment is _FloatFragment) {
         _layoutFloat(fragment, currentY);
+        return;
+      }
+
+      if (fragment is _FlexFragment) {
+        finishLine();
+        // The _BlockStartFragment for a flex container uses paddingLeft=0,
+        // so leftInset here is the PARENT's inset (not the flex container's own padding).
+        // The FlexContainerWidget handles its own padding internally.
+        final double availWidth = math.max(0.0, _maxWidth - leftInset - rightInset);
+        final RenderBox? flexChild = _findChildForFragment(fragment);
+        double flexHeight = 50.0; // Default fallback
+
+        if (flexChild != null) {
+          if (intrinsicMode) {
+            flexHeight = flexChild.getMaxIntrinsicHeight(availWidth);
+          } else {
+            flexChild.layout(
+              BoxConstraints(minWidth: availWidth, maxWidth: availWidth),
+              parentUsesSize: true,
+            );
+            flexHeight = flexChild.size.height;
+          }
+        }
+
+        fragment.measuredSize = Size(availWidth, flexHeight);
+        fragment.offset = Offset(leftInset, currentY);
+        currentY += flexHeight;
         return;
       }
 
@@ -1122,20 +1178,56 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     double width;
     double height;
 
-    // Try to get size from the actual child widget (for images, etc.)
-    final child = _findChildForFragment(fragment);
-    if (child != null) {
-      // Layout the child with the margin-reduced width so width + hMargin ≤ _maxWidth.
-      child.layout(BoxConstraints(maxWidth: availableWidth), parentUsesSize: true);
-      width = child.size.width;
-      height = child.size.height;
+    // For img floats, derive dimensions from _imageCache (same logic as _tokenizeAtomic).
+    // This avoids a separate HyperImage child widget (which would cause duplicate HTTP
+    // loads) and gives correct dimensions once the image has loaded.
+    final sourceNode = fragment.sourceNode;
+    if (sourceNode is AtomicNode && sourceNode.tagName == 'img' && sourceNode.src != null) {
+      final cached = _imageCache[sourceNode.src];
+      if (cached?.state == ImageLoadState.loaded && cached?.image != null) {
+        final img = cached!.image!;
+        final imgW = img.width.toDouble();
+        final imgH = img.height.toDouble();
+        if (sourceNode.intrinsicWidth != null && sourceNode.intrinsicHeight != null) {
+          width = sourceNode.intrinsicWidth!;
+          height = sourceNode.intrinsicHeight!;
+        } else if (sourceNode.intrinsicWidth != null) {
+          width = sourceNode.intrinsicWidth!;
+          height = imgW > 0 ? width * (imgH / imgW) : RenderHyperBox.defaultFloatSize;
+        } else if (sourceNode.intrinsicHeight != null) {
+          height = sourceNode.intrinsicHeight!;
+          width = imgH > 0 ? height * (imgW / imgH) : RenderHyperBox.defaultFloatSize;
+        } else {
+          // No explicit dimensions: constrain to CSS max-width or available space
+          final cssMaxWidth = sourceNode.style.maxWidth ?? sourceNode.style.width;
+          final naturalCap = cssMaxWidth ?? math.min(imgW, availableWidth);
+          width = math.min(naturalCap, availableWidth);
+          height = imgW > 0 ? width * (imgH / imgW) : RenderHyperBox.defaultFloatSize;
+        }
+      } else {
+        // Image not yet loaded — use CSS dimensions or a 16:9 placeholder
+        width = math.min(
+          sourceNode.intrinsicWidth ?? sourceNode.style.width ??
+              sourceNode.style.maxWidth ?? RenderHyperBox._defaultImageWidth,
+          availableWidth,
+        );
+        height = sourceNode.intrinsicHeight ?? sourceNode.style.height ??
+            (width / RenderHyperBox._defaultAspectRatio);
+      }
     } else {
-      // Fallback to CSS style or default size, clamped to available width.
-      width = math.min(
-        fragment.style.width ?? RenderHyperBox.defaultFloatSize,
-        availableWidth,
-      );
-      height = fragment.style.height ?? RenderHyperBox.defaultFloatSize;
+      // Non-image float: try child widget, then CSS style or default size.
+      final child = _findChildForFragment(fragment);
+      if (child != null) {
+        child.layout(BoxConstraints(maxWidth: availableWidth), parentUsesSize: true);
+        width = child.size.width;
+        height = child.size.height;
+      } else {
+        width = math.min(
+          fragment.style.width ?? RenderHyperBox.defaultFloatSize,
+          availableWidth,
+        );
+        height = fragment.style.height ?? RenderHyperBox.defaultFloatSize;
+      }
     }
 
     Rect floatRect;
@@ -1349,17 +1441,53 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       for (final fragment in line.fragments) {
         final decoratedNode = nodeToDecorated[fragment.sourceNode];
         if (decoratedNode != null) {
-          final rect = fragment.rect;
-          if (rect != null) {
+          Rect? visualRect;
+
+          if (fragment.type == FragmentType.text && fragment.text != null) {
+            // Trim leading/trailing whitespace for visual bounds.
+            // HTML whitespace normalization inserts spaces at inline-element
+            // boundaries; using the raw fragment rect would bleed the
+            // decoration into those inter-element gaps.
+            final text = fragment.text!;
+            int start = 0;
+            int end = text.length;
+            while (start < end && text[start] == ' ') start++;
+            while (end > start && text[end - 1] == ' ') end--;
+            if (start < end) {
+              final fragmentOffset = fragment.offset ?? Offset.zero;
+              final painter = _getTextPainter(text, fragment.style);
+              final boxes = painter.getBoxesForSelection(
+                TextSelection(baseOffset: start, extentOffset: end),
+                boxHeightStyle: ui.BoxHeightStyle.tight,
+              );
+              if (boxes.isNotEmpty) {
+                double left   = boxes.map((b) => b.left  ).reduce(math.min);
+                double top    = boxes.map((b) => b.top   ).reduce(math.min);
+                double right  = boxes.map((b) => b.right ).reduce(math.max);
+                double bottom = boxes.map((b) => b.bottom).reduce(math.max);
+                visualRect = Rect.fromLTRB(
+                  fragmentOffset.dx + left,
+                  fragmentOffset.dy + top,
+                  fragmentOffset.dx + right,
+                  fragmentOffset.dy + bottom,
+                );
+              }
+            }
+          } else {
+            // Non-text fragments (images, ruby, etc.) use the raw rect.
+            visualRect = fragment.rect;
+          }
+
+          if (visualRect != null) {
             // Expand rect by padding from the decorated node's style
             final (style, _, _) = decoratedRanges[decoratedNode]!;
             final padding = style.padding;
 
             final expandedRect = Rect.fromLTWH(
-              rect.left - padding.left,
-              rect.top - padding.top,
-              rect.width + padding.left + padding.right,
-              rect.height + padding.top + padding.bottom,
+              visualRect.left - padding.left,
+              visualRect.top - padding.top,
+              visualRect.width + padding.left + padding.right,
+              visualRect.height + padding.top + padding.bottom,
             );
 
             rectsMap[decoratedNode]!.add(expandedRect);

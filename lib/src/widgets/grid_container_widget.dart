@@ -25,10 +25,13 @@ class GridContainerWidget extends StatelessWidget {
   /// Pre-built children (one per grid item node)
   final List<GridItem> items;
 
+  final bool selectable;
+
   const GridContainerWidget({
     super.key,
     required this.node,
     required this.items,
+    this.selectable = false,
   });
 
   @override
@@ -37,7 +40,7 @@ class GridContainerWidget extends StatelessWidget {
     final colGap = style.columnGap ?? style.gap ?? 0.0;
     final rowGap = style.rowGap ?? style.gap ?? 0.0;
 
-    return LayoutBuilder(
+    final layout = LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
         final colTemplate = style.gridTemplateColumns;
@@ -63,6 +66,8 @@ class GridContainerWidget extends StatelessWidget {
         );
       },
     );
+    if (selectable) return SelectionArea(child: layout);
+    return layout;
   }
 
   Widget _buildRow(
