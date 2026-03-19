@@ -220,25 +220,47 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
             final selectEnd = math.min(
                 fragment.text!.length, _selection!.end - fragmentStart);
 
-            // Get selection rect within this fragment
-            final painter = _getTextPainter(fragment.text!, fragment.style);
-            final startOffset = painter
-                .getOffsetForCaret(TextPosition(offset: selectStart),
-                    Rect.zero)
-                .dx;
-            final endOffset = painter
-                .getOffsetForCaret(TextPosition(offset: selectEnd), Rect.zero)
-                .dx;
+            // Trim leading/trailing whitespace for visual highlight only.
+            // HTML whitespace normalization creates space chars at inline
+            // element boundaries (e.g. " は、" or "を "). These spaces are
+            // preserved in the selection range for copy-paste, but should not
+            // produce blank margin inside the painted highlight rect.
+            final text = fragment.text!;
+            int visualStart = selectStart;
+            int visualEnd = selectEnd;
+            while (visualStart < visualEnd && text[visualStart] == ' ') {
+              visualStart++;
+            }
+            while (visualEnd > visualStart && text[visualEnd - 1] == ' ') {
+              visualEnd--;
+            }
 
-            final fragmentOffset = fragment.offset ?? Offset.zero;
-            final selectionRect = Rect.fromLTWH(
-              offset.dx + fragmentOffset.dx + startOffset,
-              offset.dy + fragmentOffset.dy,
-              endOffset - startOffset,
-              fragment.height,
+            if (visualStart >= visualEnd) {
+              currentOffset = fragmentEnd;
+              continue;
+            }
+
+            // Use getBoxesForSelection with tight height/width to get exact
+            // glyph bounds — avoids blank space from line-height above/below.
+            final painter = _getTextPainter(text, fragment.style);
+            final boxes = painter.getBoxesForSelection(
+              TextSelection(baseOffset: visualStart, extentOffset: visualEnd),
+              boxHeightStyle: ui.BoxHeightStyle.tight,
             );
 
-            canvas.drawRect(selectionRect, selectionPaint);
+            final fragmentOffset = fragment.offset ?? Offset.zero;
+            for (final box in boxes) {
+              if (box.right <= box.left) continue;
+              canvas.drawRect(
+                Rect.fromLTRB(
+                  offset.dx + fragmentOffset.dx + box.left,
+                  offset.dy + fragmentOffset.dy + box.top,
+                  offset.dx + fragmentOffset.dx + box.right,
+                  offset.dy + fragmentOffset.dy + box.bottom,
+                ),
+                selectionPaint,
+              );
+            }
           }
 
           currentOffset = fragmentEnd;

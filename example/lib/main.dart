@@ -1665,13 +1665,13 @@ class ImageHandlingDemo extends StatelessWidget {
   <p>These images load successfully and display normally:</p>
   <div style="display: flex; gap: 16px; flex-wrap: wrap;">
     <img src="https://picsum.photos/200/150?random=1"
-         style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+         style="width: 200px; height: 150px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
          alt="Random image 1">
     <img src="https://picsum.photos/200/150?random=2"
-         style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+         style="width: 200px; height: 150px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
          alt="Random image 2">
     <img src="https://picsum.photos/200/150?random=3"
-         style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+         style="width: 200px; height: 150px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
          alt="Random image 3">
   </div>
 
@@ -1711,7 +1711,7 @@ class ImageHandlingDemo extends StatelessWidget {
     <h4 style="color: #424242; margin-top: 0;">Article with Images</h4>
 
     <img src="https://picsum.photos/300/200?random=4"
-         style="float: left; margin: 0 16px 16px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+         style="float: left; width: 300px; height: 200px; margin: 0 16px 16px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
          alt="Article thumbnail">
 
     <p>This paragraph has a successfully loaded image floated to the left. The text wraps around it naturally, demonstrating HyperRender's float layout capability combined with proper image handling.</p>

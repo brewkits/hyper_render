@@ -135,7 +135,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     // Is it a flex container?
     if (node.style.display == DisplayType.flex) {
       childWidget = widgetBuilder?.call(node);
-      childWidget ??= _buildFlexContainerWidget(node, widgetBuilder);
+      childWidget ??= _buildFlexContainerWidget(node, widgetBuilder, selectable: selectable);
       if (childWidget != null) {
         children.add(_HyperChildWidget(node: node, child: childWidget));
       }
@@ -145,7 +145,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     // Is it a grid container?
     if (node.style.display == DisplayType.grid) {
       childWidget = widgetBuilder?.call(node);
-      childWidget ??= _buildGridContainerWidget(node, widgetBuilder);
+      childWidget ??= _buildGridContainerWidget(node, widgetBuilder, selectable: selectable);
       if (childWidget != null) {
         children.add(_HyperChildWidget(node: node, child: childWidget));
       }
@@ -276,8 +276,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// Build GridContainerWidget for display:grid elements
   static Widget? _buildGridContainerWidget(
     UDTNode node,
-    HyperWidgetBuilder? widgetBuilder,
-  ) {
+    HyperWidgetBuilder? widgetBuilder, {
+    bool selectable = false,
+  }) {
     final items = <GridItem>[];
     for (final child in node.children) {
       final childWidget = _buildFlexChild(child, widgetBuilder);
@@ -289,7 +290,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       }
     }
     if (items.isEmpty) return null;
-    return GridContainerWidget(node: node, items: items);
+    return GridContainerWidget(node: node, items: items, selectable: selectable);
   }
 
   static Widget? _buildDefaultAtomicWidget(AtomicNode node) {
@@ -332,6 +333,11 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (node.tagName == 'img') {
       final src = node.src;
       if (src == null || src.isEmpty) return null;
+
+      // Float images are painted on canvas by RenderHyperBox._paintFloatImages.
+      // Creating a HyperImage widget here would cause a duplicate HTTP load
+      // (Image.network + _loadImage via LazyImageQueue) and sizing conflicts.
+      if (node.style.float != HyperFloat.none) return null;
 
       // Use intrinsic dimensions if available, otherwise fallback to CSS style dimensions
       final width = node.intrinsicWidth ?? node.style.width;
@@ -393,8 +399,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// Build FlexContainer widget for display:flex elements
   static Widget? _buildFlexContainerWidget(
     UDTNode node,
-    HyperWidgetBuilder? widgetBuilder,
-  ) {
+    HyperWidgetBuilder? widgetBuilder, {
+    bool selectable = false,
+  }) {
     // Recursively build children of flex container
     final flexChildren = <Widget>[];
     for (final child in node.children) {
@@ -418,10 +425,35 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     return FlexContainerWidget(
       node: node,
       children: flexChildren,
+      selectable: selectable,
     );
   }
 
   /// Build a single flex child
+  static TextAlign _toTextAlign(HyperTextAlign align) {
+    switch (align) {
+      case HyperTextAlign.center:
+        return TextAlign.center;
+      case HyperTextAlign.right:
+        return TextAlign.right;
+      case HyperTextAlign.justify:
+        return TextAlign.justify;
+      case HyperTextAlign.left:
+        return TextAlign.left;
+    }
+  }
+
+  static CrossAxisAlignment _toColumnCrossAxis(HyperTextAlign align) {
+    switch (align) {
+      case HyperTextAlign.center:
+        return CrossAxisAlignment.center;
+      case HyperTextAlign.right:
+        return CrossAxisAlignment.end;
+      default:
+        return CrossAxisAlignment.start;
+    }
+  }
+
   static Widget? _buildFlexChild(UDTNode node, HyperWidgetBuilder? widgetBuilder) {
     // If it's text content, convert to Text widget
     if (node.type == NodeType.text) {
@@ -431,6 +463,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
 
       return Text(
         text,
+        textAlign: _toTextAlign(node.style.textAlign),
         style: node.style.toTextStyle(),
       );
     }
@@ -441,6 +474,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       if (spans.isNotEmpty) {
         return Text.rich(
           TextSpan(children: spans),
+          textAlign: _toTextAlign(node.style.textAlign),
         );
       }
     }
@@ -462,25 +496,48 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
 
       if (blockChildren.isEmpty) return null;
 
+      // Only apply solid border via BoxDecoration — dashed/dotted/double
+      // require custom painting (not supported here, skipped for now).
+      final hasSolidBorder = node.style.borderWidth != EdgeInsets.zero &&
+          node.style.borderStyle == HyperBorderStyle.solid;
       return Container(
         margin: node.style.margin,
         padding: node.style.padding,
         width: node.style.width,
         height: node.style.height,
         decoration: BoxDecoration(
-          color: node.style.backgroundColor,
-          border: node.style.borderWidth != EdgeInsets.zero
-              ? Border.all(
-                  color: node.style.borderColor ?? Colors.transparent,
-                  width: node.style.borderWidth.top,
+          // Use gradient over flat color when available.
+          gradient: node.style.backgroundGradient,
+          color: node.style.backgroundGradient == null
+              ? node.style.backgroundColor
+              : null,
+          border: hasSolidBorder
+              ? Border(
+                  top: BorderSide(
+                    color: node.style.borderColor ?? Colors.transparent,
+                    width: node.style.borderWidth.top,
+                  ),
+                  right: BorderSide(
+                    color: node.style.borderColor ?? Colors.transparent,
+                    width: node.style.borderWidth.right,
+                  ),
+                  bottom: BorderSide(
+                    color: node.style.borderColor ?? Colors.transparent,
+                    width: node.style.borderWidth.bottom,
+                  ),
+                  left: BorderSide(
+                    color: node.style.borderColor ?? Colors.transparent,
+                    width: node.style.borderWidth.left,
+                  ),
                 )
               : null,
           borderRadius: node.style.borderRadius,
+          boxShadow: node.style.boxShadow,
         ),
         child: blockChildren.length == 1
             ? blockChildren.first
             : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: _toColumnCrossAxis(node.style.textAlign),
                 mainAxisSize: MainAxisSize.min,
                 children: blockChildren,
               ),

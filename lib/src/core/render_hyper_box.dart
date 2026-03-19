@@ -592,15 +592,15 @@ class RenderHyperBox extends RenderBox
         height = lastLine.top + lastLine.height;
       }
 
-      // Block-level widgets (details, tables, code blocks) are not included in
-      // _lines — they update currentY but don't push a line.  When the content
-      // consists ENTIRELY of such blocks (e.g. a page of <details> elements
-      // with no surrounding text), _lines stays empty and height stays 0.
+      // Block-level widgets (details, tables, code blocks, flex/grid containers)
+      // update currentY but don't push a line.  When the content consists
+      // ENTIRELY of such blocks _lines stays empty and height stays 0.
       // Extend height from fragment offsets + sizes for these block types.
       for (final fragment in _fragments) {
         if (fragment is _DetailsFragment ||
             fragment is _TableFragment ||
-            fragment is _CodeBlockFragment) {
+            fragment is _CodeBlockFragment ||
+            fragment is _FlexFragment) {
           final offset = fragment.offset;
           final measured = fragment.measuredSize;
           if (offset != null && measured != null) {

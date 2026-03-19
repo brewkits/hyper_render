@@ -324,6 +324,8 @@ class _DeltaTab extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: HyperViewer.delta(
               delta: _deltaJson,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
             ),
           ),
           const SizedBox(height: 20),
