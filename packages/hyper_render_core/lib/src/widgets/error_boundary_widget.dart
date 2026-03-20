@@ -57,7 +57,9 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.red.shade900.withValues(alpha:0.2) : Colors.red.shade50,
+        color: isDark
+            ? Colors.red.shade900.withValues(alpha: 0.2)
+            : Colors.red.shade50,
         border: Border.all(
           color: isDark ? Colors.red.shade700 : Colors.red.shade200,
           width: 1.5,
@@ -87,7 +89,8 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.red.shade300 : Colors.red.shade900,
+                        color:
+                            isDark ? Colors.red.shade300 : Colors.red.shade900,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -95,7 +98,8 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
                       widget.errorNode.errorMessage,
                       style: TextStyle(
                         fontSize: 14,
-                        color: isDark ? Colors.red.shade200 : Colors.red.shade800,
+                        color:
+                            isDark ? Colors.red.shade200 : Colors.red.shade800,
                       ),
                     ),
                   ],
@@ -117,8 +121,10 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
                 ),
                 label: Text(_showDetails ? 'Hide Details' : 'Show Details'),
                 style: TextButton.styleFrom(
-                  foregroundColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  foregroundColor:
+                      isDark ? Colors.red.shade300 : Colors.red.shade700,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
                 onPressed: () {
                   setState(() {
@@ -134,11 +140,13 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
                 icon: const Icon(Icons.copy, size: 16),
                 label: const Text('Copy Error'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                  foregroundColor:
+                      isDark ? Colors.red.shade300 : Colors.red.shade700,
                   side: BorderSide(
                     color: isDark ? Colors.red.shade700 : Colors.red.shade300,
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
                 onPressed: () => _copyErrorToClipboard(context),
               ),
@@ -150,9 +158,11 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
                   icon: const Icon(Icons.refresh, size: 16),
                   label: const Text('Retry'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? Colors.red.shade700 : Colors.red.shade600,
+                    backgroundColor:
+                        isDark ? Colors.red.shade700 : Colors.red.shade600,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   onPressed: widget.onRetry,
                 ),
@@ -181,7 +191,8 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                      color:
+                          isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                       fontFamily: 'monospace',
                     ),
                   ),
@@ -190,7 +201,8 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
                     widget.errorNode.shortStackTrace,
                     style: TextStyle(
                       fontSize: 11,
-                      color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+                      color:
+                          isDark ? Colors.grey.shade300 : Colors.grey.shade800,
                       fontFamily: 'monospace',
                     ),
                   ),
@@ -215,7 +227,9 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade700,
                         fontFamily: 'monospace',
                       ),
                     ),
@@ -226,7 +240,9 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
                           : widget.errorNode.originalContent!,
                       style: TextStyle(
                         fontSize: 11,
-                        color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+                        color: isDark
+                            ? Colors.grey.shade300
+                            : Colors.grey.shade800,
                         fontFamily: 'monospace',
                       ),
                     ),

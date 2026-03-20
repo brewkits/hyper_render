@@ -344,8 +344,7 @@ class MarkdownAdapter {
   }
 
   /// Convert list of Markdown nodes to UDT nodes
-  List<UDTNode> _convertChildren(
-      List<md.Node>? nodes, List<String> warnings) {
+  List<UDTNode> _convertChildren(List<md.Node>? nodes, List<String> warnings) {
     if (nodes == null || nodes.isEmpty) return [];
 
     final result = <UDTNode>[];

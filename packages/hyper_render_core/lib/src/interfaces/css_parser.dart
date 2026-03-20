@@ -37,33 +37,27 @@ abstract class CssParserInterface {
 ///
 /// This is a simple data class that can be created by any CSS parser.
 class ParsedCssRule {
-  /// The CSS selector string
+  /// The CSS selector (e.g., "h1", ".class", "#id", "div > p")
   final String selector;
 
-  /// Pre-tokenized selector for high-performance matching (Optional)
-  final dynamic parsedSelector;
-
   /// CSS declarations as property -> value map
+  /// e.g., {"color": "red", "font-size": "16px"}
   final Map<String, String> declarations;
 
-  /// Declarations marked with `!important`.
-  final Map<String, String> importantDeclarations;
-
-  /// Selector specificity
+  /// Selector specificity for cascade ordering
+  /// Format: [inline, id, class, element] as a single int
+  /// Higher value = higher priority
   final int specificity;
 
   const ParsedCssRule({
     required this.selector,
-    this.parsedSelector,
     required this.declarations,
-    Map<String, String>? importantDeclarations,
     this.specificity = 0,
-  }) : importantDeclarations = importantDeclarations ?? const {};
+  });
 
   @override
   String toString() =>
-      'ParsedCssRule($selector, specificity=$specificity, '
-      '${declarations.length} normal + ${importantDeclarations.length} !important)';
+      'ParsedCssRule($selector, specificity=$specificity, ${declarations.length} declarations)';
 }
 
 /// Simple inline style parser (no external dependencies)

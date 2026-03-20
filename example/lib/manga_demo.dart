@@ -429,11 +429,10 @@ class _PanelsTab extends StatelessWidget {
     margin-bottom: 12px;
   }
 
-  /* CSS Grid manga page layout */
+  /* Flex-based manga page layout (CSS Grid not yet supported) */
   .manga-page {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto;
+    display: flex;
+    flex-direction: column;
     gap: 4px;
     background: #000;
     padding: 4px;
@@ -441,20 +440,26 @@ class _PanelsTab extends StatelessWidget {
     margin-bottom: 16px;
   }
 
+  .manga-row {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+  }
+
   .panel {
     background: #FAFAFA;
     overflow: hidden;
-    position: relative;
     min-height: 120px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     padding: 8px;
+    flex: 1;
   }
-  .panel-wide { grid-column: span 2; min-height: 160px; }
-  .panel-tall { grid-row: span 2; }
+  .panel-wide { min-height: 160px; }
+  .panel-tall { min-height: 264px; }
 
-  /* Panel backgrounds simulated with solid colors + emoji */
+  /* Panel backgrounds */
   .panel-action {
     background: #E3F2FD;
     justify-content: center;
@@ -488,7 +493,7 @@ class _PanelsTab extends StatelessWidget {
   .bubble-thought {
     background: white;
     border: 2px dashed #666;
-    border-radius: 50%;
+    border-radius: 14px;
     padding: 6px 10px;
     font-size: 10px;
     color: #424242;
@@ -503,18 +508,16 @@ class _PanelsTab extends StatelessWidget {
 
   /* On-panel sound effects */
   .sfx {
-    position: relative;
     font-size: 20px;
     font-weight: 900;
     text-align: center;
     padding: 8px;
-    transform: rotate(-5deg);
     display: inline-block;
     letter-spacing: 2px;
   }
-  .sfx-red { color: #FF5252; text-shadow: 2px 2px 0 #B71C1C; }
-  .sfx-blue { color: #448AFF; text-shadow: 2px 2px 0 #1565C0; }
-  .sfx-white { color: white; text-shadow: 2px 2px 0 #000; }
+  .sfx-red  { color: #FF5252; }
+  .sfx-blue { color: #448AFF; }
+  .sfx-white { color: white; }
 
   .caption {
     background: rgba(0,0,0,0.75);
@@ -529,77 +532,81 @@ class _PanelsTab extends StatelessWidget {
 <div class="page-title">影界年代記 ▸ Chapter 12 ▸ Page 8</div>
 
 <div class="manga-page">
-  <!-- Panel 1 — wide establishing shot -->
-  <div class="panel panel-wide panel-landscape">
-    <div style="text-align:center; padding: 20px 0;">
-      <span style="font-size:52px;">🏯</span>
-    </div>
-    <div class="caption">
-      <ruby>鬼殺隊<rt>きさつたい</rt></ruby>本部——深夜
-    </div>
-  </div>
-
-  <!-- Panel 2 — close-up character -->
-  <div class="panel panel-close" style="grid-row: span 2;">
-    <div class="panel-emoji">😤</div>
-    <div class="bubble">
-      「<ruby>来<rt>く</rt></ruby>るがいい……
-      <ruby>上弦<rt>じょうげん</rt></ruby>よ」
+  <!-- Row 1 — wide establishing shot -->
+  <div class="manga-row">
+    <div class="panel panel-wide panel-landscape">
+      <div style="text-align:center; padding: 20px 0; flex: 1; display:flex; align-items:center; justify-content:center;">
+        <span style="font-size:52px;">🏯</span>
+      </div>
+      <div class="caption">
+        <ruby>鬼殺隊<rt>きさつたい</rt></ruby>本部——深夜
+      </div>
     </div>
   </div>
 
-  <!-- Panel 3 — action -->
-  <div class="panel panel-action">
-    <div style="text-align:center;">
-      <div class="sfx sfx-red">ドドドォ！！</div>
+  <!-- Row 2 — tall close-up (left) + two stacked panels (right) -->
+  <div class="manga-row">
+    <div class="panel panel-close panel-tall">
+      <div class="panel-emoji">😤</div>
+      <div class="bubble">
+        「<ruby>来<rt>く</rt></ruby>るがいい……
+        <ruby>上弦<rt>じょうげん</rt></ruby>よ」
+      </div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+      <div class="panel panel-action" style="flex: 1; min-height: 128px;">
+        <div class="sfx sfx-red">ドドドォ！！</div>
+      </div>
+      <div class="panel panel-dark" style="flex: 1; min-height: 128px;">
+        <div class="panel-emoji">😈</div>
+        <div class="bubble bubble-scream">
+          「<ruby>面白<rt>おもしろ</rt></ruby>い……！」
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Panel 4 — villain close-up -->
-  <div class="panel panel-dark">
-    <div class="panel-emoji" style="filter: brightness(1.5);">😈</div>
-    <div class="bubble bubble-scream">
-      「<ruby>面白<rt>おもしろ</rt></ruby>い……！」
-    </div>
-  </div>
-
-  <!-- Panel 5 — wide clash -->
-  <div class="panel panel-wide panel-action" style="min-height: 140px;">
-    <div style="display:flex; justify-content:space-around; align-items:center; padding:12px 0;">
-      <span style="font-size:36px;">⚔️</span>
-      <div class="sfx sfx-blue" style="font-size:24px;">ズバッ！！</div>
-      <span style="font-size:36px; transform:scaleX(-1); display:inline-block;">⚔️</span>
-    </div>
-    <div style="text-align:center;">
-      <div class="bubble" style="display:inline-block;">
-        <ruby>影<rt>かげ</rt></ruby>ノ<ruby>型<rt>かた</rt></ruby>——
-        <strong style="color:#B71C1C;">
-          <ruby>漆黒<rt>しっこく</rt></ruby>の<ruby>斬閃<rt>ざんせん</rt></ruby>！！
-        </strong>
+  <!-- Row 3 — wide clash panel -->
+  <div class="manga-row">
+    <div class="panel panel-wide panel-action" style="min-height: 140px;">
+      <div style="display:flex; justify-content:space-around; align-items:center; padding:12px 0; flex: 1;">
+        <span style="font-size:36px;">⚔️</span>
+        <div class="sfx sfx-blue" style="font-size:24px;">ズバッ！！</div>
+        <span style="font-size:36px;">⚔️</span>
+      </div>
+      <div style="text-align:center;">
+        <div class="bubble" style="display:inline-block;">
+          <ruby>影<rt>かげ</rt></ruby>ノ<ruby>型<rt>かた</rt></ruby>——
+          <strong style="color:#B71C1C;">
+            <ruby>漆黒<rt>しっこく</rt></ruby>の<ruby>斬閃<rt>ざんせん</rt></ruby>！！
+          </strong>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<div class="manga-page" style="grid-template-columns: 1fr 1fr 1fr;">
-  <!-- Three-column row for rapid sequence -->
-  <div class="panel" style="min-height:80px; background:#E8F5E9; justify-content:center; align-items:center;">
-    <span style="font-size:30px;">😱</span>
-    <div class="bubble" style="font-size:10px;">「まさか——！」</div>
-  </div>
-  <div class="panel" style="min-height:80px; background:#FFF9C4; justify-content:center; align-items:center;">
-    <div class="sfx sfx-red" style="font-size:16px;">バキッ！</div>
-  </div>
-  <div class="panel" style="min-height:80px; background:#212121; justify-content:center; align-items:center;">
-    <div class="bubble bubble-thought" style="font-size:10px;">
-      （<ruby>父<rt>ちち</rt></ruby>さん……）
+<!-- Page 2 — rapid 3-beat sequence -->
+<div class="manga-page">
+  <div class="manga-row">
+    <div class="panel" style="min-height:80px; background:#E8F5E9; justify-content:center; align-items:center;">
+      <span style="font-size:30px;">😱</span>
+      <div class="bubble" style="font-size:10px;">「まさか——！」</div>
+    </div>
+    <div class="panel" style="min-height:80px; background:#FFF9C4; justify-content:center; align-items:center;">
+      <div class="sfx sfx-red" style="font-size:16px;">バキッ！</div>
+    </div>
+    <div class="panel" style="min-height:80px; background:#212121; justify-content:center; align-items:center;">
+      <div class="bubble bubble-thought" style="font-size:10px;">
+        （<ruby>父<rt>ちち</rt></ruby>さん……）
+      </div>
     </div>
   </div>
-
-  <!-- Bottom wide panel -->
-  <div class="panel panel-wide" style="grid-column: span 3; background:#B71C1C; min-height:100px; justify-content:center; align-items:center;">
-    <div class="sfx sfx-white" style="font-size:32px;">
-      つ・づ・く……
+  <div class="manga-row">
+    <div class="panel" style="background:#B71C1C; min-height:100px; justify-content:center; align-items:center;">
+      <div class="sfx sfx-white" style="font-size:32px;">
+        つ・づ・く……
+      </div>
     </div>
   </div>
 </div>
@@ -632,12 +639,12 @@ class _FuriganaTab extends StatelessWidget {
   .note { font-size: 12px; color: #B71C1C; margin-top: 6px; }
 
   .comparison {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: row;
     gap: 10px;
     margin-bottom: 14px;
   }
-  .comp-box { background: #F5F5F5; border-radius: 8px; padding: 10px; }
+  .comp-box { flex: 1; background: #F5F5F5; border-radius: 8px; padding: 10px; }
   .comp-title { font-size: 11px; font-weight: bold; margin-bottom: 6px; }
   .comp-title.good { color: #388E3C; }
   .comp-title.bad  { color: #D32F2F; }

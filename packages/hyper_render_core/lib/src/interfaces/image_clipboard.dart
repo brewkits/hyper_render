@@ -1,4 +1,3 @@
-
 import 'package:flutter/services.dart';
 
 /// Interface for image clipboard and sharing operations
@@ -60,7 +59,8 @@ abstract class ImageClipboardHandler {
   ///
   /// Opens the system share dialog with the image data.
   /// Returns true if the share dialog was opened successfully.
-  Future<bool> shareImageBytes(Uint8List bytes, {String? text, String? filename});
+  Future<bool> shareImageBytes(Uint8List bytes,
+      {String? text, String? filename});
 
   /// Check if full image clipboard is supported
   ///
@@ -121,7 +121,8 @@ class DefaultImageClipboardHandler implements ImageClipboardHandler {
   }
 
   @override
-  Future<bool> shareImageBytes(Uint8List bytes, {String? text, String? filename}) async {
+  Future<bool> shareImageBytes(Uint8List bytes,
+      {String? text, String? filename}) async {
     // Not supported in default implementation
     return false;
   }

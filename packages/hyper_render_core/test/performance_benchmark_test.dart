@@ -106,19 +106,12 @@ void main() {
       test('CSS rule matching is efficient with large ruleset', () {
         final resolver = StyleResolver();
 
-        // Add 100 CSS rules
-        final rules = List.generate(
-          100,
-          (i) => ParsedCssRule(
-            selector: '.class-$i',
-            declarations: {
-              'color': 'red',
-              'font-size': '${14 + i}px',
-            },
-          ),
-        );
-
-        resolver.addCssRules(rules);
+        // Add 100 CSS rules via parseCss
+        final cssBuffer = StringBuffer();
+        for (int i = 0; i < 100; i++) {
+          cssBuffer.writeln('.class-$i { color: red; font-size: ${14 + i}px; }');
+        }
+        resolver.parseCss(cssBuffer.toString());
 
         // Create document with 100 nodes with classes
         final doc = DocumentNode(

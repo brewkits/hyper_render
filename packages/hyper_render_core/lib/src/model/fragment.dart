@@ -145,7 +145,8 @@ class Fragment {
   }
 
   /// Check if this fragment can be broken (for line wrapping)
-  bool get canBreak => type == FragmentType.text && text != null && text!.contains(' ');
+  bool get canBreak =>
+      type == FragmentType.text && text != null && text!.contains(' ');
 
   /// Check if this is a whitespace-only fragment
   bool get isWhitespace =>

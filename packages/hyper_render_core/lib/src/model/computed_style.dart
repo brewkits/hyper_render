@@ -173,34 +173,70 @@ enum HyperAnimationFillMode {
   both,
 }
 
-/// CSS list-style-type values
-enum ListStyleType {
-  /// Decimal numbers (1, 2, 3...) - default for <ol>
-  decimal,
+/// Flex direction for CSS flex-direction property
+enum FlexDirection {
+  /// Row (left to right) - default
+  row,
 
-  /// Lowercase roman numerals (i, ii, iii, iv...)
-  lowerRoman,
+  /// Row reverse (right to left)
+  rowReverse,
 
-  /// Uppercase roman numerals (I, II, III, IV...)
-  upperRoman,
+  /// Column (top to bottom)
+  column,
 
-  /// Lowercase letters (a, b, c...)
-  lowerAlpha,
+  /// Column reverse (bottom to top)
+  columnReverse,
+}
 
-  /// Uppercase letters (A, B, C...)
-  upperAlpha,
+/// Justify content for CSS justify-content property (main axis alignment)
+enum JustifyContent {
+  /// Items packed at start (default)
+  flexStart,
 
-  /// Filled circle • - default for <ul>
-  disc,
+  /// Items packed at end
+  flexEnd,
 
-  /// Hollow circle ○
-  circle,
+  /// Items centered
+  center,
 
-  /// Filled square ▪
-  square,
+  /// Items evenly distributed, first at start, last at end
+  spaceBetween,
 
-  /// No marker
-  none,
+  /// Items evenly distributed with equal space around them
+  spaceAround,
+
+  /// Items evenly distributed with equal space between them
+  spaceEvenly,
+}
+
+/// Align items for CSS align-items property (cross axis alignment)
+enum AlignItems {
+  /// Items aligned at start
+  flexStart,
+
+  /// Items aligned at end
+  flexEnd,
+
+  /// Items centered
+  center,
+
+  /// Items aligned along baseline
+  baseline,
+
+  /// Items stretched to fill container (default)
+  stretch,
+}
+
+/// Flex wrap for CSS flex-wrap property
+enum FlexWrap {
+  /// No wrapping (default)
+  nowrap,
+
+  /// Wrap onto multiple lines
+  wrap,
+
+  /// Wrap onto multiple lines in reverse
+  wrapReverse,
 }
 
 /// CSS transition definition
@@ -352,10 +388,6 @@ class ComputedStyle {
   /// CSS overflow-wrap
   String? overflowWrap;
 
-  /// CSS list-style-type - INHERITABLE
-  /// Controls the marker style for list items (ul/ol)
-  ListStyleType? listStyleType;
-
   /// CSS text-shadow
   List<Shadow>? textShadow;
 
@@ -420,7 +452,6 @@ class ComputedStyle {
   // ============================================
 
   /// CSS transform matrix (computed from transform property)
-  /// Using Flutter's Matrix4 from dart:ui via painting.dart
   Matrix4? transform;
 
   /// CSS opacity
@@ -453,6 +484,16 @@ class ComputedStyle {
 
   /// CSS animation fill mode
   HyperAnimationFillMode animationFillMode;
+
+  // ============================================
+  // Table-specific Properties
+  // ============================================
+
+  /// colspan attribute
+  int colspan;
+
+  /// rowspan attribute
+  int rowspan;
 
   // ============================================
   // CSS Custom Properties (variables)
@@ -493,44 +534,52 @@ class ComputedStyle {
   /// CSS grid-row span shorthand
   int gridRowSpan = 1;
 
+  /// CSS justify-items (for grid containers)
+  JustifyContent justifyItems = JustifyContent.flexStart;
+
+  /// CSS align-content (for grid/flex containers)
+  JustifyContent alignContent = JustifyContent.flexStart;
+
   // ============================================
-  // Table-specific Properties
+  // Flexbox Properties
   // ============================================
 
-  /// colspan attribute
-  int colspan;
+  /// CSS flex-direction - defines main axis direction
+  FlexDirection flexDirection;
 
-  /// rowspan attribute
-  int rowspan;
+  /// CSS justify-content - alignment along main axis
+  JustifyContent justifyContent;
 
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ComputedStyle &&
-          runtimeType == other.runtimeType &&
-          color == other.color &&
-          fontSize == other.fontSize &&
-          fontWeight == other.fontWeight &&
-          fontStyle == other.fontStyle &&
-          fontFamily == other.fontFamily &&
-          lineHeight == other.lineHeight &&
-          textAlign == other.textAlign &&
-          display == other.display &&
-          backgroundColor == other.backgroundColor;
+  /// CSS align-items - alignment along cross axis
+  AlignItems alignItems;
 
-  @override
-  int get hashCode => Object.hash(
-        color,
-        fontSize,
-        fontWeight,
-        fontStyle,
-        fontFamily,
-        lineHeight,
-        textAlign,
-        display,
-        backgroundColor,
-      );
+  /// CSS flex-wrap - whether flex items wrap
+  FlexWrap flexWrap;
 
+  /// CSS gap - shorthand for row-gap and column-gap
+  double? gap;
+
+  /// CSS row-gap - gap between rows in flex/grid
+  double? rowGap;
+
+  /// CSS column-gap - gap between columns in flex/grid
+  double? columnGap;
+
+  /// CSS flex-grow - how much a flex item should grow
+  double? flexGrow;
+
+  /// CSS flex-shrink - how much a flex item should shrink
+  double? flexShrink;
+
+  /// CSS flex-basis - initial size of flex item
+  double? flexBasis;
+
+  /// CSS align-self - override align-items for specific item
+  AlignItems? alignSelf;
+
+  // ============================================
+  // Constructor
+  // ============================================
 
   ComputedStyle({
     this.width,
@@ -550,7 +599,7 @@ class ComputedStyle {
     this.borderBottomStyle,
     this.borderLeftStyle,
     this.color = const Color(0xFF000000),
-    this.fontSize = 14.0, // Reduced from 16px for better mobile readability
+    this.fontSize = 16.0,
     this.fontWeight = FontWeight.normal,
     this.fontStyle = FontStyle.normal,
     this.fontFamily,
@@ -563,7 +612,9 @@ class ComputedStyle {
     this.verticalAlign = HyperVerticalAlign.baseline,
     this.textTransform,
     this.whiteSpace,
-    this.listStyleType,
+    this.textOverflow,
+    this.wordBreak,
+    this.overflowWrap,
     this.textShadow,
     this.boxShadow,
     this.filter,
@@ -592,88 +643,42 @@ class ComputedStyle {
     this.animationFillMode = HyperAnimationFillMode.none,
     this.colspan = 1,
     this.rowspan = 1,
-  }) {
-    // Validate CSS values
-    if (fontSize < 0) {
-      throw ArgumentError.value(
-        fontSize,
-        'fontSize',
-        'Font size must be non-negative',
-      );
-    }
-
-    if (width != null && width! < 0) {
-      throw ArgumentError.value(width, 'width', 'Width must be non-negative');
-    }
-
-    if (height != null && height! < 0) {
-      throw ArgumentError.value(height, 'height', 'Height must be non-negative');
-    }
-
-    if (opacity < 0 || opacity > 1) {
-      throw ArgumentError.value(
-        opacity,
-        'opacity',
-        'Opacity must be between 0 and 1',
-      );
-    }
-
-    if (minWidth != null && minWidth! < 0) {
-      throw ArgumentError.value(
-        minWidth,
-        'minWidth',
-        'Min width must be non-negative',
-      );
-    }
-
-    if (minHeight != null && minHeight! < 0) {
-      throw ArgumentError.value(
-        minHeight,
-        'minHeight',
-        'Min height must be non-negative',
-      );
-    }
-
-    if (maxWidth != null && maxWidth! < 0) {
-      throw ArgumentError.value(
-        maxWidth,
-        'maxWidth',
-        'Max width must be non-negative',
-      );
-    }
-
-    if (maxHeight != null && maxHeight! < 0) {
-      throw ArgumentError.value(
-        maxHeight,
-        'maxHeight',
-        'Max height must be non-negative',
-      );
-    }
-  }
+    this.flexDirection = FlexDirection.row,
+    this.justifyContent = JustifyContent.flexStart,
+    this.alignItems = AlignItems.stretch,
+    this.flexWrap = FlexWrap.nowrap,
+    this.gap,
+    this.rowGap,
+    this.columnGap,
+    this.flexGrow,
+    this.flexShrink,
+    this.flexBasis,
+    this.alignSelf,
+  });
 
   /// Inherit inheritable properties from parent
   ///
   /// Reference: doc1.txt - "1.2. Quy trình Resolve"
   /// Properties like color, font-family are inherited from parent Node
   /// margin, padding are NOT inherited
-  ///
-  /// Only inherit properties that are not explicitly set (null) in child
   void inheritFrom(ComputedStyle parent) {
-    // Text properties that inherit (only if not already set)
+    // Text properties that inherit
     color = parent.color;
     fontSize = parent.fontSize;
     fontWeight = parent.fontWeight;
     fontStyle = parent.fontStyle;
-    fontFamily ??= parent.fontFamily;
-    lineHeight ??= parent.lineHeight;
-    letterSpacing ??= parent.letterSpacing;
-    wordSpacing ??= parent.wordSpacing;
+    fontFamily = parent.fontFamily;
+    lineHeight = parent.lineHeight;
+    letterSpacing = parent.letterSpacing;
+    wordSpacing = parent.wordSpacing;
     textAlign = parent.textAlign;
-    whiteSpace ??= parent.whiteSpace;
-    listStyleType ??= parent.listStyleType;
+    whiteSpace = parent.whiteSpace;
+
+    // CSS direction is inheritable
     hyperDirection ??= parent.hyperDirection;
 
     // CSS custom properties are inherited — merge parent's into this element's map
+    // (child-defined properties take priority over parent's)
     final merged = Map<String, String>.from(parent.customProperties);
     merged.addAll(customProperties);
     customProperties = merged;
@@ -694,19 +699,24 @@ class ComputedStyle {
       height: lineHeight ?? 1.4,
       letterSpacing: letterSpacing,
       wordSpacing: wordSpacing,
+      shadows: textShadow,
       overflow: textOverflow,
-      shadows: textShadow, // 🆕 ADDED
       fontFeatures: const [
-        ui.FontFeature.proportionalFigures(), // Better number spacing
-        ui.FontFeature.enable('liga'), // Ligatures (fi, fl, etc.)
+        FontFeature.proportionalFigures(), // Better number spacing
+        FontFeature.enable('liga'), // Ligatures (fi, fl, etc.)
       ],
     );
   }
 
   /// Create a copy with modifications
   ComputedStyle copyWith({
+    // Box model
     double? width,
     double? height,
+    double? minWidth,
+    double? maxWidth,
+    double? minHeight,
+    double? maxHeight,
     EdgeInsets? margin,
     EdgeInsets? padding,
     EdgeInsets? borderWidth,
@@ -717,31 +727,91 @@ class ComputedStyle {
     HyperBorderStyle? borderRightStyle,
     HyperBorderStyle? borderBottomStyle,
     HyperBorderStyle? borderLeftStyle,
+    // Text
     Color? color,
     double? fontSize,
     FontWeight? fontWeight,
     FontStyle? fontStyle,
     String? fontFamily,
     TextDecoration? textDecoration,
+    Color? textDecorationColor,
     double? lineHeight,
+    double? letterSpacing,
+    double? wordSpacing,
     HyperTextAlign? textAlign,
+    HyperVerticalAlign? verticalAlign,
+    String? textTransform,
+    String? whiteSpace,
+    TextOverflow? textOverflow,
+    String? wordBreak,
+    String? overflowWrap,
     List<Shadow>? textShadow,
     List<BoxShadow>? boxShadow,
     ui.ImageFilter? filter,
     ui.ImageFilter? backdropFilter,
+    // Background
     Color? backgroundColor,
     Gradient? backgroundGradient,
     String? backgroundImage,
     String? backgroundSize,
+    // Layout
     DisplayType? display,
-    double? opacity,
+    HyperOverflow? overflowX,
+    HyperOverflow? overflowY,
+    String? position,
     HyperFloat? float,
     HyperClear? clear,
+    int? zIndex,
     HyperTextDirection? hyperDirection,
+    // Transform / visual
+    Matrix4? transform,
+    double? opacity,
+    // Animation
+    HyperTransition? transition,
+    String? animationName,
+    int? animationDuration,
+    HyperTimingFunction? animationTimingFunction,
+    int? animationDelay,
+    int? animationIterationCount,
+    HyperAnimationDirection? animationDirection,
+    HyperAnimationFillMode? animationFillMode,
+    // Table
+    int? colspan,
+    int? rowspan,
+    // Flexbox
+    FlexDirection? flexDirection,
+    JustifyContent? justifyContent,
+    AlignItems? alignItems,
+    FlexWrap? flexWrap,
+    double? gap,
+    double? rowGap,
+    double? columnGap,
+    double? flexGrow,
+    double? flexShrink,
+    double? flexBasis,
+    AlignItems? alignSelf,
+    // Grid
+    String? gridTemplateColumns,
+    String? gridTemplateRows,
+    String? gridAutoFlow,
+    int? gridColumnStart,
+    int? gridColumnEnd,
+    int? gridRowStart,
+    int? gridRowEnd,
+    int? gridColumnSpan,
+    int? gridRowSpan,
+    JustifyContent? justifyItems,
+    JustifyContent? alignContent,
+    // Custom properties
+    Map<String, String>? customProperties,
   }) {
-    return ComputedStyle(
+    final result = ComputedStyle(
       width: width ?? this.width,
       height: height ?? this.height,
+      minWidth: minWidth ?? this.minWidth,
+      maxWidth: maxWidth ?? this.maxWidth,
+      minHeight: minHeight ?? this.minHeight,
+      maxHeight: maxHeight ?? this.maxHeight,
       margin: margin ?? this.margin,
       padding: padding ?? this.padding,
       borderWidth: borderWidth ?? this.borderWidth,
@@ -758,8 +828,17 @@ class ComputedStyle {
       fontStyle: fontStyle ?? this.fontStyle,
       fontFamily: fontFamily ?? this.fontFamily,
       textDecoration: textDecoration ?? this.textDecoration,
+      textDecorationColor: textDecorationColor ?? this.textDecorationColor,
       lineHeight: lineHeight ?? this.lineHeight,
+      letterSpacing: letterSpacing ?? this.letterSpacing,
+      wordSpacing: wordSpacing ?? this.wordSpacing,
       textAlign: textAlign ?? this.textAlign,
+      verticalAlign: verticalAlign ?? this.verticalAlign,
+      textTransform: textTransform ?? this.textTransform,
+      whiteSpace: whiteSpace ?? this.whiteSpace,
+      textOverflow: textOverflow ?? this.textOverflow,
+      wordBreak: wordBreak ?? this.wordBreak,
+      overflowWrap: overflowWrap ?? this.overflowWrap,
       textShadow: textShadow ?? this.textShadow,
       boxShadow: boxShadow ?? this.boxShadow,
       filter: filter ?? this.filter,
@@ -769,11 +848,55 @@ class ComputedStyle {
       backgroundImage: backgroundImage ?? this.backgroundImage,
       backgroundSize: backgroundSize ?? this.backgroundSize,
       display: display ?? this.display,
-      opacity: opacity ?? this.opacity,
+      overflowX: overflowX ?? this.overflowX,
+      overflowY: overflowY ?? this.overflowY,
+      position: position ?? this.position,
       float: float ?? this.float,
       clear: clear ?? this.clear,
+      zIndex: zIndex ?? this.zIndex,
       hyperDirection: hyperDirection ?? this.hyperDirection,
+      transform: transform ?? this.transform,
+      opacity: opacity ?? this.opacity,
+      transition: transition ?? this.transition,
+      animationName: animationName ?? this.animationName,
+      animationDuration: animationDuration ?? this.animationDuration,
+      animationTimingFunction:
+          animationTimingFunction ?? this.animationTimingFunction,
+      animationDelay: animationDelay ?? this.animationDelay,
+      animationIterationCount:
+          animationIterationCount ?? this.animationIterationCount,
+      animationDirection: animationDirection ?? this.animationDirection,
+      animationFillMode: animationFillMode ?? this.animationFillMode,
+      colspan: colspan ?? this.colspan,
+      rowspan: rowspan ?? this.rowspan,
+      flexDirection: flexDirection ?? this.flexDirection,
+      justifyContent: justifyContent ?? this.justifyContent,
+      alignItems: alignItems ?? this.alignItems,
+      flexWrap: flexWrap ?? this.flexWrap,
+      gap: gap ?? this.gap,
+      rowGap: rowGap ?? this.rowGap,
+      columnGap: columnGap ?? this.columnGap,
+      flexGrow: flexGrow ?? this.flexGrow,
+      flexShrink: flexShrink ?? this.flexShrink,
+      flexBasis: flexBasis ?? this.flexBasis,
+      alignSelf: alignSelf ?? this.alignSelf,
     );
+    // Copy non-constructor grid fields and custom properties
+    result.gridTemplateColumns =
+        gridTemplateColumns ?? this.gridTemplateColumns;
+    result.gridTemplateRows = gridTemplateRows ?? this.gridTemplateRows;
+    result.gridAutoFlow = gridAutoFlow ?? this.gridAutoFlow;
+    result.gridColumnStart = gridColumnStart ?? this.gridColumnStart;
+    result.gridColumnEnd = gridColumnEnd ?? this.gridColumnEnd;
+    result.gridRowStart = gridRowStart ?? this.gridRowStart;
+    result.gridRowEnd = gridRowEnd ?? this.gridRowEnd;
+    result.gridColumnSpan = gridColumnSpan ?? this.gridColumnSpan;
+    result.gridRowSpan = gridRowSpan ?? this.gridRowSpan;
+    result.justifyItems = justifyItems ?? this.justifyItems;
+    result.alignContent = alignContent ?? this.alignContent;
+    result.customProperties =
+        customProperties ?? Map<String, String>.from(this.customProperties);
+    return result;
   }
 
   /// Default style matching browser defaults with improved readability.
@@ -783,7 +906,6 @@ class ComputedStyle {
   /// a getter would silently allocate a fresh object on every comparison,
   /// creating thousands of short-lived ComputedStyle instances for large docs.
   static final ComputedStyle defaultStyle = ComputedStyle(
-    fontSize: 14.0, // Default body text size
-    lineHeight: 1.7, // Generous line height for comfortable reading
+    lineHeight: 1.5, // Better readability than browser default 1.0
   );
 }

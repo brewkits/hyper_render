@@ -1,5 +1,4 @@
-import '../interfaces/content_parser.dart';
-import '../model/node.dart';
+import 'package:hyper_render_core/hyper_render_core.dart';
 import '../parser/delta/delta_adapter.dart';
 
 /// Default Delta parser using DeltaAdapter

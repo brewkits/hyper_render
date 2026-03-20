@@ -490,7 +490,6 @@ void main() {
         fontSize: 16,
         fontWeight: FontWeight.bold,
         textAlign: HyperTextAlign.center,
-        listStyleType: ListStyleType.disc,
       );
 
       final child = ComputedStyle();
@@ -500,7 +499,6 @@ void main() {
       expect(child.fontSize, equals(16));
       expect(child.fontWeight, equals(FontWeight.bold));
       expect(child.textAlign, equals(HyperTextAlign.center));
-      expect(child.listStyleType, equals(ListStyleType.disc));
     });
 
     test('non-inheritable properties are not inherited', () {

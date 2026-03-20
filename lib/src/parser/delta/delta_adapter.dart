@@ -1,9 +1,7 @@
+import 'package:hyper_render_core/hyper_render_core.dart';
 import 'dart:convert';
-
 import 'package:flutter/painting.dart';
 
-import '../../model/computed_style.dart';
-import '../../model/node.dart';
 import '../adapter.dart';
 
 /// Quill Delta to UDT adapter

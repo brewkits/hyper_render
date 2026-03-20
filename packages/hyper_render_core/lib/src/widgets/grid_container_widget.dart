@@ -165,7 +165,8 @@ class GridContainerWidget extends StatelessWidget {
     // Available space for fr units
     final numGaps = (widths.length - 1).clamp(0, 1000);
     final totalGap = numGaps * gap;
-    final available = (maxWidth - totalFixed - totalGap).clamp(0.0, double.infinity);
+    final available =
+        (maxWidth - totalFixed - totalGap).clamp(0.0, double.infinity);
     final perFr = totalFr > 0 ? available / totalFr : 0;
 
     // Second pass: resolve fr
@@ -232,7 +233,8 @@ class GridContainerWidget extends StatelessWidget {
       rows[currentRow][currentCol] = placed;
       // Mark spanned columns
       for (int s = 1; s < span; s++) {
-        rows[currentRow][currentCol + s] = _PlacedItem(child: const SizedBox.shrink(), span: 0);
+        rows[currentRow][currentCol + s] =
+            const _PlacedItem(child: SizedBox.shrink(), span: 0);
       }
 
       currentCol += span;
@@ -265,7 +267,8 @@ class _PlacedItem {
 int gridItemSpan(UDTNode node) {
   final style = node.style;
   if (style.gridColumnSpan > 1) return style.gridColumnSpan;
-  if (style.gridColumnEnd > style.gridColumnStart && style.gridColumnStart > 0) {
+  if (style.gridColumnEnd > style.gridColumnStart &&
+      style.gridColumnStart > 0) {
     return style.gridColumnEnd - style.gridColumnStart;
   }
   return 1;

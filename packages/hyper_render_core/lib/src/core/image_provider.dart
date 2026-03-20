@@ -57,12 +57,19 @@ void defaultImageLoader(
     ),
   );
 
-  imageStream.addListener(ImageStreamListener(
+  // BUG-A FIX: Listener must be stored and removed after first invocation.
+  // Without removal the ImageStream holds a strong ref to the listener forever,
+  // leaking onLoad/onError closures (and any RenderBox state they close over).
+  late final ImageStreamListener listener;
+  listener = ImageStreamListener(
     (ImageInfo info, bool synchronousCall) {
+      imageStream.removeListener(listener);
       onLoad(info.image);
     },
     onError: (exception, stackTrace) {
+      imageStream.removeListener(listener);
       onError(exception);
     },
-  ));
+  );
+  imageStream.addListener(listener);
 }

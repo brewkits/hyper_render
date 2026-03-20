@@ -34,7 +34,6 @@ class _InlineDecoration {
   final Gradient? backgroundGradient;
   final Color? borderColor;
   final double borderWidth;
-  final HyperBorderStyle borderStyle; // 🆕 ADDED
   final BorderRadius? borderRadius;
   final List<BoxShadow>? boxShadow;
   final ui.ImageFilter? filter;
@@ -47,7 +46,6 @@ class _InlineDecoration {
     this.backgroundGradient,
     this.borderColor,
     this.borderWidth = 0,
-    this.borderStyle = HyperBorderStyle.solid, // 🆕 ADDED
     this.borderRadius,
     this.boxShadow,
     this.filter,
@@ -63,7 +61,6 @@ class _BlockDecoration {
   final Gradient? backgroundGradient;
   final Color? borderLeftColor;
   final double borderLeftWidth;
-  final HyperBorderStyle borderLeftStyle; // 🆕 ADDED
   final BorderRadius? borderRadius;
   final List<BoxShadow>? boxShadow;
   final ui.ImageFilter? filter;
@@ -76,7 +73,6 @@ class _BlockDecoration {
     this.backgroundGradient,
     this.borderLeftColor,
     this.borderLeftWidth = 0,
-    this.borderLeftStyle = HyperBorderStyle.solid, // 🆕 ADDED
     this.borderRadius,
     this.boxShadow,
     this.filter,
