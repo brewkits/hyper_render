@@ -1,15 +1,28 @@
+import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:flutter/material.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as dom;
-import '../../model/node.dart';
-import '../../model/computed_style.dart';
 
 class HtmlAdapter {
   static final Map<String, ComputedStyle> _defaultStyles = {
-    'h1': ComputedStyle(display: DisplayType.block, fontSize: 32, fontWeight: FontWeight.bold, margin: const EdgeInsets.symmetric(vertical: 21.44)),
-    'h2': ComputedStyle(display: DisplayType.block, fontSize: 24, fontWeight: FontWeight.bold, margin: const EdgeInsets.symmetric(vertical: 19.92)),
-    'h3': ComputedStyle(display: DisplayType.block, fontSize: 18.72, fontWeight: FontWeight.bold, margin: const EdgeInsets.symmetric(vertical: 18.72)),
-    'p': ComputedStyle(display: DisplayType.block, margin: const EdgeInsets.symmetric(vertical: 16)),
+    'h1': ComputedStyle(
+        display: DisplayType.block,
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        margin: const EdgeInsets.symmetric(vertical: 21.44)),
+    'h2': ComputedStyle(
+        display: DisplayType.block,
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        margin: const EdgeInsets.symmetric(vertical: 19.92)),
+    'h3': ComputedStyle(
+        display: DisplayType.block,
+        fontSize: 18.72,
+        fontWeight: FontWeight.bold,
+        margin: const EdgeInsets.symmetric(vertical: 18.72)),
+    'p': ComputedStyle(
+        display: DisplayType.block,
+        margin: const EdgeInsets.symmetric(vertical: 16)),
     'div': ComputedStyle(display: DisplayType.block),
     'b': ComputedStyle(fontWeight: FontWeight.bold),
     'strong': ComputedStyle(fontWeight: FontWeight.bold),
@@ -42,17 +55,25 @@ class HtmlAdapter {
       borderRadius: BorderRadius.circular(4),
       fontSize: 13,
     ),
-    'a': ComputedStyle(color: Colors.blue, textDecoration: TextDecoration.underline),
-    'mark': ComputedStyle(backgroundColor: const Color(0xFFFFFF00)), // Yellow highlight
+    'a': ComputedStyle(
+        color: Colors.blue, textDecoration: TextDecoration.underline),
+    'mark': ComputedStyle(
+        backgroundColor: const Color(0xFFFFFF00)), // Yellow highlight
     'span': ComputedStyle(),
-    'ul': ComputedStyle(display: DisplayType.block, padding: const EdgeInsets.only(left: 40)),
-    'ol': ComputedStyle(display: DisplayType.block, padding: const EdgeInsets.only(left: 40)),
-    'li': ComputedStyle(display: DisplayType.block, margin: const EdgeInsets.symmetric(vertical: 4)),
-    'details': ComputedStyle(display: DisplayType.block, margin: const EdgeInsets.symmetric(vertical: 4)),
+    'ul': ComputedStyle(
+        display: DisplayType.block, padding: const EdgeInsets.only(left: 40)),
+    'ol': ComputedStyle(
+        display: DisplayType.block, padding: const EdgeInsets.only(left: 40)),
+    'li': ComputedStyle(
+        display: DisplayType.block,
+        margin: const EdgeInsets.symmetric(vertical: 4)),
+    'details': ComputedStyle(
+        display: DisplayType.block,
+        margin: const EdgeInsets.symmetric(vertical: 4)),
     'summary': ComputedStyle(display: DisplayType.block),
-  'thead': ComputedStyle(display: DisplayType.block),
-  'tbody': ComputedStyle(display: DisplayType.block),
-  'tfoot': ComputedStyle(display: DisplayType.block),
+    'thead': ComputedStyle(display: DisplayType.block),
+    'tbody': ComputedStyle(display: DisplayType.block),
+    'tfoot': ComputedStyle(display: DisplayType.block),
   };
 
   DocumentNode parse(String html) {
@@ -88,7 +109,8 @@ class HtmlAdapter {
     int currentSize = 0;
 
     // Flatten nodes - if a container is too large, extract its children
-    final nodesToProcess = _flattenLargeContainers(body.nodes.toList(), chunkSize);
+    final nodesToProcess =
+        _flattenLargeContainers(body.nodes.toList(), chunkSize);
 
     for (var child in nodesToProcess) {
       UDTNode? udtNode = _parseNode(child);
@@ -127,12 +149,20 @@ class HtmlAdapter {
         final nodeSize = _estimateNodeSize(node);
 
         // If this is a large container element, extract its children instead
-        final isContainer = const ['div', 'section', 'article', 'main', 'header', 'footer', 'aside']
-            .contains(tagName);
+        final isContainer = const [
+          'div',
+          'section',
+          'article',
+          'main',
+          'header',
+          'footer',
+          'aside'
+        ].contains(tagName);
 
         if (isContainer && nodeSize > chunkSize && node.nodes.length > 1) {
           // Recursively flatten children of this large container
-          result.addAll(_flattenLargeContainers(node.nodes.toList(), chunkSize));
+          result
+              .addAll(_flattenLargeContainers(node.nodes.toList(), chunkSize));
         } else {
           result.add(node);
         }
@@ -200,7 +230,8 @@ class HtmlAdapter {
         }
         return AtomicNode(
           tagName: tagName,
-          attributes: element.attributes.map((k, v) => MapEntry(k.toString(), v)),
+          attributes:
+              element.attributes.map((k, v) => MapEntry(k.toString(), v)),
           style: defaultStyle,
           src: element.attributes['src'],
           alt: element.attributes['alt'],
@@ -215,7 +246,8 @@ class HtmlAdapter {
         for (var child in element.nodes) {
           if (child.nodeType == dom.Node.TEXT_NODE) {
             baseText += child.text ?? '';
-          } else if (child.nodeType == dom.Node.ELEMENT_NODE && (child as dom.Element).localName == 'rt') {
+          } else if (child.nodeType == dom.Node.ELEMENT_NODE &&
+              (child as dom.Element).localName == 'rt') {
             rubyText += child.text;
           }
         }
@@ -226,39 +258,45 @@ class HtmlAdapter {
         );
       }
 
-      final children = element.nodes.map(_parseNode).whereType<UDTNode>().toList();
+      final children =
+          element.nodes.map(_parseNode).whereType<UDTNode>().toList();
 
       UDTNode result;
       if (tagName == 'table') {
         result = TableNode(
-          attributes: element.attributes.map((k, v) => MapEntry(k.toString(), v)),
+          attributes:
+              element.attributes.map((k, v) => MapEntry(k.toString(), v)),
           style: defaultStyle,
           children: children,
         );
       } else if (tagName == 'tr') {
         result = TableRowNode(
-          attributes: element.attributes.map((k, v) => MapEntry(k.toString(), v)),
+          attributes:
+              element.attributes.map((k, v) => MapEntry(k.toString(), v)),
           style: defaultStyle,
           children: children,
         );
       } else if (tagName == 'td' || tagName == 'th') {
         result = TableCellNode(
           isHeader: tagName == 'th',
-          attributes: element.attributes.map((k, v) => MapEntry(k.toString(), v)),
+          attributes:
+              element.attributes.map((k, v) => MapEntry(k.toString(), v)),
           style: defaultStyle,
           children: children,
         );
       } else if (defaultStyle.display == DisplayType.block) {
         result = BlockNode(
           tagName: tagName,
-          attributes: element.attributes.map((k, v) => MapEntry(k.toString(), v)),
+          attributes:
+              element.attributes.map((k, v) => MapEntry(k.toString(), v)),
           style: defaultStyle,
           children: children,
         );
       } else {
         result = InlineNode(
           tagName: tagName,
-          attributes: element.attributes.map((k, v) => MapEntry(k.toString(), v)),
+          attributes:
+              element.attributes.map((k, v) => MapEntry(k.toString(), v)),
           style: defaultStyle,
           children: children,
         );
@@ -276,6 +314,7 @@ class HtmlAdapter {
   }
 
   bool _isAtomic(dom.Element element) {
-    return const ['img', 'video', 'audio', 'iframe', 'br', 'hr', 'input'].contains(element.localName);
+    return const ['img', 'video', 'audio', 'iframe', 'br', 'hr', 'input']
+        .contains(element.localName);
   }
 }

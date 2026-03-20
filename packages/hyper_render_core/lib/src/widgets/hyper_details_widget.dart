@@ -166,9 +166,10 @@ class _SummaryContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Wrap summary children in a document so HyperRenderWidget can render them.
-    final doc = DocumentNode(children: node.children.isNotEmpty
-        ? node.children
-        : [TextNode(node.textContent)]);
+    final doc = DocumentNode(
+        children: node.children.isNotEmpty
+            ? node.children
+            : [TextNode(node.textContent)]);
 
     return HyperRenderWidget(
       document: doc,

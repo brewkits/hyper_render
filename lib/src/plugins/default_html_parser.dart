@@ -1,5 +1,4 @@
-import '../interfaces/content_parser.dart';
-import '../model/node.dart';
+import 'package:hyper_render_core/hyper_render_core.dart';
 import '../parser/html/html_adapter.dart';
 
 /// Default HTML parser using the `html` package

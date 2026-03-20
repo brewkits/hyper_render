@@ -59,6 +59,10 @@ extension RenderHyperBoxSelection on RenderHyperBox {
   }
 
   /// Get selected text
+  ///
+  /// Iterates [_fragments] in order, inserting '\n' whenever a
+  /// [_BlockEndFragment] is encountered so that block-level boundaries
+  /// (e.g. <li> → <h3>, <p> → <p>) are reflected in the copied text.
   String? getSelectedText() {
     if (_selection == null || !_selection!.isValid || _selection!.isCollapsed) {
       return null;
@@ -66,22 +70,40 @@ extension RenderHyperBoxSelection on RenderHyperBox {
 
     final buffer = StringBuffer();
     int currentOffset = 0;
+    bool pendingNewline = false;
 
     for (final fragment in _fragments) {
-      if (fragment.type == FragmentType.text && fragment.text != null) {
-        final fragmentStart = currentOffset;
-        final fragmentEnd = currentOffset + fragment.text!.length;
+      if (fragment.type != FragmentType.text || fragment.text == null) continue;
 
-        if (fragmentEnd > _selection!.start &&
-            fragmentStart < _selection!.end) {
-          final selectStart = math.max(0, _selection!.start - fragmentStart);
-          final selectEnd =
-              math.min(fragment.text!.length, _selection!.end - fragmentStart);
-          buffer.write(fragment.text!.substring(selectStart, selectEnd));
-        }
+      final fragmentStart = currentOffset;
+      final fragmentEnd = currentOffset + fragment.text!.length;
+      currentOffset = fragmentEnd;
 
-        currentOffset = fragmentEnd;
+      // Structural markers have empty text — handle them without writing.
+      if (fragment is _BlockStartFragment) continue;
+
+      if (fragment is _BlockEndFragment) {
+        // Flag a newline to be inserted before the next visible text.
+        if (buffer.isNotEmpty) pendingNewline = true;
+        continue;
       }
+
+      // Outside selection range — skip.
+      if (fragmentEnd <= _selection!.start ||
+          fragmentStart >= _selection!.end) {
+        continue;
+      }
+
+      // Flush the pending newline now that we have real text to follow it.
+      if (pendingNewline) {
+        buffer.write('\n');
+        pendingNewline = false;
+      }
+
+      final selectStart = math.max(0, _selection!.start - fragmentStart);
+      final selectEnd =
+          math.min(fragment.text!.length, _selection!.end - fragmentStart);
+      buffer.write(fragment.text!.substring(selectStart, selectEnd));
     }
 
     return buffer.isEmpty ? null : buffer.toString();
@@ -105,8 +127,7 @@ extension RenderHyperBoxSelection on RenderHyperBox {
   /// Select all text
   void selectAll() {
     if (_totalCharacterCount > 0) {
-      _selection =
-          HyperTextSelection(start: 0, end: _totalCharacterCount);
+      _selection = HyperTextSelection(start: 0, end: _totalCharacterCount);
       markNeedsPaint();
       _notifySelectionChanged();
     }
@@ -129,26 +150,41 @@ extension RenderHyperBoxSelection on RenderHyperBox {
 
           if (fragmentEnd > _selection!.start &&
               fragmentStart < _selection!.end) {
-            final selectStart =
-                math.max(0, _selection!.start - fragmentStart);
+            final selectStart = math.max(0, _selection!.start - fragmentStart);
             final selectEnd = math.min(
                 fragment.text!.length, _selection!.end - fragmentStart);
 
-            final painter = _getTextPainter(fragment.text!, fragment.style);
-            final startOffset = painter
-                .getOffsetForCaret(TextPosition(offset: selectStart), Rect.zero)
-                .dx;
-            final endOffset = painter
-                .getOffsetForCaret(TextPosition(offset: selectEnd), Rect.zero)
-                .dx;
+            // Trim whitespace for visual bounds (same as _paintSelection)
+            final text = fragment.text!;
+            int visualStart = selectStart;
+            int visualEnd = selectEnd;
+            while (visualStart < visualEnd && text[visualStart] == ' ') {
+              visualStart++;
+            }
+            while (visualEnd > visualStart && text[visualEnd - 1] == ' ') {
+              visualEnd--;
+            }
+            if (visualStart >= visualEnd) {
+              currentOffset = fragmentEnd;
+              continue;
+            }
+
+            final painter = _getTextPainter(text, fragment.style);
+            final boxes = painter.getBoxesForSelection(
+              TextSelection(baseOffset: visualStart, extentOffset: visualEnd),
+              boxHeightStyle: ui.BoxHeightStyle.tight,
+            );
 
             final fragmentOffset = fragment.offset ?? Offset.zero;
-            rects.add(Rect.fromLTWH(
-              fragmentOffset.dx + startOffset,
-              fragmentOffset.dy,
-              endOffset - startOffset,
-              fragment.height,
-            ));
+            for (final box in boxes) {
+              if (box.right <= box.left) continue;
+              rects.add(Rect.fromLTRB(
+                fragmentOffset.dx + box.left,
+                fragmentOffset.dy + box.top,
+                fragmentOffset.dx + box.right,
+                fragmentOffset.dy + box.bottom,
+              ));
+            }
           }
 
           currentOffset = fragmentEnd;

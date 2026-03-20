@@ -49,10 +49,29 @@ class _TableFragment extends Fragment {
   }) : super(type: FragmentType.atomic);
 }
 
-/// Fragment for code blocks (<pre> elements) that are rendered as child widgets
+/// Fragment for code blocks (`pre` elements) that are rendered as child widgets
 /// This acts as a placeholder in the fragment list, similar to _TableFragment
 class _CodeBlockFragment extends Fragment {
   _CodeBlockFragment({
+    required super.sourceNode,
+    required super.style,
+  }) : super(type: FragmentType.atomic);
+}
+
+/// Fragment for `details`/`summary` elements rendered as child widgets
+class _DetailsFragment extends Fragment {
+  _DetailsFragment({
+    required super.sourceNode,
+    required super.style,
+  }) : super(type: FragmentType.atomic);
+}
+
+/// Fragment for display:flex containers rendered as child widgets.
+/// Works exactly like _TableFragment: the FlexContainerWidget child widget
+/// is laid out with the full available width and its measured height is
+/// recorded so the line-layout algorithm reserves the correct vertical space.
+class _FlexFragment extends Fragment {
+  _FlexFragment({
     required super.sourceNode,
     required super.style,
   }) : super(type: FragmentType.atomic);
@@ -70,13 +89,6 @@ class _InlineEndFragment extends Fragment {
     required super.sourceNode,
     required super.style,
   }) : super(type: FragmentType.text, text: '');
-}
-
-class _DetailsFragment extends Fragment {
-  _DetailsFragment({
-    required super.sourceNode,
-    required super.style,
-  }) : super(type: FragmentType.atomic);
 }
 
 /// Fragment for list markers (bullets, numbers)

@@ -230,7 +230,8 @@ class PerformanceMonitor {
   }
 
   /// Measure an asynchronous operation
-  Future<T> measureAsync<T>(String phase, Future<T> Function() operation) async {
+  Future<T> measureAsync<T>(
+      String phase, Future<T> Function() operation) async {
     if (!enabled) {
       return await operation();
     }
@@ -326,43 +327,50 @@ class PerformanceStats {
   /// Get average total time in milliseconds
   double get averageTotalTimeMs {
     if (_reports.isEmpty) return 0;
-    return _reports.map((r) => r.totalTimeMs).reduce((a, b) => a + b) / _reports.length;
+    return _reports.map((r) => r.totalTimeMs).reduce((a, b) => a + b) /
+        _reports.length;
   }
 
   /// Get average parse time in milliseconds
   double get averageParseTimeMs {
     if (_reports.isEmpty) return 0;
-    return _reports.map((r) => r.parseTimeMs).reduce((a, b) => a + b) / _reports.length;
+    return _reports.map((r) => r.parseTimeMs).reduce((a, b) => a + b) /
+        _reports.length;
   }
 
   /// Get average style time in milliseconds
   double get averageStyleTimeMs {
     if (_reports.isEmpty) return 0;
-    return _reports.map((r) => r.styleTimeMs).reduce((a, b) => a + b) / _reports.length;
+    return _reports.map((r) => r.styleTimeMs).reduce((a, b) => a + b) /
+        _reports.length;
   }
 
   /// Get average layout time in milliseconds
   double get averageLayoutTimeMs {
     if (_reports.isEmpty) return 0;
-    return _reports.map((r) => r.layoutTimeMs).reduce((a, b) => a + b) / _reports.length;
+    return _reports.map((r) => r.layoutTimeMs).reduce((a, b) => a + b) /
+        _reports.length;
   }
 
   /// Get average paint time in milliseconds
   double get averagePaintTimeMs {
     if (_reports.isEmpty) return 0;
-    return _reports.map((r) => r.paintTimeMs).reduce((a, b) => a + b) / _reports.length;
+    return _reports.map((r) => r.paintTimeMs).reduce((a, b) => a + b) /
+        _reports.length;
   }
 
   /// Get average node count
   double get averageNodeCount {
     if (_reports.isEmpty) return 0;
-    return _reports.map((r) => r.nodeCount).reduce((a, b) => a + b) / _reports.length;
+    return _reports.map((r) => r.nodeCount).reduce((a, b) => a + b) /
+        _reports.length;
   }
 
   /// Get average memory usage in KB
   double get averageMemoryKb {
     if (_reports.isEmpty) return 0;
-    return _reports.map((r) => r.memoryUsageKb).reduce((a, b) => a + b) / _reports.length;
+    return _reports.map((r) => r.memoryUsageKb).reduce((a, b) => a + b) /
+        _reports.length;
   }
 
   /// Get maximum total time
@@ -406,7 +414,8 @@ class PerformanceStats {
 
     final buffer = StringBuffer();
     buffer.writeln('Performance Statistics ($reportCount reports):');
-    buffer.writeln('  Average Total: ${averageTotalTimeMs.toStringAsFixed(1)}ms');
+    buffer
+        .writeln('  Average Total: ${averageTotalTimeMs.toStringAsFixed(1)}ms');
     buffer.writeln('  Min/Max: ${minTotalTimeMs}ms / ${maxTotalTimeMs}ms');
     buffer.writeln('  P95: ${p95TotalTimeMs}ms');
     buffer.writeln('  P99: ${p99TotalTimeMs}ms');

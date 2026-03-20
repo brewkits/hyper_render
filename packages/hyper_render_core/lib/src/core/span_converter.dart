@@ -7,13 +7,13 @@ import 'render_formula.dart';
 import 'render_media.dart';
 import 'render_ruby.dart';
 import 'render_table.dart';
-import '../widgets/details_widget.dart';
 
 /// Callback for handling link taps
 typedef LinkTapCallback = void Function(String url);
 
 /// Callback for handling image loading
-typedef ImageBuilder = Widget Function(String src, String? alt, double? width, double? height);
+typedef ImageBuilder = Widget Function(
+    String src, String? alt, double? width, double? height);
 
 /// HtmlToSpanConverter - Core Engine
 ///
@@ -57,7 +57,8 @@ class HtmlToSpanConverter {
     this.mediaBuilder,
     this.onMediaTap,
     this.preserveWhitespace = false,
-  }) : baseStyle = baseStyle ?? const TextStyle(fontSize: 16, color: Colors.black);
+  }) : baseStyle =
+            baseStyle ?? const TextStyle(fontSize: 16, color: Colors.black);
 
   /// Convert a document node to InlineSpan
   ///
@@ -112,15 +113,9 @@ class HtmlToSpanConverter {
         // These are handled by table converter
         return null;
 
-      case NodeType.details:
-        return _convertDetails(node as DetailsNode);
-
-      case NodeType.errorBoundary:
-        // Error boundaries are handled by ErrorBoundaryWidget, not inline spans
-        return null;
-
       case NodeType.document:
       case NodeType.rubyText:
+      case NodeType.errorBoundary:
         return null;
     }
   }
@@ -157,8 +152,7 @@ class HtmlToSpanConverter {
       TapGestureRecognizer? recognizer;
 
       if (href != null && onLinkTap != null) {
-        recognizer = TapGestureRecognizer()
-          ..onTap = () => onLinkTap!(href);
+        recognizer = TapGestureRecognizer()..onTap = () => onLinkTap!(href);
         _recognizers.add(recognizer);
       }
 
@@ -263,15 +257,10 @@ class HtmlToSpanConverter {
     }
 
     // Use default media widget with optional tap callback
-    // IMPORTANT: Use onMediaTap if available, otherwise try onLinkTap for video URLs
     return WidgetSpan(
       child: DefaultMediaWidget(
         mediaInfo: mediaInfo,
-        onTap: onMediaTap != null
-            ? () => onMediaTap!(mediaInfo)
-            : (onLinkTap != null && mediaInfo.src.isNotEmpty
-                ? () => onLinkTap!(mediaInfo.src)
-                : null),
+        onTap: onMediaTap != null ? () => onMediaTap!(mediaInfo) : null,
       ),
       alignment: PlaceholderAlignment.middle,
     );
@@ -356,20 +345,6 @@ class HtmlToSpanConverter {
     return WidgetSpan(
       child: SmartTableWrapper(
         tableNode: node,
-        baseStyle: baseStyle,
-        onLinkTap: onLinkTap,
-      ),
-      alignment: PlaceholderAlignment.middle,
-    );
-  }
-
-  /// Convert details element (`<details>`/`<summary>`)
-  ///
-  /// Details elements are rendered as WidgetSpan with DetailsWidget
-  InlineSpan _convertDetails(DetailsNode node) {
-    return WidgetSpan(
-      child: DetailsWidget(
-        detailsNode: node,
         baseStyle: baseStyle,
         onLinkTap: onLinkTap,
       ),

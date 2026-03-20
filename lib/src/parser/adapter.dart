@@ -1,4 +1,4 @@
-import '../model/node.dart';
+import 'package:hyper_render_core/hyper_render_core.dart';
 
 /// Input type for the content adapter
 enum InputType {

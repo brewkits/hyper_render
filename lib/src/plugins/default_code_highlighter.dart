@@ -1,3 +1,4 @@
+import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_highlight/themes/vs2015.dart';
 import 'package:flutter_highlight/themes/atom-one-dark.dart';
@@ -6,8 +7,6 @@ import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_highlight/themes/monokai-sublime.dart';
 import 'package:flutter_highlight/themes/dracula.dart';
 import 'package:highlight/highlight.dart' show Highlight;
-
-import '../interfaces/code_highlighter.dart';
 
 /// Global highlight instance
 final _highlight = Highlight();

@@ -70,7 +70,7 @@ hyper_render/
 │   └── hyper_render_clipboard/ # Clipboard operations plugin
 ├── example/                # Example Flutter app
 ├── test/                   # Integration and system tests
-└── docs/                   # Documentation
+└── doc/                    # Documentation
 ```
 
 ## How to Contribute

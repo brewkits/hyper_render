@@ -991,7 +991,7 @@ class _MemoryTabState extends State<_MemoryTab> {
         const SizedBox(height: 16),
         // Doc size selector
         DropdownButtonFormField<String>(
-          value: _selectedDocSize,
+          initialValue: _selectedDocSize,
           decoration: const InputDecoration(
             labelText: 'Document Size',
             border: OutlineInputBorder(),

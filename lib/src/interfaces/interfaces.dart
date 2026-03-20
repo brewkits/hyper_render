@@ -22,6 +22,18 @@
 /// ```
 library;
 
-export 'content_parser.dart';
-export 'css_parser.dart';
-export 'code_highlighter.dart';
+export 'package:hyper_render_core/hyper_render_core.dart'
+    show
+        ContentParser,
+        ContentType,
+        ParseResult,
+        ExtendedContentParser,
+        PlainTextParser,
+        CssParserInterface,
+        ParsedCssRule,
+        SimpleInlineStyleParser,
+        CodeHighlighter,
+        PlainTextHighlighter,
+        ImageClipboardHandler,
+        DefaultImageClipboardHandler,
+        ImageOperationResult;

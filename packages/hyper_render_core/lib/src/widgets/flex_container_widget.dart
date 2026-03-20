@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../model/computed_style.dart';
 import '../model/node.dart';
-import '../model/computed_style.dart' hide TextDirection, BorderStyle;
 
 /// Widget that renders a flex container (display: flex)
 ///
@@ -38,17 +39,18 @@ class FlexContainerWidget extends StatelessWidget {
 
     // Handle gap spacing
     final double mainAxisSpacing = (axis == Axis.horizontal
-            ? (style.columnGap ?? style.gap ?? 0)
-            : (style.rowGap ?? style.gap ?? 0));
+        ? (style.columnGap ?? style.gap ?? 0)
+        : (style.rowGap ?? style.gap ?? 0));
     final double crossAxisSpacing = (axis == Axis.horizontal
-            ? (style.rowGap ?? style.gap ?? 0)
-            : (style.columnGap ?? style.gap ?? 0));
+        ? (style.rowGap ?? style.gap ?? 0)
+        : (style.columnGap ?? style.gap ?? 0));
 
     Widget flexWidget;
 
     if (style.flexWrap == FlexWrap.nowrap) {
       // Use Row/Column for no-wrap flex
-      final gappedChildren = _buildChildrenWithGap(children, mainAxisSpacing, axis);
+      final gappedChildren =
+          _buildChildrenWithGap(children, mainAxisSpacing, axis);
 
       if (axis == Axis.horizontal) {
         // Wrap horizontal children in Flexible to prevent overflow.
@@ -168,8 +170,7 @@ class FlexContainerWidget extends StatelessWidget {
         direction == FlexDirection.columnReverse;
   }
 
-  MainAxisAlignment _mapJustifyContent(
-      JustifyContent justify, bool isReverse) {
+  MainAxisAlignment _mapJustifyContent(JustifyContent justify, bool isReverse) {
     // Note: Reverse is handled via textDirection/verticalDirection
     switch (justify) {
       case JustifyContent.flexStart:

@@ -2,15 +2,32 @@
 
 # HyperRender
 
-**A custom layout engine for Flutter that renders HTML, Markdown, and Quill Delta.**
+**The Flutter rendering engine that widget-tree libraries cannot build.**
 
 [![pub package](https://img.shields.io/pub/v/hyper_render.svg)](https://pub.dev/packages/hyper_render)
+[![pub points](https://img.shields.io/pub/points/hyper_render)](https://pub.dev/packages/hyper_render/score)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.10+-blue.svg)](https://flutter.dev)
+
+Renders HTML, Markdown, and Quill Delta using a **single custom RenderObject** — not a widget tree.
 
 [Quick Start](#quick-start) · [Features](#features) · [Benchmarks](#benchmarks) · [API Reference](#api-reference) · [When not to use](#when-not-to-use)
 
 </div>
+
+---
+
+## Visual Showcase
+
+| **CSS Float — Magazine Layout** | **Ruby / Furigana** | **Text Selection** |
+|:---:|:---:|:---:|
+| ![CSS Float Demo](assets/float_demo.gif) | ![Ruby Demo](assets/ruby_demo.gif) | ![Selection Demo](assets/selection_demo.gif) |
+| *Text wrapping around floated images — impossible in widget-tree renderers.* | *Furigana centered above base glyphs. Kinsoku rules applied across the full line.* | *Continuous span tree: select across headings, paragraphs, and table cells.* |
+
+| **Advanced Tables** | **HyperRender vs FWFH** | **Virtualized Mode** |
+|:---:|:---:|:---:|
+| ![Table Demo](assets/table_demo.gif) | ![Comparison Demo](assets/comparison_demo.gif) | ![Performance Demo](assets/performance_demo.gif) |
+| *colspan, rowspan, auto-scaling, and horizontal scroll strategies.* | *Side-by-side: same HTML in HyperRender vs flutter_widget_from_html.* | *Smooth scrolling in virtualized mode — only visible sections are built and painted.* |
 
 ---
 
@@ -105,7 +122,7 @@ One RenderObject means:
 ```yaml
 # pubspec.yaml
 dependencies:
-  hyper_render: ^2.1.0
+  hyper_render: ^1.1.0
 ```
 
 ```dart
@@ -117,6 +134,8 @@ HyperViewer(
   onLinkTap: (url) => launchUrl(Uri.parse(url)),
 )
 ```
+
+> **Built for:** News apps · RSS readers · Email clients · Documentation viewers · E-book readers · Quill-based editors · CJK content apps · Any app displaying rich content at 60 FPS.
 
 ---
 
@@ -723,15 +742,15 @@ touching the core — the same model used by browser engine plugin architectures
 ## 🤝 Contributing
 
 ```bash
-git clone https://github.com/yourusername/hyper_render.git
+git clone https://github.com/brewkits/hyper_render.git
 cd hyper_render
 flutter pub get
 flutter test           # All tests must pass
 cd example && flutter run  # Run the demo app
 ```
 
-Read our [Architecture Guide](docs/ARCHITECTURE.md) and
-[Contributing Guidelines](docs/CONTRIBUTING.md) before submitting PRs.
+Read our [Architecture Decision Records](doc/adr/) and
+[Contributing Guidelines](doc/CONTRIBUTING.md) before submitting PRs.
 
 ---
 
@@ -743,10 +762,10 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## 🔗 More
 
-- 📋 [Comparison Matrix](docs/COMPARISON_MATRIX.md) — Full feature comparison
-- 🎨 [CSS Properties Matrix](docs/CSS_PROPERTIES_MATRIX.md) — Complete CSS support status
-- 📐 [Supported HTML Elements](docs/SUPPORTED_HTML.md) — Tags and attributes
-- ⚠️ [Known Limitations](docs/LIMITATIONS.md) — Honest list of what we don't support yet
+- 📋 [Comparison Matrix](doc/COMPARISON_MATRIX.md) — Full feature comparison
+- 🎨 [CSS Properties Matrix](doc/CSS_PROPERTIES_MATRIX.md) — Complete CSS support status
+- 📐 [Supported HTML Elements](doc/SUPPORTED_HTML.md) — Tags and attributes
+- ⚠️ [Known Limitations](doc/LIMITATIONS.md) — Honest list of what we don't support yet
 - 📦 [Migration Guide](MIGRATION.md) — Coming from flutter_html or FWFH?
 
 ---
@@ -755,6 +774,6 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 **Built with ❤️ by the Flutter community**
 
-[Get Started](#quick-start) · [View Demo](example/) · [Report Bug](https://github.com/yourusername/hyper_render/issues) · [Request Feature](https://github.com/yourusername/hyper_render/issues)
+[Get Started](#quick-start) · [View Demo](example/) · [Report Bug](https://github.com/brewkits/hyper_render/issues) · [Request Feature](https://github.com/brewkits/hyper_render/issues)
 
 </div>
