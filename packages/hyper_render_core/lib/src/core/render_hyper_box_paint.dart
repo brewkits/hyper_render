@@ -5,8 +5,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     for (final decoration in _blockDecorations) {
       final adjustedRect = decoration.rect.shift(offset);
 
-      // 1. Backdrop Filter (Glassmorphism)
-      if (decoration.backdropFilter != null) {
+      // 1. Backdrop Filter (Glassmorphism) - Paints BEFORE background
+      if (decoration.backdropFilter != null && enableComplexFilters) {
         canvas.saveLayer(adjustedRect, Paint());
         final filterPaint = Paint()
           ..imageFilter = decoration.backdropFilter
@@ -16,15 +16,17 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       }
 
       // 2. Filter (blur, etc.)
-      if (decoration.filter != null) {
-        canvas.saveLayer(adjustedRect, Paint()..imageFilter = decoration.filter);
+      if (decoration.filter != null && enableComplexFilters) {
+        canvas.saveLayer(
+            adjustedRect, Paint()..imageFilter = decoration.filter);
       }
 
       // 3. Box shadows
       if (decoration.boxShadow != null) {
         for (final shadow in decoration.boxShadow!) {
           final shadowPaint = shadow.toPaint();
-          final shadowRect = adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
+          final shadowRect =
+              adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
 
           if (decoration.borderRadius != null) {
             canvas.drawRRect(
@@ -44,11 +46,13 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       }
 
       // Paint background or gradient if specified
-      if (decoration.backgroundColor != null || decoration.backgroundGradient != null) {
+      if (decoration.backgroundColor != null ||
+          decoration.backgroundGradient != null) {
         final bgPaint = Paint()..isAntiAlias = true;
 
         if (decoration.backgroundGradient != null) {
-          bgPaint.shader = decoration.backgroundGradient!.createShader(adjustedRect);
+          bgPaint.shader =
+              decoration.backgroundGradient!.createShader(adjustedRect);
         } else {
           bgPaint.color = decoration.backgroundColor!;
         }
@@ -71,19 +75,26 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       }
 
       // Paint border-left (for blockquote style)
-      if (decoration.borderLeftColor != null && decoration.borderLeftWidth > 0) {
-        _drawStyledLine(
-          canvas,
-          Offset(adjustedRect.left + decoration.borderLeftWidth / 2, adjustedRect.top),
-          Offset(adjustedRect.left + decoration.borderLeftWidth / 2, adjustedRect.bottom),
-          decoration.borderLeftColor!,
-          decoration.borderLeftWidth,
-          decoration.borderLeftStyle,
+      if (decoration.borderLeftColor != null &&
+          decoration.borderLeftWidth > 0) {
+        final borderPaint = Paint()
+          ..color = decoration.borderLeftColor!
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = decoration.borderLeftWidth
+          ..isAntiAlias = true
+          ..strokeCap = StrokeCap.square; // Crisp square ends for border lines
+
+        canvas.drawLine(
+          Offset(adjustedRect.left + decoration.borderLeftWidth / 2,
+              adjustedRect.top),
+          Offset(adjustedRect.left + decoration.borderLeftWidth / 2,
+              adjustedRect.bottom),
+          borderPaint,
         );
       }
 
       // Restore layer if filter was applied
-      if (decoration.filter != null) {
+      if (decoration.filter != null && enableComplexFilters) {
         canvas.restore();
       }
     }
@@ -95,22 +106,25 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         final adjustedRect = rect.shift(offset);
 
         // 1. Backdrop Filter
-        if (decoration.backdropFilter != null) {
+        if (decoration.backdropFilter != null && enableComplexFilters) {
           canvas.saveLayer(adjustedRect, Paint());
-          canvas.drawRect(adjustedRect, Paint()..imageFilter = decoration.backdropFilter);
+          canvas.drawRect(
+              adjustedRect, Paint()..imageFilter = decoration.backdropFilter);
           canvas.restore();
         }
 
-        // 2. Filter (blur, etc.)
-        if (decoration.filter != null) {
-          canvas.saveLayer(adjustedRect, Paint()..imageFilter = decoration.filter);
+        // 2. Filter (blur, etc.) - Apply to all subsequent painting for this rect
+        if (decoration.filter != null && enableComplexFilters) {
+          canvas.saveLayer(
+              adjustedRect, Paint()..imageFilter = decoration.filter);
         }
 
         // 3. Box shadows
         if (decoration.boxShadow != null) {
           for (final shadow in decoration.boxShadow!) {
             final shadowPaint = shadow.toPaint();
-            final shadowRect = adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
+            final shadowRect =
+                adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
 
             if (decoration.borderRadius != null) {
               canvas.drawRRect(
@@ -130,11 +144,13 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         }
 
         // Paint background or gradient
-        if (decoration.backgroundColor != null || decoration.backgroundGradient != null) {
+        if (decoration.backgroundColor != null ||
+            decoration.backgroundGradient != null) {
           final paint = Paint()..isAntiAlias = true;
 
           if (decoration.backgroundGradient != null) {
-            paint.shader = decoration.backgroundGradient!.createShader(adjustedRect);
+            paint.shader =
+                decoration.backgroundGradient!.createShader(adjustedRect);
           } else {
             paint.color = decoration.backgroundColor!;
           }
@@ -157,192 +173,33 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
 
         // Paint border
         if (decoration.borderColor != null && decoration.borderWidth > 0) {
-          _drawStyledBorder(
-            canvas,
-            adjustedRect,
-            decoration.borderColor!,
-            decoration.borderWidth,
-            decoration.borderStyle,
-            decoration.borderRadius,
-          );
+          final paint = Paint()
+            ..color = decoration.borderColor!
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = decoration.borderWidth
+            ..isAntiAlias = true
+            ..strokeCap = StrokeCap.square; // Crisp corners for borders
+
+          if (decoration.borderRadius != null) {
+            canvas.drawRRect(
+              RRect.fromRectAndCorners(
+                adjustedRect,
+                topLeft: decoration.borderRadius!.topLeft,
+                topRight: decoration.borderRadius!.topRight,
+                bottomLeft: decoration.borderRadius!.bottomLeft,
+                bottomRight: decoration.borderRadius!.bottomRight,
+              ),
+              paint,
+            );
+          } else {
+            canvas.drawRect(adjustedRect, paint);
+          }
         }
 
         // Restore layer if filter was applied
-        if (decoration.filter != null) {
+        if (decoration.filter != null && enableComplexFilters) {
           canvas.restore();
         }
-      }
-    }
-  }
-
-  /// Helper to draw a single line with different styles
-  void _drawStyledLine(
-    Canvas canvas,
-    Offset start,
-    Offset end,
-    Color color,
-    double width,
-    HyperBorderStyle style,
-  ) {
-    if (style == HyperBorderStyle.none || width <= 0) return;
-
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = width
-      ..isAntiAlias = true
-      ..strokeCap = StrokeCap.square;
-
-    if (style == HyperBorderStyle.solid) {
-      canvas.drawLine(start, end, paint);
-      return;
-    }
-
-    if (style == HyperBorderStyle.double) {
-      final offset = width / 3;
-      final outerPaint = paint..strokeWidth = offset;
-      final innerPaint = paint..strokeWidth = offset;
-      
-      // Determine if vertical or horizontal
-      final bool isVertical = start.dx == end.dx;
-      if (isVertical) {
-        canvas.drawLine(start.translate(-offset, 0), end.translate(-offset, 0), outerPaint);
-        canvas.drawLine(start.translate(offset, 0), end.translate(offset, 0), innerPaint);
-      } else {
-        canvas.drawLine(start.translate(0, -offset), end.translate(0, -offset), outerPaint);
-        canvas.drawLine(start.translate(0, offset), end.translate(0, offset), innerPaint);
-      }
-      return;
-    }
-
-    // Dashed or Dotted
-    final List<double> dashArray = style == HyperBorderStyle.dashed 
-      ? [width * 3, width * 2] 
-      : [width, width];
-
-    final path = Path()..moveTo(start.dx, start.dy)..lineTo(end.dx, end.dy);
-    _drawDashedPath(canvas, path, paint, dashArray);
-  }
-
-  /// Helper to draw borders with different styles (solid, dashed, dotted, double)
-  void _drawStyledBorder(
-    Canvas canvas,
-    Rect rect,
-    Color color,
-    double width,
-    HyperBorderStyle style,
-    BorderRadius? borderRadius,
-  ) {
-    if (style == HyperBorderStyle.none || width <= 0) return;
-
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = width
-      ..isAntiAlias = true
-      ..strokeCap = StrokeCap.square;
-
-    if (style == HyperBorderStyle.solid) {
-      if (borderRadius != null) {
-        canvas.drawRRect(
-          RRect.fromRectAndCorners(
-            rect,
-            topLeft: borderRadius.topLeft,
-            topRight: borderRadius.topRight,
-            bottomLeft: borderRadius.bottomLeft,
-            bottomRight: borderRadius.bottomRight,
-          ),
-          paint,
-        );
-      } else {
-        canvas.drawRect(rect, paint);
-      }
-      return;
-    }
-
-    if (style == HyperBorderStyle.double) {
-      // Draw two solid lines with a gap
-      final outerWidth = width / 3;
-      final innerWidth = width / 3;
-      
-      // Outer border
-      final outerPaint = paint..strokeWidth = outerWidth;
-      final outerRect = rect.inflate(outerWidth / 2); // Inflate to align outer edge
-      if (borderRadius != null) {
-        canvas.drawRRect(RRect.fromRectAndCorners(outerRect, 
-          topLeft: borderRadius.topLeft, topRight: borderRadius.topRight, 
-          bottomLeft: borderRadius.bottomLeft, bottomRight: borderRadius.bottomRight), outerPaint);
-      } else {
-        canvas.drawRect(outerRect, outerPaint);
-      }
-
-      // Inner border
-      final innerPaint = paint..strokeWidth = innerWidth;
-      final innerRect = rect.deflate(innerWidth / 2); // Deflate for inner line
-      if (borderRadius != null) {
-        // Calculate the reduction amount for the radius.
-        // The original 'deflate(width / 1.5)' suggests a reduction.
-        // Let's assume it's the amount to subtract from each radius component.
-        // We clamp to 0 to prevent negative radii.
-        final double reduction = (width / 1.5).clamp(0.0, double.infinity);
-
-        final Radius newTopLeft = borderRadius.topLeft.x > 0 ? Radius.circular(math.max(0.0, borderRadius.topLeft.x - reduction)) : Radius.zero;
-        final Radius newTopRight = borderRadius.topRight.x > 0 ? Radius.circular(math.max(0.0, borderRadius.topRight.x - reduction)) : Radius.zero;
-        final Radius newBottomLeft = borderRadius.bottomLeft.x > 0 ? Radius.circular(math.max(0.0, borderRadius.bottomLeft.x - reduction)) : Radius.zero;
-        final Radius newBottomRight = borderRadius.bottomRight.x > 0 ? Radius.circular(math.max(0.0, borderRadius.bottomRight.x - reduction)) : Radius.zero;
-
-        final innerRadius = BorderRadius.only(
-          topLeft: newTopLeft,
-          topRight: newTopRight,
-          bottomLeft: newBottomLeft,
-          bottomRight: newBottomRight,
-        );
-
-        canvas.drawRRect(RRect.fromRectAndCorners(innerRect,
-          topLeft: innerRadius.topLeft, topRight: innerRadius.topRight,
-          bottomLeft: innerRadius.bottomLeft, bottomRight: innerRadius.bottomRight), innerPaint);
-      } else {
-        canvas.drawRect(innerRect, innerPaint);
-      }
-      return;
-    }
-
-    // Dashed or Dotted
-    final List<double> dashArray = style == HyperBorderStyle.dashed 
-      ? [width * 3, width * 2] 
-      : [width, width];
-
-    final path = Path();
-    if (borderRadius != null) {
-      path.addRRect(RRect.fromRectAndCorners(
-        rect,
-        topLeft: borderRadius.topLeft,
-        topRight: borderRadius.topRight,
-        bottomLeft: borderRadius.bottomLeft,
-        bottomRight: borderRadius.bottomRight,
-      ));
-    } else {
-      path.addRect(rect);
-    }
-
-    _drawDashedPath(canvas, path, paint, dashArray);
-  }
-
-  /// Draw a dashed path manually using PathMetrics
-  void _drawDashedPath(Canvas canvas, Path path, Paint paint, List<double> dashArray) {
-    for (final metric in path.computeMetrics()) {
-      double distance = 0;
-      bool draw = true;
-      int i = 0;
-      while (distance < metric.length) {
-        final double step = dashArray[i % dashArray.length];
-        if (draw) {
-          final double end = math.min(distance + step, metric.length);
-          canvas.drawPath(metric.extractPath(distance, end), paint);
-        }
-        distance += step;
-        draw = !draw;
-        i++;
       }
     }
   }
@@ -370,30 +227,51 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           // Check if this fragment overlaps with selection
           if (fragmentEnd > _selection!.start &&
               fragmentStart < _selection!.end) {
-            final selectStart =
-                math.max(0, _selection!.start - fragmentStart);
+            final selectStart = math.max(0, _selection!.start - fragmentStart);
             final selectEnd = math.min(
                 fragment.text!.length, _selection!.end - fragmentStart);
 
-            // Get selection rect within this fragment
-            final painter = _getTextPainter(fragment.text!, fragment.style);
-            final startOffset = painter
-                .getOffsetForCaret(TextPosition(offset: selectStart),
-                    Rect.zero)
-                .dx;
-            final endOffset = painter
-                .getOffsetForCaret(TextPosition(offset: selectEnd), Rect.zero)
-                .dx;
+            // Trim leading/trailing whitespace for visual highlight only.
+            // HTML whitespace normalization creates space chars at inline
+            // element boundaries (e.g. " は、" or "を "). These spaces are
+            // preserved in the selection range for copy-paste, but should not
+            // produce blank margin inside the painted highlight rect.
+            final text = fragment.text!;
+            int visualStart = selectStart;
+            int visualEnd = selectEnd;
+            while (visualStart < visualEnd && text[visualStart] == ' ') {
+              visualStart++;
+            }
+            while (visualEnd > visualStart && text[visualEnd - 1] == ' ') {
+              visualEnd--;
+            }
 
-            final fragmentOffset = fragment.offset ?? Offset.zero;
-            final selectionRect = Rect.fromLTWH(
-              offset.dx + fragmentOffset.dx + startOffset,
-              offset.dy + fragmentOffset.dy,
-              endOffset - startOffset,
-              fragment.height,
+            if (visualStart >= visualEnd) {
+              currentOffset = fragmentEnd;
+              continue;
+            }
+
+            // Use getBoxesForSelection with tight height/width to get exact
+            // glyph bounds — avoids blank space from line-height above/below.
+            final painter = _getTextPainter(text, fragment.style);
+            final boxes = painter.getBoxesForSelection(
+              TextSelection(baseOffset: visualStart, extentOffset: visualEnd),
+              boxHeightStyle: ui.BoxHeightStyle.tight,
             );
 
-            canvas.drawRect(selectionRect, selectionPaint);
+            final fragmentOffset = fragment.offset ?? Offset.zero;
+            for (final box in boxes) {
+              if (box.right <= box.left) continue;
+              canvas.drawRect(
+                Rect.fromLTRB(
+                  offset.dx + fragmentOffset.dx + box.left,
+                  offset.dy + fragmentOffset.dy + box.top,
+                  offset.dx + fragmentOffset.dx + box.right,
+                  offset.dy + fragmentOffset.dy + box.bottom,
+                ),
+                selectionPaint,
+              );
+            }
           }
 
           currentOffset = fragmentEnd;
@@ -422,7 +300,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     }
   }
 
-  void _paintListMarker(Canvas canvas, Offset offset, _ListMarkerFragment fragment) {
+  void _paintListMarker(
+      Canvas canvas, Offset offset, _ListMarkerFragment fragment) {
     final painter = _getTextPainter(fragment.marker, fragment.style);
     painter.paint(canvas, offset + fragment.offset!);
   }
@@ -436,7 +315,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
   void _paintRubyFragment(Canvas canvas, Offset offset, Fragment fragment) {
     final fragmentOffset = fragment.offset ?? Offset.zero;
 
-    final rubyFontSize = fragment.style.fontSize * RenderHyperBox.rubyFontSizeRatio;
+    final rubyFontSize =
+        fragment.style.fontSize * RenderHyperBox.rubyFontSizeRatio;
     final rubyStyle = fragment.style.copyWith(fontSize: rubyFontSize);
     final rubyPainter = _getTextPainter(fragment.rubyText!, rubyStyle);
     final basePainter = _getTextPainter(fragment.text!, fragment.style);
@@ -448,7 +328,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
 
     // Ruby text is at the top, base text below
     const rubyY = 0.0;
-    final baseY = (fragment.rubyHeight ?? rubyPainter.height) + RenderHyperBox.rubyGap;
+    final baseY =
+        (fragment.rubyHeight ?? rubyPainter.height) + RenderHyperBox.rubyGap;
 
     rubyPainter.paint(
       canvas,
@@ -493,12 +374,15 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     }
   }
 
-  /// Check if a fragment has a linked child RenderBox widget
+  /// Check if a fragment has a linked child RenderBox widget (O(1) via map).
   bool _hasChildWidgetForFragment(Fragment fragment) {
+    if (_fragmentChildMap.containsKey(fragment)) return true;
+    // Fallback for edge cases before the map is populated.
     RenderBox? child = firstChild;
     while (child != null) {
       final parentData = child.parentData as HyperBoxParentData;
-      if (parentData.fragment == fragment || parentData.sourceNode == fragment.sourceNode) {
+      if (parentData.fragment == fragment ||
+          parentData.sourceNode == fragment.sourceNode) {
         return true;
       }
       child = parentData.nextSibling;
@@ -540,7 +424,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         rect: rect,
         image: cached!.image!,
         fit: _getBoxFit(fragment.style.backgroundSize),
-        filterQuality: FilterQuality.medium, // Crisp rendering on retina displays
+        filterQuality:
+            FilterQuality.medium, // Crisp rendering on retina displays
       );
 
       if (borderRadius != null) {
@@ -600,7 +485,11 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       height: iconSize,
     ));
 
-    canvas.drawPath(iconPath, iconPaint..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    canvas.drawPath(
+        iconPath,
+        iconPaint
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5);
 
     // Mountains
     final mountainPath = Path();
@@ -610,7 +499,11 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     mountainPath.lineTo(center.dx + iconSize * 0.3, center.dy - iconSize * 0.1);
     mountainPath.lineTo(center.dx + iconSize * 0.6, center.dy + iconSize * 0.3);
 
-    canvas.drawPath(mountainPath, iconPaint..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    canvas.drawPath(
+        mountainPath,
+        iconPaint
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5);
   }
 
   /// Paint an error placeholder with broken image icon
@@ -656,5 +549,39 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       Offset(center.dx + iconSize * 0.5, center.dy + iconSize * 0.3),
       iconPaint..color = const Color(0xFFE57373),
     );
+  }
+
+  /// Draws colored outlines for each line and fragment when [debugShowBounds] is true.
+  void _paintDebugBounds(Canvas canvas, Offset offset) {
+    final linePaint = Paint()
+      ..color = const Color(0x66007BFF) // blue for line rows
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..strokeCap = StrokeCap.square;
+
+    final fragmentPaint = Paint()
+      ..color = const Color(0x66FF6B00) // orange for individual fragments
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5
+      ..strokeCap = StrokeCap.square;
+
+    for (final line in _lines) {
+      // Draw the full line row
+      final lineRect = Rect.fromLTWH(
+        offset.dx,
+        offset.dy + line.top,
+        _maxWidth.isFinite ? _maxWidth : size.width,
+        line.height,
+      );
+      canvas.drawRect(lineRect, linePaint);
+
+      // Draw each fragment within the line
+      for (final fragment in line.fragments) {
+        final rect = fragment.rect;
+        if (rect != null) {
+          canvas.drawRect(rect.shift(offset), fragmentPaint);
+        }
+      }
+    }
   }
 }
