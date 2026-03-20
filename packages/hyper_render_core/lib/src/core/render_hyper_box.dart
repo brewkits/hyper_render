@@ -13,6 +13,7 @@ import '../model/fragment.dart';
 import '../model/node.dart';
 import 'image_provider.dart';
 import 'kinsoku_processor.dart';
+import 'lazy_image_queue.dart';
 
 part 'render_hyper_box_types.dart';
 part 'render_hyper_box_fragments.dart';
@@ -54,7 +55,7 @@ class RenderHyperBox extends RenderBox
   TextStyle _baseStyle;
 
   /// Link tap callback
-  HyperLinkTapCallback? _onLinkTap;
+  HyperLinkTapCallback? onLinkTap;
 
   /// Custom image loader (defaults to defaultImageLoader if not provided)
   HyperImageLoader? _imageLoader;
@@ -109,6 +110,9 @@ class RenderHyperBox extends RenderBox
   /// Selection start position (for drag selection)
   int? _selectionStartPosition;
 
+  /// Position recorded on PointerDown — used to detect tap-vs-drag for links.
+  Offset? _pointerDownPosition;
+
   /// Total character count in document
   int _totalCharacterCount = 0;
 
@@ -125,15 +129,42 @@ class RenderHyperBox extends RenderBox
   /// Callback when selection changes
   VoidCallback? onSelectionChanged;
 
+  /// When true, draws colored outlines over each fragment/line for debugging.
+  /// Equivalent to Flutter's [debugPaintSizeEnabled] but scoped to this widget.
+  bool debugShowBounds = false;
+
+  /// When false, skips `canvas.saveLayer` for `backdrop-filter` and CSS
+  /// `filter` effects. Disable on low-end devices or when profiling shows
+  /// excessive rasterization cost from complex filters.
+  bool enableComplexFilters = true;
+
   /// Track list item indices for ordered lists
   final Map<UDTNode, int> _listItemIndices = {};
 
   /// Fragment range for efficient character lookup
-  final List<(int, int, Fragment)> _fragmentRanges = []; // (startIndex, endIndex, fragment)
+  final List<(int, int, Fragment)> _fragmentRanges =
+      []; // (startIndex, endIndex, fragment)
+
+  /// Maps fragment → its linked child RenderBox for O(1) paint-time lookup.
+  /// Rebuilt at the end of [_layoutChildren]; cleared by [_invalidateLayout].
+  final Map<Fragment, RenderBox> _fragmentChildMap = {};
+
+  /// Maps UDTNode → its bounding Rect for O(1) accessibility lookup.
+  /// Built at the end of [performLayout] after all fragment offsets are set;
+  /// cleared by [_invalidateLayout]. Used by [_getNodeRect] so that
+  /// VoiceOver/TalkBack semantics queries are instant rather than O(fragments).
+  final Map<UDTNode, Rect> _nodeRectCache = {};
 
   // ── Incremental layout dirty tracking ─────────────────────────────────────
+  /// Bumped each time _fragments is rebuilt (via _ensureFragments).
+  /// Line layout skips when this matches [_linesFragmentsVersion] AND
+  /// [_linesMaxWidth] equals the current constraint width.
   int _fragmentsVersion = 0;
+
+  /// The [_fragmentsVersion] value when _lines was last successfully built.
   int _linesFragmentsVersion = -1;
+
+  /// The [_maxWidth] value when _lines was last successfully built.
   double _linesMaxWidth = double.nan;
 
   /// Default placeholder size for images without dimensions
@@ -154,7 +185,7 @@ class RenderHyperBox extends RenderBox
     DocumentNode? document,
     TextStyle baseStyle =
         const TextStyle(fontSize: 16, color: Color(0xFF000000)),
-    HyperLinkTapCallback? onLinkTap,
+    this.onLinkTap,
     HyperImageLoader? imageLoader,
     bool selectable = true,
     TextDirection textDirection = TextDirection.ltr,
@@ -162,7 +193,6 @@ class RenderHyperBox extends RenderBox
     this.onSelectionChanged,
   })  : _document = document,
         _baseStyle = baseStyle,
-        _onLinkTap = onLinkTap,
         _imageLoader = imageLoader,
         _selectable = selectable,
         _textDirection = textDirection,
@@ -176,6 +206,10 @@ class RenderHyperBox extends RenderBox
   set document(DocumentNode? value) {
     if (_document == value) return;
     _document = value;
+    // Dispose old link recognizers immediately so they don't accumulate in
+    // memory until the widget is destroyed (e.g. feed apps that swap documents
+    // frequently). New recognizers are created lazily in _performLineLayout.
+    _disposeLinkRecognizers();
     _invalidateLayout();
     markNeedsLayout();
   }
@@ -188,9 +222,16 @@ class RenderHyperBox extends RenderBox
     markNeedsLayout();
   }
 
-  HyperLinkTapCallback? get onLinkTap => _onLinkTap;
-  set onLinkTap(HyperLinkTapCallback? value) {
-    _onLinkTap = value;
+  HyperImageLoader? get imageLoader => _imageLoader;
+  set imageLoader(HyperImageLoader? value) {
+    if (_imageLoader == value) return;
+    _imageLoader = value;
+    // BUG-C+E FIX: dispose GPU resources before clearing, then re-trigger
+    // loading with the new loader so images are not left in a permanent
+    // "loading" state after the loader is swapped at runtime.
+    _disposeImages();
+    if (attached) _loadImages();
+    markNeedsLayout();
   }
 
   bool get selectable => _selectable;
@@ -203,34 +244,20 @@ class RenderHyperBox extends RenderBox
     markNeedsPaint();
   }
 
+  HyperTextSelection? get selection => _selection;
+  set selection(HyperTextSelection? value) {
+    if (_selection == value) return;
+    _selection = value;
+    markNeedsPaint();
+    _notifySelectionChanged();
+  }
+
   TextDirection get textDirection => _textDirection;
   set textDirection(TextDirection value) {
     if (_textDirection == value) return;
     _textDirection = value;
     _invalidateLayout();
     markNeedsLayout();
-  }
-
-  /// Whether the text direction is right-to-left
-  bool get isRTL => _textDirection == TextDirection.rtl;
-
-  HyperImageLoader? get imageLoader => _imageLoader;
-  set imageLoader(HyperImageLoader? value) {
-    if (_imageLoader == value) return;
-    _imageLoader = value;
-    // Clear image cache and reload with new loader
-    _imageCache.clear();
-    if (attached) {
-      _loadImages();
-    }
-  }
-
-  HyperTextSelection? get selection => _selection;
-  set selection(HyperTextSelection? value) {
-    if (_selection == value) return;
-    _selection = value;
-    markNeedsPaint();
-    onSelectionChanged?.call();
   }
 
   Color? get selectionColor => _selectionColor;
@@ -240,10 +267,8 @@ class RenderHyperBox extends RenderBox
     markNeedsPaint();
   }
 
-  /// Notify selection changed (call after modifying _selection directly)
-  void _notifySelectionChanged() {
-    onSelectionChanged?.call();
-  }
+  /// Whether the text direction is right-to-left
+  bool get isRTL => _textDirection == TextDirection.rtl;
 
   // ============================================
   // RenderBox Setup
@@ -284,6 +309,13 @@ class RenderHyperBox extends RenderBox
   }
 
   void _disposeImages() {
+    // BUG-C FIX: ui.Image is a native GPU resource that must be explicitly
+    // disposed. Calling _imageCache.clear() without dispose() leaks GPU
+    // texture memory — the Dart GC cannot free it. This matters especially
+    // when documents with many images are swapped frequently.
+    for (final entry in _imageCache.values) {
+      entry.image?.dispose();
+    }
     _imageCache.clear();
   }
 
@@ -297,12 +329,19 @@ class RenderHyperBox extends RenderBox
     _blockDecorations.clear();
     _characterToFragment.clear();
     _fragmentRanges.clear();
+    _fragmentChildMap.clear();
+    _nodeRectCache.clear();
     _totalCharacterCount = 0;
     _cachedMinIntrinsicWidth = null;
     _cachedMaxIntrinsicWidth = null;
     _disposeTextPainters();
   }
 
+  /// Lighter invalidation that preserves the text painter cache.
+  ///
+  /// Called when image dimensions change: fragments must be re-tokenized
+  /// so [_tokenizeAtomic] reads the new image size, but text measurements
+  /// are still valid and can be reused.
   void _invalidateFragments() {
     _fragments.clear();
     _lines.clear();
@@ -316,7 +355,17 @@ class RenderHyperBox extends RenderBox
     _totalCharacterCount = 0;
     _cachedMinIntrinsicWidth = null;
     _cachedMaxIntrinsicWidth = null;
-    // _textPainters intentionally preserved
+    // _textPainters intentionally preserved: text metrics are unaffected
+    // by image dimension changes.
+  }
+
+  void _notifySelectionChanged() {
+    // BUG-B FIX: Guard with attached check. The selection setter and handleEvent
+    // can fire during the dispose sequence (e.g., an ongoing pointer gesture
+    // that completes after the widget is removed from the tree). Calling
+    // onSelectionChanged after detach can invoke state on a disposed widget.
+    if (!attached) return;
+    onSelectionChanged?.call();
   }
 
   // ============================================
@@ -326,37 +375,61 @@ class RenderHyperBox extends RenderBox
   void _loadImages() {
     if (_document == null) return;
 
+    // Collect images with their approximate document y-position for priority.
+    final images = <({String src, int priority})>[];
+
     _document!.traverse((node) {
       if (node is AtomicNode && node.tagName == 'img') {
         final src = node.src;
         if (src != null && src.isNotEmpty && !_imageCache.containsKey(src)) {
-          _loadImage(src);
+          // Use the fragment's y-position as priority (top = 0 = highest).
+          // Before layout, fall back to document order (index in list).
+          final yPos = _findFragmentY(node);
+          images.add((src: src, priority: yPos));
         }
       }
     });
+
+    for (final img in images) {
+      _loadImage(img.src, priority: img.priority);
+    }
   }
 
-  void _loadImage(String src) {
+  /// Returns the y-pixel offset of the first fragment belonging to [node],
+  /// or a large value if not yet laid out (loads after visible images).
+  int _findFragmentY(AtomicNode node) {
+    for (final line in _lines) {
+      for (final frag in line.fragments) {
+        if (frag.sourceNode == node) {
+          return line.top.toInt();
+        }
+      }
+    }
+    return 999999; // not laid out yet — lowest priority
+  }
+
+  void _loadImage(String src, {int priority = 999999}) {
     _imageCache[src] = const CachedImage(state: ImageLoadState.loading);
 
-    // Use the provided loader or fall back to default
     final loader = _imageLoader ?? defaultImageLoader;
 
-    loader(
-      src,
-      (ui.Image image) {
-        // On successful load
+    LazyImageQueue.instance.enqueue(
+      url: src,
+      priority: priority,
+      loader: loader,
+      onLoad: (ui.Image image) {
         if (!attached) return;
         _imageCache[src] = CachedImage(
           image: image,
           state: ImageLoadState.loaded,
         );
+        // Invalidate fragments so _tokenizeAtomic re-reads actual image
+        // dimensions. Preserves text painter cache (text metrics unchanged).
         _invalidateFragments();
         markNeedsLayout();
         markNeedsPaint();
       },
-      (Object error) {
-        // On error
+      onError: (Object error) {
         if (!attached) return;
         _imageCache[src] = CachedImage(
           state: ImageLoadState.error,
@@ -395,7 +468,8 @@ class RenderHyperBox extends RenderBox
             maxWidth = painter.width;
           }
         }
-      } else if (fragment.type == FragmentType.atomic || fragment.type == FragmentType.ruby) {
+      } else if (fragment.type == FragmentType.atomic ||
+          fragment.type == FragmentType.ruby) {
         // Ensure fragment is measured if it hasn't been already
         if (fragment.measuredSize == null) _measureFragment(fragment);
         if (fragment.width > maxWidth) {
@@ -420,18 +494,33 @@ class RenderHyperBox extends RenderBox
     _ensureFragments();
     _measureFragments(); // Ensures all fragments have a measured size.
 
-    double totalWidth = 0;
-    for (final fragment in _fragments) {
-      // Sum up widths of inline-level elements that would form a single long line.
-      if (fragment.type == FragmentType.text ||
-          fragment.type == FragmentType.atomic ||
-          fragment.type == FragmentType.ruby) {
-        totalWidth += fragment.width;
-      }
+    // Walk fragments and track the width of each "logical line" (reset at block
+    // boundaries and explicit line breaks).  Return the widest such line.
+    // Summing all widths (the previous approach) produced values orders of
+    // magnitude too large for documents with many paragraphs.
+    double maxWidth = 0;
+    double lineWidth = 0;
+
+    void flushLine() {
+      if (lineWidth > maxWidth) maxWidth = lineWidth;
+      lineWidth = 0;
     }
 
-    _cachedMaxIntrinsicWidth = totalWidth;
-    return totalWidth;
+    for (final fragment in _fragments) {
+      if (fragment is _BlockStartFragment || fragment is _BlockEndFragment) {
+        flushLine();
+      } else if (fragment.type == FragmentType.lineBreak) {
+        flushLine();
+      } else if (fragment.type == FragmentType.text ||
+          fragment.type == FragmentType.atomic ||
+          fragment.type == FragmentType.ruby) {
+        lineWidth += fragment.width;
+      }
+    }
+    flushLine(); // flush any trailing line
+
+    _cachedMaxIntrinsicWidth = maxWidth;
+    return maxWidth;
   }
 
   @override
@@ -449,7 +538,7 @@ class RenderHyperBox extends RenderBox
 
     _maxWidth = width;
     _ensureFragments();
-    _performLineLayout();
+    _performLineLayout(intrinsicMode: true);
 
     if (_lines.isEmpty) return 0;
 
@@ -474,15 +563,23 @@ class RenderHyperBox extends RenderBox
       // Step 1: Tokenization — rebuilds only if _fragments was cleared.
       _ensureFragments();
 
-      // Step 1.5: Link children to fragments (CRITICAL)
+      // Step 1.5: Link children to fragments (CRITICAL - must be done right after fragments are created)
+      // This uses order-based matching since fragments and children are created in same traversal order
       _linkFragmentsToChildrenByOrder();
 
-      // relayout logic for <details>
-      final bool hasDetailsFragments = _fragments.any((f) => f is _DetailsFragment);
-      final bool needsLineLayout = _linesFragmentsVersion != _fragmentsVersion ||
-          _linesMaxWidth != _maxWidth ||
-          _lines.isEmpty ||
-          hasDetailsFragments;
+      // Steps 2–6: Measure + line layout.
+      // Skipped when fragments and constraint width are both unchanged —
+      // e.g. a repaint-only trigger (selection change, scroll) that happens
+      // to call performLayout.  Version mismatch forces a full rebuild.
+      // <details> elements can change height dynamically (expand/collapse),
+      // so always redo line layout when the document contains any.
+      final bool hasDetailsFragments =
+          _fragments.any((f) => f is _DetailsFragment);
+      final bool needsLineLayout =
+          _linesFragmentsVersion != _fragmentsVersion ||
+              _linesMaxWidth != _maxWidth ||
+              _lines.isEmpty ||
+              hasDetailsFragments;
 
       if (needsLineLayout) {
         // Step 2: Measure all fragments
@@ -507,6 +604,10 @@ class RenderHyperBox extends RenderBox
       // Step 7: Layout child RenderBoxes (always — child constraints may change)
       _layoutChildren();
 
+      // Step 8: Build node→Rect cache for O(1) accessibility queries.
+      // Done here (after _layoutChildren) so child-widget offsets are final.
+      _buildNodeRectCache();
+
       // Calculate final size
       double height = 0;
       if (_lines.isNotEmpty) {
@@ -514,19 +615,27 @@ class RenderHyperBox extends RenderBox
         height = lastLine.top + lastLine.height;
       }
 
-      for (final float in [..._leftFloats, ..._rightFloats]) {
-        if (float.rect.bottom > height) {
-          height = float.rect.bottom;
+      // Block-level widgets (details, tables, code blocks, flex/grid containers)
+      // update currentY but don't push a line.  When the content consists
+      // ENTIRELY of such blocks _lines stays empty and height stays 0.
+      // Extend height from fragment offsets + sizes for these block types.
+      for (final fragment in _fragments) {
+        if (fragment is _DetailsFragment ||
+            fragment is _TableFragment ||
+            fragment is _CodeBlockFragment ||
+            fragment is _FlexFragment) {
+          final offset = fragment.offset;
+          final measured = fragment.measuredSize;
+          if (offset != null && measured != null) {
+            final bottom = offset.dy + measured.height + 4; // +4 = block margin
+            if (bottom > height) height = bottom;
+          }
         }
       }
 
-      // Extend height from details if needed
-      for (final fragment in _fragments) {
-        if (fragment is _DetailsFragment || fragment is _TableFragment || fragment is _CodeBlockFragment) {
-          if (fragment.offset != null && fragment.measuredSize != null) {
-            final bottom = fragment.offset!.dy + fragment.measuredSize!.height;
-            if (bottom > height) height = bottom;
-          }
+      for (final float in [..._leftFloats, ..._rightFloats]) {
+        if (float.rect.bottom > height) {
+          height = float.rect.bottom;
         }
       }
 
@@ -561,7 +670,9 @@ class RenderHyperBox extends RenderBox
       _paintFloatImages(canvas, offset);
 
       // 3. Selection highlight (behind text)
-      if (_selection != null && _selection!.isValid && !_selection!.isCollapsed) {
+      if (_selection != null &&
+          _selection!.isValid &&
+          !_selection!.isCollapsed) {
         _paintSelection(canvas, offset);
       }
 
@@ -573,6 +684,11 @@ class RenderHyperBox extends RenderBox
 
       // 6. Child render boxes (tables, positioned elements)
       defaultPaint(context, offset);
+
+      // 7. Debug bounds overlay (only when debugShowBounds is true)
+      if (debugShowBounds) {
+        _paintDebugBounds(canvas, offset);
+      }
     } catch (e, stack) {
       // Error boundary: Catch paint errors to prevent full app crash
       debugPrint('HyperRender paint error: $e');
@@ -581,7 +697,8 @@ class RenderHyperBox extends RenderBox
       // Fallback: Paint error indicator (red box) to show something went wrong
       final paint = Paint()
         ..color = const Color(0x33FF0000) // Semi-transparent red
-        ..style = PaintingStyle.fill;
+        ..style = PaintingStyle.fill
+        ..isAntiAlias = true;
       context.canvas.drawRect(offset & size, paint);
 
       // Draw error text
@@ -594,6 +711,7 @@ class RenderHyperBox extends RenderBox
       );
       textPainter.layout();
       textPainter.paint(context.canvas, offset + const Offset(8, 8));
+      textPainter.dispose(); // BUG-14: must dispose to free native resources
     }
   }
 
@@ -606,10 +724,12 @@ class RenderHyperBox extends RenderBox
 
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    // Custom hit test that skips children without valid size
     RenderBox? child = lastChild;
     while (child != null) {
       final childParentData = child.parentData as HyperBoxParentData;
 
+      // Skip children that don't have a valid size
       if (!child.hasSize) {
         child = childParentData.previousSibling;
         continue;
@@ -623,7 +743,10 @@ class RenderHyperBox extends RenderBox
         },
       );
 
-      if (isHit) return true;
+      if (isHit) {
+        return true;
+      }
+
       child = childParentData.previousSibling;
     }
     return false;
@@ -633,21 +756,9 @@ class RenderHyperBox extends RenderBox
   void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
     if (event is PointerDownEvent) {
       final position = event.localPosition;
+      _pointerDownPosition = position;
 
-      // Check for link tap
-      final clickedFragment = _findFragmentAtPosition(position);
-      if (clickedFragment != null) {
-        final node = clickedFragment.sourceNode;
-        if (node.tagName == 'a') {
-          final href = node.attributes['href'];
-          if (href != null && _onLinkTap != null) {
-            _onLinkTap!(href);
-            return;
-          }
-        }
-      }
-
-      // Start selection
+      // Start selection on PointerDown so drag tracking works immediately.
       if (_selectable) {
         final charPos = _getCharacterPositionAtOffset(position);
         if (charPos >= 0) {
@@ -667,8 +778,39 @@ class RenderHyperBox extends RenderBox
         }
       }
     } else if (event is PointerUpEvent) {
+      final upPosition = event.localPosition;
+      final downPosition = _pointerDownPosition;
+      _pointerDownPosition = null;
       _selectionStartPosition = null;
-      // Notify selection changed when user finishes selection
+
+      // Fire link tap on PointerUp only when the finger hasn't moved (tap, not drag).
+      // Threshold: 8 logical pixels — small enough to feel instant, large enough
+      // to ignore micro-jitter on touch screens.
+      const tapThreshold = 8.0;
+      final isTap = downPosition == null ||
+          (upPosition - downPosition).distance < tapThreshold;
+
+      if (isTap && onLinkTap != null) {
+        final clickedFragment = _findFragmentAtPosition(upPosition);
+        if (clickedFragment != null) {
+          // Walk up the UDT parent chain to find the nearest <a> ancestor.
+          // The fragment's sourceNode is always a TextNode or AtomicNode — it
+          // is never the InlineNode for <a> itself.
+          UDTNode? node = clickedFragment.sourceNode;
+          while (node != null) {
+            if (node.tagName == 'a') {
+              final href = node.attributes['href'];
+              if (href != null) {
+                onLinkTap!(href);
+              }
+              break;
+            }
+            node = node.parent;
+          }
+        }
+      }
+
+      // Notify selection changed when user finishes drag-selection.
       if (_selection != null && !_selection!.isCollapsed) {
         _notifySelectionChanged();
       }
@@ -682,11 +824,90 @@ class RenderHyperBox extends RenderBox
   // ============================================
 
   @override
+  void describeSemanticsConfiguration(SemanticsConfiguration config) {
+    super.describeSemanticsConfiguration(config);
+    config
+      ..isSemanticBoundary = true
+      ..label = _buildTextContentForSemantics()
+      ..textDirection = _textDirection;
+  }
+
+  @override
+  void assembleSemanticsNode(
+    SemanticsNode node,
+    SemanticsConfiguration config,
+    Iterable<SemanticsNode> children,
+  ) {
+    final doc = _document;
+    if (doc != null) {
+      final semanticNodes = <SemanticsNode>[];
+      _buildSemanticNodes(doc, semanticNodes, node);
+      node.updateWith(
+        config: config,
+        childrenInInversePaintOrder:
+            semanticNodes.isNotEmpty ? semanticNodes : children.toList(),
+      );
+    } else {
+      node.updateWith(
+        config: config,
+        childrenInInversePaintOrder: children.toList(),
+      );
+    }
+  }
+
+  @override
   bool get isRepaintBoundary => true;
 
   // ============================================
-  // Debug
+  // Debug / DevTools API
   // ============================================
+
+  /// Serialize the current UDT document tree to JSON-compatible maps.
+  /// Used by the HyperRender DevTools extension.
+  List<Map<String, dynamic>> debugUdtTree() {
+    final doc = _document;
+    if (doc == null) return [];
+    return [_serializeNode(doc)];
+  }
+
+  /// Serialize current fragment list to JSON-compatible maps.
+  List<Map<String, dynamic>> debugFragments() {
+    return _fragments.map((f) {
+      return <String, dynamic>{
+        'type': f.type.name,
+        'text': f.text,
+        'width': f.measuredSize?.width,
+        'height': f.measuredSize?.height,
+        'offsetX': f.offset?.dx,
+        'offsetY': f.offset?.dy,
+        'nodeId': f.sourceNode.id,
+        'nodeTag': f.sourceNode.tagName,
+      };
+    }).toList();
+  }
+
+  /// Serialize current line list to JSON-compatible maps.
+  List<Map<String, dynamic>> debugLines() {
+    return _lines.map((l) {
+      return <String, dynamic>{
+        'fragmentCount': l.fragments.length,
+        'top': l.top,
+        'baseline': l.baseline,
+        'width': l.width,
+        'height': l.height,
+      };
+    }).toList();
+  }
+
+  Map<String, dynamic> _serializeNode(UDTNode node) {
+    return {
+      'id': node.id,
+      'type': node.type.name,
+      'tagName': node.tagName,
+      'childCount': node.children.length,
+      'children': node.children.map(_serializeNode).toList(),
+    };
+  }
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {

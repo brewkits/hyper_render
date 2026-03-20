@@ -1,25 +1,21 @@
+import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../core/render_hyper_box.dart';
-import '../interfaces/code_highlighter.dart';
-import '../interfaces/content_parser.dart';
-import '../model/node.dart';
 import '../parser/html/html_adapter.dart';
 import '../plugins/default_delta_parser.dart';
 import '../plugins/default_html_parser.dart';
 import '../plugins/default_markdown_parser.dart';
-import '../style/resolver.dart';
 import '../utils/html_heuristics.dart';
 import '../utils/html_sanitizer.dart';
-import 'hyper_render_widget.dart';
-import 'hyper_selection_overlay.dart';
 
 /// Chế độ render
 enum HyperRenderMode {
   /// Tự động chọn (Nếu HTML ngắn -> Sync, nếu dài -> Async + Virtualization)
   auto,
+
   /// Render đồng bộ trên Main Thread (Tốt cho text ngắn)
   sync,
+
   /// Render bất đồng bộ + ListView (Tốt cho text dài)
   virtualized,
 }
@@ -28,8 +24,10 @@ enum HyperRenderMode {
 enum HyperContentType {
   /// HTML content
   html,
+
   /// Quill Delta JSON
   delta,
+
   /// Markdown
   markdown,
 }
@@ -86,6 +84,11 @@ class HyperViewer extends StatefulWidget {
   ///
   /// Default: false
   final bool debugShowHyperRenderBounds;
+
+  /// When false, `backdrop-filter` and CSS `filter` effects skip
+  /// `canvas.saveLayer`. Disable on low-end devices to avoid rasterization
+  /// overhead from complex compositing layers.
+  final bool enableComplexFilters;
 
   /// Enable pinch-to-zoom and pan gestures
   /// Wraps content in InteractiveViewer for zoom/pan support
@@ -292,6 +295,7 @@ class HyperViewer extends StatefulWidget {
     this.baseUrl,
     this.customCss,
     this.debugShowHyperRenderBounds = false,
+    this.enableComplexFilters = true,
     this.captureKey,
     this.shrinkWrap = false,
     this.physics,
@@ -333,6 +337,7 @@ class HyperViewer extends StatefulWidget {
     this.baseUrl,
     this.customCss,
     this.debugShowHyperRenderBounds = false,
+    this.enableComplexFilters = true,
     this.captureKey,
     this.shrinkWrap = false,
     this.physics,
@@ -374,6 +379,7 @@ class HyperViewer extends StatefulWidget {
     this.baseUrl,
     this.customCss,
     this.debugShowHyperRenderBounds = false,
+    this.enableComplexFilters = true,
     this.captureKey,
     this.shrinkWrap = false,
     this.physics,
@@ -468,7 +474,8 @@ class _HyperViewerState extends State<HyperViewer>
 
       // 2. Resolve relative URLs against baseUrl
       if (widget.baseUrl != null && widget.baseUrl!.isNotEmpty) {
-        contentToRender = _resolveRelativeUrls(contentToRender, widget.baseUrl!);
+        contentToRender =
+            _resolveRelativeUrls(contentToRender, widget.baseUrl!);
       }
 
       // 3. Sanitize (strips <style> tags — safe, CSS already extracted above)
@@ -543,7 +550,9 @@ class _HyperViewerState extends State<HyperViewer>
         final attr = m.group(1)!;
         final url = m.group(2)!;
         final uri = Uri.tryParse(url);
-        if (uri == null || uri.hasScheme) return m.group(0)!; // already absolute
+        if (uri == null || uri.hasScheme) {
+          return m.group(0)!; // already absolute
+        }
         final resolved = baseUri.resolveUri(uri).toString();
         // Preserve original quote style
         final quote = m.group(0)!.contains('"') ? '"' : "'";
@@ -647,10 +656,12 @@ class _HyperViewerState extends State<HyperViewer>
                 document: _sections![index],
                 selectable: widget.selectable,
                 selectionColor: widget.selectionColor,
-                textDirection: widget.textDirection ?? Directionality.of(context),
+                textDirection:
+                    widget.textDirection ?? Directionality.of(context),
                 onLinkTap: widget.onLinkTap,
                 widgetBuilder: widget.widgetBuilder,
                 debugShowBounds: widget.debugShowHyperRenderBounds,
+                enableComplexFilters: widget.enableComplexFilters,
               ),
             );
           },
@@ -669,7 +680,8 @@ class _HyperViewerState extends State<HyperViewer>
           selectable: true,
           onLinkTap: widget.onLinkTap,
           widgetBuilder: widget.widgetBuilder,
-          handleColor: widget.selectionHandleColor ?? Theme.of(context).primaryColor,
+          handleColor:
+              widget.selectionHandleColor ?? Theme.of(context).primaryColor,
           menuActionsBuilder: widget.selectionMenuActionsBuilder,
           contextMenuBuilder: widget.selectionContextMenuBuilder,
           showHandles: true,
