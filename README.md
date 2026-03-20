@@ -1,23 +1,14 @@
 <div align="center">
 
-# ⚡ HyperRender
+# HyperRender
 
-### *"Render HTML like native text — not like a web browser."*
-
-HyperRender is a **high-performance, native-feeling content rendering engine** for Flutter.
-Designed for content-heavy apps (News, Blogs, E-books, RSS Readers), it bypasses the
-**Widget Tree Hell** of traditional HTML parsers by rendering entire documents inside a
-**Single Custom RenderObject**.
-
-Forget OOM crashes. Forget scroll jank. Welcome to **60 FPS**.
+**A custom layout engine for Flutter that renders HTML, Markdown, and Quill Delta.**
 
 [![pub package](https://img.shields.io/pub/v/hyper_render.svg)](https://pub.dev/packages/hyper_render)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)](https://flutter.dev)
-[![Benchmarks](https://img.shields.io/badge/Benchmarks-self--measured-orange.svg)](#benchmarks)
-[![CSS](https://img.shields.io/badge/CSS-Essential_subset-blue.svg)](#css-support)
+[![Flutter](https://img.shields.io/badge/Flutter-3.10+-blue.svg)](https://flutter.dev)
 
-[Quick Start](#quick-start) · [Features](#features) · [Benchmarks](#benchmarks) · [API Reference](#api-reference) · [When NOT to use](#when-not-to-use)
+[Quick Start](#quick-start) · [Features](#features) · [Benchmarks](#benchmarks) · [API Reference](#api-reference) · [When not to use](#when-not-to-use)
 
 </div>
 
