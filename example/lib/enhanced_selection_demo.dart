@@ -431,17 +431,18 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
   // Action Handlers
   // ============================================================================
 
-  void _handleCopy(HyperSelectionOverlayState state) {
+  Future<void> _handleCopy(HyperSelectionOverlayState state) async {
     final text = state.selectedText;
-    if (text != null && text.isNotEmpty) {
-      Clipboard.setData(ClipboardData(text: text));
-      setState(() {
-        _lastAction = 'Copy';
-        _selectedText = text;
-      });
-      _showSnackBar('✅ Copied to clipboard', Colors.green);
-      state.clearSelection();
-    }
+    if (text == null || text.isEmpty) return;
+    // Dismiss menu first so overlay context is gone before async work
+    state.clearSelection();
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    setState(() {
+      _lastAction = 'Copy';
+      _selectedText = text;
+    });
+    _showSnackBar('✅ Copied to clipboard', Colors.green);
   }
 
   void _handleShare(HyperSelectionOverlayState state) async {

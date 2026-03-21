@@ -7,8 +7,7 @@ import 'package:hyper_render/hyper_render.dart';
 // Showcases HyperRender's unique CJK capabilities:
 //   • Ruby / Furigana annotations (exclusive feature)
 //   • Japanese typography with Kinsoku line-breaking
-//   • CSS Grid — manga panel layout
-//   • RTL text direction
+//   • Manga panel layout with flex
 //   • Dense mixed-script content (kanji + kana + romaji)
 // =============================================================================
 
@@ -76,9 +75,12 @@ class _MangaDemoState extends State<MangaDemo>
 class _CharacterTab extends StatelessWidget {
   const _CharacterTab();
 
+  // NOTE: No body{} rules — HyperRender doesn't apply <body> styles.
+  // All padding/background are on explicit wrapper divs.
+  // gap replaced by margin-right on children for compatibility.
   static const _html = '''
 <style>
-  body { font-family: "Noto Sans JP", "Hiragino Sans", sans-serif; margin: 0; padding: 16px; background: #FFF9F9; }
+  .page { padding: 16px; background: #FFF9F9; }
 
   .profile-card {
     background: white;
@@ -87,26 +89,30 @@ class _CharacterTab extends StatelessWidget {
     box-shadow: 0 2px 12px rgba(0,0,0,0.1);
     margin-bottom: 20px;
   }
+
   .profile-header {
     background: linear-gradient(135deg, #B71C1C, #E53935);
     color: white;
     padding: 16px;
+  }
+  .header-inner {
     display: flex;
     align-items: center;
-    gap: 14px;
   }
   .avatar {
-    width: 64px; height: 64px;
+    width: 56px;
+    height: 56px;
     background: rgba(255,255,255,0.2);
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
     border: 2px solid rgba(255,255,255,0.6);
+    font-size: 26px;
+    text-align: center;
+    line-height: 56px;
+    margin-right: 14px;
+    flex-shrink: 0;
   }
   .name-block { flex: 1; }
-  .name-ja { font-size: 22px; font-weight: bold; }
+  .name-ja { font-size: 20px; font-weight: bold; line-height: 2.0; }
   .name-en { font-size: 12px; opacity: 0.8; margin-top: 2px; }
   .rank-badge {
     background: rgba(255,255,255,0.25);
@@ -114,17 +120,21 @@ class _CharacterTab extends StatelessWidget {
     border-radius: 20px;
     font-size: 11px;
     font-weight: bold;
+    flex-shrink: 0;
   }
 
   .profile-body { padding: 16px; }
-  .stat-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .stat-row { margin-bottom: 12px; }
   .stat-chip {
+    display: inline-block;
     background: #FFF3E0;
     border: 1px solid #FFCC80;
     border-radius: 20px;
     padding: 3px 10px;
     font-size: 12px;
     color: #E65100;
+    margin-right: 6px;
+    margin-bottom: 6px;
   }
   .section-title {
     font-size: 13px;
@@ -134,11 +144,11 @@ class _CharacterTab extends StatelessWidget {
     padding-left: 8px;
     margin: 14px 0 8px;
   }
-  .description { font-size: 14px; line-height: 1.7; color: #424242; }
+  .description { font-size: 14px; line-height: 1.9; color: #424242; }
   .ability-list { margin: 0; padding-left: 18px; }
-  .ability-list li { font-size: 13px; color: #424242; margin-bottom: 5px; line-height: 1.6; }
+  .ability-list li { font-size: 13px; color: #424242; margin-bottom: 6px; line-height: 1.8; }
 
-  .divider { border: none; border-top: 1px solid #F5F5F5; margin: 4px 0 12px; }
+  hr { border: none; border-top: 1px solid #F5F5F5; margin: 4px 0 12px; }
 
   .quote-box {
     background: #FCE4EC;
@@ -148,21 +158,26 @@ class _CharacterTab extends StatelessWidget {
     margin: 12px 0;
     font-style: italic;
     font-size: 14px;
+    line-height: 2.0;
     color: #880E4F;
   }
 </style>
 
+<div class="page">
+
 <div class="profile-card">
   <div class="profile-header">
-    <div class="avatar">⚔️</div>
-    <div class="name-block">
-      <div class="name-ja">
-        <ruby>影<rt>かげ</rt></ruby><ruby>山<rt>やま</rt></ruby>
-        <ruby>烈<rt>れつ</rt></ruby><ruby>士<rt>し</rt></ruby>
+    <div class="header-inner">
+      <div class="avatar">⚔️</div>
+      <div class="name-block">
+        <div class="name-ja">
+          <ruby>影<rt>かげ</rt></ruby><ruby>山<rt>やま</rt></ruby>
+          <ruby>烈<rt>れつ</rt></ruby><ruby>士<rt>し</rt></ruby>
+        </div>
+        <div class="name-en">Kageyama Resshi</div>
       </div>
-      <div class="name-en">Kageyama Resshi</div>
+      <div class="rank-badge">柱 HASHIRA</div>
     </div>
-    <div class="rank-badge">柱 HASHIRA</div>
   </div>
   <div class="profile-body">
     <div class="stat-row">
@@ -171,7 +186,7 @@ class _CharacterTab extends StatelessWidget {
       <span class="stat-chip">流派：影ノ型</span>
       <span class="stat-chip">斬鬼歴 3年</span>
     </div>
-    <hr class="divider"/>
+    <hr/>
     <div class="section-title">人物像</div>
     <div class="description">
       <ruby>影山<rt>かげやま</rt></ruby><ruby>烈士<rt>れっし</rt></ruby>は、
@@ -198,7 +213,8 @@ class _CharacterTab extends StatelessWidget {
         <ruby>影<rt>かげ</rt></ruby>ノ<ruby>型<rt>かた</rt></ruby>
         <ruby>弐<rt>に</rt></ruby>ノ型：
         <strong><ruby>千刃乱舞<rt>せんじんらんぶ</rt></ruby></strong>
-        — <ruby>無数<rt>むすう</rt></ruby>の<ruby>斬撃<rt>ざんげき</rt></ruby>を<ruby>同時<rt>どうじ</rt></ruby>に<ruby>放<rt>はな</rt></ruby>つ
+        — <ruby>無数<rt>むすう</rt></ruby>の<ruby>斬撃<rt>ざんげき</rt></ruby>を
+        <ruby>同時<rt>どうじ</rt></ruby>に<ruby>放<rt>はな</rt></ruby>つ
       </li>
       <li>
         <ruby>影<rt>かげ</rt></ruby>ノ<ruby>型<rt>かた</rt></ruby>
@@ -213,15 +229,17 @@ class _CharacterTab extends StatelessWidget {
 
 <div class="profile-card">
   <div class="profile-header" style="background: linear-gradient(135deg, #1A237E, #3949AB);">
-    <div class="avatar">🌙</div>
-    <div class="name-block">
-      <div class="name-ja">
-        <ruby>月<rt>つき</rt></ruby><ruby>夜<rt>よ</rt></ruby>
-        <ruby>蒼<rt>あお</rt></ruby><ruby>空<rt>そら</rt></ruby>
+    <div class="header-inner">
+      <div class="avatar" style="line-height: 56px;">🌙</div>
+      <div class="name-block">
+        <div class="name-ja">
+          <ruby>月<rt>つき</rt></ruby><ruby>夜<rt>よ</rt></ruby>
+          <ruby>蒼<rt>あお</rt></ruby><ruby>空<rt>そら</rt></ruby>
+        </div>
+        <div class="name-en">Tsukiyo Sora</div>
       </div>
-      <div class="name-en">Tsukiyo Sora</div>
+      <div class="rank-badge">上弦ノ壱</div>
     </div>
-    <div class="rank-badge">上弦ノ壱</div>
   </div>
   <div class="profile-body">
     <div class="stat-row">
@@ -243,6 +261,8 @@ class _CharacterTab extends StatelessWidget {
     </div>
   </div>
 </div>
+
+</div>
 ''';
 
   @override
@@ -263,7 +283,7 @@ class _SynopsisTab extends StatelessWidget {
 
   static const _html = '''
 <style>
-  body { font-family: "Noto Sans JP", "Hiragino Sans", sans-serif; margin: 0; padding: 16px; background: #FFFDE7; }
+  .page { padding: 16px; background: #FFFDE7; }
 
   h1 { font-size: 20px; color: #B71C1C; margin: 0 0 4px; }
   .series-info { font-size: 12px; color: #757575; margin-bottom: 20px; }
@@ -284,8 +304,8 @@ class _SynopsisTab extends StatelessWidget {
     letter-spacing: 0.5px;
     margin-bottom: 4px;
   }
-  .chapter-title { font-size: 16px; font-weight: bold; color: #212121; margin-bottom: 8px; }
-  .chapter-body { font-size: 14px; line-height: 1.8; color: #424242; }
+  .chapter-title { font-size: 16px; font-weight: bold; color: #212121; margin-bottom: 8px; line-height: 2.2; }
+  .chapter-body { font-size: 14px; line-height: 2.0; color: #424242; }
 
   .sfx-panel {
     background: #212121;
@@ -293,16 +313,15 @@ class _SynopsisTab extends StatelessWidget {
     border-radius: 8px;
     padding: 12px 16px;
     margin: 12px 0;
-    font-size: 15px;
-    font-weight: bold;
-    letter-spacing: 1px;
     text-align: center;
   }
-  .sfx-ja { font-size: 26px; color: #FF5252; display: block; }
+  .sfx-ja { font-size: 26px; color: #FF5252; font-weight: bold; display: block; letter-spacing: 1px; }
   .sfx-en { font-size: 11px; color: #BDBDBD; display: block; margin-top: 2px; }
 
   .highlight { background: #FFF9C4; padding: 2px 4px; border-radius: 3px; }
 </style>
+
+<div class="page">
 
 <h1>影界年代記</h1>
 <div class="series-info">
@@ -398,6 +417,8 @@ class _SynopsisTab extends StatelessWidget {
     </strong>
   </div>
 </div>
+
+</div>
 ''';
 
   @override
@@ -416,199 +437,96 @@ class _SynopsisTab extends StatelessWidget {
 class _PanelsTab extends StatelessWidget {
   const _PanelsTab();
 
+  // NOTE: All layout uses float (not flex) — HyperRender's float engine is
+  // rock-solid. Flex with nested children collapses to zero-height panels.
+  // Dark background (#212121) is inside the HTML wrapper, not Flutter-level.
   static const _html = '''
-<style>
-  body { margin: 0; padding: 12px; background: #212121; }
+<div style="padding:12px; background:#EBEBEB;">
 
-  .page-title {
-    color: #FF5252;
-    font-size: 13px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    text-align: center;
-    margin-bottom: 12px;
-  }
+  <!-- Page label -->
+  <div style="text-align:center; margin-bottom:10px;">
+    <span style="background:#B71C1C; color:white; font-size:11px; font-weight:bold; letter-spacing:1.5px; padding:3px 12px; border-radius:20px;">
+      影界年代記 ▸ Ch.12 ▸ P.8
+    </span>
+  </div>
 
-  /* Flex-based manga page layout (CSS Grid not yet supported) */
-  .manga-page {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    background: #000;
-    padding: 4px;
-    border-radius: 4px;
-    margin-bottom: 16px;
-  }
+  <!-- ═══ Page 1: White manga page with thick black panel borders ═══ -->
+  <div style="background:white; border:3px solid #111; margin-bottom:14px; overflow:hidden;">
 
-  .manga-row {
-    display: flex;
-    flex-direction: row;
-    gap: 4px;
-  }
-
-  .panel {
-    background: #FAFAFA;
-    overflow: hidden;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 8px;
-    flex: 1;
-  }
-  .panel-wide { min-height: 160px; }
-  .panel-tall { min-height: 264px; }
-
-  /* Panel backgrounds */
-  .panel-action {
-    background: #E3F2FD;
-    justify-content: center;
-    align-items: center;
-  }
-  .panel-close { background: #FCE4EC; }
-  .panel-landscape {
-    background: linear-gradient(180deg, #B3E5FC 0%, #E8F5E9 100%);
-  }
-  .panel-dark { background: #263238; }
-
-  .panel-emoji {
-    font-size: 48px;
-    text-align: center;
-    margin-bottom: 8px;
-  }
-
-  /* Speech bubbles */
-  .bubble {
-    background: white;
-    border: 2px solid #212121;
-    border-radius: 14px;
-    padding: 6px 10px;
-    font-size: 11px;
-    font-weight: bold;
-    color: #212121;
-    margin-bottom: 4px;
-    line-height: 1.5;
-    max-width: 90%;
-  }
-  .bubble-thought {
-    background: white;
-    border: 2px dashed #666;
-    border-radius: 14px;
-    padding: 6px 10px;
-    font-size: 10px;
-    color: #424242;
-    font-style: italic;
-  }
-  .bubble-scream {
-    background: #FF5252;
-    border: 2px solid #B71C1C;
-    color: white;
-    border-radius: 4px;
-  }
-
-  /* On-panel sound effects */
-  .sfx {
-    font-size: 20px;
-    font-weight: 900;
-    text-align: center;
-    padding: 8px;
-    display: inline-block;
-    letter-spacing: 2px;
-  }
-  .sfx-red  { color: #FF5252; }
-  .sfx-blue { color: #448AFF; }
-  .sfx-white { color: white; }
-
-  .caption {
-    background: rgba(0,0,0,0.75);
-    color: #FFF9C4;
-    font-size: 11px;
-    padding: 5px 8px;
-    border-radius: 4px;
-    line-height: 1.5;
-  }
-</style>
-
-<div class="page-title">影界年代記 ▸ Chapter 12 ▸ Page 8</div>
-
-<div class="manga-page">
-  <!-- Row 1 — wide establishing shot -->
-  <div class="manga-row">
-    <div class="panel panel-wide panel-landscape">
-      <div style="text-align:center; padding: 20px 0; flex: 1; display:flex; align-items:center; justify-content:center;">
-        <span style="font-size:52px;">🏯</span>
-      </div>
-      <div class="caption">
+    <!-- Row 1: Full-width establishing shot -->
+    <div style="background:linear-gradient(180deg,#B3E5FC 0%,#E8F5E9 100%); padding:14px 10px; border-bottom:3px solid #111; min-height:100px;">
+      <div style="text-align:center; font-size:48px; padding:4px 0;">🏯</div>
+      <div style="background:rgba(0,0,0,0.65); color:#FFF9C4; font-size:11px; padding:5px 8px; border-radius:4px; line-height:1.5; margin-top:6px;">
         <ruby>鬼殺隊<rt>きさつたい</rt></ruby>本部——深夜
       </div>
     </div>
-  </div>
 
-  <!-- Row 2 — tall close-up (left) + two stacked panels (right) -->
-  <div class="manga-row">
-    <div class="panel panel-close panel-tall">
-      <div class="panel-emoji">😤</div>
-      <div class="bubble">
-        「<ruby>来<rt>く</rt></ruby>るがいい……
-        <ruby>上弦<rt>じょうげん</rt></ruby>よ」
+    <!-- Row 2: Left tall panel + right two stacked (float layout) -->
+    <div style="overflow:hidden; border-bottom:3px solid #111;">
+      <!-- Left: hero close-up -->
+      <div style="float:left; width:46%; background:#FCE4EC; padding:10px; min-height:220px; box-sizing:border-box; border-right:3px solid #111;">
+        <div style="font-size:44px; text-align:center; margin-bottom:10px;">😤</div>
+        <div style="background:white; border:2px solid #111; border-radius:14px; padding:7px 10px; font-size:11px; font-weight:bold; line-height:1.9;">
+          「<ruby>来<rt>く</rt></ruby>るがいい……<ruby>上弦<rt>じょうげん</rt></ruby>よ」
+        </div>
       </div>
-    </div>
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
-      <div class="panel panel-action" style="flex: 1; min-height: 128px;">
-        <div class="sfx sfx-red">ドドドォ！！</div>
-      </div>
-      <div class="panel panel-dark" style="flex: 1; min-height: 128px;">
-        <div class="panel-emoji">😈</div>
-        <div class="bubble bubble-scream">
-          「<ruby>面白<rt>おもしろ</rt></ruby>い……！」
+      <!-- Right: two stacked panels -->
+      <div style="margin-left:49%;">
+        <div style="background:#E3F2FD; padding:10px; min-height:107px; border-bottom:3px solid #111; text-align:center;">
+          <div style="font-size:20px; font-weight:900; color:#D32F2F; letter-spacing:2px; padding-top:32px;">ドドドォ！！</div>
+        </div>
+        <div style="background:#1C2A33; padding:10px; min-height:110px;">
+          <div style="font-size:40px; text-align:center; margin-bottom:6px;">😈</div>
+          <div style="background:#EF5350; border:2px solid #B71C1C; color:white; border-radius:4px; padding:5px 8px; font-size:11px; font-weight:bold; line-height:1.6;">
+            「<ruby>面白<rt>おもしろ</rt></ruby>い……！」
+          </div>
         </div>
       </div>
     </div>
+    <div style="clear:both;"></div>
+
+    <!-- Row 3: Full-width clash panel -->
+    <div style="background:#EDE7F6; padding:14px 10px; text-align:center; min-height:100px;">
+      <div style="padding:8px 0;">
+        <span style="font-size:28px;">⚔️</span>
+        <span style="font-size:21px; font-weight:900; color:#1565C0; letter-spacing:2px; margin:0 8px;">ズバッ！！</span>
+        <span style="font-size:28px;">⚔️</span>
+      </div>
+      <div style="background:white; border:2px solid #111; border-radius:14px; padding:6px 14px; font-size:11px; font-weight:bold; display:inline-block;">
+        <ruby>影<rt>かげ</rt></ruby>ノ<ruby>型<rt>かた</rt></ruby>——
+        <strong style="color:#B71C1C;"><ruby>漆黒<rt>しっこく</rt></ruby>の<ruby>斬閃<rt>ざんせん</rt></ruby>！！</strong>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Row 3 — wide clash panel -->
-  <div class="manga-row">
-    <div class="panel panel-wide panel-action" style="min-height: 140px;">
-      <div style="display:flex; justify-content:space-around; align-items:center; padding:12px 0; flex: 1;">
-        <span style="font-size:36px;">⚔️</span>
-        <div class="sfx sfx-blue" style="font-size:24px;">ズバッ！！</div>
-        <span style="font-size:36px;">⚔️</span>
+  <!-- ═══ Page 2: 3-beat rapid sequence ═══ -->
+  <div style="background:white; border:3px solid #111; overflow:hidden;">
+
+    <!-- 3-beat row -->
+    <div style="overflow:hidden; border-bottom:3px solid #111;">
+      <div style="float:left; width:31%; background:#E8F5E9; padding:8px; min-height:90px; box-sizing:border-box; border-right:3px solid #111; text-align:center;">
+        <div style="font-size:28px;">😱</div>
+        <div style="background:white; border:2px solid #111; border-radius:10px; padding:4px 6px; font-size:10px; font-weight:bold; margin-top:4px;">「まさか——！」</div>
       </div>
-      <div style="text-align:center;">
-        <div class="bubble" style="display:inline-block;">
-          <ruby>影<rt>かげ</rt></ruby>ノ<ruby>型<rt>かた</rt></ruby>——
-          <strong style="color:#B71C1C;">
-            <ruby>漆黒<rt>しっこく</rt></ruby>の<ruby>斬閃<rt>ざんせん</rt></ruby>！！
-          </strong>
+      <div style="float:left; width:33%; background:#FFFDE7; padding:8px; min-height:90px; box-sizing:border-box; border-right:3px solid #111; text-align:center;">
+        <div style="font-size:17px; font-weight:900; color:#D32F2F; letter-spacing:2px; padding-top:24px;">バキッ！</div>
+      </div>
+      <div style="float:right; width:30%; background:#263238; padding:8px; min-height:90px; box-sizing:border-box; text-align:center;">
+        <div style="background:white; border:2px dashed #78909C; border-radius:10px; padding:5px 6px; font-size:10px; font-style:italic; color:#424242; margin-top:16px;">
+          （<ruby>父<rt>ちち</rt></ruby>さん……）
         </div>
       </div>
     </div>
-  </div>
-</div>
+    <div style="clear:both;"></div>
 
-<!-- Page 2 — rapid 3-beat sequence -->
-<div class="manga-page">
-  <div class="manga-row">
-    <div class="panel" style="min-height:80px; background:#E8F5E9; justify-content:center; align-items:center;">
-      <span style="font-size:30px;">😱</span>
-      <div class="bubble" style="font-size:10px;">「まさか——！」</div>
+    <!-- つづく -->
+    <div style="background:#B71C1C; padding:18px; text-align:center;">
+      <span style="font-size:26px; color:white; font-weight:900; letter-spacing:4px;">つ・づ・く……</span>
     </div>
-    <div class="panel" style="min-height:80px; background:#FFF9C4; justify-content:center; align-items:center;">
-      <div class="sfx sfx-red" style="font-size:16px;">バキッ！</div>
-    </div>
-    <div class="panel" style="min-height:80px; background:#212121; justify-content:center; align-items:center;">
-      <div class="bubble bubble-thought" style="font-size:10px;">
-        （<ruby>父<rt>ちち</rt></ruby>さん……）
-      </div>
-    </div>
+
   </div>
-  <div class="manga-row">
-    <div class="panel" style="background:#B71C1C; min-height:100px; justify-content:center; align-items:center;">
-      <div class="sfx sfx-white" style="font-size:32px;">
-        つ・づ・く……
-      </div>
-    </div>
-  </div>
+
 </div>
 ''';
 
@@ -630,28 +548,35 @@ class _FuriganaTab extends StatelessWidget {
 
   static const _html = '''
 <style>
-  body { font-family: "Noto Sans JP", "Hiragino Sans", sans-serif; margin: 0; padding: 16px; }
+  .page { padding: 16px; }
   h2 { font-size: 16px; color: #B71C1C; border-bottom: 2px solid #B71C1C; padding-bottom: 6px; margin: 20px 0 12px; }
   h3 { font-size: 13px; color: #757575; font-weight: normal; margin: 0 0 10px; }
   .row { margin-bottom: 14px; background: #FAFAFA; border-radius: 8px; padding: 12px 14px; }
-  .label { font-size: 11px; color: #9E9E9E; margin-bottom: 4px; }
-  .sample { font-size: 18px; line-height: 2.8; }
+  .label { font-size: 11px; color: #9E9E9E; margin-bottom: 6px; }
+  .sample { font-size: 18px; line-height: 3.0; }
   .note { font-size: 12px; color: #B71C1C; margin-top: 6px; }
 
-  .comparison {
-    display: flex;
-    flex-direction: row;
-    gap: 10px;
-    margin-bottom: 14px;
+  /* Side-by-side comparison — two columns using float */
+  .comparison { margin-bottom: 14px; overflow: hidden; }
+  .comp-box {
+    float: left;
+    width: 47%;
+    background: #F5F5F5;
+    border-radius: 8px;
+    padding: 10px;
+    margin-right: 6%;
+    box-sizing: border-box;
   }
-  .comp-box { flex: 1; background: #F5F5F5; border-radius: 8px; padding: 10px; }
+  .comp-box:last-child { margin-right: 0; float: right; }
+  .comp-clear { clear: both; }
   .comp-title { font-size: 11px; font-weight: bold; margin-bottom: 6px; }
   .comp-title.good { color: #388E3C; }
   .comp-title.bad  { color: #D32F2F; }
-  .comp-sample { font-size: 15px; line-height: 2.5; }
+  .comp-sample { font-size: 15px; line-height: 2.8; }
   .raw { color: #E53935; font-size: 13px; font-family: monospace; }
 </style>
 
+<div class="page">
 <h2>Ruby / Furigana Annotations</h2>
 <h3>HyperRender exclusive — neither flutter_html nor FWFH support this</h3>
 
@@ -685,7 +610,7 @@ class _FuriganaTab extends StatelessWidget {
 
 <div class="row">
   <div class="label">Traditional poem (haiku)</div>
-  <div class="sample" style="font-size: 17px; line-height: 3; text-align: center; color: #424242;">
+  <div class="sample" style="font-size: 17px; line-height: 3.2; text-align: center; color: #424242;">
     <ruby>古池<rt>ふるいけ</rt></ruby>や<br/>
     <ruby>蛙<rt>かわず</rt></ruby>
     <ruby>飛<rt>と</rt></ruby>び込む<br/>
@@ -712,6 +637,7 @@ class _FuriganaTab extends StatelessWidget {
       &lt;rt&gt; shown inline as raw text — broken
     </div>
   </div>
+  <div class="comp-clear"></div>
 </div>
 
 <div class="row">
@@ -728,13 +654,14 @@ class _FuriganaTab extends StatelessWidget {
 </div>
 
 <div class="row">
-  <div class="label">Chinese (Traditional) — Bopomofo annotation</div>
+  <div class="label">Chinese — Pinyin annotation</div>
   <div class="sample">
     <ruby>漢字<rt>hàn zì</rt></ruby>是
     <ruby>世界<rt>shì jiè</rt></ruby>上最
     <ruby>古老<rt>gǔ lǎo</rt></ruby>的
     <ruby>文字<rt>wén zì</rt></ruby>之一。
   </div>
+</div>
 </div>
 ''';
 
