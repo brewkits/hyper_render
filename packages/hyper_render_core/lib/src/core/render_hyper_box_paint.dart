@@ -87,20 +87,20 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
             decoration.borderRadius,
           );
         } else {
-          // Left-only border (blockquote style) — always solid
-          final borderPaint = Paint()
-            ..color = decoration.borderLeftColor!
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = decoration.borderLeftWidth
-            ..isAntiAlias = true
-            ..strokeCap = StrokeCap.square;
-
-          canvas.drawLine(
-            Offset(adjustedRect.left + decoration.borderLeftWidth / 2,
-                adjustedRect.top),
-            Offset(adjustedRect.left + decoration.borderLeftWidth / 2,
-                adjustedRect.bottom),
-            borderPaint,
+          // Left-only border (blockquote style) — draw as filled rect.
+          // Previously used drawLine with StrokeCap.square which extended the
+          // line endpoints by half the stroke width, bleeding outside the
+          // element bounds. A filled rect gives pixel-perfect edges.
+          canvas.drawRect(
+            Rect.fromLTWH(
+              adjustedRect.left,
+              adjustedRect.top,
+              decoration.borderLeftWidth,
+              adjustedRect.height,
+            ),
+            Paint()
+              ..color = decoration.borderLeftColor!
+              ..isAntiAlias = true,
           );
         }
       }
@@ -672,42 +672,41 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       ..isAntiAlias = true;
     canvas.drawRRect(rrect, borderPaint);
 
-    // Image icon in center
-    final center = rect.center;
-    final iconPaint = Paint()
-      ..color = const Color(0xFFBDBDBD)
-      ..isAntiAlias = true;
+    // Minimal loading indicator: a small rounded rectangle placeholder line
+    // centered in the image area. Pure shimmer + subtle hint is the modern
+    // skeleton standard (Facebook/LinkedIn) — no hand-drawn icon needed.
+    if (rect.width > 40 && rect.height > 30) {
+      final center = rect.center;
+      final indicatorPaint = Paint()
+        ..color = const Color(0xFFE0E0E0)
+        ..isAntiAlias = true;
 
-    // Draw a simple image icon (mountain landscape)
-    final iconPath = Path();
-    const iconSize = 24.0;
+      // Two stacked pill-shaped lines — universally understood as "loading"
+      final lineW = (rect.width * 0.35).clamp(20.0, 80.0);
+      const lineH = 6.0;
+      const gap = 10.0;
 
-    // Frame
-    iconPath.addRect(Rect.fromCenter(
-      center: center,
-      width: iconSize * 1.5,
-      height: iconSize,
-    ));
-
-    canvas.drawPath(
-        iconPath,
-        iconPaint
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5);
-
-    // Mountains
-    final mountainPath = Path();
-    mountainPath.moveTo(center.dx - iconSize * 0.6, center.dy + iconSize * 0.3);
-    mountainPath.lineTo(center.dx - iconSize * 0.2, center.dy - iconSize * 0.2);
-    mountainPath.lineTo(center.dx + iconSize * 0.1, center.dy + iconSize * 0.1);
-    mountainPath.lineTo(center.dx + iconSize * 0.3, center.dy - iconSize * 0.1);
-    mountainPath.lineTo(center.dx + iconSize * 0.6, center.dy + iconSize * 0.3);
-
-    canvas.drawPath(
-        mountainPath,
-        iconPaint
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+              center: Offset(center.dx, center.dy - gap / 2 - lineH / 2),
+              width: lineW,
+              height: lineH),
+          const Radius.circular(3),
+        ),
+        indicatorPaint,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+              center: Offset(center.dx, center.dy + gap / 2 + lineH / 2),
+              width: lineW * 0.65,
+              height: lineH),
+          const Radius.circular(3),
+        ),
+        indicatorPaint,
+      );
+    }
   }
 
   /// Paint an error placeholder with broken image icon
@@ -727,31 +726,40 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       ..isAntiAlias = true;
     canvas.drawRRect(rrect, borderPaint);
 
-    // Broken image icon
-    final center = rect.center;
-    final iconPaint = Paint()
-      ..color = const Color(0xFFBDBDBD)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..isAntiAlias = true;
+    // Broken image indicator: a soft rounded frame + small diagonal slash.
+    // Uses rounded corners and muted colors — premium feel, not hand-drawn.
+    if (rect.width > 24 && rect.height > 20) {
+      final center = rect.center;
+      final iconSize = (rect.shortestSide * 0.28).clamp(14.0, 28.0);
 
-    const iconSize = 20.0;
+      // Rounded frame
+      final framePaint = Paint()
+        ..color = const Color(0xFFD1D5DB)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..isAntiAlias = true;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+              center: center, width: iconSize * 1.5, height: iconSize),
+          const Radius.circular(3),
+        ),
+        framePaint,
+      );
 
-    // Draw broken image icon (image frame with crack)
-    final framePath = Path();
-    framePath.addRect(Rect.fromCenter(
-      center: center,
-      width: iconSize * 1.5,
-      height: iconSize,
-    ));
-    canvas.drawPath(framePath, iconPaint);
-
-    // Diagonal crack
-    canvas.drawLine(
-      Offset(center.dx - iconSize * 0.5, center.dy - iconSize * 0.3),
-      Offset(center.dx + iconSize * 0.5, center.dy + iconSize * 0.3),
-      iconPaint..color = const Color(0xFFE57373),
-    );
+      // Diagonal slash in error red — universally understood as "broken"
+      final slashPaint = Paint()
+        ..color = const Color(0xFFF87171) // Tailwind red-400 — softer than pure red
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..strokeCap = StrokeCap.round
+        ..isAntiAlias = true;
+      canvas.drawLine(
+        Offset(center.dx - iconSize * 0.45, center.dy - iconSize * 0.28),
+        Offset(center.dx + iconSize * 0.45, center.dy + iconSize * 0.28),
+        slashPaint,
+      );
+    }
   }
 
   /// Draws colored outlines for each line and fragment when [debugShowBounds] is true.
