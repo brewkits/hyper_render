@@ -462,6 +462,17 @@ class _RenderHyperTable extends RenderBox
   List<double>? _colWidths;
   List<double>? _rowHeights;
 
+  // ── child snapshot (rebuilt once per performLayout pass) ──────────────────
+  // Eliminates 5 separate linked-list traversals per layout (O(N²) → O(N)).
+  List<(RenderBox, _TableCellParentData)>? _childList;
+
+  // ── intrinsic column-width cache ──────────────────────────────────────────
+  // When the Flutter framework (e.g. outer IntrinsicHeight) calls
+  // computeMaxIntrinsicHeight repeatedly for the same width, we reuse the
+  // last _distributeColumnWidths result instead of re-traversing children.
+  double? _intrinsicCacheWidth;
+  List<double>? _intrinsicColWidthsCache;
+
   _RenderHyperTable({
     required int columnCount,
     required int rowCount,
@@ -498,6 +509,14 @@ class _RenderHyperTable extends RenderBox
       _borderWidth = v;
       markNeedsLayout();
     }
+  }
+
+  @override
+  void markNeedsLayout() {
+    _childList = null;
+    _intrinsicColWidthsCache = null;
+    _intrinsicCacheWidth = null;
+    super.markNeedsLayout();
   }
 
   // ── parentData setup ─────────────────────────────────────────────────────
@@ -547,7 +566,16 @@ class _RenderHyperTable extends RenderBox
   @override
   double computeMaxIntrinsicHeight(double width) {
     if (_columnCount == 0 || _rowCount == 0) return 0;
-    final colW = _distributeColumnWidths(width);
+    // Reuse cached column widths when the same width is queried repeatedly
+    // (e.g. outer IntrinsicHeight calling once per row — O(R×N) → O(N)).
+    final colW = (_intrinsicCacheWidth == width && _intrinsicColWidthsCache != null)
+        ? _intrinsicColWidthsCache!
+        : () {
+            final w = _distributeColumnWidths(width);
+            _intrinsicCacheWidth = width;
+            _intrinsicColWidthsCache = w;
+            return w;
+          }();
     final rowH = List<double>.filled(_rowCount, 0.0);
 
     // Only rowspan = 1 cells contribute reliably without a layout pass.
@@ -591,14 +619,17 @@ class _RenderHyperTable extends RenderBox
       return;
     }
 
+    // Build child snapshot once — avoids 5 separate O(N) linked-list traversals.
+    final children = _buildChildList();
+
     // Step 1 — column widths
-    _colWidths = _distributeColumnWidths(constraints.maxWidth);
+    _colWidths = _distributeColumnWidths(constraints.maxWidth, children);
 
     // Step 2 — row heights (lays out all cells as a side-effect)
-    _rowHeights = _computeRowHeights(_colWidths!);
+    _rowHeights = _computeRowHeights(_colWidths!, children);
 
     // Step 3 — position every cell
-    _positionCells(_colWidths!, _rowHeights!);
+    _positionCells(_colWidths!, _rowHeights!, children);
 
     // Step 4 — own size
     final totalW = _colWidths!.fold(0.0, (s, v) => s + v) +
@@ -614,20 +645,21 @@ class _RenderHyperTable extends RenderBox
   ///
   /// When [availW] is [double.infinity] (inside [FittedBox] / horizontal
   /// [SingleChildScrollView]) the table uses its natural (max-intrinsic) widths.
-  List<double> _distributeColumnWidths(double availW) {
+  List<double> _distributeColumnWidths(double availW,
+      [List<(RenderBox, _TableCellParentData)>? children]) {
     if (_columnCount == 0) return [];
 
     // Unconstrained — return natural column widths.
     if (availW.isInfinite) {
       final maxW = List<double>.filled(_columnCount, 0.0);
-      _walkChildren((child, pd) {
+      _forEach((child, pd) {
         final span = pd.colspan.clamp(1, _columnCount - pd.col);
         final childMax = child.getMaxIntrinsicWidth(double.infinity);
         final perCol = childMax / span;
         for (int c = pd.col; c < pd.col + span && c < _columnCount; c++) {
           if (perCol > maxW[c]) maxW[c] = perCol;
         }
-      });
+      }, children);
       return maxW;
     }
 
@@ -638,7 +670,7 @@ class _RenderHyperTable extends RenderBox
     final minW = List<double>.filled(_columnCount, 0.0);
     final maxW = List<double>.filled(_columnCount, 0.0);
 
-    _walkChildren((child, pd) {
+    _forEach((child, pd) {
       final span = pd.colspan.clamp(1, _columnCount - pd.col);
       final childMin = child.getMinIntrinsicWidth(double.infinity);
       final childMax = child.getMaxIntrinsicWidth(double.infinity);
@@ -648,7 +680,7 @@ class _RenderHyperTable extends RenderBox
         if (perColMin > minW[c]) minW[c] = perColMin;
         if (perColMax > maxW[c]) maxW[c] = perColMax;
       }
-    });
+    }, children);
 
     final totalMin = minW.fold(0.0, (s, v) => s + v);
 
@@ -656,18 +688,52 @@ class _RenderHyperTable extends RenderBox
     if (totalMin >= contentW) return List<double>.from(minW);
 
     final surplus = contentW - totalMin;
-    final totalMax = maxW.fold(0.0, (s, v) => s + v);
 
-    // No max-width info → equal distribution.
-    if (totalMax <= 0) {
-      return List<double>.filled(_columnCount, contentW / _columnCount);
+    // W3C: distribute surplus proportionally to each column's *flexibility*
+    // (maxW − minW), not its raw maxW.  Using raw maxW over-allocates to
+    // columns whose minW is already large (e.g. a fixed-width image cell),
+    // pushing them past their maxIntrinsicWidth and starving truly flexible
+    // columns.
+    final flex = List<double>.generate(
+      _columnCount,
+      (c) => math.max(0.0, maxW[c] - minW[c]),
+    );
+    final totalFlex = flex.fold(0.0, (s, v) => s + v);
+
+    // No flexibility anywhere (all columns already at their natural size) →
+    // fall back to equal distribution of any remaining space.
+    if (totalFlex <= 0) {
+      return List<double>.generate(
+          _columnCount, (c) => minW[c] + surplus / _columnCount);
     }
 
-    // Proportional distribution of surplus to wider-content columns.
-    return List<double>.generate(
+    // Phase 1 — proportional allocation by flexibility.
+    final widths = List<double>.generate(
       _columnCount,
-      (c) => minW[c] + surplus * (maxW[c] / totalMax),
+      (c) => minW[c] + surplus * (flex[c] / totalFlex),
     );
+
+    // Phase 2 — cap any column that would exceed its natural maxW and
+    // redistribute the freed-up space equally among the still-uncapped ones.
+    // A single redistribution pass is sufficient for all practical tables.
+    double excess = 0;
+    int uncapped = 0;
+    for (int c = 0; c < _columnCount; c++) {
+      if (widths[c] > maxW[c]) {
+        excess += widths[c] - maxW[c];
+        widths[c] = maxW[c];
+      } else {
+        uncapped++;
+      }
+    }
+    if (excess > 0 && uncapped > 0) {
+      final extra = excess / uncapped;
+      for (int c = 0; c < _columnCount; c++) {
+        if (widths[c] < maxW[c]) widths[c] += extra;
+      }
+    }
+
+    return widths;
   }
 
   // ── row-height computation ────────────────────────────────────────────────
@@ -678,20 +744,21 @@ class _RenderHyperTable extends RenderBox
   ///   1. Initial layout → rowspan=1 cells set their row's height.
   ///   2. rowspan>1 overflow → excess distributed across spanned rows.
   ///   3. Re-layout rowspan>1 cells with tight height so they fill the span.
-  List<double> _computeRowHeights(List<double> colWidths) {
+  List<double> _computeRowHeights(List<double> colWidths,
+      [List<(RenderBox, _TableCellParentData)>? children]) {
     final rowH = List<double>.filled(_rowCount, 0.0);
 
     // — Pass 1: layout every cell; rowspan=1 cells determine row heights ——
-    _walkChildren((child, pd) {
+    _forEach((child, pd) {
       final cellW = _cellWidth(pd.col, pd.colspan, colWidths);
       child.layout(BoxConstraints(maxWidth: cellW), parentUsesSize: true);
       if (pd.rowspan == 1) {
         if (child.size.height > rowH[pd.row]) rowH[pd.row] = child.size.height;
       }
-    });
+    }, children);
 
     // — Pass 2: distribute overflow from rowspan>1 cells ———————————————————
-    _walkChildren((child, pd) {
+    _forEach((child, pd) {
       if (pd.rowspan > 1) {
         final endRow = math.min(pd.row + pd.rowspan, _rowCount);
         double spanned = _borderWidth * (endRow - pd.row - 1);
@@ -706,11 +773,11 @@ class _RenderHyperTable extends RenderBox
           }
         }
       }
-    });
+    }, children);
 
     // — Pass 3: re-layout rowspan>1 cells with tight height so their
     //           background fills the full visual span ————————————————————————
-    _walkChildren((child, pd) {
+    _forEach((child, pd) {
       if (pd.rowspan > 1) {
         final endRow = math.min(pd.row + pd.rowspan, _rowCount);
         double totalH = _borderWidth * (endRow - pd.row - 1);
@@ -728,7 +795,7 @@ class _RenderHyperTable extends RenderBox
           parentUsesSize: true,
         );
       }
-    });
+    }, children);
 
     return rowH;
   }
@@ -750,7 +817,8 @@ class _RenderHyperTable extends RenderBox
 
   // ── cell positioning ──────────────────────────────────────────────────────
 
-  void _positionCells(List<double> colWidths, List<double> rowHeights) {
+  void _positionCells(List<double> colWidths, List<double> rowHeights,
+      [List<(RenderBox, _TableCellParentData)>? children]) {
     // Precompute the left edge of each column (including leading border).
     final colX = List<double>.filled(_columnCount + 1, 0.0);
     colX[0] = _borderWidth;
@@ -765,9 +833,9 @@ class _RenderHyperTable extends RenderBox
       rowY[r + 1] = rowY[r] + rowHeights[r] + _borderWidth;
     }
 
-    _walkChildren((child, pd) {
+    _forEach((child, pd) {
       pd.offset = Offset(colX[pd.col], rowY[pd.row]);
-    });
+    }, children);
   }
 
   // ── paint ─────────────────────────────────────────────────────────────────
@@ -821,6 +889,33 @@ class _RenderHyperTable extends RenderBox
   }
 
   // ── utility ───────────────────────────────────────────────────────────────
+
+  /// Returns the cached child snapshot, building it on first call per layout cycle.
+  ///
+  /// The cache is invalidated by [markNeedsLayout], so it stays fresh across
+  /// all methods called within a single layout pass (intrinsic queries +
+  /// [performLayout] share one traversal instead of five).
+  List<(RenderBox, _TableCellParentData)> _buildChildList() {
+    if (_childList != null) return _childList!;
+    final list = <(RenderBox, _TableCellParentData)>[];
+    _walkChildren((c, pd) => list.add((c, pd)));
+    _childList = list;
+    return list;
+  }
+
+  /// Iterates children using [children] snapshot when available (O(N) array
+  /// traversal), or falls back to [_walkChildren] (O(N) linked-list traversal).
+  void _forEach(
+      void Function(RenderBox child, _TableCellParentData pd) fn,
+      [List<(RenderBox, _TableCellParentData)>? children]) {
+    if (children != null) {
+      for (final (child, pd) in children) {
+        fn(child, pd);
+      }
+    } else {
+      _walkChildren(fn);
+    }
+  }
 
   void _walkChildren(
       void Function(RenderBox child, _TableCellParentData pd) fn) {

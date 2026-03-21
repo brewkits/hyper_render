@@ -20,6 +20,10 @@ extension RenderHyperBoxSelection on RenderHyperBox {
 
     for (final line in _lines) {
       if (position.dy >= line.top && position.dy < line.top + line.height) {
+        // Save offset at the start of this line so we can return it when
+        // a click lands in the left margin (before all text fragments).
+        final lineStartOffset = currentOffset;
+
         for (final fragment in line.fragments) {
           if (fragment.type == FragmentType.text && fragment.text != null) {
             final fragmentOffset = fragment.offset ?? Offset.zero;
@@ -30,9 +34,11 @@ extension RenderHyperBoxSelection on RenderHyperBox {
               fragment.height,
             );
 
-            if (position.dx >= fragmentRect.left &&
-                position.dx <= fragmentRect.right) {
-              // Find character within fragment
+            // Click is before this fragment — place cursor at start of line.
+            if (position.dx < fragmentRect.left) return lineStartOffset;
+
+            if (position.dx <= fragmentRect.right) {
+              // Click is within this fragment — find exact character position.
               final painter = _getTextPainter(fragment.text!, fragment.style);
               final localX = position.dx - fragmentRect.left;
               final textPosition =
@@ -43,7 +49,7 @@ extension RenderHyperBoxSelection on RenderHyperBox {
             currentOffset += fragment.text!.length;
           }
         }
-        // If we're on the line but past all fragments, return end of line
+        // Click was past all fragments (right margin) — return end of line.
         return currentOffset;
       }
 

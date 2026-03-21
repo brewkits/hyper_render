@@ -60,6 +60,7 @@ export 'src/style/design_tokens.dart';
 
 // Core rendering
 export 'src/core/render_hyper_box.dart';
+export 'src/core/hyper_selection_controller.dart';
 export 'src/core/span_converter.dart';
 export 'src/core/kinsoku_processor.dart';
 export 'src/core/image_provider.dart';

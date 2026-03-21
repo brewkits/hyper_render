@@ -30,6 +30,21 @@ class StyleResolver {
   /// Get parsed CSS rules (for debugging)
   List<CssRule> get cssRules => List.unmodifiable(_cssRules);
 
+  // ── Rule index for O(1) candidate lookup ────────────────────────────────
+  // After _extractRules, rules are partitioned by their "key" selector part:
+  //   _rulesByTag['p']    — rules whose rightmost simple part is the element "p"
+  //   _rulesByClass['foo'] — rules that require class "foo"
+  //   _rulesById['bar']   — rules that require id "bar"
+  //   _universalRules     — rules that can match anything (universal "*",
+  //                         attribute selectors, combinators, pseudo-classes)
+  //
+  // _getCandidateRules(node) returns the union of all buckets that are relevant
+  // for the given node, avoiding full iteration over unrelated rules.
+  final Map<String, List<CssRule>> _rulesByTag = {};
+  final Map<String, List<CssRule>> _rulesByClass = {};
+  final Map<String, List<CssRule>> _rulesById = {};
+  final List<CssRule> _universalRules = [];
+
   /// User agent (default) styles
   static final Map<String, ComputedStyle> _userAgentStyles = {
     'h1': ComputedStyle(
@@ -127,11 +142,11 @@ class StyleResolver {
       display: DisplayType.block,
       fontFamily: 'monospace',
       whiteSpace: 'pre',
-      backgroundColor: const Color(0xFF1E1E1E), // Dark background like VS Code
-      color: const Color(0xFFD4D4D4), // Light text
-      padding: const EdgeInsets.all(16),
+      // Visual styling (background, padding, borderRadius) is intentionally omitted
+      // here because <pre> blocks are rendered as CodeBlockWidget children that
+      // handle their own visual presentation. Keeping these here causes a double-
+      // painted dark background that covers the code widget's own background.
       margin: const EdgeInsets.symmetric(vertical: 12),
-      borderRadius: BorderRadius.circular(8),
       fontSize: 13,
       lineHeight: 1.6,
     ),
@@ -222,6 +237,107 @@ class StyleResolver {
       final cmp = a.specificity.compareTo(b.specificity);
       return cmp != 0 ? cmp : a.sourceIndex.compareTo(b.sourceIndex);
     });
+
+    _buildRuleIndex();
+  }
+
+  /// Build O(1)-lookup index over [_cssRules].
+  ///
+  /// Each rule is placed into the most specific bucket we can identify from its
+  /// selector string without full parsing:
+  /// - Has `#id`   → [_rulesById]   (most specific)
+  /// - Has `.cls`  → [_rulesByClass]
+  /// - Starts with or ends in an element name → [_rulesByTag]
+  /// - Otherwise   → [_universalRules]
+  ///
+  /// A rule can be in **multiple** buckets (e.g. `div.foo` → both tag and class).
+  /// [_getCandidateRules] deduplicates with a Set when merging results.
+  void _buildRuleIndex() {
+    _rulesByTag.clear();
+    _rulesByClass.clear();
+    _rulesById.clear();
+    _universalRules.clear();
+
+    for (final rule in _cssRules) {
+      // Extract the rightmost simple selector part (after any combinator).
+      final rightmost = _rightmostSimplePart(rule.selector);
+
+      bool indexed = false;
+
+      // Index by id (#foo)
+      final idMatch = RegExp(r'#([a-zA-Z_][a-zA-Z0-9_-]*)').firstMatch(rightmost);
+      if (idMatch != null) {
+        (_rulesById[idMatch.group(1)!] ??= []).add(rule);
+        indexed = true;
+      }
+
+      // Index by class (.foo) — may be multiple classes
+      for (final m in RegExp(r'\.([a-zA-Z_][a-zA-Z0-9_-]*)').allMatches(rightmost)) {
+        (_rulesByClass[m.group(1)!] ??= []).add(rule);
+        indexed = true;
+      }
+
+      // Index by tag (starts with letter, no # or .)
+      final tagMatch = RegExp(r'^([a-zA-Z][a-zA-Z0-9]*)').firstMatch(rightmost);
+      if (tagMatch != null) {
+        (_rulesByTag[tagMatch.group(1)!.toLowerCase()] ??= []).add(rule);
+        indexed = true;
+      }
+
+      if (!indexed) {
+        _universalRules.add(rule);
+      }
+    }
+  }
+
+  /// Returns the rightmost simple selector part (after the last combinator).
+  ///
+  /// For `div > p.lead` → `p.lead`; for `h1 + p` → `p`; for `*` → `*`.
+  static String _rightmostSimplePart(String selector) {
+    // Split on combinator tokens (space, >, +, ~) and take the last part.
+    final parts = selector.split(RegExp(r'\s*[>+~]\s*|\s+'));
+    return parts.last.trim();
+  }
+
+  /// Returns the deduplicated set of candidate rules for [node].
+  ///
+  /// Merges: universal + tag-indexed + class-indexed + id-indexed buckets.
+  /// The returned list is in insertion (specificity-sorted) order because
+  /// [_buildRuleIndex] preserves [_cssRules] sort order within each bucket.
+  List<CssRule> _getCandidateRules(UDTNode node) {
+    final seen = <CssRule>{};
+    final result = <CssRule>[];
+
+    void add(List<CssRule>? bucket) {
+      if (bucket == null) return;
+      for (final r in bucket) {
+        if (seen.add(r)) result.add(r);
+      }
+    }
+
+    add(_universalRules);
+
+    final tag = node.tagName?.toLowerCase();
+    if (tag != null) add(_rulesByTag[tag]);
+
+    final classAttr = node.attributes['class'];
+    if (classAttr != null) {
+      for (final cls in classAttr.split(RegExp(r'\s+'))) {
+        if (cls.isNotEmpty) add(_rulesByClass[cls]);
+      }
+    }
+
+    final id = node.attributes['id'];
+    if (id != null && id.isNotEmpty) add(_rulesById[id]);
+
+    // Re-sort the merged candidate list by (specificity, sourceIndex) so that
+    // the cascade order is maintained correctly.
+    result.sort((a, b) {
+      final cmp = a.specificity.compareTo(b.specificity);
+      return cmp != 0 ? cmp : a.sourceIndex.compareTo(b.sourceIndex);
+    });
+
+    return result;
   }
 
   /// Convert a csslib RuleSet to one [CssRule] per comma-separated selector.
@@ -354,8 +470,12 @@ class StyleResolver {
     }
 
     // 2. Apply CSS rules (sorted by specificity, normal declarations only)
-    for (final rule in _cssRules) {
-      if (_matchesSelector(node, rule.selector)) {
+    //    Use O(1) candidate lookup via _getCandidateRules to avoid iterating
+    //    over every rule for every node (previously O(Rules × Nodes)).
+    final candidates = _getCandidateRules(node);
+    for (final rule in candidates) {
+      if (rule.declarations.isNotEmpty &&
+          _matchesSelector(node, rule.selector)) {
         style = _applyDeclarations(
           style,
           rule.declarations,
@@ -377,7 +497,7 @@ class StyleResolver {
     }
 
     // 4. Apply !important declarations (win over inline styles, per CSS spec)
-    for (final rule in _cssRules) {
+    for (final rule in candidates) {
       if (rule.importantDeclarations.isNotEmpty &&
           _matchesSelector(node, rule.selector)) {
         style = _applyDeclarations(
@@ -417,28 +537,140 @@ class StyleResolver {
   bool _matchesSelector(UDTNode node, String selector) {
     selector = selector.trim();
 
-    // Child selector: `parent > child`
-    if (selector.contains(' > ')) {
-      return _matchesChildSelector(node, selector);
+    // Normalize optional whitespace around combinators so that both `div>p`
+    // and `div > p` are treated identically.  We collapse any runs of spaces
+    // back to a single space after insertion to avoid double-space issues.
+    selector = selector
+        .replaceAllMapped(RegExp(r'\s*([>+~])\s*'), (m) => ' ${m.group(1)} ')
+        .replaceAll(RegExp(r' {2,}'), ' ')
+        .trim();
+
+    final parts = _tokenizeCombinators(selector);
+    if (parts.isEmpty) return false;
+    if (parts.length == 1) return _matchesSimpleSelector(node, parts[0].$1);
+    return _matchesSelectorParts(node, parts, parts.length - 1);
+  }
+
+  /// Tokenizes a normalized selector string into a list of
+  /// `(simpleSelector, combinator)` pairs.
+  ///
+  /// The **last** part always has a `null` combinator (it has no right-hand
+  /// neighbour). All other parts carry the combinator that connects them to
+  /// the next part:
+  ///
+  ///   `"div > p + span"`  →
+  ///     `[("div", ">"), ("p", "+"), ("span", null)]`
+  ///
+  /// Parenthesised content (e.g. `:nth-child(2n+1)`) is treated as opaque —
+  /// the `+` inside the parens is NOT interpreted as a combinator.
+  static List<(String, String?)> _tokenizeCombinators(String selector) {
+    final parts = <(String, String?)>[];
+    final buf = StringBuffer();
+    int depth = 0;
+    int i = 0;
+
+    while (i < selector.length) {
+      final ch = selector[i];
+
+      if (ch == '(') {
+        depth++;
+        buf.write(ch);
+        i++;
+        continue;
+      }
+      if (ch == ')') {
+        depth--;
+        buf.write(ch);
+        i++;
+        continue;
+      }
+      if (depth > 0) {
+        buf.write(ch);
+        i++;
+        continue;
+      }
+
+      // At depth 0: check for combinator patterns.
+      // After normalization, explicit combinators are always " X " (space,
+      // combinator char, space).  Descendant combinator is a plain space.
+      if (ch == ' ') {
+        if (i + 2 < selector.length &&
+            '>+~'.contains(selector[i + 1]) &&
+            selector[i + 2] == ' ') {
+          // Explicit combinator: " > ", " + ", or " ~ "
+          if (buf.isNotEmpty) {
+            parts.add((buf.toString(), selector[i + 1]));
+            buf.clear();
+          }
+          i += 3; // skip ' ', combinator, ' '
+          continue;
+        }
+        // Descendant combinator (plain space between simple selectors).
+        if (buf.isNotEmpty) {
+          parts.add((buf.toString(), ' '));
+          buf.clear();
+        }
+        i++;
+        continue;
+      }
+
+      buf.write(ch);
+      i++;
     }
 
-    // Adjacent sibling selector: `prev + next`
-    if (selector.contains(' + ')) {
-      return _matchesAdjacentSiblingSelector(node, selector);
-    }
+    if (buf.isNotEmpty) parts.add((buf.toString(), null));
+    return parts;
+  }
 
-    // General sibling selector: `prev ~ sibling`
-    if (selector.contains(' ~ ')) {
-      return _matchesGeneralSiblingSelector(node, selector);
-    }
+  /// Matches [node] against a tokenized selector list, working right-to-left.
+  ///
+  /// [partIdx] starts at `parts.length - 1` (the rightmost simple selector)
+  /// and recurses leftward following each combinator.
+  ///
+  /// Examples of correctly handled mixed-combinator selectors:
+  ///   - `div > p + span`  — child then adjacent-sibling
+  ///   - `ul li:first-child` — descendant then structural pseudo-class
+  ///   - `section > div ~ p` — child then general-sibling
+  bool _matchesSelectorParts(
+      UDTNode node, List<(String, String?)> parts, int partIdx) {
+    if (!_matchesSimpleSelector(node, parts[partIdx].$1)) return false;
+    if (partIdx == 0) return true; // all parts matched
 
-    // Descendant selector: `ancestor descendant`
-    if (selector.contains(' ')) {
-      return _matchesDescendantSelector(node, selector);
-    }
+    // The combinator is stored on the part to the LEFT (parts[partIdx-1].$2).
+    final combinator = parts[partIdx - 1].$2!;
 
-    // Simple selector (element, class, id, or combination)
-    return _matchesSimpleSelector(node, selector);
+    switch (combinator) {
+      case '>': // child combinator
+        if (node.parent == null) return false;
+        return _matchesSelectorParts(node.parent!, parts, partIdx - 1);
+
+      case '+': // adjacent sibling combinator
+        final prev = _getPreviousSibling(node);
+        if (prev == null) return false;
+        return _matchesSelectorParts(prev, parts, partIdx - 1);
+
+      case '~': // general sibling combinator
+        final parent = node.parent;
+        if (parent == null) return false;
+        final nodeIdx = parent.children.indexOf(node);
+        for (int i = 0; i < nodeIdx; i++) {
+          if (_matchesSelectorParts(parent.children[i], parts, partIdx - 1)) {
+            return true;
+          }
+        }
+        return false;
+
+      case ' ': // descendant combinator
+        UDTNode? ancestor = node.parent;
+        while (ancestor != null) {
+          if (_matchesSelectorParts(ancestor, parts, partIdx - 1)) return true;
+          ancestor = ancestor.parent;
+        }
+        return false;
+
+      default:
+        return false;
+    }
   }
 
   /// Match simple selector (no combinators)
@@ -448,24 +680,189 @@ class StyleResolver {
     // Universal selector
     if (selector == '*') return true;
 
+    // Extract and evaluate pseudo-classes before structural matching.
+    // e.g. "li:first-child" → base = "li", pseudos = [":first-child"]
+    //      "div.highlight:hover" → base = "div.highlight", pseudos = [":hover"]
+    final extracted = _extractPseudoClasses(selector);
+    final base = extracted.base;
+    final pseudos = extracted.pseudos;
+
+    // Check all pseudo-classes first — if any fail, the selector doesn't match.
+    for (final pseudo in pseudos) {
+      if (!_matchesPseudoClass(node, pseudo)) return false;
+    }
+
+    // If the entire selector was just pseudo-classes, universal match.
+    if (base.isEmpty) return true;
+
     // ID selector only: `#myId`
-    if (selector.startsWith('#') && !selector.contains('.')) {
-      final id = selector.substring(1);
+    if (base.startsWith('#') && !base.contains('.')) {
+      final id = base.substring(1);
       return node.cssId == id;
     }
 
     // Class selector only: `.myClass`
-    if (selector.startsWith('.') && !selector.contains('#')) {
-      return _matchesClassSelector(node, selector);
+    if (base.startsWith('.') && !base.contains('#')) {
+      return _matchesClassSelector(node, base);
     }
 
     // Element selector only: `div`
-    if (!selector.contains('.') && !selector.contains('#')) {
-      return selector == node.tagName;
+    if (!base.contains('.') && !base.contains('#')) {
+      return base == node.tagName;
     }
 
     // Combined selectors: `div.class`, `div#id`, `div.class1.class2`
-    return _matchesCombinedSelector(node, selector);
+    return _matchesCombinedSelector(node, base);
+  }
+
+  /// Splits a simple selector into its base part and any pseudo-class/pseudo-element
+  /// suffixes.
+  ///
+  /// Example: `"li:first-child"` → `(base: "li", pseudos: [":first-child"])`
+  /// Example: `"div.foo:hover"` → `(base: "div.foo", pseudos: [":hover"])`
+  /// Example: `"p:nth-child(2n+1)"` → `(base: "p", pseudos: [":nth-child(2n+1)"])`
+  static ({String base, List<String> pseudos}) _extractPseudoClasses(
+      String selector) {
+    final pseudos = <String>[];
+    // Match ::pseudo-element or :pseudo-class (with optional parenthesised arg)
+    // The character class [^()]+ prevents greedy match from swallowing nested
+    // parens, but CSS pseudo-class args are never nested so this is sufficient.
+    final result = selector.replaceAllMapped(
+      RegExp(r'::?[a-zA-Z-]+(?:\([^()]*\))?'),
+      (m) {
+        pseudos.add(m.group(0)!.toLowerCase());
+        return '';
+      },
+    );
+    return (base: result.trim(), pseudos: pseudos);
+  }
+
+  /// Returns whether [node] satisfies a single pseudo-class or pseudo-element.
+  ///
+  /// **Structural pseudo-classes** — evaluated against the DOM tree:
+  /// `:first-child`, `:last-child`, `:only-child`,
+  /// `:nth-child(…)`, `:nth-last-child(…)`,
+  /// `:first-of-type`, `:last-of-type`, `:only-of-type`.
+  ///
+  /// **Behavioral / dynamic pseudo-classes** — always return `false` because
+  /// static rendering has no hover/focus/active state:
+  /// `:hover`, `:focus`, `:active`, `:visited`, `:focus-within`,
+  /// `:focus-visible`, `:checked`, `:disabled`, `:enabled`.
+  ///
+  /// **Unknown / future pseudo-classes** — return `true` (ignore) to avoid
+  /// breaking forward-compatible CSS.
+  bool _matchesPseudoClass(UDTNode node, String pseudo) {
+    // ── Behavioral states — never true in static rendering ──────────────────
+    const dynamic_ = {
+      ':hover', ':focus', ':active', ':visited',
+      ':focus-within', ':focus-visible', ':focus-ring',
+      ':checked', ':indeterminate', ':disabled', ':enabled',
+      ':placeholder-shown', ':autofill',
+    };
+    if (dynamic_.contains(pseudo)) return false;
+
+    // ── Pseudo-elements — skip (not applicable to node matching) ────────────
+    if (pseudo.startsWith('::')) return true;
+
+    final parent = node.parent;
+
+    // ── :first-child ────────────────────────────────────────────────────────
+    if (pseudo == ':first-child') {
+      return parent != null &&
+          parent.children.isNotEmpty &&
+          parent.children.first == node;
+    }
+
+    // ── :last-child ─────────────────────────────────────────────────────────
+    if (pseudo == ':last-child') {
+      return parent != null &&
+          parent.children.isNotEmpty &&
+          parent.children.last == node;
+    }
+
+    // ── :only-child ─────────────────────────────────────────────────────────
+    if (pseudo == ':only-child') {
+      return parent != null && parent.children.length == 1;
+    }
+
+    // ── :nth-child(…) ───────────────────────────────────────────────────────
+    final nthChild = RegExp(r'^:nth-child\(([^)]+)\)$').firstMatch(pseudo);
+    if (nthChild != null) {
+      if (parent == null) return false;
+      final idx = parent.children.indexOf(node) + 1; // 1-based
+      return _matchesNthExpression(idx, nthChild.group(1)!.trim());
+    }
+
+    // ── :nth-last-child(…) ──────────────────────────────────────────────────
+    final nthLast = RegExp(r'^:nth-last-child\(([^)]+)\)$').firstMatch(pseudo);
+    if (nthLast != null) {
+      if (parent == null) return false;
+      final idx = parent.children.length - parent.children.indexOf(node); // 1-based from end
+      return _matchesNthExpression(idx, nthLast.group(1)!.trim());
+    }
+
+    // ── :first-of-type ──────────────────────────────────────────────────────
+    if (pseudo == ':first-of-type') {
+      if (parent == null) return false;
+      return parent.children
+              .firstWhere(
+                (c) => c.tagName == node.tagName,
+                orElse: () => node,
+              ) ==
+          node;
+    }
+
+    // ── :last-of-type ───────────────────────────────────────────────────────
+    if (pseudo == ':last-of-type') {
+      if (parent == null) return false;
+      return parent.children
+              .lastWhere(
+                (c) => c.tagName == node.tagName,
+                orElse: () => node,
+              ) ==
+          node;
+    }
+
+    // ── :only-of-type ───────────────────────────────────────────────────────
+    if (pseudo == ':only-of-type') {
+      if (parent == null) return false;
+      return parent.children.where((c) => c.tagName == node.tagName).length == 1;
+    }
+
+    // ── Unknown / future pseudo-classes → ignore (don't block matching) ─────
+    return true;
+  }
+
+  /// Evaluates CSS `An+B` notation against a 1-based child [index].
+  ///
+  /// Supports: `odd`, `even`, a plain integer `N`, and the full `An+B` form.
+  static bool _matchesNthExpression(int index, String expr) {
+    expr = expr.toLowerCase().trim();
+    if (expr == 'odd') return index % 2 == 1;
+    if (expr == 'even') return index % 2 == 0;
+
+    final plain = int.tryParse(expr);
+    if (plain != null) return index == plain;
+
+    // Parse An+B  (e.g. "2n+1", "-n+3", "n", "3n")
+    final match =
+        RegExp(r'^(-?\d*)?n(?:\+(\d+))?$').firstMatch(expr);
+    if (match == null) return false;
+
+    final aStr = match.group(1) ?? '1';
+    final a = aStr.isEmpty || aStr == '+' ? 1 : (aStr == '-' ? -1 : int.tryParse(aStr) ?? 1);
+    final b = int.tryParse(match.group(2) ?? '0') ?? 0;
+
+    if (a == 0) return index == b;
+    // index = a*n + b  →  n = (index - b) / a  must be a non-negative integer.
+    //
+    // Do NOT short-circuit on `numerator < 0` when a is negative:
+    //   -n+3 (a=-1, b=3) → index=1: numerator = 1-3 = -2, n = -2/-1 = 2 ✓
+    //   Removing the early-exit and relying solely on `n >= 0` handles both
+    //   positive and negative step values correctly.
+    final numerator = index - b;
+    if (numerator % a != 0) return false;
+    return numerator ~/ a >= 0;
   }
 
   /// Match class selector (can be multiple: `.class1.class2`)
@@ -526,92 +923,6 @@ class StyleResolver {
     }
 
     return elementPart != null || idPart != null || classParts.isNotEmpty;
-  }
-
-  /// Match descendant selector: `ancestor descendant`
-  bool _matchesDescendantSelector(UDTNode node, String selector) {
-    final parts = selector.split(RegExp(r'\s+'));
-    if (parts.length < 2) return false;
-
-    final descendantSelector = parts.last;
-    final ancestorSelector = parts.sublist(0, parts.length - 1).join(' ');
-
-    // First, node must match descendant selector
-    if (!_matchesSimpleSelector(node, descendantSelector)) {
-      return false;
-    }
-
-    // Then, check if any ancestor matches
-    UDTNode? ancestor = node.parent;
-    while (ancestor != null) {
-      if (_matchesSelector(ancestor, ancestorSelector)) {
-        return true;
-      }
-      ancestor = ancestor.parent;
-    }
-
-    return false;
-  }
-
-  /// Match child selector: `parent > child` — supports arbitrary depth (a > b > c)
-  bool _matchesChildSelector(UDTNode node, String selector) {
-    final parts = selector.split(' > ');
-    if (parts.length < 2) return false;
-
-    // Node must match the last (child) part
-    if (!_matchesSimpleSelector(node, parts.last.trim())) return false;
-
-    // Parent must match the rest (supports arbitrary depth)
-    if (node.parent == null) return false;
-    final parentSelector = parts.sublist(0, parts.length - 1).join(' > ');
-    return _matchesSelector(node.parent!, parentSelector);
-  }
-
-  /// Match adjacent sibling selector: `prev + next`
-  bool _matchesAdjacentSiblingSelector(UDTNode node, String selector) {
-    final parts = selector.split(' + ');
-    if (parts.length != 2) return false;
-
-    final prevSelector = parts[0].trim();
-    final nextSelector = parts[1].trim();
-
-    // Node must match next selector
-    if (!_matchesSimpleSelector(node, nextSelector)) {
-      return false;
-    }
-
-    // Find previous sibling
-    final prevSibling = _getPreviousSibling(node);
-    if (prevSibling == null) return false;
-
-    return _matchesSimpleSelector(prevSibling, prevSelector);
-  }
-
-  /// Match general sibling selector: `prev ~ sibling`
-  bool _matchesGeneralSiblingSelector(UDTNode node, String selector) {
-    final parts = selector.split(' ~ ');
-    if (parts.length != 2) return false;
-
-    final prevSelector = parts[0].trim();
-    final siblingSelector = parts[1].trim();
-
-    // Node must match sibling selector
-    if (!_matchesSimpleSelector(node, siblingSelector)) {
-      return false;
-    }
-
-    // Check if any previous sibling matches
-    final parent = node.parent;
-    if (parent == null) return false;
-
-    final nodeIndex = parent.children.indexOf(node);
-    for (int i = 0; i < nodeIndex; i++) {
-      if (_matchesSimpleSelector(parent.children[i], prevSelector)) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   /// Get previous sibling of a node
@@ -947,6 +1258,7 @@ class StyleResolver {
         if (border != null) {
           style.borderWidth = style.borderWidth.copyWith(left: border.$1);
           style.borderColor = border.$2;
+          if (border.$3 != null) style.borderStyle = border.$3!;
           style.markExplicitlySet('border');
         }
         break;
@@ -956,6 +1268,7 @@ class StyleResolver {
         if (border != null) {
           style.borderWidth = EdgeInsets.all(border.$1);
           style.borderColor = border.$2;
+          if (border.$3 != null) style.borderStyle = border.$3!;
           style.markExplicitlySet('border');
         }
         break;
@@ -1343,18 +1656,27 @@ class StyleResolver {
   }
 
   /// Evaluate all calc() expressions in a value string.
+  ///
+  /// Uses `[^()]+` (innermost-only) regex iterated until no more calc() remain,
+  /// so nested expressions like `calc(100% - calc(20px * 2))` are resolved
+  /// inside-out: inner `calc(20px * 2)` → `40px` first, then outer calc().
   String _evaluateCalcInValue(String value) {
-    // Replace calc(...) with computed px value
-    // Handles simple arithmetic: px, em, rem, % units
-    return value.replaceAllMapped(
-      RegExp(r'calc\(([^)]+)\)'),
-      (match) {
+    // [^()]+ matches only characters that are NOT parens, so it always finds
+    // the *innermost* calc() — the one with no nested calls inside.
+    final innerCalc = RegExp(r'calc\(([^()]+)\)');
+    String current = value;
+    // Iterate until stable (each pass resolves one nesting level).
+    while (current.contains('calc(')) {
+      final next = current.replaceAllMapped(innerCalc, (match) {
         final expr = match.group(1)!;
         final result = _evaluateCalcExpr(expr);
         if (result != null) return '${result}px';
         return match.group(0)!; // Keep original if can't evaluate
-      },
-    );
+      });
+      if (next == current) break; // No progress — avoid infinite loop
+      current = next;
+    }
+    return current;
   }
 
   /// Evaluate a CSS calc() arithmetic expression to a pixel value.
@@ -1517,10 +1839,11 @@ class StyleResolver {
   }
 
   /// Parse border shorthand (e.g., "1px solid red")
-  (double, Color)? _parseBorderShorthand(String value) {
+  (double, Color, HyperBorderStyle?)? _parseBorderShorthand(String value) {
     final parts = value.trim().split(RegExp(r'\s+'));
     double width = 1.0;
     Color color = const Color(0xFF000000);
+    HyperBorderStyle? borderStyle;
 
     for (final part in parts) {
       final w = _parseLength(part);
@@ -1528,12 +1851,17 @@ class StyleResolver {
         width = w;
         continue;
       }
+      final s = _parseBorderStyle(part);
+      if (s != null) {
+        borderStyle = s;
+        continue;
+      }
       final c = _parseColor(part);
       if (c != null) {
         color = c;
       }
     }
-    return (width, color);
+    return (width, color, borderStyle);
   }
 
   /// Parse CSS float value
