@@ -598,7 +598,7 @@ class ComputedStyle {
     this.borderRightStyle,
     this.borderBottomStyle,
     this.borderLeftStyle,
-    this.color = const Color(0xFF000000),
+    this.color = const Color(0xFF1F2937),
     this.fontSize = 16.0,
     this.fontWeight = FontWeight.normal,
     this.fontStyle = FontStyle.normal,
@@ -654,25 +654,57 @@ class ComputedStyle {
     this.flexShrink,
     this.flexBasis,
     this.alignSelf,
-  });
+  }) {
+    // Validate non-negative dimensions
+    if (fontSize < 0) {
+      throw ArgumentError.value(fontSize, 'fontSize', 'must be non-negative');
+    }
+    if (width != null && width! < 0) {
+      throw ArgumentError.value(width, 'width', 'must be non-negative');
+    }
+    if (height != null && height! < 0) {
+      throw ArgumentError.value(height, 'height', 'must be non-negative');
+    }
+    if (minWidth != null && minWidth! < 0) {
+      throw ArgumentError.value(minWidth, 'minWidth', 'must be non-negative');
+    }
+    if (maxWidth != null && maxWidth! < 0) {
+      throw ArgumentError.value(maxWidth, 'maxWidth', 'must be non-negative');
+    }
+    if (minHeight != null && minHeight! < 0) {
+      throw ArgumentError.value(minHeight, 'minHeight', 'must be non-negative');
+    }
+    if (maxHeight != null && maxHeight! < 0) {
+      throw ArgumentError.value(maxHeight, 'maxHeight', 'must be non-negative');
+    }
+    if (opacity < 0 || opacity > 1) {
+      throw ArgumentError.value(opacity, 'opacity', 'must be between 0 and 1');
+    }
+  }
 
   /// Inherit inheritable properties from parent
   ///
   /// Reference: doc1.txt - "1.2. Quy trình Resolve"
   /// Properties like color, font-family are inherited from parent Node
   /// margin, padding are NOT inherited
+  ///
+  /// Properties that were explicitly set on this element (via [markExplicitlySet])
+  /// are NOT overwritten — matching CSS cascade behaviour.
   void inheritFrom(ComputedStyle parent) {
-    // Text properties that inherit
-    color = parent.color;
-    fontSize = parent.fontSize;
-    fontWeight = parent.fontWeight;
-    fontStyle = parent.fontStyle;
-    fontFamily = parent.fontFamily;
-    lineHeight = parent.lineHeight;
-    letterSpacing = parent.letterSpacing;
-    wordSpacing = parent.wordSpacing;
-    textAlign = parent.textAlign;
-    whiteSpace = parent.whiteSpace;
+    // Text properties that inherit — only if not explicitly set on this element
+    if (!isExplicitlySet('color')) color = parent.color;
+    if (!isExplicitlySet('font-size')) fontSize = parent.fontSize;
+    if (!isExplicitlySet('font-weight')) fontWeight = parent.fontWeight;
+    if (!isExplicitlySet('font-style')) fontStyle = parent.fontStyle;
+    if (!isExplicitlySet('font-family')) fontFamily = parent.fontFamily;
+    if (!isExplicitlySet('line-height')) lineHeight = parent.lineHeight;
+    if (!isExplicitlySet('letter-spacing')) letterSpacing = parent.letterSpacing;
+    if (!isExplicitlySet('word-spacing')) wordSpacing = parent.wordSpacing;
+    if (!isExplicitlySet('text-align')) textAlign = parent.textAlign;
+    if (!isExplicitlySet('white-space')) whiteSpace = parent.whiteSpace;
+    if (!isExplicitlySet('text-decoration')) {
+      textDecoration = parent.textDecoration;
+    }
 
     // CSS direction is inheritable
     hyperDirection ??= parent.hyperDirection;
@@ -696,15 +728,13 @@ class ComputedStyle {
       fontFamily: fontFamily,
       decoration: textDecoration,
       decorationColor: textDecorationColor,
-      height: lineHeight ?? 1.4,
+      // Use the author-specified line-height; null → font's natural metrics,
+      // which matches how flutter_html / RichText behaves.
+      height: lineHeight,
       letterSpacing: letterSpacing,
       wordSpacing: wordSpacing,
       shadows: textShadow,
       overflow: textOverflow,
-      fontFeatures: const [
-        FontFeature.proportionalFigures(), // Better number spacing
-        FontFeature.enable('liga'), // Ligatures (fi, fl, etc.)
-      ],
     );
   }
 

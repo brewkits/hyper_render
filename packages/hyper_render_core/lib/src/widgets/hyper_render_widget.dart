@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/image_provider.dart';
+import '../core/render_formula.dart';
 import '../core/render_hyper_box.dart';
 import '../core/render_media.dart';
 import '../core/render_table.dart';
@@ -9,6 +10,7 @@ import '../interfaces/image_clipboard.dart';
 import '../model/computed_style.dart';
 import '../model/node.dart';
 import 'code_block_widget.dart';
+import 'error_boundary_widget.dart';
 import 'flex_container_widget.dart';
 import 'grid_container_widget.dart';
 import 'hyper_details_widget.dart';
@@ -104,6 +106,12 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// See [RenderHyperBox.enableComplexFilters].
   final bool enableComplexFilters;
 
+  /// When true, suppresses the top margin of the first block element.
+  /// Set to `true` for all virtualized sections except the first so that
+  /// CSS margin collapsing works correctly across section boundaries.
+  /// See [RenderHyperBox.suppressFirstBlockMarginTop].
+  final bool suppressFirstBlockMarginTop;
+
   /// Creates a HyperRenderWidget
   ///
   /// The [document] parameter is required and contains the parsed UDT tree.
@@ -111,7 +119,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   HyperRenderWidget({
     super.key,
     required this.document,
-    this.baseStyle = const TextStyle(fontSize: 16, color: Color(0xFF000000)),
+    this.baseStyle = const TextStyle(fontSize: 16, color: Color(0xFF1F2937)),
     this.onLinkTap,
     this.widgetBuilder,
     this.imageLoader,
@@ -121,6 +129,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.onSelectionChanged,
     this.debugShowBounds = false,
     this.enableComplexFilters = true,
+    this.suppressFirstBlockMarginTop = false,
   }) : super(
             children: _buildChildren(document, widgetBuilder,
                 selectable: selectable));
@@ -182,6 +191,13 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
           child: childWidget,
         ));
       }
+    }
+    // Is it an error boundary?
+    else if (node.type == NodeType.errorBoundary) {
+      childWidget = widgetBuilder?.call(node);
+      childWidget ??= ErrorBoundaryWidget(errorNode: node as ErrorBoundaryNode);
+      children.add(_HyperChildWidget(node: node, child: childWidget));
+      return;
     }
     // Is it a <details> element?
     else if (node.tagName?.toLowerCase() == 'details') {
@@ -373,6 +389,12 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
 
     if (node.tagName == 'video' || node.tagName == 'audio') {
       return DefaultMediaWidget(mediaInfo: MediaInfo.fromNode(node));
+    }
+
+    if (node.tagName == 'formula') {
+      final formula = node.attributes['formula'] ?? node.src ?? '';
+      if (formula.isEmpty) return null;
+      return FormulaWidget(formula: formula);
     }
 
     return null;
@@ -605,7 +627,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       selectionColor: selectionColor,
       onSelectionChanged: onSelectionChanged,
     )..debugShowBounds = debugShowBounds
-      ..enableComplexFilters = enableComplexFilters;
+      ..enableComplexFilters = enableComplexFilters
+      ..suppressFirstBlockMarginTop = suppressFirstBlockMarginTop;
   }
 
   @override
@@ -641,6 +664,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (renderObject.enableComplexFilters != enableComplexFilters) {
       renderObject.enableComplexFilters = enableComplexFilters;
       renderObject.markNeedsPaint();
+    }
+    if (renderObject.suppressFirstBlockMarginTop != suppressFirstBlockMarginTop) {
+      renderObject.suppressFirstBlockMarginTop = suppressFirstBlockMarginTop;
+      renderObject.markNeedsLayout();
     }
   }
 }
@@ -758,7 +785,10 @@ class HyperImage extends StatelessWidget {
         src,
         width: width,
         height: height,
-        fit: BoxFit.cover,
+        // cover crops to fill exact bounds; contain scales to fit without crop.
+        // When only one dimension (or neither) is specified, contain avoids
+        // unexpected cropping inside flex / intrinsic-size contexts.
+        fit: (width != null && height != null) ? BoxFit.cover : BoxFit.contain,
         cacheWidth: width != null ? (width! * 2).toInt() : null,
         cacheHeight: height != null ? (height! * 2).toInt() : null,
         loadingBuilder: (context, child, loadingProgress) {

@@ -69,19 +69,20 @@ class StyleResolver {
       display: DisplayType.block,
       fontSize: 16,
       fontWeight: FontWeight.bold,
-      margin: const EdgeInsets.symmetric(vertical: 21.28),
+      margin: const EdgeInsets.symmetric(vertical: 12),
     ),
     'h5': ComputedStyle(
       display: DisplayType.block,
-      fontSize: 13.28,
+      fontSize: 14,
       fontWeight: FontWeight.bold,
-      margin: const EdgeInsets.symmetric(vertical: 22.18),
+      margin: const EdgeInsets.symmetric(vertical: 10),
     ),
     'h6': ComputedStyle(
       display: DisplayType.block,
-      fontSize: 10.72,
+      fontSize: 13,
       fontWeight: FontWeight.bold,
-      margin: const EdgeInsets.symmetric(vertical: 24.97),
+      color: const Color(0xFF6B7280), // Muted — h6 is lowest priority
+      margin: const EdgeInsets.symmetric(vertical: 8),
     ),
     'p': ComputedStyle(
       display: DisplayType.block,
@@ -107,7 +108,8 @@ class StyleResolver {
       borderColor: const Color(0xFFDDDDDD),
     ),
     'mark': ComputedStyle(
-      backgroundColor: const Color(0xFFFFEB3B), // Material Yellow
+      backgroundColor: const Color(0xFFFEF08A), // Softer yellow (Tailwind yellow-200)
+      color: const Color(0xFF713F12), // Warm brown text — readable on yellow
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
     ),
     'sub': ComputedStyle(
@@ -132,8 +134,8 @@ class StyleResolver {
     ),
     'code': ComputedStyle(
       fontFamily: 'monospace',
-      backgroundColor: const Color(0xFFE8E8E8), // Light gray background
-      color: const Color(0xFFE91E63), // Pink/magenta for inline code
+      backgroundColor: const Color(0xFFF6F8FA), // GitHub-style light gray
+      color: const Color(0xFF0550AE), // GitHub-style blue — readable, professional
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       borderRadius: BorderRadius.circular(4),
       fontSize: 13,
@@ -155,8 +157,8 @@ class StyleResolver {
       margin: const EdgeInsets.fromLTRB(0, 16, 0, 16),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       borderWidth: const EdgeInsets.only(left: 4),
-      borderColor: const Color(0xFFDDDDDD),
-      backgroundColor: const Color(0xFFF9F9F9),
+      borderColor: const Color(0xFF6366F1), // Indigo accent — clearly visible
+      backgroundColor: const Color(0xFFF8F8FF), // Ghost white — clean, not harsh
     ),
     'ul': ComputedStyle(
       display: DisplayType.block,
