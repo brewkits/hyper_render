@@ -64,6 +64,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         _tokenizeTable(node as TableNode);
         break;
 
+      case NodeType.errorBoundary:
+        // Rendered as a full-width child widget (ErrorBoundaryWidget),
+        // same layout semantics as a flex container.
+        _fragments.add(_FlexFragment(sourceNode: node, style: node.style));
+        break;
+
       default:
         for (final child in node.children) {
           _tokenizeNode(child, parentBlock);
@@ -75,8 +81,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     final style = node.style;
     final tagName = node.tagName?.toLowerCase();
 
-    // Handle margin collapsing
-    final marginTop = style.margin.top;
+    // Handle margin collapsing.
+    // When suppressFirstBlockMarginTop is set (virtualized section N>0), treat
+    // the very first block's marginTop as 0 so it collapses cleanly against
+    // the previous section's last marginBottom instead of double-stacking.
+    final rawMarginTop = style.margin.top;
+    final marginTop = (_suppressFirstBlockMarginTop && _fragments.isEmpty)
+        ? 0.0
+        : rawMarginTop;
     final collapsedMargin = math.max(marginTop, _lastBlockMarginBottom);
     final effectiveMarginTop = collapsedMargin - _lastBlockMarginBottom;
 
@@ -116,6 +128,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         paddingTop: style.padding.top,
         paddingLeft: style.padding.left,
         paddingRight: style.padding.right,
+        truncateWithEllipsis: style.textOverflow == TextOverflow.ellipsis,
       ));
     }
 
@@ -161,12 +174,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       ));
       // Skip tokenizing children - they're handled by CodeBlockWidget
     } else if (tagName == 'details') {
-      // Tokenize children of <details> so their content (like summary/icons)
-      // can be processed and linked to RenderBox children. Previously, this was skipped.
-      // The _DetailsFragment itself is added, but its children also need fragments.
-      for (final child in node.children) {
-        _tokenizeNode(child, node);
-      }
+      // Skip tokenizing children — HyperDetailsWidget renders them internally.
+      // Tokenizing here would cause children to appear twice (inline + via widget).
       _fragments.add(_DetailsFragment(
         sourceNode: node,
         style: style,
@@ -309,25 +318,31 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final imageWidth = image.width.toDouble();
         final imageHeight = image.height.toDouble();
 
-        if (node.intrinsicWidth != null && node.intrinsicHeight != null) {
-          // Both dimensions specified - use them
-          width = node.intrinsicWidth!;
-          height = node.intrinsicHeight!;
-        } else if (node.intrinsicWidth != null) {
-          // Only width specified - maintain aspect ratio
-          width = node.intrinsicWidth!;
+        // Clamp available width (leave a small margin so content doesn't touch edges).
+        final maxW = _maxWidth > _kImageMargin ? _maxWidth - _kImageMargin : _maxWidth;
+        // Prefer HTML attrs first, then CSS style dims (width:80px etc.).
+        final dimW = node.intrinsicWidth ?? node.style.width;
+        final dimH = node.intrinsicHeight ?? node.style.height;
+        if (dimW != null && dimH != null) {
+          // Both dimensions specified — scale down proportionally if wider than viewport.
+          final scale = dimW > maxW ? maxW / dimW : 1.0;
+          width = dimW * scale;
+          height = dimH * scale;
+        } else if (dimW != null) {
+          // Only width specified — maintain aspect ratio from actual image.
+          width = math.min(dimW, maxW);
           // Guard: avoid division by zero for degenerate images (width == 0).
           height = imageWidth > 0 ? width * (imageHeight / imageWidth) : 0;
-        } else if (node.intrinsicHeight != null) {
+        } else if (dimH != null) {
           // Only height specified - maintain aspect ratio
-          height = node.intrinsicHeight!;
+          height = dimH;
           // Guard: avoid division by zero for degenerate images (height == 0).
           width = imageHeight > 0 ? height * (imageWidth / imageHeight) : 0;
         } else {
           // No dimensions - use actual image size, constrained to maxWidth.
           // Guard: degenerate images with zero width produce no output.
           if (imageWidth > 0) {
-            width = math.min(imageWidth, _maxWidth - _kImageMargin);
+            width = math.min(imageWidth, maxW);
             height = width * (imageHeight / imageWidth);
           } else {
             width = 0;
@@ -336,34 +351,55 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         }
       } else {
         // Image not loaded yet - use specified dimensions or smart placeholder
-        if (node.intrinsicWidth != null && node.intrinsicHeight != null) {
-          width = node.intrinsicWidth!;
-          height = node.intrinsicHeight!;
-        } else if (node.intrinsicWidth != null) {
-          width = node.intrinsicWidth!;
+        final maxW = _maxWidth > _kImageMargin ? _maxWidth - _kImageMargin : _maxWidth;
+        // Prefer HTML width/height attrs, then CSS style dims, then defaults.
+        final dimW = node.intrinsicWidth ?? node.style.width;
+        final dimH = node.intrinsicHeight ?? node.style.height;
+        if (dimW != null && dimH != null) {
+          final scale = dimW > maxW ? maxW / dimW : 1.0;
+          width = dimW * scale;
+          height = dimH * scale;
+        } else if (dimW != null) {
+          width = math.min(dimW, maxW);
           height = width / RenderHyperBox._defaultAspectRatio;
-        } else if (node.intrinsicHeight != null) {
-          height = node.intrinsicHeight!;
+        } else if (dimH != null) {
+          height = dimH;
           width = height * RenderHyperBox._defaultAspectRatio;
         } else {
           // No dimensions specified - use responsive placeholder
           // Width fills available space (with margin), height maintains 16:9 ratio
-          width = math.min(RenderHyperBox._defaultImageWidth, _maxWidth - 32);
+          width = math.min(RenderHyperBox._defaultImageWidth, maxW);
           height = width / RenderHyperBox._defaultAspectRatio;
         }
       }
     } else if (node.tagName == 'video') {
-      // Video: respect specified dimensions or use 16:9 default matching DefaultMediaWidget
-      final w = node.intrinsicWidth ??
-          math.min(320.0, _maxWidth > 32 ? _maxWidth - 32 : _maxWidth);
-      final h = node.intrinsicHeight ?? w / RenderHyperBox._defaultAspectRatio;
-      width = w;
-      height = h;
+      // Video: clamp intrinsic width to available viewport width.
+      final maxW = _maxWidth > 16 ? _maxWidth - 16 : _maxWidth;
+      final intrinsicW = node.intrinsicWidth;
+      final intrinsicH = node.intrinsicHeight;
+      if (intrinsicW != null && intrinsicH != null) {
+        final scale = intrinsicW > maxW ? maxW / intrinsicW : 1.0;
+        width = intrinsicW * scale;
+        height = intrinsicH * scale;
+      } else if (intrinsicW != null) {
+        width = math.min(intrinsicW, maxW);
+        height = width / RenderHyperBox._defaultAspectRatio;
+      } else {
+        width = math.min(320.0, maxW);
+        height = width / RenderHyperBox._defaultAspectRatio;
+      }
     } else if (node.tagName == 'audio') {
       // Audio: compact horizontal bar — matches DefaultMediaWidget._buildAudioPlaceholder
-      width = node.intrinsicWidth ??
-          math.min(300.0, _maxWidth > 32 ? _maxWidth - 32 : _maxWidth);
+      width = math.min(
+          node.intrinsicWidth ?? 300.0,
+          _maxWidth > 16 ? _maxWidth - 16 : _maxWidth);
       height = node.intrinsicHeight ?? 64.0;
+    } else if (node.tagName == 'formula') {
+      // Inline formula — estimate width from character count, fixed line height
+      final formulaText = node.attributes['formula'] ?? node.src ?? '';
+      width = node.intrinsicWidth ??
+          (formulaText.length * 9.0).clamp(60.0, _maxWidth > 32 ? _maxWidth - 32 : _maxWidth);
+      height = node.intrinsicHeight ?? 32.0;
     } else {
       // Generic atomic element
       width = node.intrinsicWidth ?? RenderHyperBox.defaultFloatSize;
@@ -552,6 +588,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // splits are handled correctly even though only one slot is used.
     Fragment? pendingFragment;
 
+    // Ellipsis truncation state.
+    // Incremented when entering a block with truncateWithEllipsis=true,
+    // decremented on its matching _BlockEndFragment.
+    int ellipsisDepth = 0;
+    // After truncating a line with "…", skip all remaining text fragments
+    // until we exit the ellipsis block.
+    bool skipEllipsisContent = false;
+
     void finishLine() {
       if (currentLineFragments.isEmpty) return;
 
@@ -681,6 +725,13 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           final blockStartY = currentY - fragment.paddingTop;
           activeBlocks.add((fragment, blockStartY, blockLeftX, blockRightX));
         }
+
+        // Track ellipsis context
+        if (fragment.truncateWithEllipsis) {
+          ellipsisDepth++;
+          skipEllipsisContent = false;
+        }
+
         return;
       }
 
@@ -697,6 +748,13 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         finishLine();
         currentY += fragment.paddingBottom;
 
+        // Clear ellipsis context when leaving the truncation block
+        if (fragment.style.textOverflow == TextOverflow.ellipsis &&
+            ellipsisDepth > 0) {
+          ellipsisDepth--;
+          if (ellipsisDepth == 0) skipEllipsisContent = false;
+        }
+
         // Check if this block has a decoration pending
         if (activeBlocks.isNotEmpty) {
           final (startFragment, startY, blockLeftX, blockRightX) =
@@ -705,6 +763,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
             activeBlocks.removeLast();
             // Create block decoration
             final style = fragment.style;
+            // fullBorder = true when top/right/bottom sides also have width, meaning
+            // this is a full-box border (CSS `border: X` shorthand) rather than
+            // left-only (blockquote style).
+            final fullBorder = style.borderWidth.top > 0 ||
+                style.borderWidth.right > 0 ||
+                style.borderWidth.bottom > 0;
             _blockDecorations.add(_BlockDecoration(
               node: fragment.sourceNode,
               rect: Rect.fromLTRB(blockLeftX, startY, blockRightX, currentY),
@@ -714,6 +778,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
               borderLeftWidth: style.borderWidth.left,
               borderRadius: style.borderRadius,
               boxShadow: style.boxShadow,
+              fullBorder: fullBorder,
+              borderStyle: style.borderStyle,
               filter: style.filter,
               backdropFilter: style.backdropFilter,
             ));
@@ -849,6 +915,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         return;
       }
 
+      // Skip remaining content in an ellipsis block after truncation
+      if (skipEllipsisContent) {
+        if (fragment.type == FragmentType.lineBreak) {
+          // A line break inside a nowrap/ellipsis block still resets position
+          // but does not produce a new visual line.
+          currentX = leftInset;
+        }
+        return;
+      }
+
       if (fragment.type == FragmentType.lineBreak) {
         finishLine();
         currentX = leftInset;
@@ -861,6 +937,63 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       // computed from the actual start of the float-clear zone, not from 0.
       if (currentX < leftInset) currentX = leftInset;
       final remainingWidth = leftInset + availableWidth - currentX;
+
+      // Ellipsis truncation: when inside a block with text-overflow:ellipsis
+      // and the fragment overflows the line, clip and append "…" instead of
+      // wrapping to the next line.
+      if (ellipsisDepth > 0 &&
+          fragment.type == FragmentType.text &&
+          fragment.text != null &&
+          fragment.width > remainingWidth) {
+        const ellipsisChar = '\u2026'; // …
+        final ellipsisPainter = _getTextPainter(ellipsisChar, fragment.style);
+        final fitWidth = remainingWidth - ellipsisPainter.width;
+
+        if (fitWidth > 0) {
+          // Find how many characters fit before the ellipsis
+          final painter = _getTextPainter(fragment.text!, fragment.style);
+          final pos = painter.getPositionForOffset(Offset(fitWidth, 0));
+          final cutAt = pos.offset.clamp(0, fragment.text!.length);
+          if (cutAt > 0) {
+            final clippedText = fragment.text!.substring(0, cutAt).trimRight();
+            if (clippedText.isNotEmpty) {
+              final truncFrag = Fragment.text(
+                text: '$clippedText$ellipsisChar',
+                sourceNode: fragment.sourceNode,
+                style: fragment.style,
+                characterOffset: fragment.characterOffset,
+              );
+              _measureFragment(truncFrag);
+              truncFrag.offset = Offset(currentX, currentY);
+              currentLineFragments.add(truncFrag);
+              _updateLineMetrics(truncFrag, lineHeight, maxBaseline, (h, b) {
+                lineHeight = h;
+                maxBaseline = b;
+              });
+            }
+          }
+        } else if (currentLineFragments.isEmpty) {
+          // Not even enough room for ellipsis alone — just show ellipsis
+          final ellipsisFrag = Fragment.text(
+            text: ellipsisChar,
+            sourceNode: fragment.sourceNode,
+            style: fragment.style,
+            characterOffset: fragment.characterOffset,
+          );
+          _measureFragment(ellipsisFrag);
+          ellipsisFrag.offset = Offset(currentX, currentY);
+          currentLineFragments.add(ellipsisFrag);
+          _updateLineMetrics(ellipsisFrag, lineHeight, maxBaseline, (h, b) {
+            lineHeight = h;
+            maxBaseline = b;
+          });
+        }
+
+        finishLine();
+        currentX = leftInset;
+        skipEllipsisContent = true;
+        return;
+      }
 
       // Check if fragment fits in remaining space
       if (fragment.width > remainingWidth) {
@@ -1241,24 +1374,26 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final img = cached!.image!;
         final imgW = img.width.toDouble();
         final imgH = img.height.toDouble();
-        if (sourceNode.intrinsicWidth != null &&
-            sourceNode.intrinsicHeight != null) {
-          width = sourceNode.intrinsicWidth!;
-          height = sourceNode.intrinsicHeight!;
-        } else if (sourceNode.intrinsicWidth != null) {
-          width = sourceNode.intrinsicWidth!;
+        // Prefer HTML attrs, then CSS style dims (width:180px etc.).
+        final dimW = sourceNode.intrinsicWidth ?? sourceNode.style.width;
+        final dimH = sourceNode.intrinsicHeight ?? sourceNode.style.height;
+        if (dimW != null && dimH != null) {
+          final scale = dimW > availableWidth ? availableWidth / dimW : 1.0;
+          width = dimW * scale;
+          height = dimH * scale;
+        } else if (dimW != null) {
+          width = math.min(dimW, availableWidth);
           height = imgW > 0
               ? width * (imgH / imgW)
               : RenderHyperBox.defaultFloatSize;
-        } else if (sourceNode.intrinsicHeight != null) {
-          height = sourceNode.intrinsicHeight!;
+        } else if (dimH != null) {
+          height = dimH;
           width = imgH > 0
               ? height * (imgW / imgH)
               : RenderHyperBox.defaultFloatSize;
         } else {
           // No explicit dimensions: constrain to CSS max-width or available space
-          final cssMaxWidth =
-              sourceNode.style.maxWidth ?? sourceNode.style.width;
+          final cssMaxWidth = sourceNode.style.maxWidth;
           final naturalCap = cssMaxWidth ?? math.min(imgW, availableWidth);
           width = math.min(naturalCap, availableWidth);
           height = imgW > 0
@@ -1303,8 +1438,20 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     if (fragment.floatDirection == HyperFloat.left) {
       double left = 0;
 
+      // Early exit: if the float is wider than the container it can never fit
+      // horizontally regardless of Y position. Clamp to container width so the
+      // loop below always terminates in O(1) for this degenerate case instead
+      // of spending all 100 iterations advancing 1px at a time on an empty
+      // float list (lowestBottom = floatY + 1 fallback).
+      if (width + rightMargin > _maxWidth) {
+        width = math.max(0.0, _maxWidth - rightMargin);
+      }
+
       // Find available position - may need to move down if float doesn't fit
-      // This handles multiple floats stacking correctly
+      // This handles multiple floats stacking correctly.
+      // Convergence guarantee: each iteration advances floatY by at least the
+      // height of one active float, so the loop terminates in at most
+      // O(activeFloats) iterations — always well below maxIterations.
       bool foundPosition = false;
       int iterations = 0;
       const maxIterations = 100;
@@ -1332,9 +1479,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         if (left + totalWidth <= rightEdge) {
           foundPosition = true;
         } else {
-          // Not enough space - move down below the lowest float at this Y
+          // Not enough space — advance floatY past the lowest active float.
+          // Avoid the spread [..._leftFloats, ..._rightFloats] allocation
+          // inside the loop by iterating both lists separately.
           double lowestBottom = floatY + 1;
-          for (final existing in [..._leftFloats, ..._rightFloats]) {
+          for (final existing in _leftFloats) {
+            if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+              lowestBottom = math.max(lowestBottom, existing.rect.bottom);
+            }
+          }
+          for (final existing in _rightFloats) {
             if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
               lowestBottom = math.max(lowestBottom, existing.rect.bottom);
             }
@@ -1365,6 +1519,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     } else {
       double right = _maxWidth;
 
+      // Early exit: clamp oversized right float to container width.
+      if (width + leftMargin > _maxWidth) {
+        width = math.max(0.0, _maxWidth - leftMargin);
+      }
+
       // Find available position - may need to move down if float doesn't fit
       bool foundPosition = false;
       int iterations = 0;
@@ -1393,9 +1552,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         if (right - totalWidth >= leftEdge) {
           foundPosition = true;
         } else {
-          // Not enough space - move down below the lowest float at this Y
+          // Not enough space — advance floatY without list spread allocation.
           double lowestBottom = floatY + 1;
-          for (final existing in [..._leftFloats, ..._rightFloats]) {
+          for (final existing in _leftFloats) {
+            if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
+              lowestBottom = math.max(lowestBottom, existing.rect.bottom);
+            }
+          }
+          for (final existing in _rightFloats) {
             if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
               lowestBottom = math.max(lowestBottom, existing.rect.bottom);
             }
@@ -1684,14 +1848,28 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     }
 
     // Build the O(1) fragment→child lookup map used by paint & _findChildForFragment.
+    _buildFragmentChildMap();
+  }
+
+  /// Builds (or rebuilds) the [_fragmentChildMap] from current [parentData.fragment]
+  /// assignments.
+  ///
+  /// Called:
+  /// - In [performLayout] Step 1.5 immediately after [_linkFragmentsToChildrenByOrder],
+  ///   so that [_findChildForFragment] has O(1) access during [_performLineLayout]
+  ///   (Step 3) — without this early call every lookup fell through to the O(M)
+  ///   linear scan while the map was still empty.
+  /// - Again at the end of [_layoutChildren] (Step 7) to capture any
+  ///   fragment–child re-assignments that happened during child layout.
+  void _buildFragmentChildMap() {
     _fragmentChildMap.clear();
-    RenderBox? mapChild = firstChild;
-    while (mapChild != null) {
-      final pd = mapChild.parentData as HyperBoxParentData;
+    RenderBox? child = firstChild;
+    while (child != null) {
+      final pd = child.parentData as HyperBoxParentData;
       if (pd.fragment != null) {
-        _fragmentChildMap[pd.fragment!] = mapChild;
+        _fragmentChildMap[pd.fragment!] = child;
       }
-      mapChild = pd.nextSibling;
+      child = pd.nextSibling;
     }
   }
 
@@ -1745,41 +1923,42 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       child = parentData.nextSibling;
     }
 
-    // Step 3: Fallback - link remaining unlinked children by order
+    // Step 3: Fallback — link remaining unlinked children by order.
     // This handles cases where sourceNode is null or doesn't match.
-    // Collect all fragments that *should* correspond to children and are not yet linked.
+    //
+    // Build a Set of already-linked fragments in O(M) so the "is already
+    // linked?" check below is O(1) instead of O(M) per fragment.
+    // Without this Set, the previous implementation had an inner while-loop
+    // per fragment, making the whole step O(fragments × children) = O(N×M).
+    final alreadyLinked = <Fragment>{};
+    {
+      RenderBox? c = firstChild;
+      while (c != null) {
+        final pd = c.parentData as HyperBoxParentData;
+        if (pd.fragment != null) alreadyLinked.add(pd.fragment!);
+        c = pd.nextSibling;
+      }
+    }
+
     final unlinkedFragments = _fragments.where((f) {
       final isAtomicFragment = f.type == FragmentType.atomic;
       final isTableFragment = f is _TableFragment;
       final isCodeBlockFragment = f is _CodeBlockFragment;
       final isDetailsFragment = f is _DetailsFragment;
       final isFloatFragment = f is _FloatFragment;
-      // Only non-text fragments are candidates for order-based linking here
-      // (sourceNode is always non-null per the Fragment model).
-      const isTextFragmentWithoutSource = false;
 
-      // Only consider fragments that are supposed to have a child RenderBox.
+      // Only consider fragments that map to child RenderBoxes.
       if (!(isAtomicFragment ||
           isTableFragment ||
           isCodeBlockFragment ||
           isDetailsFragment ||
-          isFloatFragment ||
-          isTextFragmentWithoutSource)) {
-        return false; // Skip fragments that don't map to children or are already handled.
+          isFloatFragment)) {
+        return false;
       }
 
-      // Check if this fragment is already linked to a child (via sourceNode).
-      // If it has a sourceNode, it would have been handled in Step 2.
-      // If it doesn't have sourceNode but is a text fragment, it's a candidate for fallback.
-      RenderBox? c = firstChild;
-      while (c != null) {
-        final pd = c.parentData as HyperBoxParentData;
-        if (pd.fragment == f) return false; // Already linked
-        c = pd.nextSibling;
-      }
-      // If it's an unlinked fragment of a relevant type, include it for fallback.
-      return true;
-    }).toList(); // Convert to list for easier indexed access.
+      // O(1) check — uses the Set built above.
+      return !alreadyLinked.contains(f);
+    }).toList();
 
     int unlinkedFragmentIndex = 0;
     child = firstChild;
