@@ -540,7 +540,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         text: text,
         style: mergedStyle,
       ),
-      strutStyle: StrutStyle.fromTextStyle(mergedStyle, forceStrutHeight: true),
+      // forceStrutHeight: false — let each fragment's font metrics determine line
+      // height naturally, same as how RichText / flutter_html behaves.
+      // forceStrutHeight: true was causing all lines to be the same height even
+      // when no explicit line-height was set, making text look mechanically spaced.
+      strutStyle: StrutStyle.fromTextStyle(mergedStyle, forceStrutHeight: false),
       textDirection: fragmentDirection,
       maxLines: maxLines,
       textHeightBehavior: const TextHeightBehavior(
