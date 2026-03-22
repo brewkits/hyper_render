@@ -730,7 +730,7 @@ class StyleResolver {
             style.markExplicitlySet('background-gradient');
           }
         } else if (value.contains('url(')) {
-          final match = RegExp(r'url\(["'']?([^"''\)]+)["'']?\)').firstMatch(value);
+          final match = RegExp(r"""url\(["']?([^"')]+)["']?\)""").firstMatch(value);
           if (match != null) {
             style.backgroundImage = match.group(1);
             style.markExplicitlySet('background-image');
@@ -769,7 +769,7 @@ class StyleResolver {
             style.markExplicitlySet('background-gradient');
           }
         } else if (value.contains('url(')) {
-          final match = RegExp(r'url\(["'']?([^"''\)]+)["'']?\)').firstMatch(value);
+          final match = RegExp(r"""url\(["']?([^"')]+)["']?\)""").firstMatch(value);
           if (match != null) {
             style.backgroundImage = match.group(1);
             style.markExplicitlySet('background-image');
@@ -1791,8 +1791,8 @@ class StyleResolver {
     int depth = 0;
     int start = 0;
     for (int i = 0; i < inner.length; i++) {
-      if (inner[i] == '(') depth++;
-      else if (inner[i] == ')') depth--;
+      if (inner[i] == '(') { depth++; }
+      else if (inner[i] == ')') { depth--; }
       else if (inner[i] == ',' && depth == 0) {
         parts.add(inner.substring(start, i).trim());
         start = i + 1;

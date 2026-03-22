@@ -3,6 +3,17 @@
 All notable changes to HyperRender will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+
+## [1.1.1] - 2026-03-23
+
+### 🐛 Bug Fixes
+- **Static analysis**: Fixed all `dart analyze` warnings in `lib/` — 0 issues
+  - Wrapped `<details>`/`<summary>` angle brackets in backticks in doc comments
+  - Fixed invalid regexp syntax and unnecessary escapes in `resolver.dart`
+  - Added curly braces to single-statement `if` branches (`curly_braces_in_flow_control_structures`)
+  - Replaced trivial `onLinkTap` getter/setter with a direct public field (`unnecessary_getters_setters`)
+- **Layout**: Removed stale `docs/` directory (plural) — pub.dev convention requires `doc/` (singular)
+
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.1.0] - 2026-03-20

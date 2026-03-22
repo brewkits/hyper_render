@@ -9,7 +9,7 @@ import '../style/design_tokens.dart';
 /// content is shown/hidden based on the expanded state.
 class DetailsWidget extends StatefulWidget {
   /// The details node containing summary and content
-  final DetailsNode detailsNode;
+  final UDTNode detailsNode;
 
   /// Base text style
   final TextStyle? baseStyle;
@@ -34,8 +34,8 @@ class _DetailsWidgetState extends State<DetailsWidget> {
   @override
   void initState() {
     super.initState();
-    // Use the 'open' attribute from DetailsNode as initial state
-    _isExpanded = widget.detailsNode.open;
+    // Use the 'open' attribute as initial state (present = open)
+    _isExpanded = widget.detailsNode.attributes.containsKey('open');
   }
 
   @override

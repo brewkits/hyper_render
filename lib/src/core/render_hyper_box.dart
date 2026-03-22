@@ -55,7 +55,7 @@ class RenderHyperBox extends RenderBox
   TextStyle _baseStyle;
 
   /// Link tap callback
-  HyperLinkTapCallback? _onLinkTap;
+  HyperLinkTapCallback? onLinkTap;
 
   /// Custom image loader (defaults to defaultImageLoader if not provided)
   HyperImageLoader? _imageLoader;
@@ -169,7 +169,7 @@ class RenderHyperBox extends RenderBox
     DocumentNode? document,
     TextStyle baseStyle =
         const TextStyle(fontSize: 16, color: Color(0xFF000000)),
-    HyperLinkTapCallback? onLinkTap,
+    this.onLinkTap,
     HyperImageLoader? imageLoader,
     bool selectable = true,
     TextDirection textDirection = TextDirection.ltr,
@@ -177,7 +177,6 @@ class RenderHyperBox extends RenderBox
     this.onSelectionChanged,
   })  : _document = document,
         _baseStyle = baseStyle,
-        _onLinkTap = onLinkTap,
         _imageLoader = imageLoader,
         _selectable = selectable,
         _textDirection = textDirection,
@@ -201,11 +200,6 @@ class RenderHyperBox extends RenderBox
     _baseStyle = value;
     _invalidateLayout();
     markNeedsLayout();
-  }
-
-  HyperLinkTapCallback? get onLinkTap => _onLinkTap;
-  set onLinkTap(HyperLinkTapCallback? value) {
-    _onLinkTap = value;
   }
 
   HyperImageLoader? get imageLoader => _imageLoader;
@@ -765,7 +759,7 @@ class RenderHyperBox extends RenderBox
       final isTap = downPosition == null ||
           (upPosition - downPosition).distance < tapThreshold;
 
-      if (isTap && _onLinkTap != null) {
+      if (isTap && onLinkTap != null) {
         final clickedFragment = _findFragmentAtPosition(upPosition);
         if (clickedFragment != null) {
           // Walk up the UDT parent chain to find the nearest <a> ancestor.
@@ -776,7 +770,7 @@ class RenderHyperBox extends RenderBox
             if (node.tagName == 'a') {
               final href = node.attributes['href'];
               if (href != null) {
-                _onLinkTap!(href);
+                onLinkTap!(href);
               }
               break;
             }
