@@ -70,7 +70,7 @@ class SmartTableWrapper extends StatelessWidget {
         // IntrinsicWidth wrapper needed (no Expanded children that could crash).
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(),
           child: table,
         );
 
@@ -132,6 +132,11 @@ class HyperTable extends StatelessWidget {
       for (int col = 0; col < grid.columnCount; col++) {
         final cell = grid.cells[row][col];
         if (cell != null && cell.isPrimary) {
+          // Cell background: explicit cell bg > row bg > transparent.
+          // This is required for patterns like <tr style="background:#1a237e;">
+          // where the row sets the background but individual cells do not.
+          final cellBg = cell.cellNode.style.backgroundColor ??
+              cell.rowNode.style.backgroundColor;
           children.add(_TableCellSlot(
             row: row,
             col: col,
@@ -139,7 +144,7 @@ class HyperTable extends StatelessWidget {
             rowspan: cell.rowspan,
             child: Container(
               padding: cellPadding,
-              color: cell.cellNode.style.backgroundColor,
+              color: cellBg,
               child: _buildCellContent(cell.cellNode),
             ),
           ));
@@ -180,13 +185,29 @@ class HyperTable extends StatelessWidget {
 
     if (spans.isEmpty) return const SizedBox.shrink();
 
+    // Include cell-level color so that CSS color inheritance from <tr> → <td>
+    // → text nodes is honoured.  Without this, a <tr style="color:white"> with
+    // plain <td> children renders white text against whatever background the
+    // Flutter widget tree provides (usually white → invisible text).
+    // word-break: break-all / overflow-wrap: break-word — prevent long
+    // unbreakable strings (URLs, code without spaces) from overflowing cells.
+    final wb = cellNode.style.wordBreak;
+    final ow = cellNode.style.overflowWrap;
+    final forceClip = wb == 'break-all' ||
+        ow == 'break-word' ||
+        ow == 'anywhere' ||
+        wb == 'break-word';
+
     return Text.rich(
       TextSpan(
         children: spans,
         style: TextStyle(
           fontWeight: cellNode.isHeader ? FontWeight.bold : FontWeight.normal,
+          color: cellNode.style.color,
         ),
       ),
+      softWrap: true,
+      overflow: forceClip ? TextOverflow.clip : TextOverflow.visible,
     );
   }
 
@@ -265,8 +286,10 @@ class _TableGrid {
 
           final colspan = child.colspan;
           final rowspan = child.rowspan;
+          final rowNode = rows[rowIdx];
           final primary = _GridCell(
             cellNode: child,
+            rowNode: rowNode,
             row: rowIdx,
             col: colIdx,
             colspan: colspan,
@@ -280,6 +303,7 @@ class _TableGrid {
                   ? primary
                   : _GridCell(
                       cellNode: child,
+                      rowNode: rowNode,
                       row: rowIdx,
                       col: colIdx,
                       colspan: colspan,
@@ -299,6 +323,9 @@ class _TableGrid {
 
 class _GridCell {
   final TableCellNode cellNode;
+  /// The parent row node — used to inherit row-level background-color and color
+  /// when the cell itself has no explicit background/color set.
+  final TableRowNode rowNode;
   final int row;
   final int col;
   final int colspan;
@@ -307,6 +334,7 @@ class _GridCell {
 
   _GridCell({
     required this.cellNode,
+    required this.rowNode,
     required this.row,
     required this.col,
     required this.colspan,

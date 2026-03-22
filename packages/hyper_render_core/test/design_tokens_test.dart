@@ -131,8 +131,8 @@ void main() {
 
     group('Light Theme Colors', () {
       test('text colors have proper contrast hierarchy', () {
-        // Primary is darkest
-        expect(DesignTokens.textPrimary.toARGB32(), equals(0xFF000000));
+        // Primary is darkest (near-black, not pure black)
+        expect(DesignTokens.textPrimary.toARGB32(), equals(0xFF212121));
 
         // Secondary is lighter (higher luminance)
         expect(

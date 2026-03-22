@@ -18,7 +18,7 @@ class WhyHyperRenderDemo extends StatelessWidget {
 <div style="font-family: sans-serif; line-height: 1.7; color: #1a1a2e;">
 
   <!-- ── 1. Float Layout ── -->
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  <div style="background:#5c35a5;
               padding: 16px 20px; border-radius: 14px; margin-bottom: 20px;">
     <p style="color: white; font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
               margin: 0 0 6px 0; text-transform: uppercase; opacity: 0.85;">
@@ -357,7 +357,7 @@ class WhyHyperRenderDemo extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
+                  color: Colors.black.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.emoji_events, color: Colors.white, size: 28),
@@ -379,7 +379,7 @@ class WhyHyperRenderDemo extends StatelessWidget {
                     Text(
                       'Custom RenderObject · Zero WebView · Zero Deps',
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: Colors.white,
                         fontSize: 12,
                       ),
                     ),
@@ -412,9 +412,9 @@ class WhyHyperRenderDemo extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: Colors.black.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -481,7 +481,7 @@ class WhyHyperRenderDemo extends StatelessWidget {
                       Text(
                         subtitle,
                         style: TextStyle(
-                          color: color.withValues(alpha: 0.7),
+                          color: Colors.grey.shade700,
                           fontSize: 12,
                         ),
                       ),

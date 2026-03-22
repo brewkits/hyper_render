@@ -38,7 +38,7 @@ void main() {
         home: Scaffold(
           body: SingleChildScrollView(
             child: HyperViewer(
-              html: nestedTableHtml + '<p>Trigger update</p>',
+              html: '$nestedTableHtml<p>Trigger update</p>',
             ),
           ),
         ),

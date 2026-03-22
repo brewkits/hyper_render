@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart' as fwfh;
@@ -26,6 +25,7 @@ import 'html_heuristics_demo.dart';
 import 'smart_table_demo.dart';
 import 'formula_demo.dart';
 import 'manga_demo.dart';
+import 'cjk_languages_demo.dart';
 import 'email_demo.dart';
 import 'stress_test_demo.dart';
 import 'why_hyper_render_demo.dart';
@@ -98,14 +98,6 @@ class DemoHomePage extends StatelessWidget {
           _buildSectionHeader(context, 'Highlights'),
           _buildDemoCard(
             context,
-            icon: Icons.auto_awesome,
-            title: 'Feature Tour',
-            subtitle: 'Float layout, widget injection, ruby annotation, text selection — all features together',
-            color: DemoColors.primary,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KitchenSinkDemo())),
-          ),
-          _buildDemoCard(
-            context,
             icon: Icons.view_quilt,
             title: 'Float Layout',
             subtitle: 'Text wraps around floated images — the feature no other Flutter HTML library has',
@@ -159,10 +151,18 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.menu_book,
-            title: 'CJK & Manga Typography',
-            subtitle: 'Furigana (ruby), vertical text, manga panel grid — Japanese/Chinese content',
+            title: 'Japanese & Manga Typography',
+            subtitle: 'Furigana (ruby), vertical text, manga panel grid — Japanese content',
             color: const Color(0xFFB71C1C),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MangaDemo())),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.language,
+            title: '中文 · 繁體 · 한국어',
+            subtitle: 'Simplified Chinese, Traditional Chinese poetry, Korean tech article — CJK rendering',
+            color: const Color(0xFF1565C0),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CjkLanguagesDemo())),
           ),
           _buildDemoCard(
             context,
@@ -264,7 +264,7 @@ class DemoHomePage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             child: Row(
               children: [
-                const Icon(Icons.emoji_events, color: Colors.white, size: 32),
+                const Icon(Icons.emoji_events, color: Color(0xFF4E2600), size: 32),
                 const SizedBox(width: 14),
                 const Expanded(
                   child: Column(
@@ -273,7 +273,7 @@ class DemoHomePage extends StatelessWidget {
                       Text(
                         'Why HyperRender?',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Color(0xFF4E2600),
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.2,
@@ -282,7 +282,7 @@ class DemoHomePage extends StatelessWidget {
                       SizedBox(height: 2),
                       Text(
                         'Live demos · Feature matrix · 16/16 score vs other libraries',
-                        style: TextStyle(color: Colors.white, fontSize: 12, height: 1.4),
+                        style: TextStyle(color: Color(0xFF7A3E00), fontSize: 12, height: 1.4),
                       ),
                     ],
                   ),
@@ -291,12 +291,12 @@ class DemoHomePage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
+                    color: Colors.black.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
                     '16/16',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                    style: TextStyle(color: Color(0xFF4E2600), fontWeight: FontWeight.w800, fontSize: 13),
                   ),
                 ),
               ],
@@ -336,7 +336,7 @@ class DemoHomePage extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
+                  color: Colors.black.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(Icons.rocket_launch, color: Colors.white, size: 30),
@@ -360,7 +360,7 @@ class DemoHomePage extends StatelessWidget {
                       'Universal Content Engine for Flutter',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.white70,
+                        color: Colors.white,
                         letterSpacing: 0.1,
                       ),
                     ),
@@ -390,9 +390,9 @@ class DemoHomePage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: Colors.black.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -501,7 +501,7 @@ class DemoHomePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300, size: 22),
+                Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 22),
               ],
             ),
           ),
@@ -2179,9 +2179,11 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   Widget _buildFlutterHtmlTab(String html) {
     return _buildTimedWidget(
       'flutter_html',
-      () => SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: flutter_html.Html(data: html),
+      () => ClipRect(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: flutter_html.Html(data: html),
+        ),
       ),
     );
   }
@@ -2189,9 +2191,11 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   Widget _buildFwfhTab(String html) {
     return _buildTimedWidget(
       'fwfh',
-      () => SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: fwfh.HtmlWidget(html),
+      () => ClipRect(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: fwfh.HtmlWidget(html),
+        ),
       ),
     );
   }
@@ -2199,9 +2203,11 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   Widget _buildFwfhCoreTab(String html) {
     return _buildTimedWidget(
       'fwfh_core',
-      () => SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: fwfh_core.HtmlWidget(html),
+      () => ClipRect(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: fwfh_core.HtmlWidget(html),
+        ),
       ),
     );
   }

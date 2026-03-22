@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';
-import 'dart:ui' as ui;
 
 /// Tests for Aesthetic Features (Phase 2 & 3):
 ///   - CSS Box Shadows

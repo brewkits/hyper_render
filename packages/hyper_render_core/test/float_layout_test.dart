@@ -272,7 +272,7 @@ void main() {
 
       expect(para.children.first, same(img));
       expect(img.parent, equals(para));
-      expect(img.style.margin?.right, equals(16));
+      expect(img.style.margin.right, equals(16));
     });
 
     test('multiple floats side by side', () {

@@ -428,17 +428,17 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
     return null;
   }
 
-  /// Checks if a node is a descendant of another node.
-  /// Only used in the fallback path of [_getNodeRect] — the fast path
-  /// uses [_nodeRectCache] which already aggregates ancestor bounds.
-  bool _isDescendantOf(UDTNode? child, UDTNode parent) {
-    if (child == null) return false;
-    if (child == parent) return true;
-
-    for (final parentChild in parent.children) {
-      if (_isDescendantOf(child, parentChild)) {
-        return true;
-      }
+  /// Checks if [child] is a descendant of (or equal to) [ancestor].
+  ///
+  /// Walks UP the child's parent-chain rather than DOWN the ancestor's subtree.
+  /// This is O(depth) ≈ O(32) instead of the previous O(N_descendants), which
+  /// made the fallback path of [_getNodeRect] O(N_fragments × N_tree) for
+  /// deeply-nested "div soup" HTML.
+  bool _isDescendantOf(UDTNode? child, UDTNode ancestor) {
+    UDTNode? current = child;
+    while (current != null) {
+      if (current == ancestor) return true;
+      current = current.parent;
     }
     return false;
   }

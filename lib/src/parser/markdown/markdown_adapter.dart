@@ -76,29 +76,40 @@ class MarkdownAdapter extends ExtendedDocumentAdapter {
     final warnings = <String>[];
 
     try {
-      // Build extension set
-      final extensionSet =
-          enableGfm ? md.ExtensionSet.gitHubFlavored : md.ExtensionSet.none;
+      // Build extension set and syntax lists.
+      // IMPORTANT: Never pass both extensionSet AND blockSyntaxes/inlineSyntaxes
+      // to md.Document — the explicit lists override the extensionSet's syntaxes,
+      // resulting in empty or broken parse output.
+      //
+      // Strategy:
+      // - No custom syntaxes → use extensionSet only (no extra lists)
+      // - Custom syntaxes → unroll GFM syntaxes into explicit lists (no extensionSet)
+      final bool hasCustomSyntaxes =
+          customBlockSyntaxes != null || customInlineSyntaxes != null;
 
-      // Build block syntaxes
-      final blockSyntaxes = <md.BlockSyntax>[
-        ...extensionSet.blockSyntaxes,
-        if (customBlockSyntaxes != null) ...customBlockSyntaxes!,
-      ];
-
-      // Build inline syntaxes
-      final inlineSyntaxes = <md.InlineSyntax>[
-        ...extensionSet.inlineSyntaxes,
-        if (customInlineSyntaxes != null) ...customInlineSyntaxes!,
-      ];
-
-      // Parse Markdown to AST
-      final document = md.Document(
-        extensionSet: extensionSet,
-        blockSyntaxes: blockSyntaxes,
-        inlineSyntaxes: inlineSyntaxes,
-        encodeHtml: !enableInlineHtml,
-      );
+      final md.Document document;
+      if (!hasCustomSyntaxes) {
+        // Simple path: let extensionSet own all syntaxes
+        document = md.Document(
+          extensionSet: enableGfm ? md.ExtensionSet.gitHubFlavored : null,
+          encodeHtml: true,
+        );
+      } else {
+        // Custom syntax path: merge GFM + custom into explicit lists
+        final blockSyntaxes = <md.BlockSyntax>[
+          if (enableGfm) ...md.ExtensionSet.gitHubFlavored.blockSyntaxes,
+          ...customBlockSyntaxes!,
+        ];
+        final inlineSyntaxes = <md.InlineSyntax>[
+          if (enableGfm) ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes,
+          ...customInlineSyntaxes!,
+        ];
+        document = md.Document(
+          blockSyntaxes: blockSyntaxes,
+          inlineSyntaxes: inlineSyntaxes,
+          encodeHtml: true,
+        );
+      }
 
       final lines = content.split('\n');
       final nodes = document.parseLines(lines);
@@ -155,8 +166,9 @@ class MarkdownAdapter extends ExtendedDocumentAdapter {
           tagName: 'h1',
           style: ComputedStyle(
             display: DisplayType.block,
-            fontSize: 32,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
+            margin: const EdgeInsets.only(top: 20, bottom: 8),
           ),
           children: children,
         );
@@ -166,8 +178,9 @@ class MarkdownAdapter extends ExtendedDocumentAdapter {
           tagName: 'h2',
           style: ComputedStyle(
             display: DisplayType.block,
-            fontSize: 24,
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            margin: const EdgeInsets.only(top: 16, bottom: 6),
           ),
           children: children,
         );
@@ -177,28 +190,48 @@ class MarkdownAdapter extends ExtendedDocumentAdapter {
           tagName: 'h3',
           style: ComputedStyle(
             display: DisplayType.block,
-            fontSize: 18.72,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
+            margin: const EdgeInsets.only(top: 14, bottom: 4),
           ),
           children: children,
         );
 
       case 'h4':
+        return BlockNode(
+          tagName: 'h4',
+          style: ComputedStyle(
+            display: DisplayType.block,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            margin: const EdgeInsets.only(top: 12, bottom: 4),
+          ),
+          children: children,
+        );
+
       case 'h5':
       case 'h6':
         return BlockNode(
           tagName: tag,
           style: ComputedStyle(
             display: DisplayType.block,
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
+            margin: const EdgeInsets.only(top: 10, bottom: 2),
           ),
           children: children,
         );
 
       // Paragraph
       case 'p':
-        return BlockNode.p(children: children);
+        return BlockNode(
+          tagName: 'p',
+          style: ComputedStyle(
+            display: DisplayType.block,
+            margin: const EdgeInsets.only(bottom: 8),
+          ),
+          children: children,
+        );
 
       // Bold
       case 'strong':

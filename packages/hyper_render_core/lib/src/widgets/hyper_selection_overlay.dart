@@ -75,6 +75,13 @@ class HyperSelectionOverlay extends StatefulWidget {
   /// Draw debug bounds around each fragment/line. See [RenderHyperBox.debugShowBounds].
   final bool debugShowBounds;
 
+  /// Called after each layout pass with anchor id→yOffset map and heading list.
+  /// Forwarded to the inner [HyperRenderWidget]. Used by [HyperViewerController].
+  final void Function(
+    Map<String, double> offsets,
+    List<({int level, String text, String? cssId, double yOffset})> headings,
+  )? onAnchorLayout;
+
   const HyperSelectionOverlay({
     super.key,
     required this.document,
@@ -91,6 +98,7 @@ class HyperSelectionOverlay extends StatefulWidget {
     this.showHandles = true,
     this.autoShowMenu = true,
     this.debugShowBounds = false,
+    this.onAnchorLayout,
   });
 
   @override
@@ -115,6 +123,11 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
   /// Which handle is being dragged (for potential future animation/haptic feedback)
   // ignore: unused_field
   _HandlePosition? _draggingHandle;
+
+  /// Holds the scroll position while a handle is being dragged, preventing
+  /// the ancestor SingleChildScrollView / ListView from scrolling and stealing
+  /// the gesture away from the handle's PanGestureRecognizer.
+  ScrollHoldController? _scrollHold;
 
   /// Animation controller for menu
   late AnimationController _menuAnimController;
@@ -157,9 +170,15 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
 
   @override
   void dispose() {
+    _releaseScrollHold();
     _focusNode.dispose();
     _menuAnimController.dispose();
     super.dispose();
+  }
+
+  void _releaseScrollHold() {
+    _scrollHold?.cancel();
+    _scrollHold = null;
   }
 
   /// Called when selection changes in RenderHyperBox
@@ -195,6 +214,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     final text = _renderBox?.getSelectedText();
     if (text != null && text.isNotEmpty) {
       await Clipboard.setData(ClipboardData(text: text));
+      if (!mounted) return;
       _showCopiedSnackBar();
       clearSelection();
     }
@@ -238,13 +258,6 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
 
   void _handleTapOutside() {
     if (hasSelection || _showContextMenu) {
-      clearSelection();
-    }
-  }
-
-  void _handleTap(TapDownDetails details) {
-    // Hide menu and clear selection on tap
-    if (_showContextMenu || hasSelection) {
       clearSelection();
     }
   }
@@ -309,8 +322,15 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     return Focus(
       focusNode: _focusNode,
       onKeyEvent: _handleKeyEvent,
-      child: GestureDetector(
-        onTapDown: _handleTap,
+      child: Listener(
+        // Use Listener instead of GestureDetector(onTapDown) so we don't enter the
+        // gesture arena. GestureDetector competes with inner TextButton recognizers
+        // and can prevent copy/share button onPressed from firing when the menu is
+        // visible. Listener fires on pointer-down without arena participation.
+        onPointerDown: (event) {
+          if (_showContextMenu) return;
+          if (hasSelection) clearSelection();
+        },
         behavior: HitTestBehavior.translucent,
         child: TapRegion(
           onTapOutside: (_) => _handleTapOutside(),
@@ -331,6 +351,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
                       widget.textDirection ?? Directionality.of(context),
                   onSelectionChanged: _onSelectionChanged,
                   debugShowBounds: widget.debugShowBounds,
+                  onAnchorLayout: widget.onAnchorLayout,
                 ),
               ),
 
@@ -395,6 +416,9 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
           _draggingHandle = position;
           _focusNode.requestFocus();
           _hideMenu(); // Hide menu while dragging
+          // Freeze the ancestor scroll view so the handle drag wins the arena.
+          _releaseScrollHold();
+          _scrollHold = Scrollable.maybeOf(context)?.position.hold(_releaseScrollHold);
         },
         onPanUpdate: (details) {
           final renderBox = _renderBox;
@@ -410,9 +434,14 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
         },
         onPanEnd: (_) {
           _draggingHandle = null;
+          _releaseScrollHold(); // Restore scroll after handle drag completes.
           if (hasSelection && widget.autoShowMenu) {
             _showMenu();
           }
+        },
+        onPanCancel: () {
+          _draggingHandle = null;
+          _releaseScrollHold();
         },
         child: CustomPaint(
           size: const Size(22, 22),

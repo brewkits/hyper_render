@@ -61,6 +61,8 @@ class HtmlHeuristics {
   /// - `clip-path`
   /// - `columns` / `column-count` (multi-column layout)
   /// - `grid-template-areas` (complex named areas)
+  /// - `@keyframes` / `animation:` (CSS animations)
+  /// - `filter:` / `backdrop-filter:` with values beyond supported subset
   static bool hasUnsupportedCss(String html) {
     final lower = html.toLowerCase();
 
@@ -80,6 +82,20 @@ class HtmlHeuristics {
 
     // Complex grid template areas
     if (lower.contains('grid-template-areas')) return true;
+
+    // CSS animations — @keyframes or animation: property
+    if (lower.contains('@keyframes')) return true;
+    if (RegExp(r'\banimation\s*:', caseSensitive: false).hasMatch(lower)) {
+      return true;
+    }
+
+    // CSS transitions
+    if (RegExp(r'\btransition\s*:', caseSensitive: false).hasMatch(lower)) {
+      return true;
+    }
+
+    // backdrop-filter (requires saveLayer, not supported on all devices)
+    if (lower.contains('backdrop-filter')) return true;
 
     return false;
   }

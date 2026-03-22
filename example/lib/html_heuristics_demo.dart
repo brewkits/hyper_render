@@ -48,7 +48,7 @@ class _HtmlHeuristicsDemoState extends State<HtmlHeuristicsDemo>
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          unselectedLabelColor: Colors.white,
           indicatorColor: Colors.white,
           tabs: const [
             Tab(icon: Icon(Icons.check_circle, size: 18), text: 'Simple HTML'),

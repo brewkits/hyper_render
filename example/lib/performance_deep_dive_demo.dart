@@ -44,7 +44,7 @@ class _PerformanceDeepDiveDemoState extends State<PerformanceDeepDiveDemo>
           controller: _tabController,
           isScrollable: true,
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          unselectedLabelColor: Colors.white,
           indicatorColor: Colors.white,
           tabs: const [
             Tab(icon: Icon(Icons.waterfall_chart), text: 'Pipeline'),
@@ -201,7 +201,7 @@ class _PipelineBreakdownTabState extends State<_PipelineBreakdownTab> {
           SizedBox(height: 8),
           Text(
             '4 phases: Parse → Style → Layout → Paint\nEach phase measured independently',
-            style: TextStyle(fontSize: 13, color: Colors.white70),
+            style: TextStyle(fontSize: 13, color: Colors.white),
           ),
         ],
       ),
@@ -736,7 +736,7 @@ class _CssIndexingTabState extends State<_CssIndexingTab> {
                           style: TextStyle(
                               fontSize: 11,
                               color: selected
-                                  ? Colors.white70
+                                  ? Colors.white
                                   : Colors.grey.shade600)),
                     ],
                   ),
@@ -1136,7 +1136,7 @@ class _MemoryTabState extends State<_MemoryTab> {
                     padding: const EdgeInsets.only(left: 8),
                     child: Text('${mb}MB',
                         style: const TextStyle(
-                            color: Colors.white,
+                            color: Color(0xFF1A1A1A),
                             fontSize: 12,
                             fontWeight: FontWeight.bold)),
                   ),
@@ -1272,7 +1272,7 @@ class _LibraryComparisonTabState extends State<_LibraryComparisonTab> {
               Text(
                 'Measuring widget build time for the same HTML document '
                 'across three libraries. Lower is better.',
-                style: TextStyle(fontSize: 13, color: Colors.white70),
+                style: TextStyle(fontSize: 13, color: Colors.white),
               ),
             ],
           ),

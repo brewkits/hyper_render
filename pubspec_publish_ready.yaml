@@ -1,11 +1,10 @@
 name: hyper_render
-description: "The Universal Content Engine for Flutter - A high-performance rendering engine for HTML, Markdown, and Quill Delta with perfect text selection, advanced CSS support, and CJK typography."
+description: "Render HTML/Markdown/Delta at 60 FPS. The only Flutter renderer with CSS float layout, crash-free text selection, and CJK Ruby typography. Drop-in flutter_html alternative."
 version: 1.1.0
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render
 issue_tracker: https://github.com/brewkits/hyper_render/issues
 
-# Topics for pub.dev discovery
 topics:
   - html
   - markdown
@@ -17,40 +16,41 @@ environment:
   sdk: '>=3.5.0 <4.0.0'
   flutter: ">=3.10.0"
 
+screenshots:
+  - description: 'CSS float layout — text wraps around images like a real browser. No other Flutter HTML library supports this.'
+    path: assets/float_demo.gif
+  - description: 'Ruby / Furigana CJK typography with full Kinsoku line-breaking rules.'
+    path: assets/ruby_demo.gif
+  - description: 'Crash-free text selection across headings, paragraphs, and table cells — tested to 100K chars.'
+    path: assets/selection_demo.gif
+  - description: 'Advanced table layout with colspan, rowspan, and W3C 2-pass column algorithm.'
+    path: assets/table_demo.gif
+  - description: 'Side-by-side comparison: same HTML in HyperRender vs flutter_widget_from_html.'
+    path: assets/comparison_demo.gif
+  - description: 'Virtualized mode — only visible sections are built and painted for smooth 60 FPS scroll.'
+    path: assets/performance_demo.gif
+
 dependencies:
   flutter:
     sdk: flutter
 
-  # ============================================
-  # PUBLISH-READY CONFIGURATION
-  # All path dependencies replaced with version constraints
-  # ============================================
-
-  # Core packages (replace with actual pub.dev versions after publishing)
   hyper_render_core: ^1.1.0
-  hyper_render_html: ^1.0.0
-  hyper_render_markdown: ^1.0.0
-  hyper_render_highlight: ^1.0.0
+  hyper_render_html: ^1.1.0
+  hyper_render_markdown: ^1.1.0
+  hyper_render_highlight: ^1.1.0
 
-  # External dependencies
   flutter_highlight: ^0.7.0
   highlight: ^0.7.0
   csslib: ^1.0.0
   markdown: ^7.3.0
   html: ^0.15.6
-  vector_math: ^2.1.4
+  vector_math: ^2.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # Linting
   flutter_lints: ^6.0.0
-
-  # Mocking for tests
   mockito: ^5.4.4
-
-  # Build runner for mockito code generation
   build_runner: ^2.4.8
 
 flutter:

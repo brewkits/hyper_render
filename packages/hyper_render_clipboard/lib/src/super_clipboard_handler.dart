@@ -177,7 +177,6 @@ class SuperClipboardHandler implements ImageClipboardHandler {
     }
   }
 
-  @override
   bool get isCopySupported => true;
 
   @override

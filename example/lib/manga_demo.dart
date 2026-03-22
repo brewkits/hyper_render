@@ -44,7 +44,7 @@ class _MangaDemoState extends State<MangaDemo>
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          unselectedLabelColor: Colors.white,
           indicatorColor: Colors.white,
           isScrollable: true,
           tabs: const [

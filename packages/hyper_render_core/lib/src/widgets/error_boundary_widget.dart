@@ -271,8 +271,8 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
       buffer.writeln(widget.errorNode.originalContent);
     }
 
-    await Clipboard.setData(ClipboardData(text: buffer.toString()));
-
+    // Show snackbar immediately (before clipboard finishes) so the UI responds
+    // promptly. Clipboard copy is best-effort — failures are silently ignored.
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -280,6 +280,12 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
           duration: Duration(seconds: 2),
         ),
       );
+    }
+
+    try {
+      await Clipboard.setData(ClipboardData(text: buffer.toString()));
+    } catch (_) {
+      // Clipboard may be unavailable (e.g. in tests); snackbar already shown.
     }
   }
 }

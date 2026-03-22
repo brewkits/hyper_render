@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../model/node.dart';
@@ -140,30 +138,33 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
   }
 
   Widget _buildVideoPlaceholder() {
-    return LayoutBuilder(
-      builder: (context, constraints) => _buildVideoContainer(constraints),
-    );
-  }
-
-  Widget _buildVideoContainer(BoxConstraints constraints) {
-    final maxW =
-        constraints.maxWidth == double.infinity ? 320.0 : constraints.maxWidth;
+    // Avoid LayoutBuilder here — it marks child parentData dirty during
+    // relayout which triggers a Flutter semantics assertion when this widget
+    // is embedded inside HyperRenderWidget (a MultiChildRenderObjectWidget).
+    // Use intrinsic dimensions from the HTML attributes instead.
     final intrinsicW = widget.mediaInfo.width;
     final intrinsicH = widget.mediaInfo.height;
 
     double width, height;
     if (intrinsicW != null && intrinsicH != null) {
-      final scale = intrinsicW > maxW ? maxW / intrinsicW : 1.0;
-      width = intrinsicW * scale;
-      height = intrinsicH * scale;
+      width = intrinsicW;
+      height = intrinsicH;
     } else if (intrinsicW != null) {
-      width = math.min(intrinsicW, maxW);
-      height = width * 9.0 / 16.0;
+      width = intrinsicW;
+      height = intrinsicW * 9.0 / 16.0;
     } else {
-      width = maxW;
-      height = maxW * 9.0 / 16.0;
+      width = 320.0;
+      height = 180.0;
     }
 
+    // Clamp to a sensible maximum so the widget doesn't overflow on narrow screens.
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: width),
+      child: _buildVideoContainer(width, height),
+    );
+  }
+
+  Widget _buildVideoContainer(double width, double height) {
     return Container(
       width: width,
       height: height,
@@ -264,18 +265,12 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
   }
 
   Widget _buildAudioPlaceholder() {
-    return LayoutBuilder(builder: (ctx, constraints) {
-      final maxW = constraints.maxWidth == double.infinity
-          ? 300.0
-          : constraints.maxWidth;
-      final width = widget.mediaInfo.width != null
-          ? math.min(widget.mediaInfo.width!, maxW)
-          : maxW;
-      return _buildAudioContainer(ctx, width);
-    });
+    // Same reason as _buildVideoPlaceholder: avoid LayoutBuilder.
+    final width = widget.mediaInfo.width ?? 300.0;
+    return _buildAudioContainer(width);
   }
 
-  Widget _buildAudioContainer(BuildContext context, double width) {
+  Widget _buildAudioContainer(double width) {
     return Container(
       width: width,
       padding: const EdgeInsets.all(12),
@@ -292,8 +287,8 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: _isHovering
-                  ? Theme.of(context).primaryColor
-                  : Theme.of(context).primaryColor.withValues(alpha: 0.8),
+                  ? Colors.blue
+                  : Colors.blue.withValues(alpha: 0.8),
               shape: BoxShape.circle,
             ),
             child: const Icon(

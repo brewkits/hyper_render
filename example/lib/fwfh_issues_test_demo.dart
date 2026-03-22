@@ -393,7 +393,7 @@ Bánh Mì</em> — is worth the journey.</p>
                     ),
                     Text(
                       'Real-world content — blog, recipe, shop, news',
-                      style: TextStyle(fontSize: 13, color: Colors.white70),
+                      style: TextStyle(fontSize: 13, color: Colors.white),
                     ),
                   ],
                 ),
@@ -421,7 +421,7 @@ Bánh Mì</em> — is worth the journey.</p>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
+        color: Colors.black.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
       ),
@@ -600,7 +600,7 @@ Bánh Mì</em> — is worth the journey.</p>
           Container(
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.black.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(icon, size: 15, color: Colors.white),
@@ -617,7 +617,7 @@ Bánh Mì</em> — is worth the journey.</p>
                         color: Colors.white)),
                 Text(desc,
                     style: const TextStyle(
-                        fontSize: 12, color: Colors.white70)),
+                        fontSize: 12, color: Colors.white)),
               ],
             ),
           ),

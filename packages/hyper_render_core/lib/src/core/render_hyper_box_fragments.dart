@@ -9,6 +9,9 @@ class _BlockStartFragment extends Fragment {
   final double paddingTop;
   final double paddingLeft;
   final double paddingRight;
+  /// When true, text inside this block is truncated at the container width
+  /// and the last fitting fragment gets "…" appended (CSS text-overflow: ellipsis).
+  final bool truncateWithEllipsis;
 
   _BlockStartFragment({
     required super.sourceNode,
@@ -17,6 +20,7 @@ class _BlockStartFragment extends Fragment {
     this.paddingTop = 0,
     this.paddingLeft = 0,
     this.paddingRight = 0,
+    this.truncateWithEllipsis = false,
   }) : super(type: FragmentType.text, text: '');
 }
 

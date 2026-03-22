@@ -31,7 +31,7 @@ class _EmailDemoState extends State<EmailDemo>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -50,13 +50,15 @@ class _EmailDemoState extends State<EmailDemo>
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          unselectedLabelColor: Colors.white,
           indicatorColor: Colors.white,
           isScrollable: true,
           tabs: const [
             Tab(icon: Icon(Icons.waving_hand, size: 16), text: 'Welcome'),
-            Tab(icon: Icon(Icons.newspaper, size: 16), text: 'Newsletter'),
+            Tab(icon: Icon(Icons.newspaper, size: 16), text: 'Wallpaper'),
+            Tab(icon: Icon(Icons.translate, size: 16), text: '日本語'),
             Tab(icon: Icon(Icons.receipt_long, size: 16), text: 'Order'),
+            Tab(icon: Icon(Icons.podcasts, size: 16), text: 'Podcast'),
             Tab(icon: Icon(Icons.code, size: 16), text: 'Why?'),
           ],
         ),
@@ -64,9 +66,11 @@ class _EmailDemoState extends State<EmailDemo>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _EmailTab(html: _welcomeEmail, label: 'Welcome Email'),
-          _EmailTab(html: _newsletterEmail, label: 'Newsletter'),
-          _EmailTab(html: _orderEmail, label: 'Order Confirmation'),
+          _EmailTab(html: _welcomeEmail, bgColor: const Color(0xFFF4F6F9)),
+          _EmailTab(html: _wallpaperNewsletter, bgColor: const Color(0xFFF7F5F0)),
+          _EmailTab(html: _japaneseNewsletter, bgColor: const Color(0xFFF0F4FF)),
+          _EmailTab(html: _orderEmail, bgColor: const Color(0xFFF5F5F5)),
+          _EmailTab(html: _podcastEmail, bgColor: const Color(0xFF0F0F1A), darkBg: true),
           const _WhyTab(),
         ],
       ),
@@ -75,74 +79,84 @@ class _EmailDemoState extends State<EmailDemo>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared email wrapper
+// Shared email wrapper — renders inside a colored background like a real inbox
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _EmailTab extends StatelessWidget {
   final String html;
-  final String label;
+  final Color bgColor;
+  final bool darkBg;
 
-  const _EmailTab({required this.html, required this.label});
+  const _EmailTab({
+    required this.html,
+    required this.bgColor,
+    this.darkBg = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Email client toolbar chrome
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: const Color(0xFFF5F5F5),
-          child: Row(
-            children: [
-              const Icon(Icons.email_outlined, size: 16, color: Color(0xFF757575)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF424242),
+    return ColoredBox(
+      color: bgColor,
+      child: Column(
+        children: [
+          // Inbox chrome bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            color: darkBg ? const Color(0xFF1A1A2E) : const Color(0xFFEEEEEE),
+            child: Row(
+              children: [
+                Icon(Icons.inbox_outlined,
+                    size: 14,
+                    color: darkBg ? Colors.white54 : Colors.grey.shade600),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Inbox · Rendered natively by HyperRender',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: darkBg ? Colors.white54 : Colors.grey.shade600,
+                    ),
                   ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  border: Border.all(color: Colors.green.shade200),
-                  borderRadius: BorderRadius.circular(12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade600,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    'Native · No WebView',
+                    style: TextStyle(
+                        fontSize: 9,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700),
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check_circle, size: 11, color: Colors.green.shade700),
-                    const SizedBox(width: 3),
-                    Text(
-                      'Rendered natively',
-                      style: TextStyle(fontSize: 10, color: Colors.green.shade700),
+              ],
+            ),
+          ),
+          // Email body — scrollable, padded like a real email client viewport
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+              child: HyperViewer(
+                html: html,
+                selectable: true,
+                onLinkTap: (url) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Link: $url'),
+                      duration: const Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
-            ],
+            ),
           ),
-        ),
-        Expanded(
-          child: HyperViewer(
-            html: html,
-            selectable: true,
-            onLinkTap: (url) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Link tapped: $url'),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -152,452 +166,878 @@ class _EmailTab extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const _welcomeEmail = '''
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"/></head>
-<body style="margin:0; padding:0; background:#F4F6F9; font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;">
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif; max-width:560px; margin:0 auto;">
 
-<!-- Outer wrapper -->
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6F9; padding: 24px 0;">
-<tr><td align="center">
+  <!-- Header -->
+  <div style="background:#3F51B5;
+              border-radius:14px 14px 0 0; padding:32px 28px; text-align:center;">
+    <div style="width:64px; height:64px; background:rgba(255,255,255,0.2);
+                border-radius:16px; margin:0 auto 12px; display:flex;
+                align-items:center; justify-content:center; font-size:32px;">⚡</div>
+    <div style="font-size:26px; font-weight:800; color:white; letter-spacing:-0.5px;">
+      Welcome to HyperShop
+    </div>
+    <div style="font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px;">
+      Your account is ready · 3 perks waiting for you
+    </div>
+  </div>
 
-  <!-- Email container -->
-  <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px; width:100%;">
+  <!-- Body -->
+  <div style="background:white; padding:28px 28px 20px;">
+    <p style="font-size:16px; color:#212121; margin:0 0 10px;">
+      Hi <strong>Alex</strong>, 👋
+    </p>
+    <p style="font-size:14px; color:#424242; line-height:1.75; margin:0 0 20px;">
+      Thanks for joining HyperShop — we're thrilled to have you on board.
+      Your account is fully set up. Here's everything you unlock today:
+    </p>
 
-    <!-- Header -->
-    <tr>
-      <td style="background: linear-gradient(135deg, #3F51B5, #7C4DFF); border-radius:12px 12px 0 0; padding: 32px 36px; text-align:center;">
-        <div style="font-size:32px; margin-bottom:8px;">⚡</div>
-        <div style="font-size:26px; font-weight:800; color:white; letter-spacing:-0.5px;">
-          Welcome to HyperShop
-        </div>
-        <div style="font-size:14px; color:rgba(255,255,255,0.8); margin-top:6px;">
-          Your account is ready
-        </div>
-      </td>
-    </tr>
-
-    <!-- Body -->
-    <tr>
-      <td style="background:white; padding: 32px 36px;">
-        <p style="font-size:16px; color:#212121; margin:0 0 12px;">
-          Hi <strong>Alex</strong>, 👋
-        </p>
-        <p style="font-size:15px; color:#424242; line-height:1.7; margin:0 0 20px;">
-          Thanks for joining HyperShop! We're thrilled to have you on board.
-          Your account is set up and ready to go.
-        </p>
-
-        <!-- CTA Button -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
-          <tr>
-            <td align="center">
-              <a href="https://hypershop.example.com/start"
-                 style="display:inline-block; background:#3F51B5; color:white;
-                        font-size:15px; font-weight:700; padding:14px 36px;
-                        border-radius:8px; text-decoration:none; letter-spacing:0.3px;">
-                Start Shopping →
-              </a>
-            </td>
-          </tr>
-        </table>
-
-        <!-- Divider -->
-        <hr style="border:none; border-top:1px solid #F0F0F0; margin:24px 0;"/>
-
-        <!-- Feature highlights -->
-        <p style="font-size:13px; font-weight:700; color:#757575; letter-spacing:0.8px; margin:0 0 16px;">
-          WHAT YOU GET
-        </p>
-        <table width="100%" cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="padding:10px 14px; background:#F8F9FF; border-radius:8px; margin-bottom:8px;">
-              <table width="100%">
-                <tr>
-                  <td width="36" style="font-size:22px;">🚀</td>
-                  <td>
-                    <div style="font-size:14px; font-weight:700; color:#212121;">Free shipping on all orders</div>
-                    <div style="font-size:13px; color:#757575;">On orders over \$50</div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr><td style="height:8px;"></td></tr>
-          <tr>
-            <td style="padding:10px 14px; background:#F8F9FF; border-radius:8px;">
-              <table width="100%">
-                <tr>
-                  <td width="36" style="font-size:22px;">🎁</td>
-                  <td>
-                    <div style="font-size:14px; font-weight:700; color:#212121;">20% off your first order</div>
-                    <div style="font-size:13px; color:#757575;">Use code <strong style="color:#3F51B5;">WELCOME20</strong></div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr><td style="height:8px;"></td></tr>
-          <tr>
-            <td style="padding:10px 14px; background:#F8F9FF; border-radius:8px;">
-              <table width="100%">
-                <tr>
-                  <td width="36" style="font-size:22px;">💬</td>
-                  <td>
-                    <div style="font-size:14px; font-weight:700; color:#212121;">24/7 customer support</div>
-                    <div style="font-size:13px; color:#757575;">Chat, email or phone</div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-
-    <!-- Footer -->
-    <tr>
-      <td style="background:#F8F8F8; border-radius:0 0 12px 12px; padding:20px 36px; text-align:center; border-top:1px solid #EEEEEE;">
-        <p style="font-size:12px; color:#9E9E9E; margin:0 0 6px;">
-          HyperShop · 123 Commerce St · San Francisco, CA
-        </p>
-        <p style="font-size:12px; color:#9E9E9E; margin:0;">
-          <a href="#" style="color:#3F51B5;">Unsubscribe</a> ·
-          <a href="#" style="color:#3F51B5;">Privacy Policy</a> ·
-          <a href="#" style="color:#3F51B5;">Terms</a>
-        </p>
-      </td>
-    </tr>
-
-  </table>
-</td></tr>
-</table>
-
-</body>
-</html>
-''';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Tab 2 — Newsletter
-// ─────────────────────────────────────────────────────────────────────────────
-
-const _newsletterEmail = '''
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"/></head>
-<body style="margin:0; padding:0; background:#F4F4F4; font-family: Georgia, 'Times New Roman', serif;">
-
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F4F4; padding:20px 0;">
-<tr><td align="center">
-<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px; width:100%;">
-
-  <!-- Masthead -->
-  <tr>
-    <td style="background:#1A1A2E; padding:20px 28px; border-radius:12px 12px 0 0;">
-      <table width="100%">
-        <tr>
-          <td>
-            <div style="font-size:11px; font-weight:700; color:#7C83FF; letter-spacing:2px;">THE WEEKLY</div>
-            <div style="font-size:24px; font-weight:900; color:white; font-family:-apple-system,sans-serif;">
-              Tech Dispatch
-            </div>
-          </td>
-          <td align="right" style="font-size:11px; color:#666; font-family:-apple-system,sans-serif;">
-            Issue #47<br/>Feb 28, 2026
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-
-  <!-- Hero story -->
-  <tr>
-    <td style="background:white; padding:28px;">
-      <div style="background:#E8EAF6; border-radius:8px; padding:20px; margin-bottom:24px;">
-        <div style="font-size:10px; font-weight:800; color:#3F51B5; letter-spacing:1.5px; margin-bottom:8px;">
-          COVER STORY
-        </div>
-        <h2 style="font-size:20px; line-height:1.3; color:#1A1A2E; margin:0 0 10px; font-family:-apple-system,sans-serif; font-weight:800;">
-          Flutter's custom rendering revolution: how single-RenderObject engines are beating WebView
-        </h2>
-        <p style="font-size:14px; color:#616161; line-height:1.7; margin:0 0 14px;">
-          A new generation of Flutter libraries is proving that native canvas painting
-          outperforms embedded WebView in every metric that matters: startup time,
-          RAM usage, scroll smoothness, and bundle size.
-        </p>
-        <a href="#" style="color:#3F51B5; font-size:13px; font-weight:700; font-family:-apple-system,sans-serif;">
-          Read the full analysis →
-        </a>
-      </div>
-
-      <!-- Stories grid (two column using table) -->
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td width="48%" style="vertical-align:top; padding-right:12px;">
-            <div style="font-size:18px; margin-bottom:6px;">📱</div>
-            <div style="font-size:13px; font-weight:700; color:#212121; margin-bottom:5px; font-family:-apple-system,sans-serif; line-height:1.3;">
-              iOS 20 brings new text rendering APIs
-            </div>
-            <div style="font-size:12px; color:#757575; line-height:1.6;">
-              Apple's new CoreText extensions give Flutter access
-              to system-level font hinting and subpixel rendering.
-            </div>
-          </td>
-          <td width="4%"></td>
-          <td width="48%" style="vertical-align:top; border-left:1px solid #F0F0F0; padding-left:12px;">
-            <div style="font-size:18px; margin-bottom:6px;">🤖</div>
-            <div style="font-size:13px; font-weight:700; color:#212121; margin-bottom:5px; font-family:-apple-system,sans-serif; line-height:1.3;">
-              Dart 4.0 ships with pattern matching in switch
-            </div>
-            <div style="font-size:12px; color:#757575; line-height:1.6;">
-              The latest Dart release makes sealed classes and
-              exhaustive switches the default coding pattern.
-            </div>
-          </td>
-        </tr>
-      </table>
-
-      <hr style="border:none; border-top:1px solid #F0F0F0; margin:20px 0;"/>
-
-      <!-- Sponsored -->
-      <div style="background:#FFFDE7; border:1px solid #FFF59D; border-radius:6px; padding:12px 14px;">
-        <div style="font-size:10px; color:#F9A825; font-weight:700; letter-spacing:1px; margin-bottom:5px; font-family:-apple-system,sans-serif;">
-          SPONSORED
-        </div>
-        <div style="font-size:13px; color:#424242; line-height:1.6;">
-          <strong>ScreenshotKit Pro</strong> — Export any Flutter widget to PDF in one line of code.
-          Used by 12,000+ developers.
-          <a href="#" style="color:#3F51B5;">Try free →</a>
+    <!-- 3 perk cards -->
+    <div style="background:#F8F9FF; border-radius:10px; padding:14px 16px; margin-bottom:10px;">
+      <div style="display:flex; align-items:center;">
+        <span style="font-size:24px; margin-right:14px;">🚀</span>
+        <div>
+          <div style="font-size:14px; font-weight:700; color:#212121;">Free shipping on all orders</div>
+          <div style="font-size:12px; color:#757575; margin-top:2px;">No minimum order, worldwide delivery</div>
         </div>
       </div>
-
-      <hr style="border:none; border-top:1px solid #F0F0F0; margin:20px 0;"/>
-
-      <!-- Quick links -->
-      <div style="font-size:11px; font-weight:700; color:#9E9E9E; letter-spacing:1px; margin-bottom:12px; font-family:-apple-system,sans-serif;">
-        QUICK LINKS
+    </div>
+    <div style="background:#F8F9FF; border-radius:10px; padding:14px 16px; margin-bottom:10px;">
+      <div style="display:flex; align-items:center;">
+        <span style="font-size:24px; margin-right:14px;">🎁</span>
+        <div>
+          <div style="font-size:14px; font-weight:700; color:#212121;">20% off your first order</div>
+          <div style="font-size:12px; color:#757575; margin-top:2px;">
+            Use code <strong style="color:#3F51B5; background:#EEF2FF; padding:1px 6px; border-radius:4px;">WELCOME20</strong>
+          </div>
+        </div>
       </div>
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="padding:7px 0; border-bottom:1px solid #F5F5F5;">
-            <a href="#" style="color:#212121; text-decoration:none; font-size:13px;">
-              📦 pub.dev packages of the week
-            </a>
-            <span style="float:right; font-size:11px; color:#BDBDBD;">3 min</span>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:7px 0; border-bottom:1px solid #F5F5F5;">
-            <a href="#" style="color:#212121; text-decoration:none; font-size:13px;">
-              🐛 Widget tree debugging: 5 hidden DevTools tips
-            </a>
-            <span style="float:right; font-size:11px; color:#BDBDBD;">5 min</span>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:7px 0;">
-            <a href="#" style="color:#212121; text-decoration:none; font-size:13px;">
-              🎯 Riverpod vs BLoC in 2026: a real-world comparison
-            </a>
-            <span style="float:right; font-size:11px; color:#BDBDBD;">8 min</span>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
+    </div>
+    <div style="background:#F8F9FF; border-radius:10px; padding:14px 16px; margin-bottom:22px;">
+      <div style="display:flex; align-items:center;">
+        <span style="font-size:24px; margin-right:14px;">💬</span>
+        <div>
+          <div style="font-size:14px; font-weight:700; color:#212121;">24/7 live chat support</div>
+          <div style="font-size:12px; color:#757575; margin-top:2px;">Average response time under 2 minutes</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div style="text-align:center; margin-bottom:24px;">
+      <a href="https://hypershop.example.com/start"
+         style="display:inline-block; background:#3F51B5;
+                color:white; font-size:15px; font-weight:700; padding:14px 40px;
+                border-radius:10px; text-decoration:none; letter-spacing:0.2px;">
+        Start Shopping →
+      </a>
+    </div>
+
+    <hr style="border:none; border-top:1px solid #F0F0F0; margin:0 0 16px;"/>
+
+    <!-- Social proof -->
+    <div style="text-align:center;">
+      <div style="font-size:22px; font-weight:800; color:#212121;">4.9 ★</div>
+      <div style="font-size:12px; color:#9E9E9E; margin-top:2px;">
+        Rated by 28,000+ customers on the App Store
+      </div>
+    </div>
+  </div>
 
   <!-- Footer -->
-  <tr>
-    <td style="background:#1A1A2E; padding:18px 28px; border-radius:0 0 12px 12px; text-align:center;">
-      <p style="font-size:11px; color:#666; margin:0 0 6px; font-family:-apple-system,sans-serif;">
-        You're receiving this because you subscribed to Tech Dispatch.
-      </p>
-      <p style="font-size:11px; margin:0; font-family:-apple-system,sans-serif;">
-        <a href="#" style="color:#7C83FF;">Unsubscribe</a>
-        <span style="color:#444;"> · </span>
-        <a href="#" style="color:#7C83FF;">Manage preferences</a>
-        <span style="color:#444;"> · </span>
-        <a href="#" style="color:#7C83FF;">View in browser</a>
-      </p>
-    </td>
-  </tr>
+  <div style="background:#F8F8F8; border-radius:0 0 14px 14px; padding:16px 28px;
+              text-align:center; border-top:1px solid #EEEEEE;">
+    <p style="font-size:11px; color:#BDBDBD; margin:0 0 6px;">
+      HyperShop Inc. · 123 Commerce St · San Francisco, CA 94103
+    </p>
+    <p style="font-size:11px; margin:0;">
+      <a href="#" style="color:#3F51B5; text-decoration:none;">Unsubscribe</a>
+      <span style="color:#E0E0E0;"> · </span>
+      <a href="#" style="color:#3F51B5; text-decoration:none;">Privacy Policy</a>
+      <span style="color:#E0E0E0;"> · </span>
+      <a href="#" style="color:#3F51B5; text-decoration:none;">View in browser</a>
+    </p>
+  </div>
 
-</table>
-</td></tr>
-</table>
-</body>
-</html>
+</div>
 ''';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tab 3 — Order Confirmation
+// Tab 2 — Wallpaper-style Design & Architecture Newsletter (English)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _wallpaperNewsletter = '''
+<div style="font-family:'Georgia','Times New Roman',serif; max-width:560px; margin:0 auto;
+            color:#1A1A1A; background:#FFFDF8;">
+
+  <!-- Masthead -->
+  <div style="padding:24px 24px 0; border-bottom:3px solid #1A1A1A;">
+    <div style="font-family:-apple-system,sans-serif; font-size:10px; font-weight:700;
+                letter-spacing:3px; color:#888; margin-bottom:10px;">
+      DESIGN · ARCHITECTURE · CULTURE
+    </div>
+    <div style="font-size:36px; font-weight:900; letter-spacing:-1.5px; line-height:1;
+                font-family:-apple-system,sans-serif; color:#1A1A1A;">
+      SURFACES
+    </div>
+    <div style="display:flex; justify-content:space-between; margin-top:10px;
+                padding-bottom:14px; font-size:11px; color:#888;
+                font-family:-apple-system,sans-serif;">
+      <span>No. 024 · March 2026</span>
+      <span>Free · Monthly</span>
+    </div>
+  </div>
+
+  <!-- Hero story -->
+  <div style="padding:24px 24px 0;">
+    <div style="font-size:10px; font-weight:700; letter-spacing:2px; color:#888;
+                font-family:-apple-system,sans-serif; margin-bottom:10px;">
+      COVER STORY
+    </div>
+    <h1 style="font-size:28px; font-weight:700; line-height:1.25; margin:0 0 14px;
+               letter-spacing:-0.5px; color:#1A1A1A;">
+      The Quiet Revolution: How Brutalist UI Is Making Its Comeback
+    </h1>
+    <img src="https://picsum.photos/seed/brutalism/520/260"
+         style="width:100%; border-radius:4px; display:block; margin-bottom:14px;" />
+    <p style="font-size:15px; line-height:1.8; color:#333; margin:0 0 12px;">
+      A new wave of digital designers is rejecting the soft gradients and rounded corners
+      of the 2010s in favour of something rawer — heavy borders, monochrome palettes,
+      and layouts that feel <em>deliberately unpolished</em>. The aesthetic has a name:
+      <strong>Neo-Brutalism</strong>, and it is appearing everywhere from banking apps
+      to editorial websites.
+    </p>
+    <p style="font-size:15px; line-height:1.8; color:#333; margin:0 0 16px;">
+      "We were drowning in frosted glass," says Berlin-based creative director
+      Lena Hoffmann. "At some point the sameness became its own kind of ugliness.
+      Brutalism forces the designer to find beauty in structure, not decoration."
+    </p>
+    <a href="#" style="font-family:-apple-system,sans-serif; font-size:12px;
+                       font-weight:700; color:#1A1A1A; letter-spacing:1px;
+                       text-decoration:none; border-bottom:2px solid #1A1A1A;">
+      READ FULL STORY →
+    </a>
+  </div>
+
+  <!-- Divider rule -->
+  <div style="margin:24px; border-top:1px solid #E0DDD6;"></div>
+
+  <!-- Two-column features -->
+  <div style="padding:0 24px;">
+    <div style="font-size:10px; font-weight:700; letter-spacing:2px; color:#888;
+                font-family:-apple-system,sans-serif; margin-bottom:16px;">
+      THIS MONTH
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="48%" style="vertical-align:top; padding-right:14px;
+                               border-right:1px solid #E0DDD6;">
+          <div style="font-size:10px; font-weight:700; letter-spacing:1.5px;
+                      color:#888; margin-bottom:8px; font-family:-apple-system,sans-serif;">
+            OBJECT
+          </div>
+          <img src="https://picsum.photos/seed/lamp/220/160"
+               style="width:100%; border-radius:3px; margin-bottom:10px;" />
+          <div style="font-size:13px; font-weight:700; line-height:1.4;
+                      margin-bottom:6px; color:#1A1A1A;">
+            The Flos IC Floor Lamp at 60: Still the Benchmark
+          </div>
+          <div style="font-size:12px; color:#666; line-height:1.6;">
+            Achille Castiglioni's 1962 ball-joint floor lamp turns sixty
+            this year. We revisit why it has never been bettered.
+          </div>
+        </td>
+        <td width="4%"></td>
+        <td width="48%" style="vertical-align:top; padding-left:14px;">
+          <div style="font-size:10px; font-weight:700; letter-spacing:1.5px;
+                      color:#888; margin-bottom:8px; font-family:-apple-system,sans-serif;">
+            ARCHITECTURE
+          </div>
+          <img src="https://picsum.photos/seed/arch2026/220/160"
+               style="width:100%; border-radius:3px; margin-bottom:10px;" />
+          <div style="font-size:13px; font-weight:700; line-height:1.4;
+                      margin-bottom:6px; color:#1A1A1A;">
+            Kengo Kuma's Woven Pavilion Opens in Kyoto
+          </div>
+          <div style="font-size:12px; color:#666; line-height:1.6;">
+            The Japanese architect's latest work dissolves the boundary
+            between roof and forest canopy using cedar lattice.
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Divider -->
+  <div style="margin:24px; border-top:1px solid #E0DDD6;"></div>
+
+  <!-- What we're reading -->
+  <div style="padding:0 24px 24px;">
+    <div style="font-size:10px; font-weight:700; letter-spacing:2px; color:#888;
+                font-family:-apple-system,sans-serif; margin-bottom:14px;">
+      ON THE SHELF
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+      <tr>
+        <td width="52" style="vertical-align:top; padding-right:12px;">
+          <div style="width:44px; height:60px; background:#1A1A1A; border-radius:3px;
+                      display:flex; align-items:center; justify-content:center;
+                      font-size:8px; color:white; text-align:center; font-family:-apple-system,sans-serif;
+                      font-weight:700; letter-spacing:0.5px; padding:4px;">
+            ATLAS
+          </div>
+        </td>
+        <td style="vertical-align:top;">
+          <div style="font-size:13px; font-weight:700; color:#1A1A1A; margin-bottom:3px;">
+            Atlas of Brutalist Architecture
+          </div>
+          <div style="font-size:11px; color:#888; font-family:-apple-system,sans-serif;
+                      margin-bottom:5px;">
+            Phaidon Press · 640 pages
+          </div>
+          <div style="font-size:12px; color:#555; line-height:1.6;">
+            The definitive survey of 879 Brutalist buildings across 102 countries.
+            Essential for anyone serious about concrete aesthetics.
+          </div>
+        </td>
+      </tr>
+    </table>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="52" style="vertical-align:top; padding-right:12px;">
+          <div style="width:44px; height:60px; background:#B71C1C; border-radius:3px;
+                      display:flex; align-items:center; justify-content:center;
+                      font-size:8px; color:white; text-align:center; font-family:-apple-system,sans-serif;
+                      font-weight:700; letter-spacing:0.5px; padding:4px;">
+            TYPE
+          </div>
+        </td>
+        <td style="vertical-align:top;">
+          <div style="font-size:13px; font-weight:700; color:#1A1A1A; margin-bottom:3px;">
+            Thinking with Type
+          </div>
+          <div style="font-size:11px; color:#888; font-family:-apple-system,sans-serif;
+                      margin-bottom:5px;">
+            Ellen Lupton · Princeton Architectural Press
+          </div>
+          <div style="font-size:12px; color:#555; line-height:1.6;">
+            Now in its third edition, Lupton's guide to typography remains
+            the clearest introduction to type as a design medium.
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div style="background:#1A1A1A; padding:20px 24px; border-radius:0 0 4px 4px; text-align:center;">
+    <div style="font-family:-apple-system,sans-serif; font-size:9px; font-weight:700;
+                letter-spacing:3px; color:#555; margin-bottom:8px;">
+      SURFACES NEWSLETTER
+    </div>
+    <p style="font-size:11px; color:#666; margin:0 0 8px; font-family:-apple-system,sans-serif;">
+      You are receiving this because you subscribed at surfaces.design
+    </p>
+    <p style="font-size:11px; margin:0; font-family:-apple-system,sans-serif;">
+      <a href="#" style="color:#AAA; text-decoration:none;">Unsubscribe</a>
+      <span style="color:#444;"> · </span>
+      <a href="#" style="color:#AAA; text-decoration:none;">Web version</a>
+      <span style="color:#444;"> · </span>
+      <a href="#" style="color:#AAA; text-decoration:none;">Archive</a>
+    </p>
+  </div>
+
+</div>
+''';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab 3 — Japanese Tech Newsletter (日本語)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _japaneseNewsletter = '''
+<div style="font-family:-apple-system,'Hiragino Sans','Yu Gothic',sans-serif;
+            max-width:560px; margin:0 auto; color:#1A1A1A;">
+
+  <!-- Masthead -->
+  <div style="background:#0D47A1; padding:20px 24px 16px; border-radius:10px 10px 0 0;">
+    <div style="font-size:10px; font-weight:700; letter-spacing:3px; color:rgba(255,255,255,0.6);
+                margin-bottom:8px;">
+      テクノロジー · デザイン · プロダクト
+    </div>
+    <div style="font-size:28px; font-weight:900; color:white; letter-spacing:-0.5px;
+                line-height:1.1;">
+      テックノート
+    </div>
+    <div style="font-size:11px; color:rgba(255,255,255,0.6); margin-top:6px;
+                display:flex; justify-content:space-between;">
+      <span>Vol. 38 · 2026年3月号</span>
+      <span>読者数 12,400人</span>
+    </div>
+  </div>
+
+  <!-- Editor note -->
+  <div style="background:#E3F2FD; padding:14px 20px; border-left:4px solid #1565C0;
+              font-size:13px; color:#0D47A1; line-height:1.8;">
+    <strong>編集後記：</strong>今号では AI 開発ツールの最前線と、Flutter を使ったリッチコンテンツレンダリングの革新について深掘りします。
+    AI がコーディングを変え、Flutter がアプリ内 HTML 表示を変えようとしています。
+  </div>
+
+  <!-- Hero story -->
+  <div style="background:white; padding:22px 24px;">
+    <div style="font-size:10px; font-weight:700; letter-spacing:2px; color:#1565C0;
+                margin-bottom:10px;">
+      特集記事
+    </div>
+    <h1 style="font-size:22px; font-weight:800; line-height:1.4; margin:0 0 12px;
+               color:#1A1A1A; letter-spacing:-0.3px;">
+      Flutter × ネイティブレンダリング：<br/>WebView なしで HTML を美しく表示する方法
+    </h1>
+    <img src="https://picsum.photos/seed/flutter-jp/520/220"
+         style="width:100%; border-radius:8px; margin-bottom:14px;" />
+    <p style="font-size:14px; line-height:1.9; color:#333; margin:0 0 12px;">
+      Flutter アプリ内で HTML コンテンツ（メール、ニュース記事、マニュアルなど）を表示する際、
+      従来の選択肢は <code style="background:#EEF2FF; color:#3F51B5; padding:1px 5px;
+      border-radius:3px; font-size:12px;">webview_flutter</code> 一択でした。
+      しかし WebView は起動が遅く、バンドルサイズが約 20MB 増加し、
+      ネイティブスクロールの物理演算が失われるという問題があります。
+    </p>
+    <p style="font-size:14px; line-height:1.9; color:#333; margin:0 0 16px;">
+      新世代のライブラリ <strong>HyperRender</strong> は、Flutter の <code style="background:#EEF2FF;
+      color:#3F51B5; padding:1px 5px; border-radius:3px; font-size:12px;">RenderObject</code>
+      レイヤーに直接書き込むことで、WebView なしで CSS フォートレイアウト・テーブル・
+      ルビアノテーション・テキスト選択を完全実現しました。
+    </p>
+
+    <!-- Key metrics -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td style="background:#E3F2FD; border-radius:8px; padding:12px 14px;
+                   text-align:center; width:30%;">
+          <div style="font-size:22px; font-weight:900; color:#0D47A1;">600KB</div>
+          <div style="font-size:11px; color:#1565C0; margin-top:2px;">バンドルサイズ</div>
+        </td>
+        <td width="3%"></td>
+        <td style="background:#E8F5E9; border-radius:8px; padding:12px 14px;
+                   text-align:center; width:30%;">
+          <div style="font-size:22px; font-weight:900; color:#1B5E20;">60fps</div>
+          <div style="font-size:11px; color:#2E7D32; margin-top:2px;">スクロール</div>
+        </td>
+        <td width="3%"></td>
+        <td style="background:#FFF3E0; border-radius:8px; padding:12px 14px;
+                   text-align:center; width:30%;">
+          <div style="font-size:22px; font-weight:900; color:#E65100;">&lt;16ms</div>
+          <div style="font-size:11px; color:#BF360C; margin-top:2px;">初回描画</div>
+        </td>
+      </tr>
+    </table>
+
+    <a href="#" style="display:inline-block; background:#0D47A1; color:white;
+                       font-size:13px; font-weight:700; padding:10px 22px;
+                       border-radius:8px; text-decoration:none;">
+      詳細を読む →
+    </a>
+  </div>
+
+  <div style="height:1px; background:#E8EDF4; margin:0 24px;"></div>
+
+  <!-- Short reads -->
+  <div style="background:white; padding:20px 24px;">
+    <div style="font-size:10px; font-weight:700; letter-spacing:2px; color:#888;
+                margin-bottom:14px;">
+      ショートリード
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding:12px 0; border-bottom:1px solid #F0F0F0; vertical-align:top;">
+          <div style="display:flex; align-items:flex-start;">
+            <span style="font-size:20px; margin-right:12px; margin-top:1px;">🤖</span>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#1A1A1A; line-height:1.4;
+                          margin-bottom:4px;">
+                GitHub Copilot が Dart / Flutter に完全対応
+              </div>
+              <div style="font-size:12px; color:#666; line-height:1.6;">
+                ウィジェットツリーの補完精度が大幅向上。State 管理パターンも自動提案。
+              </div>
+              <a href="#" style="font-size:11px; color:#1565C0; font-weight:600;
+                                 text-decoration:none; margin-top:4px; display:inline-block;">
+                3分で読む →
+              </a>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0; border-bottom:1px solid #F0F0F0; vertical-align:top;">
+          <div style="display:flex; align-items:flex-start;">
+            <span style="font-size:20px; margin-right:12px; margin-top:1px;">📱</span>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#1A1A1A; line-height:1.4;
+                          margin-bottom:4px;">
+                Impeller が iOS・Android 両対応に — Skia は完全引退へ
+              </div>
+              <div style="font-size:12px; color:#666; line-height:1.6;">
+                Flutter 3.20 で Impeller がデフォルトエンジンとなり、
+                シェーダーコンパイルジャンクが解消される見込みです。
+              </div>
+              <a href="#" style="font-size:11px; color:#1565C0; font-weight:600;
+                                 text-decoration:none; margin-top:4px; display:inline-block;">
+                5分で読む →
+              </a>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0; vertical-align:top;">
+          <div style="display:flex; align-items:flex-start;">
+            <span style="font-size:20px; margin-right:12px; margin-top:1px;">🎯</span>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#1A1A1A; line-height:1.4;
+                          margin-bottom:4px;">
+                Riverpod 3.0 正式リリース — Provider は完全移行推奨
+              </div>
+              <div style="font-size:12px; color:#666; line-height:1.6;">
+                コード生成ベースの新 API、IDE 補完の強化、
+                テスト時の依存注入が大幅に簡素化されました。
+              </div>
+              <a href="#" style="font-size:11px; color:#1565C0; font-weight:600;
+                                 text-decoration:none; margin-top:4px; display:inline-block;">
+                7分で読む →
+              </a>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Job board -->
+  <div style="background:#F8F9FF; padding:18px 24px; margin-top:1px;">
+    <div style="font-size:10px; font-weight:700; letter-spacing:2px; color:#888;
+                margin-bottom:12px;">
+      求人情報
+    </div>
+    <div style="background:white; border:1px solid #E0E7FF; border-radius:8px;
+                padding:14px 16px; margin-bottom:8px;">
+      <div style="font-size:13px; font-weight:700; color:#1A1A1A;">
+        シニア Flutter エンジニア — サイバーエージェント
+      </div>
+      <div style="font-size:11px; color:#888; margin:4px 0;">
+        東京（ハイブリッド）· 年収 900万〜1,400万円
+      </div>
+      <a href="#" style="font-size:11px; color:#1565C0; font-weight:600;
+                         text-decoration:none;">応募する →</a>
+    </div>
+    <div style="background:white; border:1px solid #E0E7FF; border-radius:8px;
+                padding:14px 16px;">
+      <div style="font-size:13px; font-weight:700; color:#1A1A1A;">
+        Flutter / Dart テックリード — LINE Corporation
+      </div>
+      <div style="font-size:11px; color:#888; margin:4px 0;">
+        東京・大阪（フルリモート可）· 年収 1,000万〜1,600万円
+      </div>
+      <a href="#" style="font-size:11px; color:#1565C0; font-weight:600;
+                         text-decoration:none;">応募する →</a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="background:#0D47A1; padding:18px 24px; border-radius:0 0 10px 10px;
+              text-align:center;">
+    <p style="font-size:11px; color:rgba(255,255,255,0.5); margin:0 0 8px;
+              font-family:-apple-system,sans-serif;">
+      テックノートは毎月第一月曜日に配信されます
+    </p>
+    <p style="font-size:11px; margin:0; font-family:-apple-system,sans-serif;">
+      <a href="#" style="color:rgba(255,255,255,0.6); text-decoration:none;">配信停止</a>
+      <span style="color:rgba(255,255,255,0.25);"> · </span>
+      <a href="#" style="color:rgba(255,255,255,0.6); text-decoration:none;">設定変更</a>
+      <span style="color:rgba(255,255,255,0.25);"> · </span>
+      <a href="#" style="color:rgba(255,255,255,0.6); text-decoration:none;">ブラウザで見る</a>
+    </p>
+  </div>
+
+</div>
+''';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab 4 — Order Confirmation
 // ─────────────────────────────────────────────────────────────────────────────
 
 const _orderEmail = '''
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"/></head>
-<body style="margin:0; padding:0; background:#F5F5F5; font-family:-apple-system,'Segoe UI',Roboto,sans-serif;">
-
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F5; padding:20px 0;">
-<tr><td align="center">
-<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px; width:100%;">
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
+            max-width:560px; margin:0 auto; color:#1A1A1A;">
 
   <!-- Header -->
-  <tr>
-    <td style="background:#00897B; border-radius:12px 12px 0 0; padding:24px 28px; text-align:center;">
-      <div style="font-size:36px; margin-bottom:6px;">✅</div>
-      <div style="font-size:22px; font-weight:800; color:white;">Order Confirmed!</div>
-      <div style="font-size:13px; color:rgba(255,255,255,0.8); margin-top:4px;">
-        Order #HR-2026-78412 · Feb 28, 2026
-      </div>
-    </td>
-  </tr>
+  <div style="background:#00695C;
+              border-radius:14px 14px 0 0; padding:28px 28px 24px; text-align:center;">
+    <div style="width:60px; height:60px; background:rgba(255,255,255,0.2);
+                border-radius:50%; margin:0 auto 12px; font-size:30px;
+                display:flex; align-items:center; justify-content:center;">✅</div>
+    <div style="font-size:22px; font-weight:800; color:white;">Order Confirmed!</div>
+    <div style="font-size:13px; color:rgba(255,255,255,0.75); margin-top:4px;">
+      #HR-2026-78412 · Feb 28, 2026 · 14:32 UTC
+    </div>
+  </div>
 
   <!-- Body -->
-  <tr>
-    <td style="background:white; padding:24px 28px;">
-      <p style="font-size:14px; color:#424242; line-height:1.7; margin:0 0 20px;">
-        Hi <strong>Alex</strong>, your order has been confirmed and will be
-        shipped within <strong style="color:#00897B;">1–2 business days</strong>.
-      </p>
+  <div style="background:white; padding:24px 24px 20px;">
+    <p style="font-size:14px; color:#424242; line-height:1.75; margin:0 0 20px;">
+      Hi <strong>Alex</strong> 👋 — your order has been confirmed and will
+      be ready for download within <strong style="color:#00897B;">5 minutes</strong>.
+      A receipt has also been sent to <strong>alex@example.com</strong>.
+    </p>
 
-      <!-- Order items table -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E0E0E0; border-radius:8px; overflow:hidden; margin-bottom:20px;">
-        <!-- Table header -->
-        <tr style="background:#F5F5F5;">
-          <td style="padding:10px 14px; font-size:11px; font-weight:700; color:#757575; letter-spacing:0.8px;">ITEM</td>
-          <td style="padding:10px 14px; font-size:11px; font-weight:700; color:#757575; letter-spacing:0.8px; text-align:center;">QTY</td>
-          <td style="padding:10px 14px; font-size:11px; font-weight:700; color:#757575; letter-spacing:0.8px; text-align:right;">PRICE</td>
-        </tr>
-        <!-- Items -->
-        <tr style="border-top:1px solid #F0F0F0;">
-          <td style="padding:12px 14px;">
+    <!-- Order items -->
+    <div style="border:1px solid #E8F5E9; border-radius:10px; overflow:hidden; margin-bottom:20px;">
+      <div style="background:#E8F5E9; padding:10px 16px; font-size:11px; font-weight:700;
+                  color:#1B5E20; letter-spacing:1px;">
+        ORDER SUMMARY
+      </div>
+      <!-- Item 1 -->
+      <div style="padding:14px 16px; border-bottom:1px solid #F5F5F5;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
             <div style="font-size:14px; font-weight:600; color:#212121;">Flutter Pro Bundle</div>
-            <div style="font-size:12px; color:#9E9E9E;">Digital download · License: 1 dev</div>
-          </td>
-          <td style="padding:12px 14px; text-align:center; font-size:14px; color:#424242;">1</td>
-          <td style="padding:12px 14px; text-align:right; font-size:14px; font-weight:600; color:#212121;">\$79.00</td>
-        </tr>
-        <tr style="border-top:1px solid #F0F0F0; background:#FAFAFA;">
-          <td style="padding:12px 14px;">
-            <div style="font-size:14px; font-weight:600; color:#212121;">HyperRender Pro License</div>
-            <div style="font-size:12px; color:#9E9E9E;">12 months · Unlimited apps</div>
-          </td>
-          <td style="padding:12px 14px; text-align:center; font-size:14px; color:#424242;">1</td>
-          <td style="padding:12px 14px; text-align:right; font-size:14px; font-weight:600; color:#212121;">\$49.00</td>
-        </tr>
-        <tr style="border-top:1px solid #F0F0F0;">
-          <td style="padding:12px 14px;">
-            <div style="font-size:14px; font-weight:600; color:#212121;">Design System Starter Kit</div>
-            <div style="font-size:12px; color:#9E9E9E;">Figma + Flutter components</div>
-          </td>
-          <td style="padding:12px 14px; text-align:center; font-size:14px; color:#424242;">2</td>
-          <td style="padding:12px 14px; text-align:right; font-size:14px; font-weight:600; color:#212121;">\$38.00</td>
-        </tr>
-        <!-- Totals -->
-        <tr style="border-top:1px solid #E0E0E0; background:#F5F5F5;">
-          <td colspan="2" style="padding:10px 14px; font-size:13px; color:#757575;">Subtotal</td>
-          <td style="padding:10px 14px; text-align:right; font-size:13px; color:#424242;">\$166.00</td>
-        </tr>
-        <tr style="background:#F5F5F5;">
-          <td colspan="2" style="padding:6px 14px; font-size:13px; color:#757575;">Discount (WELCOME20)</td>
-          <td style="padding:6px 14px; text-align:right; font-size:13px; color:#00897B;">−\$33.20</td>
-        </tr>
-        <tr style="background:#F5F5F5;">
-          <td colspan="2" style="padding:6px 14px; font-size:13px; color:#757575;">Tax (8.5%)</td>
-          <td style="padding:6px 14px; text-align:right; font-size:13px; color:#424242;">\$11.28</td>
-        </tr>
-        <tr style="border-top:2px solid #E0E0E0; background:white;">
-          <td colspan="2" style="padding:14px 14px; font-size:16px; font-weight:800; color:#212121;">
-            Total
-          </td>
-          <td style="padding:14px 14px; text-align:right; font-size:16px; font-weight:800; color:#00897B;">
-            \$144.08
-          </td>
-        </tr>
-      </table>
+            <div style="font-size:11px; color:#9E9E9E; margin-top:2px;">Digital download · Single dev licence</div>
+          </div>
+          <div style="font-size:14px; font-weight:600; color:#212121; margin-left:12px; white-space:nowrap;">
+            \$79.00
+          </div>
+        </div>
+      </div>
+      <!-- Item 2 -->
+      <div style="padding:14px 16px; border-bottom:1px solid #F5F5F5; background:#FAFAFA;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <div style="font-size:14px; font-weight:600; color:#212121;">HyperRender Pro Licence</div>
+            <div style="font-size:11px; color:#9E9E9E; margin-top:2px;">12 months · Unlimited apps</div>
+          </div>
+          <div style="font-size:14px; font-weight:600; color:#212121; margin-left:12px; white-space:nowrap;">
+            \$49.00
+          </div>
+        </div>
+      </div>
+      <!-- Item 3 -->
+      <div style="padding:14px 16px; border-bottom:1px solid #EEEEEE; background:#E8F5E9;">
+        <div style="display:flex; justify-content:space-between;">
+          <span style="font-size:13px; color:#555;">Discount (WELCOME20)</span>
+          <span style="font-size:13px; color:#00897B; font-weight:600;">−\$25.60</span>
+        </div>
+      </div>
+      <div style="padding:14px 16px; border-bottom:1px solid #EEEEEE; background:#E8F5E9;">
+        <div style="display:flex; justify-content:space-between;">
+          <span style="font-size:13px; color:#555;">Tax (8.5%)</span>
+          <span style="font-size:13px; color:#555;">\$8.69</span>
+        </div>
+      </div>
+      <!-- Total -->
+      <div style="padding:14px 16px; background:#E8F5E9;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:16px; font-weight:800; color:#1B5E20;">Total Charged</span>
+          <span style="font-size:18px; font-weight:800; color:#00897B;">\$111.09</span>
+        </div>
+        <div style="font-size:11px; color:#555; margin-top:3px;">Visa ···· 4242 · Charged successfully</div>
+      </div>
+    </div>
 
-      <!-- Shipping info -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
-        <tr>
-          <td width="48%" style="background:#E8F5E9; border-radius:8px; padding:14px; vertical-align:top;">
-            <div style="font-size:11px; font-weight:700; color:#2E7D32; letter-spacing:0.8px; margin-bottom:6px;">
-              SHIPPING TO
-            </div>
-            <div style="font-size:13px; color:#424242; line-height:1.6;">
-              Alex Johnson<br/>
-              456 Developer Lane<br/>
-              Austin, TX 78701
-            </div>
-          </td>
-          <td width="4%"></td>
-          <td width="48%" style="background:#E3F2FD; border-radius:8px; padding:14px; vertical-align:top;">
-            <div style="font-size:11px; font-weight:700; color:#1565C0; letter-spacing:0.8px; margin-bottom:6px;">
-              PAYMENT
-            </div>
-            <div style="font-size:13px; color:#424242; line-height:1.6;">
-              Visa ···· 4242<br/>
-              <span style="font-size:12px; color:#00897B;">✓ Charged \$144.08</span>
-            </div>
-          </td>
-        </tr>
-      </table>
+    <!-- Shipping + Payment row -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:22px;">
+      <tr>
+        <td width="48%" style="vertical-align:top; background:#E8F5E9;
+                               border-radius:8px; padding:14px;">
+          <div style="font-size:10px; font-weight:700; color:#2E7D32;
+                      letter-spacing:1px; margin-bottom:6px;">BILLING TO</div>
+          <div style="font-size:13px; color:#333; line-height:1.7;">
+            Alex Johnson<br/>
+            456 Developer Lane<br/>
+            Austin, TX 78701<br/>
+            United States
+          </div>
+        </td>
+        <td width="4%"></td>
+        <td width="48%" style="vertical-align:top; background:#E3F2FD;
+                               border-radius:8px; padding:14px;">
+          <div style="font-size:10px; font-weight:700; color:#1565C0;
+                      letter-spacing:1px; margin-bottom:6px;">DELIVERY</div>
+          <div style="font-size:13px; color:#333; line-height:1.7;">
+            Digital licence keys<br/>
+            Sent to <strong>alex@example.com</strong><br/>
+            <span style="color:#00897B;">✓ Delivered instantly</span>
+          </div>
+        </td>
+      </tr>
+    </table>
 
-      <!-- Track CTA -->
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td align="center">
-            <a href="#"
-               style="display:inline-block; background:#00897B; color:white;
-                      font-size:14px; font-weight:700; padding:12px 32px;
-                      border-radius:8px; text-decoration:none;">
-              Track Your Order
-            </a>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
+    <!-- CTA -->
+    <div style="text-align:center;">
+      <a href="#" style="display:inline-block; background:#00695C;
+                         color:white; font-size:14px; font-weight:700; padding:13px 36px;
+                         border-radius:10px; text-decoration:none;">
+        Download Your Licences →
+      </a>
+    </div>
+  </div>
 
   <!-- Footer -->
-  <tr>
-    <td style="background:#F5F5F5; border-radius:0 0 12px 12px; border-top:1px solid #E0E0E0; padding:16px 28px; text-align:center;">
-      <p style="font-size:12px; color:#9E9E9E; margin:0;">
-        Questions? Reply to this email or contact
-        <a href="#" style="color:#00897B;">support@hypershop.example.com</a>
-      </p>
-    </td>
-  </tr>
+  <div style="background:#F5F5F5; border-radius:0 0 14px 14px; border-top:1px solid #E0E0E0;
+              padding:14px 28px; text-align:center;">
+    <p style="font-size:11px; color:#BDBDBD; margin:0;">
+      Questions? <a href="#" style="color:#00897B;">support@hypershop.example.com</a>
+    </p>
+  </div>
 
-</table>
-</td></tr>
-</table>
-</body>
-</html>
+</div>
 ''';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tab 4 — Why use HyperRender for emails?
+// Tab 5 — Podcast Episode Digest
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _podcastEmail = '''
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
+            max-width:560px; margin:0 auto; background:#0F0F1A; color:#E8E8F0;">
+
+  <!-- Top bar -->
+  <div style="padding:14px 20px; display:flex; align-items:center;
+              border-bottom:1px solid rgba(255,255,255,0.08);">
+    <div style="width:8px; height:8px; background:#1DB954; border-radius:50%;
+                margin-right:8px;"></div>
+    <span style="font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:1.5px;
+                 font-weight:700;">NEW EPISODE</span>
+    <span style="margin-left:auto; font-size:11px; color:rgba(255,255,255,0.3);">
+      Friday Drop · Mar 14, 2026
+    </span>
+  </div>
+
+  <!-- Show header -->
+  <div style="padding:28px 20px 20px;">
+    <div style="display:flex; align-items:flex-start; margin-bottom:20px;">
+      <!-- Artwork -->
+      <div style="width:88px; height:88px; border-radius:14px; overflow:hidden;
+                  flex-shrink:0; margin-right:16px; background:#1DB954;">
+        <img src="https://picsum.photos/seed/podcast-art/88/88"
+             style="width:88px; height:88px; display:block;" />
+      </div>
+      <div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:2px;
+                    color:#1DB954; margin-bottom:6px;">
+          FLUTTER UNCENSORED
+        </div>
+        <h1 style="font-size:20px; font-weight:800; line-height:1.3; margin:0 0 6px;
+                   color:white; letter-spacing:-0.3px;">
+          Ep. 112 — Native HTML Rendering: Is the WebView Era Finally Over?
+        </h1>
+        <div style="font-size:12px; color:rgba(255,255,255,0.45);">
+          with Kenji Tanaka &amp; Sarah Okonkwo · 1hr 04min
+        </div>
+      </div>
+    </div>
+
+    <!-- Play button -->
+    <a href="#" style="display:flex; align-items:center; justify-content:center;
+                       background:#1DB954; color:white; font-size:14px; font-weight:700;
+                       padding:13px 0; border-radius:10px; text-decoration:none;
+                       letter-spacing:0.3px; margin-bottom:28px;">
+      ▶  Play Episode
+    </a>
+
+    <!-- Chapter list -->
+    <div style="font-size:10px; font-weight:700; letter-spacing:2px;
+                color:rgba(255,255,255,0.35); margin-bottom:12px;">
+      CHAPTERS
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.07);">
+          <div style="display:flex; align-items:center;">
+            <span style="font-size:12px; color:#1DB954; font-weight:700;
+                         min-width:44px;">00:00</span>
+            <span style="font-size:13px; color:rgba(255,255,255,0.85);">
+              Intro — The WebView problem in production apps
+            </span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.07);">
+          <div style="display:flex; align-items:center;">
+            <span style="font-size:12px; color:#1DB954; font-weight:700;
+                         min-width:44px;">08:22</span>
+            <span style="font-size:13px; color:rgba(255,255,255,0.85);">
+              How RenderObject custom engines work
+            </span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.07);">
+          <div style="display:flex; align-items:center;">
+            <span style="font-size:12px; color:#1DB954; font-weight:700;
+                         min-width:44px;">22:45</span>
+            <span style="font-size:13px; color:rgba(255,255,255,0.85);">
+              Live demo: HyperRender vs flutter_html vs WebView
+            </span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.07);">
+          <div style="display:flex; align-items:center;">
+            <span style="font-size:12px; color:#1DB954; font-weight:700;
+                         min-width:44px;">41:10</span>
+            <span style="font-size:13px; color:rgba(255,255,255,0.85);">
+              Float layout deep-dive — the IFC algorithm in Flutter
+            </span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.07);">
+          <div style="display:flex; align-items:center;">
+            <span style="font-size:12px; color:#1DB954; font-weight:700;
+                         min-width:44px;">53:30</span>
+            <span style="font-size:13px; color:rgba(255,255,255,0.85);">
+              Q&A — listener questions from Discord
+            </span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0;">
+          <div style="display:flex; align-items:center;">
+            <span style="font-size:12px; color:#1DB954; font-weight:700;
+                         min-width:44px;">01:00</span>
+            <span style="font-size:13px; color:rgba(255,255,255,0.85);">
+              Outro &amp; next week's teaser
+            </span>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Show notes divider -->
+  <div style="height:1px; background:rgba(255,255,255,0.07); margin:0 20px;"></div>
+
+  <!-- Show notes -->
+  <div style="padding:20px;">
+    <div style="font-size:10px; font-weight:700; letter-spacing:2px;
+                color:rgba(255,255,255,0.35); margin-bottom:12px;">
+      SHOW NOTES
+    </div>
+    <p style="font-size:13px; color:rgba(255,255,255,0.65); line-height:1.8; margin:0 0 12px;">
+      This week Kenji and Sarah dig into the new generation of Flutter HTML renderers
+      that are finally making <code style="background:rgba(255,255,255,0.1); color:#82CFFF;
+      padding:1px 5px; border-radius:3px;">webview_flutter</code> look like a legacy choice.
+      They benchmark startup time, RAM usage, and scroll jank across three libraries —
+      and the results may surprise you.
+    </p>
+    <p style="font-size:13px; color:rgba(255,255,255,0.65); line-height:1.8; margin:0 0 18px;">
+      Key takeaway: if your Flutter app renders any HTML — emails, articles, CMSs,
+      or user-generated content — you owe it to your users to switch from WebView.
+    </p>
+
+    <!-- Links -->
+    <div style="font-size:10px; font-weight:700; letter-spacing:2px;
+                color:rgba(255,255,255,0.35); margin-bottom:12px;">
+      LINKS FROM THIS EPISODE
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+          <a href="#" style="font-size:13px; color:#82CFFF; text-decoration:none;">
+            → HyperRender on pub.dev
+          </a>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+          <a href="#" style="font-size:13px; color:#82CFFF; text-decoration:none;">
+            → Flutter RenderObject deep-dive (official docs)
+          </a>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+          <a href="#" style="font-size:13px; color:#82CFFF; text-decoration:none;">
+            → CSS IFC specification — W3C
+          </a>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:9px 0;">
+          <a href="#" style="font-size:13px; color:#82CFFF; text-decoration:none;">
+            → GitHub: benchmark repo used in this episode
+          </a>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Rating + Subscribe -->
+  <div style="padding:0 20px 20px;">
+    <div style="background:rgba(255,255,255,0.05); border-radius:10px; padding:16px;
+                text-align:center;">
+      <div style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:10px;">
+        Enjoying the show? Leave us a review ⭐
+      </div>
+      <div style="display:flex; justify-content:center; gap:8px;">
+        <a href="#" style="background:#1DB954; color:white; font-size:12px;
+                           font-weight:700; padding:8px 16px; border-radius:8px;
+                           text-decoration:none; margin-right:8px;">
+          Apple Podcasts
+        </a>
+        <a href="#" style="background:#1A1A1A; border:1px solid rgba(255,255,255,0.2);
+                           color:white; font-size:12px; font-weight:700; padding:8px 16px;
+                           border-radius:8px; text-decoration:none;">
+          Spotify
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="padding:16px 20px; border-top:1px solid rgba(255,255,255,0.07);
+              text-align:center;">
+    <p style="font-size:11px; color:rgba(255,255,255,0.25); margin:0 0 6px;">
+      Flutter Uncensored · Produced independently · Released every Friday
+    </p>
+    <p style="font-size:11px; margin:0;">
+      <a href="#" style="color:rgba(255,255,255,0.35); text-decoration:none;">Unsubscribe</a>
+      <span style="color:rgba(255,255,255,0.15);"> · </span>
+      <a href="#" style="color:rgba(255,255,255,0.35); text-decoration:none;">Manage alerts</a>
+    </p>
+  </div>
+
+</div>
+''';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab 6 — Why use HyperRender for emails?
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _WhyTab extends StatelessWidget {
   const _WhyTab();
 
   static const _snippets = {
-    'WebView (old way)': '''// Add to pubspec.yaml: webview_flutter (~20MB)
-// Initialize WebViewWidget, create WebViewController...
-// Load HTML via loadHtmlString()
-// → Slow cold start, can't select text natively,
-//   breaks scroll physics, ~20MB bundle impact''',
-    'HyperRender (new way)': '''// Add to pubspec.yaml: hyper_render (~600KB)
+    'WebView (old way)': '''// pubspec.yaml: webview_flutter (~20MB overhead)
+// - Slow cold start (~800ms on mid-range Android)
+// - Breaks native scroll physics
+// - Text selection works differently per platform
+// - Cannot mix WebView with Flutter widgets
+// - ~20MB bundle size increase''',
+    'HyperRender (new way)': '''// pubspec.yaml: hyper_render (~600KB)
 HyperViewer(
-  html: emailHtml,          // Your HTML email string
-  selectable: true,         // Native text selection
-  onLinkTap: (url) { ... }, // Handle link taps
+  html: emailHtml,          // Any HTML email string
+  selectable: true,         // Native Flutter text selection
+  onLinkTap: (url) { ... }, // Handle link taps natively
 )
-// → Instant render, native scroll, native selection,
-//   ~600KB bundle impact, works offline''',
+// - First frame in <16ms
+// - Native scroll physics, rubber-band, overscroll
+// - Mix HyperViewer with any Flutter widget
+// - ~600KB bundle impact''',
   };
 
   @override
@@ -611,8 +1051,7 @@ HyperViewer(
             icon: Icons.help_outline,
             color: DemoColors.primary,
             title: 'Why not just use WebView?',
-            body:
-                'Flutter apps commonly display HTML emails (transactional, newsletters, '
+            body: 'Flutter apps commonly display HTML emails (transactional, newsletters, '
                 'receipts). The default approach is webview_flutter — but that adds ~20MB '
                 'to your app, requires a platform-specific WebViewController per email, '
                 'breaks native scroll physics, and makes text selection janky.',
@@ -622,8 +1061,7 @@ HyperViewer(
             icon: Icons.bolt,
             color: Colors.green,
             title: 'HyperRender handles real-world email HTML',
-            body:
-                'HTML emails use inline CSS and table-based layouts — legacy patterns that '
+            body: 'HTML emails use inline CSS and table-based layouts — legacy patterns that '
                 'most Flutter renderers choke on. HyperRender\'s CSS cascade supports '
                 'inline styles, and its table renderer handles the nested <table> layouts '
                 'that every marketing platform generates.',
@@ -636,7 +1074,8 @@ HyperViewer(
                 child: _CodeBlock(label: e.key, code: e.value),
               )),
           const SizedBox(height: 8),
-          _SectionTitle("What's supported in HTML emails", color: DemoColors.primary),
+          _SectionTitle("What's supported in HTML emails",
+              color: DemoColors.primary),
           const SizedBox(height: 8),
           _FeatureGrid(features: const [
             ('✅', 'Nested <table> layouts'),
@@ -726,9 +1165,7 @@ class _SectionTitle extends StatelessWidget {
         const SizedBox(width: 8),
         Text(title,
             style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: color)),
+                fontSize: 14, fontWeight: FontWeight.w700, color: color)),
       ],
     );
   }
@@ -763,9 +1200,9 @@ class _CodeBlock extends StatelessWidget {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1E2E),
-            borderRadius: const BorderRadius.only(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1E1E2E),
+            borderRadius: BorderRadius.only(
               topRight: Radius.circular(6),
               bottomLeft: Radius.circular(6),
               bottomRight: Radius.circular(6),

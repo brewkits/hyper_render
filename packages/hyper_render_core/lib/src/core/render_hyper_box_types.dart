@@ -65,6 +65,10 @@ class _BlockDecoration {
   final List<BoxShadow>? boxShadow;
   final ui.ImageFilter? filter;
   final ui.ImageFilter? backdropFilter;
+  /// Whether to draw all 4 sides (true) or only the left side (false, blockquote-style)
+  final bool fullBorder;
+  /// The border style for the full-box border (solid, dashed, dotted, double, etc.)
+  final HyperBorderStyle borderStyle;
 
   _BlockDecoration({
     required this.node,
@@ -77,6 +81,8 @@ class _BlockDecoration {
     this.boxShadow,
     this.filter,
     this.backdropFilter,
+    this.fullBorder = false,
+    this.borderStyle = HyperBorderStyle.solid,
   });
 }
 

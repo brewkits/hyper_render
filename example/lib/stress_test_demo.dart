@@ -241,7 +241,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
   .tale-sep { text-align:center; color:#C19A6B; font-size:20px; padding:8px 0 16px 0; }
 </style>
 <article style="font-family:Georgia,'Times New Roman',serif;line-height:1.85;color:#2c1810;background:#fdf6ee;max-width:720px;">
-  <div style="background:linear-gradient(135deg,#8B4513,#D2691E);padding:32px 24px;text-align:center;border-bottom:4px solid #8B4513;">
+  <div style="background:#8B4513;padding:32px 24px;text-align:center;border-bottom:4px solid #8B4513;">
     <p style="color:rgba(255,255,255,0.85);font-size:12px;letter-spacing:3px;margin:0 0 8px 0;">A STORY OF MAGIC &amp; WONDER</p>
     <h1 style="color:#FFF8DC;font-size:28px;margin:0;line-height:1.3;">The Dragon's Library</h1>
     <p style="color:rgba(255,255,255,0.7);font-size:13px;margin:10px 0 0 0;font-style:italic;">A fairy tale in $sections chapters</p>
@@ -311,7 +311,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
   .novel-tag { display:inline-block; background:#E3F2FD; color:#1565C0; border-radius:12px; padding:2px 8px; font-size:11px; margin:0 4px 4px 0; }
 </style>
 <article style="font-family:Georgia,serif;line-height:1.8;padding:4px;background:#FAFAFA;">
-  <div style="background:linear-gradient(135deg,#1565C0,#1976D2);padding:32px 20px;text-align:center;border-radius:8px;margin-bottom:24px;">
+  <div style="background:#1565C0;padding:32px 20px;text-align:center;border-radius:8px;margin-bottom:24px;">
     <h1 style="color:white;margin:0;font-size:24px;">📖 The Infinite Archive</h1>
     <p style="color:rgba(255,255,255,0.75);font-size:13px;margin:8px 0 0 0;">$pages chapters · Performance &amp; rendering showcase</p>
   </div>
@@ -568,7 +568,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
           'Fairy Tale Test',
           'Float illustrations, serif typography, quotes',
           Icons.auto_stories,
-          [const Color(0xFF6B2D0C), const Color(0xFFC19A6B)],
+          [const Color(0xFF6B2D0C), const Color(0xFF8D4E25)],
         ),
       _ContentType.novel => (
           'Novel / Book Test',
@@ -606,7 +606,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
+              color: Colors.black.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.white, size: 32),
@@ -624,7 +624,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
                 const SizedBox(height: 4),
                 Text(subtitle,
                     style: const TextStyle(
-                        fontSize: 13, color: Colors.white70)),
+                        fontSize: 13, color: Colors.white)),
               ],
             ),
           ),
@@ -979,19 +979,25 @@ class _StressTestDemoState extends State<StressTestDemo> {
           placeholderBuilder: (context) => _buildLoadingPlaceholder(content.length),
         );
       case 'flutter_html':
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: flutter_html.Html(data: content),
+        return ClipRect(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: flutter_html.Html(data: content),
+          ),
         );
       case 'fwfh':
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: fwfh.HtmlWidget(content),
+        return ClipRect(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: fwfh.HtmlWidget(content),
+          ),
         );
       case 'fwfh_core':
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: fwfh_core.HtmlWidget(content),
+        return ClipRect(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: fwfh_core.HtmlWidget(content),
+          ),
         );
       default:
         return const Center(child: Text('Unknown library'));

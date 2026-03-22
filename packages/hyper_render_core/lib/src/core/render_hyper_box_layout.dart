@@ -736,6 +736,28 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           skipEllipsisContent = false;
         }
 
+        // ── Anchor & TOC tracking ─────────────────────────────────────────
+        // Record the y-offset of any block that carries a CSS `id` attribute.
+        final blockY = currentY - fragment.paddingTop - fragment.marginTop;
+        final anchorId = fragment.sourceNode.cssId;
+        if (anchorId != null && anchorId.isNotEmpty) {
+          anchorOffsets[anchorId] = blockY;
+        }
+        // Heading anchor (h1–h6): record level + text for TOC generation.
+        final tag = fragment.sourceNode.tagName;
+        if (tag != null && tag.length == 2 && tag[0] == 'h') {
+          final level = int.tryParse(tag[1]);
+          if (level != null && level >= 1 && level <= 6) {
+            final headingText = _extractNodeText(fragment.sourceNode);
+            headingAnchors.add((
+              level: level,
+              text: headingText,
+              cssId: anchorId,
+              yOffset: blockY,
+            ));
+          }
+        }
+
         return;
       }
 
@@ -1346,6 +1368,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     return (firstFragment, secondFragment);
   }
 
+  /// Recursively extracts plain text content from a [UDTNode] subtree.
+  /// Used by heading-anchor collection to provide human-readable TOC labels.
+  String _extractNodeText(UDTNode node) {
+    if (node is TextNode) return node.text;
+    final buf = StringBuffer();
+    for (final child in node.children) {
+      buf.write(_extractNodeText(child));
+    }
+    return buf.toString().trim();
+  }
+
   void _layoutFloat(Fragment fragment, double currentY) {
     if (fragment is! _FloatFragment) return;
     // Can't position floats without a finite container width.
@@ -1884,22 +1917,31 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   /// we can match them by iterating through both lists simultaneously.
   /// Links fragments to their corresponding child RenderBoxes using sourceNode-based matching.
   void _linkFragmentsToChildrenByOrder() {
-    // Step 1: Build a map of sourceNode -> Fragment for quick lookup
+    // Step 1: Build a map of sourceNode -> Fragment for quick lookup.
+    //
+    // Only include fragments that correspond to CHILD RenderBoxes (images,
+    // tables, code blocks, details widgets, floats, flex containers).
+    //
+    // _BlockStartFragment and _BlockEndFragment share the same sourceNode as
+    // the widget fragments (_DetailsFragment, _TableFragment, etc.) but use
+    // FragmentType.text.  Including them here would overwrite the correct
+    // widget-fragment entry, causing the child to get linked to the wrong
+    // fragment and therefore laid out at Size.zero / Offset.zero.
     final fragmentMap = <UDTNode, Fragment>{};
     for (final fragment in _fragments) {
-      final isAtomicFragment = fragment.type == FragmentType.atomic;
-      final isTableFragment = fragment is _TableFragment;
-      final isCodeBlockFragment = fragment is _CodeBlockFragment;
-      final isDetailsFragment = fragment is _DetailsFragment;
-      final isFloatFragment = fragment is _FloatFragment;
-      final isTextFragment = fragment.type == FragmentType.text;
+      final isWidgetFragment = fragment is _TableFragment ||
+          fragment is _CodeBlockFragment ||
+          fragment is _DetailsFragment ||
+          fragment is _FloatFragment ||
+          fragment is _FlexFragment ||
+          (fragment.type == FragmentType.atomic &&
+              fragment is! _TableFragment &&
+              fragment is! _CodeBlockFragment &&
+              fragment is! _DetailsFragment &&
+              fragment is! _FloatFragment &&
+              fragment is! _FlexFragment);
 
-      if (isAtomicFragment ||
-          isTableFragment ||
-          isCodeBlockFragment ||
-          isDetailsFragment ||
-          isFloatFragment ||
-          isTextFragment) {
+      if (isWidgetFragment) {
         fragmentMap[fragment.sourceNode] = fragment;
       }
     }
