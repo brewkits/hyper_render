@@ -58,7 +58,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
               ..label = node.textContent
               ..hint = 'Link to $href'
               ..onTap = () {
-                _onLinkTap?.call(href);
+                onLinkTap?.call(href);
               },
           );
 
@@ -114,29 +114,270 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
     }
 
     // Handle buttons (if any interactive elements)
-    if (node is BlockNode && node.tagName == 'button') {
+    if (node.tagName == 'button') {
       final rect = _getNodeRect(node);
       // Only add semantic node if it has a valid, visible rect
       if (rect != null && rect.width > 0 && rect.height > 0) {
         final buttonNode = SemanticsNode();
-
+        final label = _ariaLabel(node) ?? node.textContent;
         buttonNode.updateWith(
           config: SemanticsConfiguration()
             ..isButton = true
             ..textDirection = textDirection
-            ..label = node.textContent,
+            ..label = label,
         );
-
         buttonNode.rect = rect;
         semanticNodes.add(buttonNode);
       }
       return;
     }
 
+    // Handle <input type="button"> / <input type="submit"> / <input type="reset">
+    if (node.tagName == 'input') {
+      final inputType = node.attributes['type']?.toLowerCase() ?? '';
+      if (inputType == 'button' ||
+          inputType == 'submit' ||
+          inputType == 'reset') {
+        final rect = _getNodeRect(node);
+        if (rect != null && rect.width > 0 && rect.height > 0) {
+          final btnNode = SemanticsNode();
+          final label =
+              _ariaLabel(node) ?? node.attributes['value'] ?? inputType;
+          btnNode.updateWith(
+            config: SemanticsConfiguration()
+              ..isButton = true
+              ..textDirection = textDirection
+              ..label = label,
+          );
+          btnNode.rect = rect;
+          semanticNodes.add(btnNode);
+        }
+        return;
+      }
+    }
+
+    // Handle <ul> / <ol> — announce as list
+    if (node.tagName == 'ul' || node.tagName == 'ol') {
+      final rect = _getNodeRect(node);
+      if (rect != null && rect.width > 0 && rect.height > 0) {
+        final listNode = SemanticsNode();
+        final label = _ariaLabel(node) ??
+            (node.tagName == 'ol' ? 'Ordered list' : 'List');
+        listNode.updateWith(
+          config: SemanticsConfiguration()
+            ..isHeader = false
+            ..textDirection = textDirection
+            ..label = label
+            ..hint = 'list',
+        );
+        listNode.rect = rect;
+        semanticNodes.add(listNode);
+      }
+      // Still recurse so list items get their own semantics
+      for (final child in node.children) {
+        _buildSemanticNodes(child, semanticNodes, parentNode);
+      }
+      return;
+    }
+
+    // Handle <li> — handled in leafBlocks section below to ensure recursion
+
+    // Handle ARIA role attribute
+    final role = node.attributes['role']?.toLowerCase();
+    if (role != null) {
+      switch (role) {
+        case 'button':
+          final rect = _getNodeRect(node);
+          if (rect != null && rect.width > 0 && rect.height > 0) {
+            final roleNode = SemanticsNode();
+            final label = _ariaLabel(node) ?? node.textContent;
+            roleNode.updateWith(
+              config: SemanticsConfiguration()
+                ..isButton = true
+                ..textDirection = textDirection
+                ..label = label,
+            );
+            roleNode.rect = rect;
+            semanticNodes.add(roleNode);
+          }
+          return;
+        case 'region':
+        case 'landmark':
+          final rect = _getNodeRect(node);
+          if (rect != null && rect.width > 0 && rect.height > 0) {
+            final regionNode = SemanticsNode();
+            final label = _ariaLabel(node) ?? 'Region';
+            regionNode.updateWith(
+              config: SemanticsConfiguration()
+                ..isHeader = false
+                ..textDirection = textDirection
+                ..label = label,
+            );
+            regionNode.rect = rect;
+            semanticNodes.add(regionNode);
+          }
+          // Recurse into region children
+          for (final child in node.children) {
+            _buildSemanticNodes(child, semanticNodes, parentNode);
+          }
+          return;
+        case 'heading':
+          final rect = _getNodeRect(node);
+          if (rect != null && rect.width > 0 && rect.height > 0) {
+            final headingNode = SemanticsNode();
+            final label = _ariaLabel(node) ?? node.textContent;
+            headingNode.updateWith(
+              config: SemanticsConfiguration()
+                ..isHeader = true
+                ..textDirection = textDirection
+                ..label = label,
+            );
+            headingNode.rect = rect;
+            semanticNodes.add(headingNode);
+          }
+          return;
+        default:
+          break;
+      }
+    }
+
+    // Paragraph and landmark block elements — emit one SemanticsNode per block
+    // so screen readers (VoiceOver, TalkBack) can navigate paragraph-by-paragraph.
+    // We cover: <p>, <blockquote>, <pre>, <li>, <div> and landmark containers
+    // (<section>, <article>, <main>, <header>, <footer>, <nav>, <aside>).
+    //
+    // Landmark containers recurse into children AFTER emitting their own node
+    // (they act as named regions). Leaf content blocks (<p>, <blockquote>, <pre>)
+    // are treated as terminal — their full text goes into the label.
+    const leafBlocks = {'p', 'blockquote', 'pre', 'div', 'li'};
+    const landmarkBlocks = {
+      'section',
+      'article',
+      'main',
+      'header',
+      'footer',
+      'nav',
+      'aside'
+    };
+    final tag = node.tagName;
+    if (tag != null &&
+        (leafBlocks.contains(tag) || landmarkBlocks.contains(tag))) {
+      final rect = _getNodeRect(node);
+      if (rect != null && rect.width > 0 && rect.height > 0) {
+        final text = _ariaLabel(node) ?? node.textContent;
+        if (text.trim().isNotEmpty) {
+          final blockNode = SemanticsNode();
+          final config = SemanticsConfiguration()
+            ..isReadOnly = true
+            ..textDirection = textDirection
+            ..label = text.trim();
+          if (tag == 'blockquote') {
+            config.hint = 'Block quote';
+          } else if (tag == 'pre') {
+            config.hint = 'Code block';
+          } else if (tag == 'li') {
+            final position = _listItemPosition(node);
+            config.hint = position > 0 ? 'Item $position' : 'List item';
+          } else if (landmarkBlocks.contains(tag)) {
+            // Landmark — use aria-label or tag name as hint
+            config.hint = _ariaLabel(node) ?? tag;
+          }
+          blockNode.updateWith(config: config);
+          blockNode.rect = rect;
+          semanticNodes.add(blockNode);
+        }
+
+        // Recurse into blocks to find nested links/interactive elements.
+        // We always recurse because even a <p> might contain an <a>.
+        for (final child in node.children) {
+          _buildSemanticNodes(child, semanticNodes, parentNode);
+        }
+        return;
+      }
+    }
+
+    // Handle loose text nodes (not inside a paragraph)
+    if (node is TextNode) {
+      final text = node.text.trim();
+      if (text.isNotEmpty) {
+        final rect = _getNodeRect(node);
+        if (rect != null && rect.width > 0 && rect.height > 0) {
+          final textNode = SemanticsNode();
+          textNode.updateWith(
+            config: SemanticsConfiguration()
+              ..isReadOnly = true
+              ..textDirection = textDirection
+              ..label = text,
+          );
+          textNode.rect = rect;
+          semanticNodes.add(textNode);
+        }
+      }
+      return;
+    }
+
+    // Generic: if aria-label / aria-labelledby is present, emit a labelled node
+    final ariaLabel = _ariaLabel(node);
+    if (ariaLabel != null && ariaLabel.isNotEmpty) {
+      final rect = _getNodeRect(node);
+      if (rect != null && rect.width > 0 && rect.height > 0) {
+        final ariaNode = SemanticsNode();
+        ariaNode.updateWith(
+          config: SemanticsConfiguration()
+            ..isHeader = false
+            ..textDirection = textDirection
+            ..label = ariaLabel,
+        );
+        ariaNode.rect = rect;
+        semanticNodes.add(ariaNode);
+        return;
+      }
+    }
+
     // Recursively process children
     for (final child in node.children) {
       _buildSemanticNodes(child, semanticNodes, parentNode);
     }
+  }
+
+  /// Returns the `aria-label` value, or resolves `aria-labelledby` to the
+  /// text content of the referenced element (best-effort, id lookup).
+  String? _ariaLabel(UDTNode node) {
+    final direct = node.attributes['aria-label'];
+    if (direct != null && direct.isNotEmpty) return direct;
+    // aria-labelledby: look up referenced id within the same document.
+    final labelledBy = node.attributes['aria-labelledby'];
+    if (labelledBy != null && labelledBy.isNotEmpty) {
+      final referenced = _findNodeById(labelledBy);
+      if (referenced != null) return referenced.textContent;
+    }
+    return null;
+  }
+
+  /// Finds a node by its `id` attribute, scanning the full document.
+  UDTNode? _findNodeById(String id) {
+    if (_document == null) return null;
+    UDTNode? found;
+    _document!.traverse((n) {
+      if (found == null && n.attributes['id'] == id) {
+        found = n;
+      }
+    });
+    return found;
+  }
+
+  /// Returns the 1-based ordinal position of a `<li>` within its parent list.
+  int _listItemPosition(UDTNode liNode) {
+    final p = liNode.parent;
+    if (p == null) return 0;
+    int position = 0;
+    for (final child in p.children) {
+      if (child.tagName == 'li') {
+        position++;
+        if (child == liNode) return position;
+      }
+    }
+    return 0;
   }
 
   /// Gets the heading level from a tag name (h1 = 1, h2 = 2, etc.)
@@ -159,12 +400,19 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
     }
   }
 
-  /// Gets the bounding rect for a node based on its fragments
+  /// Gets the bounding rect for a node. Uses the O(1) [_nodeRectCache] built
+  /// during layout (Step 8); falls back to a linear scan only when the cache
+  /// is empty (e.g. before the first layout pass).
   Rect? _getNodeRect(UDTNode node) {
-    double? minX, minY, maxX, maxY;
+    // Fast path — O(1) lookup via cache built in _buildNodeRectCache().
+    final cached = _nodeRectCache[node];
+    if (cached != null) return cached;
 
+    // Fallback: cache not yet populated (before first layout).
+    double? minX, minY, maxX, maxY;
     for (final fragment in _fragments) {
-      if (fragment.sourceNode == node || _isDescendantOf(fragment.sourceNode, node)) {
+      if (fragment.sourceNode == node ||
+          _isDescendantOf(fragment.sourceNode, node)) {
         final rect = fragment.rect;
         if (rect != null) {
           minX = minX == null ? rect.left : math.min(minX, rect.left);
@@ -174,22 +422,23 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
         }
       }
     }
-
     if (minX != null && minY != null && maxX != null && maxY != null) {
       return Rect.fromLTRB(minX, minY, maxX, maxY);
     }
     return null;
   }
 
-  /// Checks if a node is a descendant of another node
-  bool _isDescendantOf(UDTNode? child, UDTNode parent) {
-    if (child == null) return false;
-    if (child == parent) return true;
-
-    for (final parentChild in parent.children) {
-      if (_isDescendantOf(child, parentChild)) {
-        return true;
-      }
+  /// Checks if [child] is a descendant of (or equal to) [ancestor].
+  ///
+  /// Walks UP the child's parent-chain rather than DOWN the ancestor's subtree.
+  /// This is O(depth) ≈ O(32) instead of the previous O(N_descendants), which
+  /// made the fallback path of [_getNodeRect] O(N_fragments × N_tree) for
+  /// deeply-nested "div soup" HTML.
+  bool _isDescendantOf(UDTNode? child, UDTNode ancestor) {
+    UDTNode? current = child;
+    while (current != null) {
+      if (current == ancestor) return true;
+      current = current.parent;
     }
     return false;
   }

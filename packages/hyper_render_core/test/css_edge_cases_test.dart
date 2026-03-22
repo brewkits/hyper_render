@@ -17,9 +17,10 @@ void main() {
       expect(style.color, equals(Colors.transparent));
     });
 
-    test('handles null color (inheritable)', () {
+    test('default color is Slate-800 when not specified', () {
+      // ComputedStyle uses non-nullable Color; default is Slate-800 (0xFF1F2937).
       final style = ComputedStyle();
-      expect(style.color, isNull);
+      expect(style.color, equals(const Color(0xFF1F2937)));
     });
 
     test('inherits color from parent', () {
@@ -50,9 +51,10 @@ void main() {
       );
     });
 
-    test('handles null font size (inheritable)', () {
+    test('default font size is 16 when not specified', () {
+      // ComputedStyle uses non-nullable double; default is 16.0.
       final style = ComputedStyle();
-      expect(style.fontSize, isNull);
+      expect(style.fontSize, equals(16.0));
     });
 
     test('inherits font size from parent', () {
@@ -67,6 +69,7 @@ void main() {
     test('child can override parent font size', () {
       final parent = ComputedStyle(fontSize: 20);
       final child = ComputedStyle(fontSize: 16);
+      child.markExplicitlySet('font-size'); // simulate CSS rule on child
 
       child.inheritFrom(parent);
 
@@ -196,8 +199,8 @@ void main() {
 
       child.inheritFrom(parent);
 
-      // Margin should NOT be inherited
-      expect(child.margin, isNull);
+      // Margin should NOT be inherited — child keeps its default EdgeInsets.zero
+      expect(child.margin, equals(EdgeInsets.zero));
     });
 
     test('padding does not inherit', () {
@@ -206,8 +209,8 @@ void main() {
 
       child.inheritFrom(parent);
 
-      // Padding should NOT be inherited
-      expect(child.padding, isNull);
+      // Padding should NOT be inherited — child keeps its default EdgeInsets.zero
+      expect(child.padding, equals(EdgeInsets.zero));
     });
 
     test('handles asymmetric margin', () {
@@ -490,7 +493,6 @@ void main() {
         fontSize: 16,
         fontWeight: FontWeight.bold,
         textAlign: HyperTextAlign.center,
-        listStyleType: ListStyleType.disc,
       );
 
       final child = ComputedStyle();
@@ -500,7 +502,6 @@ void main() {
       expect(child.fontSize, equals(16));
       expect(child.fontWeight, equals(FontWeight.bold));
       expect(child.textAlign, equals(HyperTextAlign.center));
-      expect(child.listStyleType, equals(ListStyleType.disc));
     });
 
     test('non-inheritable properties are not inherited', () {
@@ -519,8 +520,8 @@ void main() {
       final child = ComputedStyle();
       child.inheritFrom(parent);
 
-      expect(child.margin, isNull);
-      expect(child.padding, isNull);
+      expect(child.margin, equals(EdgeInsets.zero)); // not inherited, stays at default
+      expect(child.padding, equals(EdgeInsets.zero)); // not inherited, stays at default
       expect(child.borderColor, isNull);
       expect(child.borderWidth, equals(EdgeInsets.zero)); // default value
       expect(child.backgroundColor, isNull);
@@ -540,6 +541,9 @@ void main() {
         color: Colors.red,
         fontSize: 20,
       );
+      // markExplicitlySet simulates CSS rules set on the child element
+      child.markExplicitlySet('color');
+      child.markExplicitlySet('font-size');
 
       child.inheritFrom(parent);
 

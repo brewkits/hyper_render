@@ -47,7 +47,7 @@ class _FormulaDemoState extends State<FormulaDemo>
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          unselectedLabelColor: Colors.white,
           indicatorColor: Colors.white,
           isScrollable: true,
           tabs: const [
@@ -324,6 +324,8 @@ class _DeltaTab extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: HyperViewer.delta(
               delta: _deltaJson,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
             ),
           ),
           const SizedBox(height: 20),

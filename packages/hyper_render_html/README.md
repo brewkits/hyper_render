@@ -15,8 +15,8 @@ HTML parsing plugin for HyperRender with full CSS support.
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.0.0
-  hyper_render_html: ^1.0.0
+  hyper_render_core: ^1.1.0
+  hyper_render_html: ^1.1.0
 ```
 
 ## Usage

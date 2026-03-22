@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:hyper_render_core/hyper_render_core.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:super_clipboard/super_clipboard.dart' show DataWriterItem, Formats, SystemClipboard;
+import 'package:share_plus/share_plus.dart' as share_plus;
+import 'package:super_clipboard/super_clipboard.dart' as super_clipboard;
+
+import 'interfaces/file_system_provider.dart';
+import 'providers/default_file_system_provider.dart';
 
 /// Image clipboard handler using super_clipboard package
 ///
@@ -33,14 +35,18 @@ import 'package:super_clipboard/super_clipboard.dart' show DataWriterItem, Forma
 /// - Web: Limited support
 class SuperClipboardHandler implements ImageClipboardHandler {
   /// HTTP client for downloading images
-  final http.Client? _httpClient;
+  final http.Client _client;
+  final FileSystemProvider _fileSystem;
 
   /// Creates a SuperClipboardHandler
   ///
   /// Optionally provide a custom [httpClient] for testing or custom configuration.
-  SuperClipboardHandler({http.Client? httpClient}) : _httpClient = httpClient;
-
-  http.Client get _client => _httpClient ?? http.Client();
+  /// Optionally provide a custom [fileSystem] for platform-specific file handling.
+  SuperClipboardHandler({
+    http.Client? httpClient,
+    FileSystemProvider? fileSystem,
+  })  : _client = httpClient ?? http.Client(),
+        _fileSystem = fileSystem ?? DefaultFileSystemProvider();
 
   @override
   Future<bool> copyImageFromUrl(String imageUrl) async {
@@ -62,30 +68,30 @@ class SuperClipboardHandler implements ImageClipboardHandler {
   @override
   Future<bool> copyImageBytes(Uint8List bytes, {String? mimeType}) async {
     try {
-      final clipboard = SystemClipboard.instance;
+      final clipboard = super_clipboard.SystemClipboard.instance;
       if (clipboard == null) return false;
 
-      final item = DataWriterItem();
+      final item = super_clipboard.DataWriterItem();
 
       // Add image data based on mime type
       switch (mimeType?.toLowerCase()) {
         case 'image/jpeg':
         case 'image/jpg':
-          item.add(Formats.jpeg(bytes));
+          item.add(super_clipboard.Formats.jpeg(bytes));
           break;
         case 'image/gif':
-          item.add(Formats.gif(bytes));
+          item.add(super_clipboard.Formats.gif(bytes));
           break;
         case 'image/webp':
-          item.add(Formats.webp(bytes));
+          item.add(super_clipboard.Formats.webp(bytes));
           break;
         case 'image/tiff':
-          item.add(Formats.tiff(bytes));
+          item.add(super_clipboard.Formats.tiff(bytes));
           break;
         case 'image/png':
         default:
           // Default to PNG
-          item.add(Formats.png(bytes));
+          item.add(super_clipboard.Formats.png(bytes));
           break;
       }
 
@@ -117,17 +123,7 @@ class SuperClipboardHandler implements ImageClipboardHandler {
   @override
   Future<String?> saveImageBytes(Uint8List bytes, {String? filename}) async {
     try {
-      // Get downloads/pictures directory
-      final Directory dir;
-      if (Platform.isAndroid) {
-        dir = (await getExternalStorageDirectory()) ??
-            await getApplicationDocumentsDirectory();
-      } else if (Platform.isIOS) {
-        dir = await getApplicationDocumentsDirectory();
-      } else {
-        dir = await getDownloadsDirectory() ??
-            await getApplicationDocumentsDirectory();
-      }
+      final dir = await _fileSystem.getStorageDirectory();
 
       // Generate unique filename if not provided
       final name = filename ?? 'image_${DateTime.now().millisecondsSinceEpoch}.png';
@@ -164,17 +160,16 @@ class SuperClipboardHandler implements ImageClipboardHandler {
   }) async {
     try {
       // Save to temp file for sharing
-      final tempDir = await getTemporaryDirectory();
+      final tempDir = await _fileSystem.getCacheDirectory();
       final name = filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File('${tempDir.path}/$name');
       await file.writeAsBytes(bytes);
 
       // Share using share_plus
-      await Share.shareXFiles(
-        [XFile(file.path)],
+      await share_plus.Share.shareXFiles(
+        [share_plus.XFile(file.path)],
         text: text,
       );
-
       return true;
     } catch (e) {
       debugPrint('SuperClipboardHandler.shareImageBytes error: $e');
@@ -182,14 +177,16 @@ class SuperClipboardHandler implements ImageClipboardHandler {
     }
   }
 
+  bool get isCopySupported => true;
+
   @override
-  bool get isImageCopySupported => !kIsWeb; // Web has limited clipboard support
+  bool get isImageCopySupported => !kIsWeb;
 
   @override
   bool get isSaveSupported => !kIsWeb;
 
   @override
-  bool get isShareSupported => true; // share_plus supports all platforms
+  bool get isShareSupported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   @override
   List<String> get supportedFormats => const [

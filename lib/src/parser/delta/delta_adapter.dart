@@ -1,9 +1,7 @@
+import 'package:hyper_render_core/hyper_render_core.dart';
 import 'dart:convert';
-
 import 'package:flutter/painting.dart';
 
-import '../../model/computed_style.dart';
-import '../../model/node.dart';
 import '../adapter.dart';
 
 /// Quill Delta to UDT adapter
@@ -144,7 +142,48 @@ class DeltaAdapter extends ExtendedDocumentAdapter {
       _flushLine(blocks, currentLine, null, warnings);
     }
 
-    return DocumentNode(children: blocks);
+    return DocumentNode(children: _groupListItems(blocks));
+  }
+
+  /// Group consecutive `li` BlockNodes into `ul` / `ol` parents so
+  /// HyperRender renders proper bullet/number markers.
+  List<UDTNode> _groupListItems(List<UDTNode> blocks) {
+    final result = <UDTNode>[];
+    int i = 0;
+    while (i < blocks.length) {
+      final node = blocks[i];
+      if (node is BlockNode && node.tagName == 'li') {
+        final listType = node.attributes['data-list-type'] ?? 'bullet';
+        final isOrdered = listType == 'ordered';
+        final items = <UDTNode>[node];
+        i++;
+        // Collect all consecutive li nodes of the same type
+        while (i < blocks.length) {
+          final next = blocks[i];
+          if (next is BlockNode &&
+              next.tagName == 'li' &&
+              (next.attributes['data-list-type'] ?? 'bullet') == listType) {
+            items.add(next);
+            i++;
+          } else {
+            break;
+          }
+        }
+        result.add(BlockNode(
+          tagName: isOrdered ? 'ol' : 'ul',
+          style: ComputedStyle(
+            display: DisplayType.block,
+            padding: const EdgeInsets.only(left: 24),
+            margin: const EdgeInsets.symmetric(vertical: 6),
+          ),
+          children: items,
+        ));
+      } else {
+        result.add(node);
+        i++;
+      }
+    }
+    return result;
   }
 
   /// Flush current line content to blocks
@@ -215,7 +254,14 @@ class DeltaAdapter extends ExtendedDocumentAdapter {
     List<String> warnings,
   ) {
     if (attributes == null || attributes.isEmpty) {
-      return BlockNode(tagName: 'p', children: children);
+      return BlockNode(
+        tagName: 'p',
+        style: ComputedStyle(
+          display: DisplayType.block,
+          margin: const EdgeInsets.only(bottom: 6),
+        ),
+        children: children,
+      );
     }
 
     // Header
@@ -267,10 +313,13 @@ class DeltaAdapter extends ExtendedDocumentAdapter {
         tagName: 'blockquote',
         style: ComputedStyle(
           display: DisplayType.block,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          margin: const EdgeInsets.symmetric(vertical: 8),
           borderWidth: const EdgeInsets.only(left: 4),
-          borderColor: const Color(0xFFCCCCCC),
-          backgroundColor: const Color(0xFFF9F9F9),
+          borderColor: const Color(0xFF9E9E9E),
+          backgroundColor: const Color(0xFFF5F5F5),
+          fontStyle: FontStyle.italic,
+          color: const Color(0xFF555555),
         ),
         children: children,
       );
@@ -418,38 +467,44 @@ class DeltaAdapter extends ExtendedDocumentAdapter {
       case 1:
         return ComputedStyle(
           display: DisplayType.block,
-          fontSize: 32,
+          fontSize: 28,
           fontWeight: FontWeight.bold,
+          margin: const EdgeInsets.only(top: 20, bottom: 8),
         );
       case 2:
         return ComputedStyle(
           display: DisplayType.block,
-          fontSize: 24,
+          fontSize: 22,
           fontWeight: FontWeight.bold,
+          margin: const EdgeInsets.only(top: 16, bottom: 6),
         );
       case 3:
         return ComputedStyle(
           display: DisplayType.block,
-          fontSize: 18.72,
+          fontSize: 18,
           fontWeight: FontWeight.bold,
+          margin: const EdgeInsets.only(top: 14, bottom: 4),
         );
       case 4:
         return ComputedStyle(
           display: DisplayType.block,
           fontSize: 16,
           fontWeight: FontWeight.bold,
+          margin: const EdgeInsets.only(top: 12, bottom: 4),
         );
       case 5:
         return ComputedStyle(
           display: DisplayType.block,
-          fontSize: 13.28,
+          fontSize: 14,
           fontWeight: FontWeight.bold,
+          margin: const EdgeInsets.only(top: 10, bottom: 2),
         );
       case 6:
         return ComputedStyle(
           display: DisplayType.block,
-          fontSize: 10.72,
+          fontSize: 13,
           fontWeight: FontWeight.bold,
+          margin: const EdgeInsets.only(top: 8, bottom: 2),
         );
       default:
         return ComputedStyle(display: DisplayType.block);

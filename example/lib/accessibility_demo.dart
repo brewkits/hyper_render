@@ -204,7 +204,7 @@ MyWidget()        // Not as good</code></pre>
                       ),
                       Text(
                         'Enable TalkBack/VoiceOver to test accessibility',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        style: TextStyle(color: Colors.white, fontSize: 12),
                       ),
                     ],
                   ),

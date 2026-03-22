@@ -39,7 +39,9 @@ ComputedStyle? _resolvedStyle(String html, bool Function(UDTNode) predicate) {
       found = node.style;
       return;
     }
-    for (final c in node.children) walk(c);
+    for (final c in node.children) {
+      walk(c);
+    }
   }
   walk(doc);
   return found;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:hyper_render_core/hyper_render_core.dart' show DesignTokens;
 import '../core/render_hyper_box.dart';
 import '../model/node.dart';
 import 'hyper_render_widget.dart';
@@ -71,6 +72,16 @@ class HyperSelectionOverlay extends StatefulWidget {
   /// Whether to automatically show menu on selection
   final bool autoShowMenu;
 
+  /// Draw debug bounds around each fragment/line. See [RenderHyperBox.debugShowBounds].
+  final bool debugShowBounds;
+
+  /// Called after each layout pass with anchor id→yOffset map and heading list.
+  /// Forwarded to the inner [HyperRenderWidget]. Used by [HyperViewerController].
+  final void Function(
+    Map<String, double> offsets,
+    List<({int level, String text, String? cssId, double yOffset})> headings,
+  )? onAnchorLayout;
+
   const HyperSelectionOverlay({
     super.key,
     required this.document,
@@ -86,6 +97,8 @@ class HyperSelectionOverlay extends StatefulWidget {
     this.menuActionsBuilder,
     this.showHandles = true,
     this.autoShowMenu = true,
+    this.debugShowBounds = false,
+    this.onAnchorLayout,
   });
 
   @override
@@ -110,6 +123,11 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
   /// Which handle is being dragged (for potential future animation/haptic feedback)
   // ignore: unused_field
   _HandlePosition? _draggingHandle;
+
+  /// Holds the scroll position while a handle is being dragged, preventing
+  /// the ancestor SingleChildScrollView / ListView from scrolling and stealing
+  /// the gesture away from the handle's PanGestureRecognizer.
+  ScrollHoldController? _scrollHold;
 
   /// Animation controller for menu
   late AnimationController _menuAnimController;
@@ -152,9 +170,15 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
 
   @override
   void dispose() {
+    _releaseScrollHold();
     _focusNode.dispose();
     _menuAnimController.dispose();
     super.dispose();
+  }
+
+  void _releaseScrollHold() {
+    _scrollHold?.cancel();
+    _scrollHold = null;
   }
 
   /// Called when selection changes in RenderHyperBox
@@ -190,6 +214,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     final text = _renderBox?.getSelectedText();
     if (text != null && text.isNotEmpty) {
       await Clipboard.setData(ClipboardData(text: text));
+      if (!mounted) return;
       _showCopiedSnackBar();
       clearSelection();
     }
@@ -233,13 +258,6 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
 
   void _handleTapOutside() {
     if (hasSelection || _showContextMenu) {
-      clearSelection();
-    }
-  }
-
-  void _handleTap(TapDownDetails details) {
-    // Hide menu and clear selection on tap
-    if (_showContextMenu || hasSelection) {
       clearSelection();
     }
   }
@@ -304,8 +322,15 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     return Focus(
       focusNode: _focusNode,
       onKeyEvent: _handleKeyEvent,
-      child: GestureDetector(
-        onTapDown: _handleTap,
+      child: Listener(
+        // Use Listener instead of GestureDetector(onTapDown) so we don't enter the
+        // gesture arena. GestureDetector competes with inner TextButton recognizers
+        // and can prevent copy/share button onPressed from firing when the menu is
+        // visible. Listener fires on pointer-down without arena participation.
+        onPointerDown: (event) {
+          if (_showContextMenu) return;
+          if (hasSelection) clearSelection();
+        },
         behavior: HitTestBehavior.translucent,
         child: TapRegion(
           onTapOutside: (_) => _handleTapOutside(),
@@ -321,9 +346,12 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
                   onLinkTap: widget.onLinkTap,
                   widgetBuilder: widget.widgetBuilder,
                   selectable: widget.selectable,
-                  textDirection: widget.textDirection ?? Directionality.of(context),
                   selectionColor: widget.selectionColor,
+                  textDirection:
+                      widget.textDirection ?? Directionality.of(context),
                   onSelectionChanged: _onSelectionChanged,
+                  debugShowBounds: widget.debugShowBounds,
+                  onAnchorLayout: widget.onAnchorLayout,
                 ),
               ),
 
@@ -351,7 +379,8 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     return Positioned(
       left: 0,
       right: 0,
-      top: menuPosition.dy - 48, // Menu height + padding
+      top: menuPosition.dy -
+          56, // Dynamic menu height (adjusted for Material buttons)
       child: AnimatedBuilder(
         animation: _menuAnimController,
         builder: (context, child) {
@@ -387,6 +416,9 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
           _draggingHandle = position;
           _focusNode.requestFocus();
           _hideMenu(); // Hide menu while dragging
+          // Freeze the ancestor scroll view so the handle drag wins the arena.
+          _releaseScrollHold();
+          _scrollHold = Scrollable.maybeOf(context)?.position.hold(_releaseScrollHold);
         },
         onPanUpdate: (details) {
           final renderBox = _renderBox;
@@ -402,9 +434,14 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
         },
         onPanEnd: (_) {
           _draggingHandle = null;
+          _releaseScrollHold(); // Restore scroll after handle drag completes.
           if (hasSelection && widget.autoShowMenu) {
             _showMenu();
           }
+        },
+        onPanCancel: () {
+          _draggingHandle = null;
+          _releaseScrollHold();
         },
         child: CustomPaint(
           size: const Size(22, 22),
@@ -419,30 +456,33 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
 
   Widget _buildDefaultContextMenu(BuildContext context) {
     final actions = widget.menuActionsBuilder?.call(this) ?? _defaultActions;
-    final bgColor = widget.menuBackgroundColor ??
-        Theme.of(context).colorScheme.surface;
+    final bgColor =
+        widget.menuBackgroundColor ?? Theme.of(context).colorScheme.surface;
 
     return Material(
       elevation: 8,
       shadowColor: Colors.black38,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(DesignTokens.radiusSmall),
       child: Container(
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusSmall),
           border: Border.all(
             color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: actions.map((action) {
-            return _ContextMenuButton(
-              icon: action.icon,
-              label: action.label,
-              onTap: action.onPressed,
-            );
-          }).toList(),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: actions.map((action) {
+              return _ContextMenuButton(
+                icon: action.icon,
+                label: action.label,
+                onTap: action.onPressed,
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
@@ -475,18 +515,21 @@ class _ContextMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18),
-            const SizedBox(width: 4),
-            Text(label, style: const TextStyle(fontSize: 14)),
-          ],
+    // Use Material TextButton for professional appearance
+    return TextButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(
+          horizontal: DesignTokens.space1_5,
+          vertical: DesignTokens.space1,
+        ),
+        minimumSize: const Size(0, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: const TextStyle(fontSize: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(DesignTokens.radiusXs),
         ),
       ),
     );
@@ -562,7 +605,6 @@ extension HyperRenderWidgetSelectionExtension on HyperRenderWidget {
   /// Wrap with selection overlay for full UX features
   Widget withSelectionOverlay({
     Color handleColor = const Color(0xFF2196F3),
-    Color? selectionColor,
     Widget Function(BuildContext, HyperSelectionOverlayState)?
         contextMenuBuilder,
   }) {
@@ -573,7 +615,6 @@ extension HyperRenderWidgetSelectionExtension on HyperRenderWidget {
       widgetBuilder: widgetBuilder,
       selectable: selectable,
       handleColor: handleColor,
-      selectionColor: selectionColor ?? this.selectionColor,
       contextMenuBuilder: contextMenuBuilder,
     );
   }

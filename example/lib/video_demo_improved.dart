@@ -87,31 +87,27 @@ class ImprovedVideoDemo extends StatelessWidget {
             description: 'Multiple videos in grid - responsive layout',
             child: HyperViewer(
               html: '''
-                <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+                <p style="margin:0 0 10px 0;">
                   <video
                     src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
                     poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg"
-                    width="300"
-                    height="200"
-                    controls>
+                    width="640" height="360" controls>
                   </video>
-
+                </p>
+                <p style="margin:0 0 10px 0;">
                   <video
                     src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
                     poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg"
-                    width="300"
-                    height="200"
-                    controls>
+                    width="640" height="360" controls>
                   </video>
-
+                </p>
+                <p style="margin:0;">
                   <video
                     src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
                     poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg"
-                    width="300"
-                    height="200"
-                    controls>
+                    width="640" height="360" controls>
                   </video>
-                </div>
+                </p>
               ''',
               widgetBuilder: (node) {
                 if (node is AtomicNode && (node.tagName == 'video' || node.tagName == 'audio')) {

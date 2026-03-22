@@ -1,26 +1,29 @@
+import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../core/render_hyper_box.dart';
-import '../interfaces/code_highlighter.dart';
-import '../interfaces/content_parser.dart';
-import '../model/node.dart';
 import '../parser/html/html_adapter.dart';
 import '../plugins/default_delta_parser.dart';
 import '../plugins/default_html_parser.dart';
 import '../plugins/default_markdown_parser.dart';
-import '../style/resolver.dart';
 import '../utils/html_heuristics.dart';
 import '../utils/html_sanitizer.dart';
-import 'hyper_render_widget.dart';
-import 'hyper_selection_overlay.dart';
 
-/// Chế độ render
+/// Rendering mode for [HyperViewer].
+///
+/// Controls whether content is parsed and laid out synchronously or
+/// asynchronously, and whether it is rendered as a single widget or via
+/// a virtualised [ListView].
 enum HyperRenderMode {
-  /// Tự động chọn (Nếu HTML ngắn -> Sync, nếu dài -> Async + Virtualization)
+  /// Automatic selection: short content (< 10,000 chars) uses [sync]; longer
+  /// content uses an async parse followed by [virtualized] layout.
   auto,
-  /// Render đồng bộ trên Main Thread (Tốt cho text ngắn)
+
+  /// Synchronous rendering on the main thread. Best for short snippets where
+  /// parse time is negligible.
   sync,
-  /// Render bất đồng bộ + ListView (Tốt cho text dài)
+
+  /// Asynchronous parse + [ListView.builder]-based virtualised rendering.
+  /// Best for long documents (articles, emails, feeds).
   virtualized,
 }
 
@@ -28,8 +31,10 @@ enum HyperRenderMode {
 enum HyperContentType {
   /// HTML content
   html,
+
   /// Quill Delta JSON
   delta,
+
   /// Markdown
   markdown,
 }
@@ -86,6 +91,11 @@ class HyperViewer extends StatefulWidget {
   ///
   /// Default: false
   final bool debugShowHyperRenderBounds;
+
+  /// When false, `backdrop-filter` and CSS `filter` effects skip
+  /// `canvas.saveLayer`. Disable on low-end devices to avoid rasterization
+  /// overhead from complex compositing layers.
+  final bool enableComplexFilters;
 
   /// Enable pinch-to-zoom and pan gestures
   /// Wraps content in InteractiveViewer for zoom/pan support
@@ -250,8 +260,39 @@ class HyperViewer extends StatefulWidget {
   /// For example, determines how the scroll view continues to animate after the
   /// user stops dragging the scroll view.
   ///
-  /// Defaults to [BouncingScrollPhysics].
+  /// Defaults to [AlwaysScrollableScrollPhysics], which delegates to the
+  /// platform-appropriate physics: bouncing on iOS/macOS, clamping with the
+  /// Material stretch indicator on Android. Pass an explicit [ScrollPhysics]
+  /// subclass to override this behaviour.
   final ScrollPhysics? physics;
+
+  /// Called when content parsing fails.
+  ///
+  /// Provides the error and stack trace so the caller can log or display a
+  /// friendly error state. Without this callback, parse errors are silently
+  /// swallowed and the widget shows nothing.
+  final void Function(Object error, StackTrace stackTrace)? onError;
+
+  /// Optional controller for scroll-to-anchor and TOC generation.
+  ///
+  /// When provided, the controller's [ScrollController] drives the scroll
+  /// view, and its [HyperViewerController.headings] list is populated after
+  /// each layout pass.
+  ///
+  /// ```dart
+  /// final _ctrl = HyperViewerController();
+  ///
+  /// HyperViewer(html: content, controller: _ctrl)
+  ///
+  /// // Later:
+  /// _ctrl.scrollToId('footnote-1');
+  /// _ctrl.headings; // → List<HeadingAnchor>
+  /// ```
+  final HyperViewerController? controller;
+
+  /// Pre-parsed document node. When set, the parse step is skipped entirely.
+  /// Used by [HyperViewer.fromNode] and by consumers who pre-process the AST.
+  final DocumentNode? _prebuiltDocument;
 
   /// Creates a HyperViewer for HTML content (default)
   ///
@@ -292,11 +333,15 @@ class HyperViewer extends StatefulWidget {
     this.baseUrl,
     this.customCss,
     this.debugShowHyperRenderBounds = false,
+    this.enableComplexFilters = true,
     this.captureKey,
     this.shrinkWrap = false,
     this.physics,
+    this.onError,
+    this.controller,
   })  : content = html,
-        contentType = HyperContentType.html;
+        contentType = HyperContentType.html,
+        _prebuiltDocument = null;
 
   /// Creates a HyperViewer for Quill Delta JSON content
   ///
@@ -333,11 +378,15 @@ class HyperViewer extends StatefulWidget {
     this.baseUrl,
     this.customCss,
     this.debugShowHyperRenderBounds = false,
+    this.enableComplexFilters = true,
     this.captureKey,
     this.shrinkWrap = false,
     this.physics,
+    this.onError,
+    this.controller,
   })  : content = delta,
-        contentType = HyperContentType.delta;
+        contentType = HyperContentType.delta,
+        _prebuiltDocument = null;
 
   /// Creates a HyperViewer for Markdown content
   ///
@@ -374,17 +423,72 @@ class HyperViewer extends StatefulWidget {
     this.baseUrl,
     this.customCss,
     this.debugShowHyperRenderBounds = false,
+    this.enableComplexFilters = true,
     this.captureKey,
     this.shrinkWrap = false,
     this.physics,
+    this.onError,
+    this.controller,
   })  : content = markdown,
-        contentType = HyperContentType.markdown;
+        contentType = HyperContentType.markdown,
+        _prebuiltDocument = null;
+
+  /// Creates a [HyperViewer] from a pre-parsed [DocumentNode], skipping
+  /// the parse step entirely.
+  ///
+  /// Useful when you want to pre-process or transform the AST before rendering:
+  ///
+  /// ```dart
+  /// final doc = HtmlAdapter().parse(rawHtml);
+  /// // Strip ad nodes, inject CSS classes, etc.
+  /// HyperViewer.fromNode(document: doc, controller: myController)
+  /// ```
+  const HyperViewer.fromNode({
+    super.key,
+    required DocumentNode document,
+    this.selectable = true,
+    this.onLinkTap,
+    this.widgetBuilder,
+    this.enableZoom = false,
+    this.minScale = 0.5,
+    this.maxScale = 4.0,
+    this.showSelectionMenu = true,
+    this.selectionHandleColor,
+    this.selectionColor,
+    this.selectionMenuActionsBuilder,
+    this.selectionContextMenuBuilder,
+    this.textDirection,
+    this.semanticLabel,
+    this.excludeSemantics = false,
+    this.debugShowHyperRenderBounds = false,
+    this.enableComplexFilters = true,
+    this.captureKey,
+    this.shrinkWrap = false,
+    this.physics,
+    this.controller,
+  })  : content = '',
+        contentType = HyperContentType.html,
+        mode = HyperRenderMode.sync,
+        placeholderBuilder = null,
+        fallbackBuilder = null,
+        contentParser = null,
+        codeHighlighter = null,
+        sanitize = false,
+        allowedTags = null,
+        allowDataAttributes = false,
+        baseUrl = null,
+        customCss = null,
+        onError = null,
+        _prebuiltDocument = document;
 
   @override
   State<HyperViewer> createState() => _HyperViewerState();
 }
 
-class _HyperViewerState extends State<HyperViewer> {
+class _HyperViewerState extends State<HyperViewer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _contentFadeController;
+  late final Animation<double> _contentFadeAnimation;
   // Dùng cho chế độ Sync
   DocumentNode? _syncDocument;
 
@@ -399,6 +503,14 @@ class _HyperViewerState extends State<HyperViewer> {
   @override
   void initState() {
     super.initState();
+    _contentFadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _contentFadeAnimation = CurvedAnimation(
+      parent: _contentFadeController,
+      curve: Curves.easeOut,
+    );
     _parseContent();
   }
 
@@ -409,9 +521,19 @@ class _HyperViewerState extends State<HyperViewer> {
         oldWidget.contentType != widget.contentType ||
         oldWidget.mode != widget.mode ||
         oldWidget.baseUrl != widget.baseUrl ||
-        oldWidget.customCss != widget.customCss) {
+        oldWidget.customCss != widget.customCss ||
+        oldWidget.sanitize != widget.sanitize ||
+        oldWidget.allowedTags != widget.allowedTags ||
+        oldWidget.allowDataAttributes != widget.allowDataAttributes ||
+        oldWidget.fallbackBuilder != widget.fallbackBuilder) {
       _parseContent();
     }
+  }
+
+  @override
+  void dispose() {
+    _contentFadeController.dispose();
+    super.dispose();
   }
 
   /// Get the appropriate parser based on content type
@@ -431,6 +553,17 @@ class _HyperViewerState extends State<HyperViewer> {
   }
 
   void _parseContent() {
+    // Fast path: pre-parsed AST — skip all parsing.
+    if (widget._prebuiltDocument != null) {
+      setState(() {
+        _syncDocument = widget._prebuiltDocument;
+        _sections = null;
+        _isLoading = false;
+      });
+      _contentFadeController.forward();
+      return;
+    }
+
     String contentToRender = widget.content;
     // CSS collected from <style> tags + customCss (applied to resolver directly,
     // not injected as a <style> tag so the sanitizer cannot strip it).
@@ -451,7 +584,8 @@ class _HyperViewerState extends State<HyperViewer> {
 
       // 2. Resolve relative URLs against baseUrl
       if (widget.baseUrl != null && widget.baseUrl!.isNotEmpty) {
-        contentToRender = _resolveRelativeUrls(contentToRender, widget.baseUrl!);
+        contentToRender =
+            _resolveRelativeUrls(contentToRender, widget.baseUrl!);
       }
 
       // 3. Sanitize (strips <style> tags — safe, CSS already extracted above)
@@ -471,17 +605,26 @@ class _HyperViewerState extends State<HyperViewer> {
 
     if (!useVirtualization) {
       // Sync parsing (fast path for small content)
-      setState(() {
-        _syncDocument = parser.parse(contentToRender);
+      _contentFadeController.reset();
+      try {
+        final doc = parser.parse(contentToRender);
         final resolver = StyleResolver();
         if (cssToApply.isNotEmpty) resolver.parseCss(cssToApply);
-        resolver.resolveStyles(_syncDocument!);
-        _sections = null;
-        _isLoading = false;
-      });
+        resolver.resolveStyles(doc);
+        setState(() {
+          _syncDocument = doc;
+          _sections = null;
+          _isLoading = false;
+        });
+        _contentFadeController.forward();
+      } catch (e, st) {
+        widget.onError?.call(e, st);
+        setState(() => _isLoading = false);
+      }
     } else {
       // Async parsing (isolate path for large HTML content)
       if (widget.contentType == HyperContentType.html) {
+        _contentFadeController.reset();
         setState(() => _isLoading = true);
 
         // Capture parse ID before async gap to detect stale results.
@@ -493,18 +636,32 @@ class _HyperViewerState extends State<HyperViewer> {
               _syncDocument = null;
               _isLoading = false;
             });
+            _contentFadeController.forward();
+          }
+        }).catchError((Object e, StackTrace st) {
+          if (mounted && _parseId == currentParseId) {
+            widget.onError?.call(e, st);
+            setState(() => _isLoading = false);
           }
         });
       } else {
         // Fallback to sync parsing for Delta/Markdown
-        setState(() {
-          _syncDocument = parser.parse(contentToRender);
+        _contentFadeController.reset();
+        try {
+          final doc = parser.parse(contentToRender);
           final resolver = StyleResolver();
           if (cssToApply.isNotEmpty) resolver.parseCss(cssToApply);
-          resolver.resolveStyles(_syncDocument!);
-          _sections = null;
-          _isLoading = false;
-        });
+          resolver.resolveStyles(doc);
+          setState(() {
+            _syncDocument = doc;
+            _sections = null;
+            _isLoading = false;
+          });
+          _contentFadeController.forward();
+        } catch (e, st) {
+          widget.onError?.call(e, st);
+          setState(() => _isLoading = false);
+        }
       }
     }
   }
@@ -520,7 +677,9 @@ class _HyperViewerState extends State<HyperViewer> {
         final attr = m.group(1)!;
         final url = m.group(2)!;
         final uri = Uri.tryParse(url);
-        if (uri == null || uri.hasScheme) return m.group(0)!; // already absolute
+        if (uri == null || uri.hasScheme) {
+          return m.group(0)!; // already absolute
+        }
         final resolved = baseUri.resolveUri(uri).toString();
         // Preserve original quote style
         final quote = m.group(0)!.contains('"') ? '"' : "'";
@@ -559,12 +718,22 @@ class _HyperViewerState extends State<HyperViewer> {
       return widget.fallbackBuilder!(context);
     }
 
-    Widget content = AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      switchInCurve: Curves.easeOut,
-      switchOutCurve: Curves.easeIn,
-      child: _buildContent(context),
-    );
+    // Use FadeTransition instead of AnimatedSwitcher to avoid the
+    // '_RenderObjectSemantics.parentDataDirty' assertion in debug builds.
+    //
+    // AnimatedSwitcher internally holds both old and new children in a Stack
+    // during transitions. The Stack calls adoptChild() on its new child in the
+    // same frame that PipelineOwner.flushSemantics() runs its debug check
+    // (debugCheckForParentData), causing the assertion to fire.
+    //
+    // FadeTransition is a SingleChildRenderObjectWidget — it never reparents
+    // children, so no adoptChild() is called during the fade.
+    Widget content = _isLoading
+        ? _buildContent(context)
+        : FadeTransition(
+            opacity: _contentFadeAnimation,
+            child: _buildContent(context),
+          );
 
     // Wrap with RepaintBoundary for screenshot capture if captureKey is set
     if (widget.captureKey != null) {
@@ -602,8 +771,9 @@ class _HyperViewerState extends State<HyperViewer> {
           // the old 1500 because chunks are now 6000 chars (was 25000), so
           // each item is cheaper — we need fewer pixels of pre-render buffer.
           cacheExtent: 800,
+          controller: widget.controller?.scrollController,
           shrinkWrap: widget.shrinkWrap,
-          physics: widget.physics ?? const BouncingScrollPhysics(),
+          physics: widget.physics ?? const AlwaysScrollableScrollPhysics(),
           itemCount: _sections!.length,
           itemBuilder: (context, index) {
             // RepaintBoundary isolates each chunk into its own GPU layer.
@@ -614,10 +784,18 @@ class _HyperViewerState extends State<HyperViewer> {
                 document: _sections![index],
                 selectable: widget.selectable,
                 selectionColor: widget.selectionColor,
-                textDirection: widget.textDirection ?? Directionality.of(context),
+                textDirection:
+                    widget.textDirection ?? Directionality.of(context),
                 onLinkTap: widget.onLinkTap,
                 widgetBuilder: widget.widgetBuilder,
                 debugShowBounds: widget.debugShowHyperRenderBounds,
+                enableComplexFilters: widget.enableComplexFilters,
+                // Suppress the first block's top margin on all sections after
+                // the first. This prevents double-spacing at section
+                // boundaries in virtualized mode: without suppression, section
+                // N's last marginBottom and section N+1's first marginTop both
+                // render fully instead of collapsing as CSS specifies.
+                suppressFirstBlockMarginTop: index > 0,
               ),
             );
           },
@@ -636,12 +814,14 @@ class _HyperViewerState extends State<HyperViewer> {
           selectable: true,
           onLinkTap: widget.onLinkTap,
           widgetBuilder: widget.widgetBuilder,
-          handleColor: widget.selectionHandleColor ?? Theme.of(context).primaryColor,
+          handleColor:
+              widget.selectionHandleColor ?? Theme.of(context).primaryColor,
           menuActionsBuilder: widget.selectionMenuActionsBuilder,
           contextMenuBuilder: widget.selectionContextMenuBuilder,
           showHandles: true,
           autoShowMenu: true,
           debugShowBounds: widget.debugShowHyperRenderBounds,
+          onAnchorLayout: widget.controller?._onAnchorLayout,
         );
       } else {
         // Use HyperRenderWidget directly (no popup menu)
@@ -651,6 +831,7 @@ class _HyperViewerState extends State<HyperViewer> {
           onLinkTap: widget.onLinkTap,
           widgetBuilder: widget.widgetBuilder,
           debugShowBounds: widget.debugShowHyperRenderBounds,
+          onAnchorLayout: widget.controller?._onAnchorLayout,
         );
       }
 
@@ -665,7 +846,8 @@ class _HyperViewerState extends State<HyperViewer> {
             child: widget.shrinkWrap
                 ? content
                 : SingleChildScrollView(
-                    physics: widget.physics ?? const BouncingScrollPhysics(),
+                    controller: widget.controller?.scrollController,
+                    physics: widget.physics ?? const AlwaysScrollableScrollPhysics(),
                     child: content,
                   ),
           ),
@@ -683,12 +865,175 @@ class _HyperViewerState extends State<HyperViewer> {
       return KeyedSubtree(
         key: const ValueKey('sync'),
         child: SingleChildScrollView(
-          physics: widget.physics ?? const BouncingScrollPhysics(),
+          controller: widget.controller?.scrollController,
+          physics: widget.physics ?? const AlwaysScrollableScrollPhysics(),
           child: content,
         ),
       );
     }
 
     return const SizedBox.shrink();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HeadingAnchor — one TOC entry
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A single entry in the table-of-contents emitted by [HyperViewerController].
+///
+/// ```dart
+/// controller.headings.forEach((h) {
+///   print('${'  ' * (h.level - 1)}${h.text}  →  ${h.yOffset.toStringAsFixed(0)}px');
+/// });
+/// ```
+class HeadingAnchor {
+  /// Heading level: 1 = `<h1>`, 6 = `<h6>`.
+  final int level;
+
+  /// Plain-text content of the heading (stripped of child tags).
+  final String text;
+
+  /// CSS `id` attribute of the heading element, or `null` if absent.
+  final String? cssId;
+
+  /// Y-offset (in logical pixels) of the heading top within the scroll view.
+  final double yOffset;
+
+  const HeadingAnchor({
+    required this.level,
+    required this.text,
+    this.cssId,
+    required this.yOffset,
+  });
+
+  @override
+  String toString() =>
+      'HeadingAnchor(h$level, "$text", id=${cssId ?? '-'}, y=${yOffset.toStringAsFixed(1)})';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HyperViewerController
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Controller for [HyperViewer] that exposes scroll-to-anchor and TOC APIs.
+///
+/// ## Usage
+/// ```dart
+/// final _controller = HyperViewerController();
+///
+/// @override
+/// void dispose() {
+///   _controller.dispose();
+///   super.dispose();
+/// }
+///
+/// @override
+/// Widget build(BuildContext context) => HyperViewer(
+///   html: content,
+///   controller: _controller,
+/// );
+///
+/// // Scroll to a named anchor:
+/// _controller.scrollToId('section-2');
+///
+/// // Build a TOC sidebar:
+/// _controller.headings.map((h) => ListTile(title: Text(h.text))).toList();
+/// ```
+class HyperViewerController extends ChangeNotifier {
+  final ScrollController _scroll = ScrollController();
+
+  /// Underlying [ScrollController] used by [HyperViewer].
+  /// Attach custom listeners here if needed.
+  ScrollController get scrollController => _scroll;
+
+  /// Anchor-id → y-offset map populated after the first layout pass.
+  /// Updated whenever content changes.
+  Map<String, double> _anchorOffsets = const {};
+
+  /// Heading anchors (h1–h6) emitted after each layout pass.
+  /// Sorted by y-offset (document order).
+  List<HeadingAnchor> _headings = const [];
+
+  /// Heading anchors emitted after the last layout pass.
+  ///
+  /// Empty until the first layout completes. Notifies listeners after each
+  /// update so TOC widgets can rebuild reactively.
+  List<HeadingAnchor> get headings => _headings;
+
+  /// Returns `true` if the controller has at least one registered anchor.
+  bool get hasAnchors => _anchorOffsets.isNotEmpty || _headings.isNotEmpty;
+
+  /// Called internally by [HyperViewer] after each layout pass.
+  void _onAnchorLayout(
+    Map<String, double> offsets,
+    List<({int level, String text, String? cssId, double yOffset})> headings,
+  ) {
+    _anchorOffsets = offsets;
+    _headings = headings
+        .map((h) => HeadingAnchor(
+              level: h.level,
+              text: h.text,
+              cssId: h.cssId,
+              yOffset: h.yOffset,
+            ))
+        .toList();
+    notifyListeners();
+  }
+
+  /// Smooth-scrolls the content so that the element with `id="[id]"` is
+  /// visible at the top of the viewport.
+  ///
+  /// Does nothing if the id is not found or the scroll controller is not
+  /// attached to a scroll view yet.
+  ///
+  /// ```dart
+  /// controller.scrollToId('chapter-3');
+  /// ```
+  Future<void> scrollToId(
+    String id, {
+    Duration duration = const Duration(milliseconds: 400),
+    Curve curve = Curves.easeInOut,
+    double offsetCorrection = 0.0,
+  }) async {
+    final offset = _anchorOffsets[id];
+    if (offset == null) return;
+    if (!_scroll.hasClients) return;
+    final target = (offset + offsetCorrection)
+        .clamp(0.0, _scroll.position.maxScrollExtent);
+    await _scroll.animateTo(target, duration: duration, curve: curve);
+  }
+
+  /// Jumps instantly to the element with `id="[id]"` without animation.
+  void jumpToId(String id, {double offsetCorrection = 0.0}) {
+    final offset = _anchorOffsets[id];
+    if (offset == null) return;
+    if (!_scroll.hasClients) return;
+    final target = (offset + offsetCorrection)
+        .clamp(0.0, _scroll.position.maxScrollExtent);
+    _scroll.jumpTo(target);
+  }
+
+  /// Smooth-scrolls to the heading at [index] in [headings].
+  Future<void> scrollToHeading(
+    int index, {
+    Duration duration = const Duration(milliseconds: 400),
+    Curve curve = Curves.easeInOut,
+  }) async {
+    if (index < 0 || index >= _headings.length) return;
+    final h = _headings[index];
+    if (h.cssId != null) {
+      await scrollToId(h.cssId!, duration: duration, curve: curve);
+    } else {
+      if (!_scroll.hasClients) return;
+      final target = h.yOffset.clamp(0.0, _scroll.position.maxScrollExtent);
+      await _scroll.animateTo(target, duration: duration, curve: curve);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
   }
 }

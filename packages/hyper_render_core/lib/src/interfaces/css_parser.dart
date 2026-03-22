@@ -44,10 +44,6 @@ class ParsedCssRule {
   /// e.g., {"color": "red", "font-size": "16px"}
   final Map<String, String> declarations;
 
-  /// Declarations marked with `!important`.
-  /// Applied after inline styles in the cascade, per CSS spec.
-  final Map<String, String> importantDeclarations;
-
   /// Selector specificity for cascade ordering
   /// Format: [inline, id, class, element] as a single int
   /// Higher value = higher priority
@@ -56,14 +52,12 @@ class ParsedCssRule {
   const ParsedCssRule({
     required this.selector,
     required this.declarations,
-    Map<String, String>? importantDeclarations,
     this.specificity = 0,
-  }) : importantDeclarations = importantDeclarations ?? const {};
+  });
 
   @override
   String toString() =>
-      'ParsedCssRule($selector, specificity=$specificity, '
-      '${declarations.length} normal + ${importantDeclarations.length} !important)';
+      'ParsedCssRule($selector, specificity=$specificity, ${declarations.length} declarations)';
 }
 
 /// Simple inline style parser (no external dependencies)

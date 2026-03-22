@@ -60,9 +60,11 @@ export 'src/style/design_tokens.dart';
 
 // Core rendering
 export 'src/core/render_hyper_box.dart';
+export 'src/core/hyper_selection_controller.dart';
 export 'src/core/span_converter.dart';
 export 'src/core/kinsoku_processor.dart';
 export 'src/core/image_provider.dart';
+export 'src/core/lazy_image_queue.dart';
 export 'src/core/render_ruby.dart';
 export 'src/core/render_media.dart';
 export 'src/core/render_table.dart';
@@ -74,7 +76,9 @@ export 'src/core/performance_monitor.dart';
 export 'src/widgets/hyper_render_widget.dart';
 export 'src/widgets/hyper_selection_overlay.dart';
 export 'src/widgets/code_block_widget.dart';
-export 'src/widgets/details_widget.dart';
 export 'src/widgets/error_boundary_widget.dart';
 export 'src/widgets/hyper_error_widget.dart';
 export 'src/widgets/loading_skeleton.dart';
+export 'src/widgets/flex_container_widget.dart';
+export 'src/widgets/grid_container_widget.dart';
+export 'src/widgets/hyper_details_widget.dart';

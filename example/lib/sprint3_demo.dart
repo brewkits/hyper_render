@@ -53,7 +53,7 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         bottom: TabBar(
           controller: _tabs,
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          unselectedLabelColor: Colors.white,
           indicatorColor: Colors.white,
           isScrollable: true,
           tabs: const [
@@ -710,7 +710,7 @@ final image = await captureKey.toImage(pixelRatio: 3.0);''',
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Capture failed: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red.shade900,
           ),
         );
       }
