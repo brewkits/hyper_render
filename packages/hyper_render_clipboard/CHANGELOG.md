@@ -1,5 +1,11 @@
 # Changelog — hyper_render_clipboard
 
+## [1.1.1] - 2026-03-23
+
+### 🐛 Bug Fixes
+- **Static analysis**: Replaced deprecated `Share.shareXFiles()` with `SharePlus.instance.share()` — 0 analyzer issues
+- **Conventions**: Renamed `docs/` → `doc/` (pub.dev singular directory convention)
+
 ## [1.1.0] - 2026-03-20
 
 ### ✨ New Features

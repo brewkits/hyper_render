@@ -166,9 +166,11 @@ class SuperClipboardHandler implements ImageClipboardHandler {
       await file.writeAsBytes(bytes);
 
       // Share using share_plus
-      await share_plus.Share.shareXFiles(
-        [share_plus.XFile(file.path)],
-        text: text,
+      await share_plus.SharePlus.instance.share(
+        share_plus.ShareParams(
+          files: [share_plus.XFile(file.path)],
+          text: text,
+        ),
       );
       return true;
     } catch (e) {
