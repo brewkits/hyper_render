@@ -37,7 +37,7 @@ ok "All tests passed"
 
 # ── 2. Static analysis ───────────────────────────────────────────────────────
 step "Static analysis..."
-result=$(flutter analyze --no-pub 2>&1)
+result=$(flutter analyze --no-pub 2>&1) || true
 errors=$(echo "$result" | grep -c "^error" || true)
 warnings=$(echo "$result" | grep -c "^warning" || true)
 if [ "$errors" -gt 0 ] || [ "$warnings" -gt 0 ]; then
@@ -90,7 +90,7 @@ done
 
 # ── 6. Verify no path: deps remain ──────────────────────────────────────────
 step "Verifying path: dependencies removed..."
-if grep -q "path:" pubspec.yaml; then
+if grep -qE "^\s+path:\s+packages/|path:\s+\.\." pubspec.yaml; then
   fail "pubspec.yaml still has path: deps. Check manually."
 fi
 ok "No path: dependencies in root pubspec"

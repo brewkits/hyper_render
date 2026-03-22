@@ -18,7 +18,6 @@ class FlexboxDemo extends StatelessWidget {
 
   static const _itemBlue = '${_itemBase}background:#bfdbfe;border:2px solid #3b82f6;';
   static const _itemRed  = '${_itemBase}background:#fecaca;border:2px solid #ef4444;';
-  static const _itemGreen= '${_itemBase}background:#bbf7d0;border:2px solid #16a34a;';
 
   // Container: full width, dotted border so you can see where the edges are.
   static const _ctr =
