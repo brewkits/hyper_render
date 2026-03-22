@@ -118,7 +118,7 @@ class _BaseUrlDemoState extends State<BaseUrlDemo> {
           Text(
             'Resolve relative URLs against a base, and intercept link taps '
             'for navigation, mailto, tel, and external URLs.',
-            style: TextStyle(fontSize: 13, color: Colors.white70),
+            style: TextStyle(fontSize: 13, color: Colors.white),
           ),
         ],
       ),

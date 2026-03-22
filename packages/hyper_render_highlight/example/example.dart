@@ -98,7 +98,6 @@ class _HighlightExamplePageState extends State<HighlightExamplePage> {
             const SizedBox(height: 16),
             HyperRenderWidget(
               document: document,
-              codeHighlighter: highlighter,
             ),
           ],
         ),

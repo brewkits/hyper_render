@@ -2,25 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/image_provider.dart';
-import '../core/performance_monitor.dart';
+import '../core/render_formula.dart';
 import '../core/render_hyper_box.dart';
 import '../core/render_media.dart';
 import '../core/render_table.dart';
-import '../interfaces/code_highlighter.dart';
 import '../interfaces/image_clipboard.dart';
 import '../model/computed_style.dart';
 import '../model/node.dart';
 import 'code_block_widget.dart';
 import 'error_boundary_widget.dart';
+import 'flex_container_widget.dart';
+import 'grid_container_widget.dart';
+import 'hyper_details_widget.dart';
 
 /// Image action types for context menu
 enum ImageAction {
   /// Copy image URL to clipboard
   copyUrl,
+
   /// Copy image data (requires ImageClipboardHandler)
   copyImage,
+
   /// Save image to device (requires ImageClipboardHandler)
   saveImage,
+
   /// Share image (requires ImageClipboardHandler)
   shareImage,
 }
@@ -91,27 +96,28 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// Callback when selection changes (e.g., to show context menu)
   final VoidCallback? onSelectionChanged;
 
-  /// Code highlighter for syntax highlighting in code blocks
-  /// If not provided, uses PlainTextHighlighter (no highlighting)
-  final CodeHighlighter? codeHighlighter;
+  /// Draw debug bounds around each fragment and line row.
+  /// See [RenderHyperBox.debugShowBounds].
+  final bool debugShowBounds;
 
-  /// Performance report callback
-  ///
-  /// Called when performance metrics are available. Note that the widget
-  /// receives an already-parsed document, so parse time will be zero unless
-  /// you manually track it using [PerformanceMonitor] in your parsing code.
-  ///
-  /// Example:
-  /// ```dart
-  /// HyperRenderWidget(
-  ///   document: document,
-  ///   onPerformanceReport: (report) {
-  ///     print('Render: ${report.totalTimeMs}ms');
-  ///     print('Nodes: ${report.nodeCount}');
-  ///   },
-  /// )
-  /// ```
-  final PerformanceReportCallback? onPerformanceReport;
+  /// When false, `backdrop-filter` and CSS `filter` effects skip
+  /// `canvas.saveLayer`. Disable on low-end devices to avoid rasterization
+  /// overhead from complex compositing layers.
+  /// See [RenderHyperBox.enableComplexFilters].
+  final bool enableComplexFilters;
+
+  /// When true, suppresses the top margin of the first block element.
+  /// Set to `true` for all virtualized sections except the first so that
+  /// CSS margin collapsing works correctly across section boundaries.
+  /// See [RenderHyperBox.suppressFirstBlockMarginTop].
+  final bool suppressFirstBlockMarginTop;
+
+  /// Called after each layout pass with anchor id→yOffset map and heading list.
+  /// Used by [HyperViewerController] to power [scrollToId] and TOC generation.
+  final void Function(
+    Map<String, double> offsets,
+    List<({int level, String text, String? cssId, double yOffset})> headings,
+  )? onAnchorLayout;
 
   /// Creates a HyperRenderWidget
   ///
@@ -120,7 +126,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   HyperRenderWidget({
     super.key,
     required this.document,
-    this.baseStyle = const TextStyle(fontSize: 16, color: Color(0xFF000000)),
+    this.baseStyle = const TextStyle(fontSize: 16, color: Color(0xFF1F2937)),
     this.onLinkTap,
     this.widgetBuilder,
     this.imageLoader,
@@ -128,39 +134,62 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.textDirection = TextDirection.ltr,
     this.selectionColor,
     this.onSelectionChanged,
-    this.codeHighlighter,
-    this.onPerformanceReport,
-  }) : super(children: _buildChildren(document, widgetBuilder, codeHighlighter, onLinkTap, selectable: selectable));
+    this.debugShowBounds = false,
+    this.enableComplexFilters = true,
+    this.suppressFirstBlockMarginTop = false,
+    this.onAnchorLayout,
+  }) : super(
+            children: _buildChildren(document, widgetBuilder,
+                selectable: selectable));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
   static List<Widget> _buildChildren(
     DocumentNode document,
-    HyperWidgetBuilder? widgetBuilder,
-    CodeHighlighter? codeHighlighter,
-    HyperLinkTapCallback? onLinkTap, {
+    HyperWidgetBuilder? widgetBuilder, {
     bool selectable = true,
   }) {
     final children = <Widget>[];
-    _collectAtomicChildren(document, children, widgetBuilder, codeHighlighter, onLinkTap, selectable: selectable);
+    _collectAtomicChildren(document, children, widgetBuilder,
+        selectable: selectable);
     return children;
   }
 
   static void _collectAtomicChildren(
     UDTNode node,
     List<Widget> children,
-    HyperWidgetBuilder? widgetBuilder,
-    CodeHighlighter? codeHighlighter,
-    HyperLinkTapCallback? onLinkTap, {
+    HyperWidgetBuilder? widgetBuilder, {
     bool selectable = true,
   }) {
     Widget? childWidget;
 
-    // Is it a float?
-    if (node.style.float != HyperFloat.none) {
+    // Is it a flex container?
+    if (node.style.display == DisplayType.flex) {
       childWidget = widgetBuilder?.call(node);
-      // If it's an image, build the default image widget
-      if (childWidget == null && node is AtomicNode && node.tagName == 'img') {
-        childWidget = _buildDefaultAtomicWidget(node, onLinkTap: onLinkTap);
+      childWidget ??= _buildFlexContainerWidget(node, widgetBuilder,
+          selectable: selectable);
+      if (childWidget != null) {
+        children.add(_HyperChildWidget(node: node, child: childWidget));
+      }
+      // Don't recurse into flex children - they're handled by flex container
+      return;
+    }
+    // Is it a grid container?
+    if (node.style.display == DisplayType.grid) {
+      childWidget = widgetBuilder?.call(node);
+      childWidget ??= _buildGridContainerWidget(node, widgetBuilder,
+          selectable: selectable);
+      if (childWidget != null) {
+        children.add(_HyperChildWidget(node: node, child: childWidget));
+      }
+      // Don't recurse into grid children - they're handled by grid container
+      return;
+    }
+    // Is it a float?
+    else if (node.style.float != HyperFloat.none) {
+      childWidget = widgetBuilder?.call(node);
+      // Fall back to default atomic widget for any unhandled atomic node
+      if (childWidget == null && node is AtomicNode) {
+        childWidget = _buildDefaultAtomicWidget(node);
       }
 
       if (childWidget != null) {
@@ -171,10 +200,27 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
         ));
       }
     }
+    // Is it an error boundary?
+    else if (node.type == NodeType.errorBoundary) {
+      childWidget = widgetBuilder?.call(node);
+      childWidget ??= ErrorBoundaryWidget(errorNode: node as ErrorBoundaryNode);
+      children.add(_HyperChildWidget(node: node, child: childWidget));
+      return;
+    }
+    // Is it a <details> element?
+    else if (node.tagName?.toLowerCase() == 'details') {
+      childWidget = widgetBuilder?.call(node);
+      childWidget ??= HyperDetailsWidget(
+        detailsNode: node,
+        widgetBuilder: widgetBuilder,
+      );
+      children.add(_HyperChildWidget(node: node, child: childWidget));
+      return; // children handled internally by HyperDetailsWidget
+    }
     // Is it a code block (<pre> with optional <code> child)?
     else if (_isCodeBlock(node)) {
       childWidget = widgetBuilder?.call(node);
-      childWidget ??= _buildCodeBlockWidget(node, codeHighlighter);
+      childWidget ??= _buildCodeBlockWidget(node);
       if (childWidget != null) {
         children.add(_HyperChildWidget(node: node, child: childWidget));
       }
@@ -183,30 +229,26 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     else if (node.type == NodeType.atomic) {
       final atomicNode = node as AtomicNode;
       childWidget = widgetBuilder?.call(atomicNode);
-      childWidget ??= _buildDefaultAtomicWidget(atomicNode, onLinkTap: onLinkTap);
+      childWidget ??= _buildDefaultAtomicWidget(atomicNode);
       if (childWidget != null) {
         children.add(_HyperChildWidget(node: node, child: childWidget));
       }
     } else if (node.type == NodeType.table) {
       final tableNode = node as TableNode;
       childWidget = widgetBuilder?.call(tableNode);
-      childWidget ??= _buildDefaultTableWidget(tableNode, selectable: selectable);
+      childWidget ??=
+          _buildDefaultTableWidget(tableNode, selectable: selectable);
       if (childWidget != null) {
         children.add(_HyperChildWidget(node: node, child: childWidget));
       }
-    } else if (node.type == NodeType.errorBoundary) {
-      // Error boundary - always render with ErrorBoundaryWidget
-      final errorNode = node as ErrorBoundaryNode;
-      childWidget = widgetBuilder?.call(errorNode);
-      childWidget ??= _buildDefaultErrorBoundaryWidget(errorNode);
-      children.add(_HyperChildWidget(node: node, child: childWidget));
-        }
+    }
 
     // Recurse into children, but ONLY if the current node isn't a child-widget itself
     // (because its children are not part of the main render tree)
     if (childWidget == null) {
       for (final child in node.children) {
-        _collectAtomicChildren(child, children, widgetBuilder, codeHighlighter, onLinkTap, selectable: selectable);
+        _collectAtomicChildren(child, children, widgetBuilder,
+            selectable: selectable);
       }
     }
   }
@@ -218,7 +260,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   }
 
   /// Build CodeBlockWidget for <pre> elements with syntax highlighting
-  static Widget? _buildCodeBlockWidget(UDTNode node, CodeHighlighter? codeHighlighter) {
+  static Widget? _buildCodeBlockWidget(UDTNode node) {
     // Extract code content and language
     String codeContent = '';
     String? language;
@@ -249,7 +291,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     return CodeBlockWidget(
       code: codeContent,
       language: language,
-      codeHighlighter: codeHighlighter,
+      theme: CodeTheme.vs2015,
       showCopyButton: true,
       showLineNumbers: false,
     );
@@ -272,13 +314,72 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     }
   }
 
-  static Widget? _buildDefaultAtomicWidget(
-    AtomicNode node, {
-    HyperLinkTapCallback? onLinkTap,
+  /// Build GridContainerWidget for display:grid elements
+  static Widget? _buildGridContainerWidget(
+    UDTNode node,
+    HyperWidgetBuilder? widgetBuilder, {
+    bool selectable = false,
   }) {
+    final items = <GridItem>[];
+    for (final child in node.children) {
+      final childWidget = _buildFlexChild(child, widgetBuilder);
+      if (childWidget != null) {
+        items.add(GridItem(
+          child: childWidget,
+          span: gridItemSpan(child),
+        ));
+      }
+    }
+    if (items.isEmpty) return null;
+    return GridContainerWidget(
+        node: node, items: items, selectable: selectable);
+  }
+
+  static Widget? _buildDefaultAtomicWidget(AtomicNode node) {
+    // SVG inline rendering
+    if (node.tagName == 'svg') {
+      final svgData = node.svgData;
+      final width = node.intrinsicWidth ?? node.style.width ?? 200;
+      final height = node.intrinsicHeight ?? node.style.height ?? 200;
+      if (svgData != null && svgData.isNotEmpty) {
+        return SizedBox(
+          width: width,
+          height: height,
+          child: CustomPaint(
+            painter: _SvgPlaceholderPainter(svgData),
+            size: Size(width, height),
+          ),
+        );
+      }
+      // SVG from src (e.g. <img src="*.svg">)
+      final src = node.src;
+      if (src != null && src.isNotEmpty) {
+        return SizedBox(
+          width: width,
+          height: height,
+          child: Image.network(
+            src,
+            width: width,
+            height: height,
+            errorBuilder: (_, __, ___) => SizedBox(
+              width: width,
+              height: height,
+              child: const Icon(Icons.image_not_supported),
+            ),
+          ),
+        );
+      }
+      return null;
+    }
+
     if (node.tagName == 'img') {
       final src = node.src;
       if (src == null || src.isEmpty) return null;
+
+      // Float images are painted on canvas by RenderHyperBox._paintFloatImages.
+      // Creating a HyperImage widget here would cause a duplicate HTTP load
+      // (Image.network + _loadImage via LazyImageQueue) and sizing conflicts.
+      if (node.style.float != HyperFloat.none) return null;
 
       // Use intrinsic dimensions if available, otherwise fallback to CSS style dimensions
       final width = node.intrinsicWidth ?? node.style.width;
@@ -295,33 +396,33 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     }
 
     if (node.tagName == 'video' || node.tagName == 'audio') {
-      // Use beautiful DefaultMediaWidget with hover effects and poster support
-      final mediaInfo = MediaInfo.fromNode(node);
-      return DefaultMediaWidget(
-        mediaInfo: mediaInfo,
-        onTap: onLinkTap != null && mediaInfo.src.isNotEmpty
-            ? () => onLinkTap(mediaInfo.src)
-            : null,
-      );
+      return DefaultMediaWidget(mediaInfo: MediaInfo.fromNode(node));
+    }
+
+    if (node.tagName == 'formula') {
+      final formula = node.attributes['formula'] ?? node.src ?? '';
+      if (formula.isEmpty) return null;
+      return FormulaWidget(formula: formula);
     }
 
     return null;
   }
 
-  static Widget? _buildDefaultTableWidget(TableNode node, {bool selectable = true}) {
-    // Use the SmartTableWrapper for intelligent table rendering
-    // Auto-detect strategy based on CSS width:
-    // - If width is 100%, use fitWidth (table wraps to screen like fwfh)
-    // - Otherwise, use autoScale (table scales down if too wide)
-    TableStrategy strategy = TableStrategy.autoScale;
+  static Widget? _buildDefaultTableWidget(TableNode node,
+      {bool selectable = true}) {
+    // Use horizontalScroll by default — it works correctly inside IntrinsicHeight
+    // rows (LayoutBuilder blocks intrinsic dimension queries, so autoScale/fitWidth
+    // can only be used for top-level tables that are never measured intrinsically).
+    // fitWidth is still used for tables explicitly marked with a percentage width.
+    TableStrategy strategy = TableStrategy.horizontalScroll;
 
     // Check if table has width: 100% in inline style or width attribute
     final styleAttr = node.attributes['style'];
     final widthAttr = node.attributes['width'];
 
-    final hasPercentWidth = (styleAttr?.contains('width') == true &&
-                            styleAttr!.contains('%')) ||
-                            (widthAttr?.contains('%') ?? false);
+    final hasPercentWidth =
+        (styleAttr?.contains('width') == true && styleAttr!.contains('%')) ||
+            (widthAttr?.contains('%') ?? false);
 
     if (hasPercentWidth) {
       // Use fitWidth for percentage widths (wraps to device width)
@@ -344,12 +445,182 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     );
   }
 
-  /// Build default error boundary widget
-  static Widget _buildDefaultErrorBoundaryWidget(ErrorBoundaryNode node) {
-    return ErrorBoundaryWidget(
-      errorNode: node,
-      showDetailsInitially: false,
+  /// Build FlexContainer widget for display:flex elements
+  static Widget? _buildFlexContainerWidget(
+    UDTNode node,
+    HyperWidgetBuilder? widgetBuilder, {
+    bool selectable = false,
+  }) {
+    // Recursively build children of flex container
+    final flexChildren = <Widget>[];
+    for (final child in node.children) {
+      final childWidget = _buildFlexChild(child, widgetBuilder);
+      if (childWidget != null) {
+        // Wrap child with FlexItemWidget if it has flex properties
+        if (child.style.flexGrow != null ||
+            child.style.flexShrink != null ||
+            child.style.flexBasis != null ||
+            child.style.alignSelf != null) {
+          flexChildren.add(FlexItemWidget(
+            style: child.style,
+            child: childWidget,
+          ));
+        } else {
+          flexChildren.add(childWidget);
+        }
+      }
+    }
+
+    return FlexContainerWidget(
+      node: node,
+      selectable: selectable,
+      children: flexChildren,
     );
+  }
+
+  /// Build a single flex child
+  static TextAlign _toTextAlign(HyperTextAlign align) {
+    switch (align) {
+      case HyperTextAlign.center:
+        return TextAlign.center;
+      case HyperTextAlign.right:
+        return TextAlign.right;
+      case HyperTextAlign.justify:
+        return TextAlign.justify;
+      case HyperTextAlign.left:
+        return TextAlign.left;
+    }
+  }
+
+  static CrossAxisAlignment _toColumnCrossAxis(HyperTextAlign align) {
+    switch (align) {
+      case HyperTextAlign.center:
+        return CrossAxisAlignment.center;
+      case HyperTextAlign.right:
+        return CrossAxisAlignment.end;
+      default:
+        return CrossAxisAlignment.start;
+    }
+  }
+
+  static Widget? _buildFlexChild(
+      UDTNode node, HyperWidgetBuilder? widgetBuilder) {
+    // If it's text content, convert to Text widget
+    if (node.type == NodeType.text) {
+      final textNode = node as TextNode;
+      final text = textNode.text.trim();
+      if (text.isEmpty) return null;
+
+      return Text(
+        text,
+        textAlign: _toTextAlign(node.style.textAlign),
+        style: node.style.toTextStyle(),
+      );
+    }
+
+    // If it's an inline node with text children, convert to RichText
+    if (node.type == NodeType.inline) {
+      final spans = _buildTextSpans(node);
+      if (spans.isNotEmpty) {
+        return Text.rich(
+          TextSpan(children: spans),
+          textAlign: _toTextAlign(node.style.textAlign),
+        );
+      }
+    }
+
+    // If it's a nested flex container, recursively build it
+    if (node.type == NodeType.block && node.style.display == DisplayType.flex) {
+      return _buildFlexContainerWidget(node, widgetBuilder);
+    }
+
+    // If it's a block, create a container
+    if (node.type == NodeType.block) {
+      final blockChildren = <Widget>[];
+      for (final child in node.children) {
+        final childWidget = _buildFlexChild(child, widgetBuilder);
+        if (childWidget != null) {
+          blockChildren.add(childWidget);
+        }
+      }
+
+      if (blockChildren.isEmpty) return null;
+
+      // Only apply solid border via BoxDecoration — dashed/dotted/double
+      // require custom painting (not supported here, skipped for now).
+      final hasSolidBorder = node.style.borderWidth != EdgeInsets.zero &&
+          node.style.borderStyle == HyperBorderStyle.solid;
+      return Container(
+        margin: node.style.margin,
+        padding: node.style.padding,
+        width: node.style.width,
+        height: node.style.height,
+        decoration: BoxDecoration(
+          // Use gradient over flat color when available.
+          gradient: node.style.backgroundGradient,
+          color: node.style.backgroundGradient == null
+              ? node.style.backgroundColor
+              : null,
+          border: hasSolidBorder
+              ? Border(
+                  top: BorderSide(
+                    color: node.style.borderColor ?? Colors.transparent,
+                    width: node.style.borderWidth.top,
+                  ),
+                  right: BorderSide(
+                    color: node.style.borderColor ?? Colors.transparent,
+                    width: node.style.borderWidth.right,
+                  ),
+                  bottom: BorderSide(
+                    color: node.style.borderColor ?? Colors.transparent,
+                    width: node.style.borderWidth.bottom,
+                  ),
+                  left: BorderSide(
+                    color: node.style.borderColor ?? Colors.transparent,
+                    width: node.style.borderWidth.left,
+                  ),
+                )
+              : null,
+          borderRadius: node.style.borderRadius,
+          boxShadow: node.style.boxShadow,
+        ),
+        child: blockChildren.length == 1
+            ? blockChildren.first
+            : Column(
+                crossAxisAlignment: _toColumnCrossAxis(node.style.textAlign),
+                mainAxisSize: MainAxisSize.min,
+                children: blockChildren,
+              ),
+      );
+    }
+
+    // If it's atomic (img, video), use existing logic
+    if (node.type == NodeType.atomic) {
+      return _buildDefaultAtomicWidget(node as AtomicNode);
+    }
+
+    return null;
+  }
+
+  /// Build TextSpans from node tree (for inline content)
+  static List<InlineSpan> _buildTextSpans(UDTNode node) {
+    final spans = <InlineSpan>[];
+
+    for (final child in node.children) {
+      if (child.type == NodeType.text) {
+        final text = (child as TextNode).text;
+        if (text.isNotEmpty) {
+          spans.add(TextSpan(
+            text: text,
+            style: child.style.toTextStyle(),
+          ));
+        }
+      } else if (child.type == NodeType.inline) {
+        spans.addAll(_buildTextSpans(child));
+      }
+    }
+
+    return spans;
   }
 
   @override
@@ -363,7 +634,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       textDirection: textDirection,
       selectionColor: selectionColor,
       onSelectionChanged: onSelectionChanged,
-    );
+    )..debugShowBounds = debugShowBounds
+      ..enableComplexFilters = enableComplexFilters
+      ..suppressFirstBlockMarginTop = suppressFirstBlockMarginTop
+      ..onAnchorLayout = onAnchorLayout;
   }
 
   @override
@@ -392,17 +666,34 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (renderObject.onSelectionChanged != onSelectionChanged) {
       renderObject.onSelectionChanged = onSelectionChanged;
     }
+    if (renderObject.debugShowBounds != debugShowBounds) {
+      renderObject.debugShowBounds = debugShowBounds;
+      renderObject.markNeedsPaint();
+    }
+    if (renderObject.enableComplexFilters != enableComplexFilters) {
+      renderObject.enableComplexFilters = enableComplexFilters;
+      renderObject.markNeedsPaint();
+    }
+    if (renderObject.suppressFirstBlockMarginTop != suppressFirstBlockMarginTop) {
+      renderObject.suppressFirstBlockMarginTop = suppressFirstBlockMarginTop;
+      renderObject.markNeedsLayout();
+    }
+    renderObject.onAnchorLayout = onAnchorLayout;
   }
 }
 
 /// Internal widget to wrap atomic children
+///
+/// Uses a [ValueKey] based on [UDTNode.id] to ensure Flutter correctly matches
+/// widgets to their corresponding elements during rebuilds. This prevents
+/// mismatching issues when the widget tree and fragment list update asynchronously.
 class _HyperChildWidget extends ParentDataWidget<HyperBoxParentData> {
   final UDTNode node;
 
-  const _HyperChildWidget({
+  _HyperChildWidget({
     required this.node,
     required super.child,
-  });
+  }) : super(key: ValueKey('hyper_child_${node.id}'));
 
   @override
   void applyParentData(RenderObject renderObject) {
@@ -416,15 +707,18 @@ class _HyperChildWidget extends ParentDataWidget<HyperBoxParentData> {
 }
 
 /// Internal widget to wrap float children
+///
+/// Uses a [ValueKey] based on [UDTNode.id] to ensure Flutter correctly matches
+/// float widgets to their corresponding elements during rebuilds.
 class _HyperFloatChildWidget extends ParentDataWidget<HyperBoxParentData> {
   final UDTNode node;
   final HyperFloat floatDirection;
 
-  const _HyperFloatChildWidget({
+  _HyperFloatChildWidget({
     required this.node,
     required this.floatDirection,
     required super.child,
-  });
+  }) : super(key: ValueKey('hyper_float_${node.id}'));
 
   @override
   void applyParentData(RenderObject renderObject) {
@@ -487,7 +781,7 @@ class HyperImage extends StatelessWidget {
     required this.src,
     this.width,
     this.height,
-    this.borderRadius = 0.0, // No border radius by default (sharp corners)
+    this.borderRadius = 8.0,
     this.clipboardHandler,
     this.onImageAction,
     this.enableContextMenu = true,
@@ -501,7 +795,10 @@ class HyperImage extends StatelessWidget {
         src,
         width: width,
         height: height,
-        fit: BoxFit.cover,
+        // cover crops to fill exact bounds; contain scales to fit without crop.
+        // When only one dimension (or neither) is specified, contain avoids
+        // unexpected cropping inside flex / intrinsic-size contexts.
+        fit: (width != null && height != null) ? BoxFit.cover : BoxFit.contain,
         cacheWidth: width != null ? (width! * 2).toInt() : null,
         cacheHeight: height != null ? (height! * 2).toInt() : null,
         loadingBuilder: (context, child, loadingProgress) {
@@ -540,7 +837,8 @@ class HyperImage extends StatelessWidget {
             height: height ?? 100,
             color: const Color(0xFFE0E0E0),
             child: const Center(
-              child: Icon(Icons.broken_image, size: 32, color: Color(0xFF9E9E9E)),
+              child:
+                  Icon(Icons.broken_image, size: 32, color: Color(0xFF9E9E9E)),
             ),
           );
         },
@@ -552,15 +850,18 @@ class HyperImage extends StatelessWidget {
     }
 
     return GestureDetector(
-      onLongPressStart: (details) => _showContextMenu(context, details.globalPosition),
-      onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
+      onLongPressStart: (details) =>
+          _showContextMenu(context, details.globalPosition),
+      onSecondaryTapDown: (details) =>
+          _showContextMenu(context, details.globalPosition),
       child: imageWidget,
     );
   }
 
   void _showContextMenu(BuildContext context, Offset position) {
     final handler = clipboardHandler ?? const DefaultImageClipboardHandler();
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
 
     // Build menu items based on handler capabilities
     final menuItems = <PopupMenuEntry<ImageAction>>[
@@ -649,7 +950,8 @@ class HyperImage extends StatelessWidget {
 
         case ImageAction.copyImage:
           success = await handler.copyImageFromUrl(src);
-          message = success ? 'Image copied to clipboard' : 'Failed to copy image';
+          message =
+              success ? 'Image copied to clipboard' : 'Failed to copy image';
           break;
 
         case ImageAction.saveImage:
@@ -660,7 +962,9 @@ class HyperImage extends StatelessWidget {
 
         case ImageAction.shareImage:
           success = await handler.shareImageFromUrl(src);
-          message = success ? '' : 'Failed to share image'; // No message on share success
+          message = success
+              ? ''
+              : 'Failed to share image'; // No message on share success
           break;
       }
 
@@ -675,4 +979,51 @@ class HyperImage extends StatelessWidget {
       }
     });
   }
+}
+
+/// Placeholder painter for inline SVG data.
+/// Renders a simple bounding box with SVG icon when flutter_svg is not available.
+class _SvgPlaceholderPainter extends CustomPainter {
+  final String svgData;
+  const _SvgPlaceholderPainter(this.svgData);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Fill
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        const Radius.circular(4),
+      ),
+      Paint()..color = const Color(0xFFE0E0E0),
+    );
+    // Border
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0.5, 0.5, size.width - 1, size.height - 1),
+        const Radius.circular(4),
+      ),
+      Paint()
+        ..color = const Color(0xFFBDBDBD)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+    // Draw diagonal SVG placeholder lines
+    final linePaint = Paint()
+      ..color = const Color(0xFFBDBDBD)
+      ..strokeWidth = 1;
+    canvas.drawLine(
+      Offset.zero,
+      Offset(size.width, size.height),
+      linePaint,
+    );
+    canvas.drawLine(
+      Offset(size.width, 0),
+      Offset(0, size.height),
+      linePaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SvgPlaceholderPainter old) => old.svgData != svgData;
 }

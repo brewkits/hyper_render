@@ -9,10 +9,7 @@ import 'package:hyper_render_core/hyper_render_core.dart';
 void main() {
   test('Benchmark: CSS Rule Lookup - 100 rules', () {
     final resolver = StyleResolver();
-    final rules = _generateCssRules(100);
-
-    // Add rules to resolver
-    resolver.addCssRules(rules);
+    resolver.parseCss(_generateCss(100));
 
     // Benchmark lookup by tag
     final times = <int>[];
@@ -36,9 +33,7 @@ void main() {
 
   test('Benchmark: CSS Rule Lookup - 1000 rules', () {
     final resolver = StyleResolver();
-    final rules = _generateCssRules(1000);
-
-    resolver.addCssRules(rules);
+    resolver.parseCss(_generateCss(1000));
 
     final times = <int>[];
     for (int i = 0; i < 1000; i++) {
@@ -61,9 +56,7 @@ void main() {
 
   test('Benchmark: CSS Rule Lookup - 5000 rules', () {
     final resolver = StyleResolver();
-    final rules = _generateCssRules(5000);
-
-    resolver.addCssRules(rules);
+    resolver.parseCss(_generateCss(5000));
 
     final times = <int>[];
     for (int i = 0; i < 1000; i++) {
@@ -87,24 +80,12 @@ void main() {
   test('Benchmark: Complex Selector Matching', () {
     final resolver = StyleResolver();
 
-    // Add complex rules
-    resolver.addCssRules([
-      ParsedCssRule(
-        selector: 'div.container > p.highlight',
-        specificity: 20,
-        declarations: {'color': 'red'},
-      ),
-      ParsedCssRule(
-        selector: 'article section p',
-        specificity: 3,
-        declarations: {'font-size': '16px'},
-      ),
-      ParsedCssRule(
-        selector: '#main .content',
-        specificity: 110,
-        declarations: {'padding': '20px'},
-      ),
-    ]);
+    // Add complex rules via parseCss
+    resolver.parseCss('''
+      div.container > p.highlight { color: red; }
+      article section p { font-size: 16px; }
+      #main .content { padding: 20px; }
+    ''');
 
     final times = <int>[];
     for (int i = 0; i < 1000; i++) {
@@ -126,36 +107,18 @@ void main() {
   });
 }
 
-List<ParsedCssRule> _generateCssRules(int count) {
-  final rules = <ParsedCssRule>[];
-
+String _generateCss(int count) {
+  final buffer = StringBuffer();
   for (int i = 0; i < count; i++) {
-    // Mix of tag, class, and ID selectors
     if (i % 3 == 0) {
-      // Tag selector
-      rules.add(ParsedCssRule(
-        selector: 'tag$i',
-        specificity: 1,
-        declarations: {'color': '#${i.toRadixString(16).padLeft(6, '0')}'},
-      ));
+      buffer.writeln('tag$i { color: #${i.toRadixString(16).padLeft(6, '0')}; }');
     } else if (i % 3 == 1) {
-      // Class selector
-      rules.add(ParsedCssRule(
-        selector: '.class$i',
-        specificity: 10,
-        declarations: {'font-size': '${14 + (i % 10)}px'},
-      ));
+      buffer.writeln('.class$i { font-size: ${14 + (i % 10)}px; }');
     } else {
-      // ID selector
-      rules.add(ParsedCssRule(
-        selector: '#id$i',
-        specificity: 100,
-        declarations: {'padding': '${i % 20}px'},
-      ));
+      buffer.writeln('#id$i { padding: ${i % 20}px; }');
     }
   }
-
-  return rules;
+  return buffer.toString();
 }
 
 void _printResults(String testName, List<int> times) {

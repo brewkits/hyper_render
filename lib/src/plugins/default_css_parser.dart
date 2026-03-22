@@ -1,7 +1,6 @@
+import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:csslib/parser.dart' as css_parser;
 import 'package:csslib/visitor.dart' as css_ast;
-
-import '../interfaces/css_parser.dart';
 
 /// Default CSS parser using csslib package
 ///
@@ -90,8 +89,7 @@ class DefaultCssParser implements CssParserInterface {
     // Count classes (.class), attributes ([attr]), and pseudo-classes (:hover)
     classes = RegExp(r'\.[a-zA-Z_-][\w-]*').allMatches(selector).length;
     classes += RegExp(r'\[[^\]]+\]').allMatches(selector).length;
-    classes +=
-        RegExp(r':[a-zA-Z_-][\w-]*(?!\()').allMatches(selector).length;
+    classes += RegExp(r':[a-zA-Z_-][\w-]*(?!\()').allMatches(selector).length;
 
     // Count elements (tag names) and pseudo-elements (::before)
     // This is simplified - doesn't handle all edge cases

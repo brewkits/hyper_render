@@ -68,7 +68,8 @@ extension HyperCaptureExtension on GlobalKey {
     final image = await toImage(pixelRatio: pixelRatio);
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     if (byteData == null) {
-      throw StateError('HyperCaptureExtension.toPngBytes: Failed to encode PNG.');
+      throw StateError(
+          'HyperCaptureExtension.toPngBytes: Failed to encode PNG.');
     }
     image.dispose();
     return byteData.buffer.asUint8List();

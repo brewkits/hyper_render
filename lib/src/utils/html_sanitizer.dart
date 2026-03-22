@@ -30,7 +30,8 @@ class HtmlSanitizer {
     'abbr', 'time',
 
     // Links and media
-    'a', 'img', 'video', 'audio', 'source', 'track', 'picture', 'figure', 'figcaption',
+    'a', 'img', 'video', 'audio', 'source', 'track', 'picture', 'figure',
+    'figcaption',
 
     // Ruby annotations (CJK)
     'ruby', 'rt', 'rp',
@@ -41,9 +42,27 @@ class HtmlSanitizer {
 
   /// Tags whose entire subtree is dropped (content not preserved)
   static const List<String> dangerousTags = [
-    'script', 'style', 'iframe', 'frame', 'frameset', 'object', 'embed',
-    'applet', 'link', 'meta', 'base', 'form', 'input', 'button', 'select',
-    'textarea', 'option', 'optgroup', 'fieldset', 'legend', 'label',
+    'script',
+    'style',
+    'iframe',
+    'frame',
+    'frameset',
+    'object',
+    'embed',
+    'applet',
+    'link',
+    'meta',
+    'base',
+    'form',
+    'input',
+    'button',
+    'select',
+    'textarea',
+    'option',
+    'optgroup',
+    'fieldset',
+    'legend',
+    'label',
   ];
 
   /// Attribute names that are always stripped

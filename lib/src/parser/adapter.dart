@@ -1,4 +1,4 @@
-import '../model/node.dart';
+import 'package:hyper_render_core/hyper_render_core.dart';
 
 /// Input type for the content adapter
 enum InputType {
@@ -12,14 +12,11 @@ enum InputType {
   markdown,
 }
 
-/// Base interface for content adapters
+/// Base interface for content adapters.
 ///
-/// Adapters convert different input formats (HTML, Delta, Markdown)
-/// into the Unified Document Tree (UDT).
-///
-/// Reference: doc1.txt - "Tầng xử lý dữ liệu (Input Adapters)"
-/// "Hệ thống sẽ không nhận trực tiếp HTML hay Delta vào lõi.
-/// Nó sẽ qua một lớp Adapter để chuyển về Unified Document Tree (UDT)."
+/// Adapters convert different input formats (HTML, Delta, Markdown) into the
+/// Unified Document Tree (UDT). The rendering core never receives raw HTML or
+/// Delta directly — all content passes through an adapter first.
 abstract class DocumentAdapter {
   /// Input type this adapter handles
   InputType get inputType;

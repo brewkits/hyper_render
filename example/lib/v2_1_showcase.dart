@@ -35,7 +35,7 @@ class _V21ShowcaseState extends State<V21Showcase>
       data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Advanced Features Showcase'),
+            title: const Text('Advanced Features Showcase'),
           centerTitle: false,
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: Colors.white,

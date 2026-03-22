@@ -48,12 +48,12 @@ class _HtmlHeuristicsDemoState extends State<HtmlHeuristicsDemo>
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          unselectedLabelColor: Colors.white,
           indicatorColor: Colors.white,
           tabs: const [
-            Tab(icon: Icon(Icons.check_circle, size: 16), text: 'Simple HTML'),
-            Tab(icon: Icon(Icons.warning, size: 16), text: 'Complex HTML'),
-            Tab(icon: Icon(Icons.search, size: 16), text: 'Live Checker'),
+            Tab(icon: Icon(Icons.check_circle, size: 18), text: 'Simple HTML'),
+            Tab(icon: Icon(Icons.warning, size: 18), text: 'Complex HTML'),
+            Tab(icon: Icon(Icons.search, size: 18), text: 'Live Checker'),
           ],
         ),
       ),
@@ -224,6 +224,7 @@ class _ComplexExample extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isComplex = HtmlHeuristics.isComplex(html);
     return Column(
       children: [
         _HeuristicsResultBanner(html: html),
@@ -235,23 +236,41 @@ class _ComplexExample extends StatelessWidget {
             fallbackBuilder: (_) => const _MockWebViewFallback(),
           ),
         ),
-        Container(
-          color: Colors.orange.shade50,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'HtmlHeuristics.isComplex() = true → fallbackBuilder was called '
-                  '(mock WebView shown below).',
-                  style: TextStyle(color: Colors.orange.shade900, fontSize: 13),
+        if (isComplex)
+          Container(
+            color: Colors.orange.shade50,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'HtmlHeuristics.isComplex() = true → fallbackBuilder was called '
+                    '(mock WebView shown above).',
+                    style: TextStyle(color: Colors.orange.shade900, fontSize: 13),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+          )
+        else
+          Container(
+            color: Colors.green.shade50,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green.shade700, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'HyperViewer rendered natively — fallbackBuilder was NOT called.',
+                    style: TextStyle(color: Colors.green.shade800, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
       ],
     );
   }
@@ -287,85 +306,88 @@ class _LiveCheckerTabState extends State<_LiveCheckerTab> {
     final unsupportedCss = HtmlHeuristics.hasUnsupportedCss(html);
     final unsupportedElements = HtmlHeuristics.hasUnsupportedElements(html);
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: TextField(
-            controller: _ctrl,
-            maxLines: 5,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              labelText: 'Enter HTML to analyse',
-              border: const OutlineInputBorder(),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  _ctrl.clear();
-                  setState(() {});
-                },
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _ctrl,
+              maxLines: 5,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'Enter HTML to analyse',
+                border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _ctrl.clear();
+                    setState(() {});
+                  },
+                ),
               ),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
             ),
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Card(
-            color: complex ? Colors.orange.shade50 : Colors.green.shade50,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _resultRow('isComplex()', complex),
-                  const Divider(height: 16),
-                  _resultRow('hasComplexTables()', complexTables,
-                      hint: 'colspan/rowspan ≥ 3'),
-                  _resultRow('hasUnsupportedCss()', unsupportedCss,
-                      hint: 'position:fixed/abs, z-index, clip-path…'),
-                  _resultRow('hasUnsupportedElements()', unsupportedElements,
-                      hint: 'canvas, input, select, form…'),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        complex ? Icons.warning_amber : Icons.check_circle,
-                        color: complex
-                            ? Colors.orange.shade700
-                            : Colors.green.shade700,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          complex
-                              ? 'Recommendation: use fallbackBuilder → WebView'
-                              : 'Recommendation: render with HyperViewer',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                            color: complex
-                                ? Colors.orange.shade900
-                                : Colors.green.shade900,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Card(
+              color: complex ? Colors.orange.shade50 : Colors.green.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _resultRow('isComplex()', complex),
+                    const Divider(height: 16),
+                    _resultRow('hasComplexTables()', complexTables,
+                        hint: 'colspan/rowspan ≥ 3'),
+                    _resultRow('hasUnsupportedCss()', unsupportedCss,
+                        hint: 'position:fixed/abs, z-index, clip-path…'),
+                    _resultRow('hasUnsupportedElements()', unsupportedElements,
+                        hint: 'canvas, input, select, form…'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          complex ? Icons.warning_amber : Icons.check_circle,
+                          color: complex
+                              ? Colors.orange.shade700
+                              : Colors.green.shade700,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            complex
+                                ? 'Recommendation: use fallbackBuilder → WebView'
+                                : 'Recommendation: render with HyperViewer',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: complex
+                                  ? Colors.orange.shade900
+                                  : Colors.green.shade900,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: _CodeSnippet(),
-        ),
-      ],
+          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            child: _CodeSnippet(),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 

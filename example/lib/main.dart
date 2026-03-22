@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart' as fwfh;
@@ -18,17 +17,18 @@ import 'enhanced_selection_demo.dart';
 import 'fwfh_issues_test_demo.dart';
 import 'css_properties_demo.dart';
 import 'flexbox_demo.dart';
-import 'aesthetic_demo.dart';
 import 'demo_colors.dart';
 import 'performance_deep_dive_demo.dart';
 import 'animation_demo.dart';
-import 'base_url_demo.dart';
 import 'sprint3_demo.dart';
 import 'html_heuristics_demo.dart';
 import 'smart_table_demo.dart';
 import 'formula_demo.dart';
 import 'manga_demo.dart';
+import 'cjk_languages_demo.dart';
 import 'email_demo.dart';
+import 'stress_test_demo.dart';
+import 'why_hyper_render_demo.dart';
 
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
@@ -91,52 +91,52 @@ class DemoHomePage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           _buildHeader(context),
-          const SizedBox(height: 24),
-          // ── Layout ────────────────────────────────────────────────────────
-          _buildSectionHeader(context, 'Layout'),
+          const SizedBox(height: 16),
+          _buildWhyCard(context),
+          const SizedBox(height: 8),
+          // ── Highlights ────────────────────────────────────────────────────
+          _buildSectionHeader(context, 'Highlights'),
           _buildDemoCard(
             context,
             icon: Icons.view_quilt,
             title: 'Float Layout',
-            subtitle: 'Text wraps around left/right floated images — including 2-float and 4-corner layouts',
+            subtitle: 'Text wraps around floated images — the feature no other Flutter HTML library has',
             color: DemoColors.primary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const FloatLayoutDemo()),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FloatLayoutDemo())),
           ),
           _buildDemoCard(
             context,
-            icon: Icons.view_column,
-            title: 'Flexbox Layout',
-            subtitle: 'CSS flexbox in pure Flutter — row/column, wrapping, alignment, gap',
+            icon: Icons.email,
+            title: 'HTML Email',
+            subtitle: 'Render real HTML emails natively — no WebView, no heavy dependencies',
             color: DemoColors.primary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const FlexboxDemo()),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmailDemo())),
           ),
+          // ── Layout ────────────────────────────────────────────────────────
+          _buildSectionHeader(context, 'Layout'),
           _buildDemoCard(
             context,
             icon: Icons.table_chart,
             title: 'Tables',
-            subtitle: 'Simple, wide, nested, and complex tables with auto column sizing',
-            color: DemoColors.primary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TableDemo()),
-            ),
+            subtitle: 'Simple, wide, nested tables — plus strategies for tables wider than the screen',
+            color: DemoColors.secondary,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _TablesHubPage())),
           ),
           _buildDemoCard(
             context,
-            icon: Icons.table_chart_outlined,
-            title: 'Wide Table Strategies',
-            subtitle: 'Tables wider than the screen — scroll, shrink-to-fit, or auto scale',
-            color: Colors.teal,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SmartTableDemo()),
-            ),
+            icon: Icons.view_column,
+            title: 'Flexbox',
+            subtitle: 'CSS flexbox in pure Flutter — row/column, wrapping, alignment, gap',
+            color: DemoColors.secondary,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FlexboxDemo())),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.rocket_launch,
+            title: 'CSS Grid & Advanced Layout',
+            subtitle: 'CSS variables, grid, calc(), SVG, RTL/BiDi text, screenshot export',
+            color: DemoColors.secondary,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Sprint3Demo())),
           ),
           // ── Text & Typography ─────────────────────────────────────────────
           _buildSectionHeader(context, 'Text & Typography'),
@@ -144,324 +144,165 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.select_all,
             title: 'Text Selection',
-            subtitle: 'Long-press to select, drag handles to resize, Copy/Share/Search from the popup menu',
-            color: DemoColors.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const EnhancedSelectionDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.translate,
-            title: 'Ruby Annotation (Furigana)',
-            subtitle: 'Phonetic guide text above kanji — used in Japanese and Chinese',
-            color: DemoColors.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const RubyDemo()),
-            ),
+            subtitle: 'Long-press to select, drag handles to resize, Copy/Share/Search menu',
+            color: DemoColors.accent,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EnhancedSelectionDemo())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.menu_book,
-            title: 'Manga & CJK Typography',
-            subtitle: 'Furigana, vertical text, manga panel grid — Japanese/Chinese content',
+            title: 'Japanese & Manga Typography',
+            subtitle: 'Furigana (ruby), vertical text, manga panel grid — Japanese content',
             color: const Color(0xFFB71C1C),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const MangaDemo()),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MangaDemo())),
           ),
           _buildDemoCard(
             context,
-            icon: Icons.format_paint,
-            title: 'Inline Highlight & Decoration',
-            subtitle: 'Colored background and border on inline text that wraps across lines',
-            color: DemoColors.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const InlineDecorationDemo()),
-            ),
+            icon: Icons.language,
+            title: '中文 · 繁體 · 한국어',
+            subtitle: 'Simplified Chinese, Traditional Chinese poetry, Korean tech article — CJK rendering',
+            color: const Color(0xFF1565C0),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CjkLanguagesDemo())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.style,
             title: 'CSS Properties',
-            subtitle: 'text-shadow, text-overflow, border styles, writing direction, and 60+ more',
-            color: DemoColors.primary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CssPropertiesDemo()),
-            ),
+            subtitle: 'text-shadow, text-overflow, border styles, writing direction, 60+ properties',
+            color: DemoColors.accent,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CssPropertiesDemo())),
+          ),
+          // ── Media & Integration ───────────────────────────────────────────
+          _buildSectionHeader(context, 'Media & Integration'),
+          _buildDemoCard(
+            context,
+            icon: Icons.perm_media,
+            title: 'Images & Video',
+            subtitle: 'Image loading/fallback, pinch-to-zoom and pan, video thumbnail player',
+            color: DemoColors.warning,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _MediaHubPage())),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.widgets,
+            title: 'Widget Injection & Animation',
+            subtitle: 'Embed live Flutter widgets and animated components inside HTML content',
+            color: DemoColors.warning,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _WidgetIntegrationHubPage())),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.data_object,
+            title: 'Input Formats',
+            subtitle: 'Render Markdown and Quill Delta (rich-text editor JSON output)',
+            color: DemoColors.warning,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _InputFormatsHubPage())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.calculate,
             title: 'Math Formulas',
-            subtitle: 'Render Greek letters, fractions, physics equations via custom widget builder',
-            color: DemoColors.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const FormulaDemo()),
-            ),
-          ),
-          // ── Media ─────────────────────────────────────────────────────────
-          _buildSectionHeader(context, 'Media'),
-          _buildDemoCard(
-            context,
-            icon: Icons.broken_image,
-            title: 'Images',
-            subtitle: 'Loading placeholders, error fallback, network and asset images',
+            subtitle: 'Greek letters, fractions, physics equations via custom widget builder',
             color: DemoColors.warning,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ImageHandlingDemo()),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormulaDemo())),
           ),
-          _buildDemoCard(
-            context,
-            icon: Icons.zoom_in,
-            title: 'Zoom & Pan',
-            subtitle: 'Pinch to zoom and pan images — works with float and inline images',
-            color: DemoColors.warning,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ZoomDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.play_circle_filled,
-            title: 'Video',
-            subtitle: 'Video thumbnail with play button — tap to open in external player',
-            color: DemoColors.warning,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ImprovedVideoDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.code,
-            title: 'Code Blocks',
-            subtitle: 'Syntax-highlighted <pre><code> blocks with horizontal scroll',
-            color: DemoColors.accent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CodeBlockDemo()),
-            ),
-          ),
-          // ── Widget Integration ────────────────────────────────────────────
-          _buildSectionHeader(context, 'Widget Integration'),
-          _buildDemoCard(
-            context,
-            icon: Icons.widgets,
-            title: 'Widget Injection',
-            subtitle: 'Embed live Flutter widgets (charts, buttons, sliders) inside HTML content',
-            color: DemoColors.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const WidgetInjectionDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.animation,
-            title: 'Animated Widgets',
-            subtitle: 'Injected widgets can animate — fade, slide, bounce inside HTML',
-            color: DemoColors.accent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AnimationDemo()),
-            ),
-          ),
-          // ── Input Formats ─────────────────────────────────────────────────
-          _buildSectionHeader(context, 'Input Formats'),
-          _buildDemoCard(
-            context,
-            icon: Icons.data_object,
-            title: 'Quill Delta',
-            subtitle: 'Render JSON output from the Quill.js rich text editor',
-            color: DemoColors.accent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const QuillDeltaDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.text_snippet,
-            title: 'Markdown',
-            subtitle: 'Render .md content — headings, lists, bold, code, links',
-            color: DemoColors.accent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const MarkdownDemo()),
-            ),
-          ),
-          // ── Real-World Use Cases ───────────────────────────────────────────
-          _buildSectionHeader(context, 'Real-World Use Cases'),
-          _buildDemoCard(
-            context,
-            icon: Icons.email,
-            title: 'HTML Email',
-            subtitle: 'Render real HTML emails natively — no WebView, no heavy dependencies',
-            color: DemoColors.primary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const EmailDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.article,
-            title: 'Long-Form Content',
-            subtitle: 'Blog post and novel — headings, paragraphs, images, links, all together',
-            color: DemoColors.primary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const RealContentDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.auto_awesome,
-            title: 'Everything at Once',
-            subtitle: 'Float, selection, ruby, widget injection, tables, code — all in one page',
-            color: DemoColors.primary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const KitchenSinkDemo()),
-            ),
-          ),
-          // ── Comparison & Performance ───────────────────────────────────────
-          _buildSectionHeader(context, 'Comparison & Performance'),
+          // ── Advanced & Quality ────────────────────────────────────────────
+          _buildSectionHeader(context, 'Advanced & Quality'),
           _buildDemoCard(
             context,
             icon: Icons.compare,
-            title: 'vs flutter_html & fwfh',
-            subtitle: 'Side-by-side rendering of the same HTML in 3 libraries',
+            title: 'Comparison & Performance',
+            subtitle: 'Side-by-side vs other libraries, unique features, stress test, render pipeline',
             color: DemoColors.success,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LibraryComparisonDemo()),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _ComparisonPerfHubPage())),
           ),
           _buildDemoCard(
             context,
-            icon: Icons.bug_report,
-            title: 'Features Other Libraries Miss',
-            subtitle: 'Float layout, ruby, details/summary, inline decoration — all unsupported elsewhere',
+            icon: Icons.dark_mode,
+            title: 'Dark Mode, Skeletons & Visual Quality',
+            subtitle: 'Theme switching, skeleton loading, error boundaries, crisp rendering',
             color: DemoColors.success,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const FWFHIssuesTestDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.speed,
-            title: 'Stress Test — 1000-Page Book',
-            subtitle: 'Render and scroll a very long document — measure frame time',
-            color: DemoColors.error,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const StressTestDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.insights,
-            title: 'Performance Deep Dive',
-            subtitle: 'Step-by-step render pipeline breakdown — parse, tokenize, layout, paint',
-            color: DemoColors.success,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const PerformanceDeepDiveDemo()),
-            ),
-          ),
-          // ── Advanced ──────────────────────────────────────────────────────
-          _buildSectionHeader(context, 'Advanced'),
-          _buildDemoCard(
-            context,
-            icon: Icons.rocket_launch,
-            title: 'CSS Variables, Grid & More',
-            subtitle: 'CSS custom properties, grid layout, calc(), SVG, RTL/BiDi, screenshot export',
-            color: DemoColors.accent,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const Sprint3Demo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.link,
-            title: 'Base URL & Link Handling',
-            subtitle: 'Relative image/link URLs resolved against a base URL — tap callback demo',
-            color: DemoColors.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const BaseUrlDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.auto_fix_high,
-            title: 'WebView Fallback',
-            subtitle: 'Detect HTML that is too complex and fall back to a WebView automatically',
-            color: DemoColors.warning,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HtmlHeuristicsDemo()),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const V21Showcase())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.security,
-            title: 'XSS Protection',
-            subtitle: 'Malicious <script> and event handlers are stripped before rendering',
-            color: DemoColors.error,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SecurityDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.accessibility,
-            title: 'Accessibility',
-            subtitle: 'Semantic labels for screen readers — VoiceOver and TalkBack',
+            title: 'Security & Accessibility',
+            subtitle: 'XSS protection, screen reader support, WebView fallback detection',
             color: DemoColors.success,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AccessibilityDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.auto_awesome,
-            title: 'Visual Quality',
-            subtitle: 'Crisp images, anti-aliased borders, smooth gradients, text shadows',
-            color: DemoColors.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AestheticDemo()),
-            ),
-          ),
-          _buildDemoCard(
-            context,
-            icon: Icons.new_releases,
-            title: 'Dark Mode, Skeletons & Error Boundaries',
-            subtitle: 'Theme switching, skeleton loading placeholder, and render error recovery',
-            color: DemoColors.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const V21Showcase()),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _QualityHubPage())),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWhyCard(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.amber.shade700, Colors.orange.shade600],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WhyHyperRenderDemo())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Row(
+              children: [
+                const Icon(Icons.emoji_events, color: Color(0xFF4E2600), size: 32),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Why HyperRender?',
+                        style: TextStyle(
+                          color: Color(0xFF4E2600),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Live demos · Feature matrix · 16/16 score vs other libraries',
+                        style: TextStyle(color: Color(0xFF7A3E00), fontSize: 12, height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    '16/16',
+                    style: TextStyle(color: Color(0xFF4E2600), fontWeight: FontWeight.w800, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -495,7 +336,7 @@ class DemoHomePage extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
+                  color: Colors.black.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(Icons.rocket_launch, color: Colors.white, size: 30),
@@ -519,7 +360,7 @@ class DemoHomePage extends StatelessWidget {
                       'Universal Content Engine for Flutter',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.white70,
+                        color: Colors.white,
                         letterSpacing: 0.1,
                       ),
                     ),
@@ -549,9 +390,9 @@ class DemoHomePage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: Colors.black.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -660,7 +501,7 @@ class DemoHomePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300, size: 22),
+                Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 22),
               ],
             ),
           ),
@@ -874,9 +715,7 @@ class FloatLayoutDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -936,9 +775,7 @@ class SelectionDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -1219,9 +1056,7 @@ class InlineDecorationDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -1296,9 +1131,7 @@ class RealContentDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -1514,9 +1347,7 @@ class TableDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -1653,9 +1484,7 @@ flutter build apk --release</code></pre>
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -1669,95 +1498,78 @@ class ImageHandlingDemo extends StatelessWidget {
   const ImageHandlingDemo({super.key});
 
   static const html = '''
-<div style="font-family: sans-serif; line-height: 1.8; max-width: 800px;">
-  <h2 style="color: #00ACC1;">Image Handling Demo</h2>
-  <p>HyperRender automatically handles image loading, error states, and placeholders.</p>
+<div style="font-family: sans-serif; line-height: 1.8; padding: 4px;">
 
-  <h3 style="color: #00838F; margin-top: 24px;">✅ Successfully Loaded Images</h3>
-  <p>These images load successfully and display normally:</p>
-  <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-    <img src="https://picsum.photos/200/150?random=1"
-         style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-         alt="Random image 1">
-    <img src="https://picsum.photos/200/150?random=2"
-         style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-         alt="Random image 2">
-    <img src="https://picsum.photos/200/150?random=3"
-         style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-         alt="Random image 3">
+  <h2 style="color: #00ACC1; margin-top: 0;">Image Handling</h2>
+  <p style="color: #555;">HyperRender shows a shimmer skeleton while loading and a broken-image placeholder on failure.</p>
+
+  <!-- ── Success: inline images, no flex/gap needed ── -->
+  <h3 style="color: #00838F; margin-top: 20px;">✅ Network Images (loading + success)</h3>
+  <p style="font-size:13px; color:#666;">Shimmer placeholder appears while each image loads:</p>
+
+  <img src="https://picsum.photos/seed/hr1/180/130"
+       style="width:180px; height:130px; border-radius:8px; margin:0 10px 10px 0;"
+       alt="Image 1">
+  <img src="https://picsum.photos/seed/hr2/180/130"
+       style="width:180px; height:130px; border-radius:8px; margin:0 10px 10px 0;"
+       alt="Image 2">
+  <img src="https://picsum.photos/seed/hr3/180/130"
+       style="width:180px; height:130px; border-radius:8px; margin:0 0 10px 0;"
+       alt="Image 3">
+
+  <!-- ── Intentional error ── -->
+  <h3 style="color: #D32F2F; margin-top: 20px;">❌ Error Placeholder (intentional 404)</h3>
+  <div style="background:#FFF3E0; padding:10px 14px; border-left:4px solid #FF9800; border-radius:4px; margin-bottom:12px;">
+    <p style="margin:0; font-size:13px; color:#E65100;">
+      The URL below intentionally returns 404 — showing the broken-image placeholder.
+    </p>
   </div>
-
-  <h3 style="color: #00838F; margin-top: 24px;">⏳ Loading State</h3>
-  <p>While images are loading, HyperRender shows an elegant skeleton placeholder with a gradient shimmer effect:</p>
-  <ul>
-    <li>Subtle gradient background (light gray)</li>
-    <li>Image icon in the center</li>
-    <li>Rounded corners matching the final image</li>
-    <li>Border to indicate placeholder state</li>
-  </ul>
-
-  <h3 style="color: #00838F; margin-top: 24px;">❌ Error State</h3>
-  <p>When an image fails to load (404, network error, etc.), HyperRender displays a broken image placeholder:</p>
-
-  <div style="background: #fff3e0; padding: 16px; border-left: 4px solid #ff9800; margin: 16px 0; border-radius: 4px;">
-    <p style="margin: 0; font-weight: bold; color: #e65100;">⚠️ The image below will fail to load</p>
-    <p style="margin: 8px 0 0 0;">This demonstrates the automatic error handling:</p>
-  </div>
-
   <img src="https://example.com/nonexistent-image-404.jpg"
-       style="width: 200px; height: 150px; border-radius: 8px; margin: 16px 0;"
-       alt="This image will show error placeholder">
+       style="width:180px; height:130px; border-radius:8px;"
+       alt="Intentional 404 error">
+  <p style="font-size:12px; color:#999; margin-top:4px;">
+    ↑ Error placeholder: gray background + broken-image icon, dimensions preserved.
+  </p>
 
-  <p>The error placeholder shows:</p>
-  <ul>
-    <li>Light gray background</li>
-    <li>Broken image icon with red diagonal line</li>
-    <li>Maintains specified dimensions</li>
-    <li>Rounded corners for consistency</li>
-  </ul>
+  <!-- ── Float layout: good left + bad right ── -->
+  <h3 style="color: #00838F; margin-top: 20px;">🖼 Float Layout + Mixed Results</h3>
+  <div style="border:1px solid #E0E0E0; padding:14px; border-radius:8px; overflow:hidden;">
 
-  <h3 style="color: #00838F; margin-top: 24px;">🎨 Mixed Content Example</h3>
-  <p>Here's a real-world example mixing successful and failed images:</p>
+    <img src="https://picsum.photos/seed/hr4/160/120"
+         style="float:left; width:160px; height:120px; border-radius:8px; margin:0 14px 8px 0;"
+         alt="Float left — success">
+    <p style="margin:0; font-size:14px;">
+      <strong>Left:</strong> network image, loads successfully. Text wraps around it using HyperRender's float engine.
+    </p>
+    <div style="clear:both; height:10px;"></div>
 
-  <div style="border: 1px solid #e0e0e0; padding: 16px; border-radius: 8px; margin-top: 16px;">
-    <h4 style="color: #424242; margin-top: 0;">Article with Images</h4>
-
-    <img src="https://picsum.photos/300/200?random=4"
-         style="float: left; margin: 0 16px 16px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-         alt="Article thumbnail">
-
-    <p>This paragraph has a successfully loaded image floated to the left. The text wraps around it naturally, demonstrating HyperRender's float layout capability combined with proper image handling.</p>
-
-    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-
-    <div style="clear: both;"></div>
-
-    <img src="https://invalid-domain-that-does-not-exist.com/image.jpg"
-         style="float: right; margin: 0 0 16px 16px; width: 200px; height: 150px; border-radius: 8px;"
-         alt="This will show error placeholder">
-
-    <p>This paragraph has an image that fails to load, floated to the right. Even with the error, the layout remains intact and the error placeholder takes the specified dimensions.</p>
-
-    <p>The placeholder prevents layout shift and provides visual feedback that content is missing.</p>
-
-    <div style="clear: both;"></div>
+    <img src="https://invalid-domain-xyz-fail.com/missing.jpg"
+         style="float:right; width:160px; height:120px; border-radius:8px; margin:0 0 8px 14px;"
+         alt="Float right — fail">
+    <p style="margin:0; font-size:14px;">
+      <strong>Right:</strong> invalid domain — shows error placeholder. Layout stays intact; placeholder holds the specified 160×120 space.
+    </p>
+    <div style="clear:both;"></div>
   </div>
 
-  <h3 style="color: #00838F; margin-top: 24px;">📱 Responsive Images</h3>
-  <p>Images adapt to available width while maintaining aspect ratio:</p>
+  <!-- ── Full-width image — explicit height, NOT height:auto ── -->
+  <h3 style="color: #00838F; margin-top: 20px;">📐 Full-Width Image</h3>
+  <p style="font-size:13px; color:#666; margin-bottom:8px;">
+    Use explicit <code>height</code> values — <code>height:auto</code> is not supported and renders as 0px.
+  </p>
+  <img src="https://picsum.photos/seed/hr5/800/240"
+       style="width:100%; height:200px; border-radius:8px;"
+       alt="Wide image">
 
-  <img src="https://picsum.photos/800/400?random=5"
-       style="width: 100%; max-width: 600px; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"
-       alt="Responsive wide image">
-
-  <div style="background: #e8f5e9; padding: 16px; border-left: 4px solid #4caf50; margin-top: 24px; border-radius: 4px;">
-    <p style="margin: 0; font-weight: bold; color: #2e7d32;">✨ Automatic Benefits</p>
-    <p style="margin: 8px 0 0 0;">
-      • No manual error handling needed<br>
-      • Consistent placeholder UI across all images<br>
-      • Prevents layout shift during loading<br>
-      • Works with floats, inline, and block images<br>
-      • Maintains specified dimensions
+  <!-- ── Summary ── -->
+  <div style="background:#E8F5E9; padding:14px; border-left:4px solid #4CAF50; margin-top:20px; border-radius:4px;">
+    <strong style="color:#2E7D32;">✨ Automatic Benefits</strong>
+    <p style="margin:8px 0 0; font-size:13px; color:#424242; line-height:1.8;">
+      • Shimmer skeleton while loading<br>
+      • Broken-image placeholder on failure<br>
+      • Dimensions preserved — no layout shift<br>
+      • Works with float, inline, and block images<br>
+      • <strong>Note:</strong> always use explicit <code>height</code>, not <code>height:auto</code>
     </p>
   </div>
 </div>
@@ -1770,9 +1582,7 @@ class ImageHandlingDemo extends StatelessWidget {
       html: html,
       child: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer(html: html, selectable: true),
-        ),
+        child: HyperViewer(html: html, selectable: true),
       ),
     );
   }
@@ -2369,9 +2179,11 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   Widget _buildFlutterHtmlTab(String html) {
     return _buildTimedWidget(
       'flutter_html',
-      () => SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: flutter_html.Html(data: html),
+      () => ClipRect(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: flutter_html.Html(data: html),
+        ),
       ),
     );
   }
@@ -2379,9 +2191,11 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   Widget _buildFwfhTab(String html) {
     return _buildTimedWidget(
       'fwfh',
-      () => SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: fwfh.HtmlWidget(html),
+      () => ClipRect(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: fwfh.HtmlWidget(html),
+        ),
       ),
     );
   }
@@ -2389,9 +2203,11 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   Widget _buildFwfhCoreTab(String html) {
     return _buildTimedWidget(
       'fwfh_core',
-      () => SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: fwfh_core.HtmlWidget(html),
+      () => ClipRect(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: fwfh_core.HtmlWidget(html),
+        ),
       ),
     );
   }
@@ -2565,321 +2381,6 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   }
 }
 
-// =============================================================================
-// STRESS TEST DEMO
-// =============================================================================
-
-class StressTestDemo extends StatefulWidget {
-  const StressTestDemo({super.key});
-
-  @override
-  State<StressTestDemo> createState() => _StressTestDemoState();
-}
-
-class _StressTestDemoState extends State<StressTestDemo> {
-  int _pageCount = 100;
-  String _selectedLibrary = 'HyperRender';
-  bool _isGenerating = false;
-  String? _generatedContent;
-  int? _characterCount;
-
-  final List<int> pageCounts = [10, 50, 100, 500, 1000];
-  final List<String> libraries = ['HyperRender', 'flutter_html', 'fwfh', 'fwfh_core'];
-
-  static String _generateBookContent(int pages) {
-    final buffer = StringBuffer();
-    buffer.write('<article style="font-family: Georgia, serif; line-height: 1.8;">');
-    buffer.write('<h1 style="text-align: center; margin-bottom: 24px;">📚 Generated Novel</h1>');
-    buffer.write('<p style="text-align: center; color: #666; margin-bottom: 32px;">');
-    buffer.write('$pages pages • Stress Test Content</p>');
-
-    final paragraphs = [
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
-      'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
-      'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.',
-      'Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.',
-      'Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.',
-      '<ruby>日本語<rt>にほんご</rt></ruby>の<ruby>文章<rt>ぶんしょう</rt></ruby>を<ruby>完璧<rt>かんぺき</rt></ruby>に<ruby>表示<rt>ひょうじ</rt></ruby>できます。これは<ruby>多言語<rt>たげんご</rt></ruby>サポートのテストです。',
-      'Vietnamese is fully supported. This is Vietnamese text to test the display of special characters and diacritics.',
-    ];
-
-    int paragraphsPerPage = 4;
-    int totalParagraphs = pages * paragraphsPerPage;
-
-    for (int i = 0; i < totalParagraphs; i++) {
-      if (i % paragraphsPerPage == 0) {
-        int pageNum = (i ~/ paragraphsPerPage) + 1;
-        if (pageNum > 1) {
-          buffer.write('<hr style="margin: 32px 0; border: none; border-top: 1px solid #ddd;" />');
-        }
-        buffer.write('<h2 style="color: #1976D2; margin: 24px 0 16px 0;">Chapter $pageNum</h2>');
-
-        // Add occasional float images
-        if (pageNum % 5 == 1) {
-          buffer.write('<img src="https://picsum.photos/80/80?random=$pageNum" ');
-          buffer.write('style="float: left; width: 80px; height: 80px; margin: 0 16px 8px 0; border-radius: 8px;" />');
-        }
-      }
-
-      String paragraph = paragraphs[i % paragraphs.length];
-      buffer.write('<p style="margin: 12px 0; text-align: justify;">$paragraph</p>');
-
-      // Occasionally add styled elements
-      if (i % 7 == 0) {
-        buffer.write('<p style="background: #FFF3E0; padding: 12px; border-radius: 8px; margin: 16px 0;">');
-        buffer.write('<strong>Note:</strong> This is a highlighted note section for page ${(i ~/ paragraphsPerPage) + 1}.');
-        buffer.write('</p>');
-      }
-    }
-
-    buffer.write('<div style="text-align: center; margin-top: 48px; padding: 24px; background: #263238; border-radius: 12px;">');
-    buffer.write('<p style="color: white; margin: 0; font-size: 18px;">📖 The End</p>');
-    buffer.write('<p style="color: #90A4AE; margin: 8px 0 0 0;">$pages pages rendered successfully</p>');
-    buffer.write('</div>');
-    buffer.write('</article>');
-
-    return buffer.toString();
-  }
-
-  Future<void> _generateAndRender() async {
-    setState(() => _isGenerating = true);
-
-    // Generate content asynchronously to avoid blocking UI
-    final content = await compute(_generateBookContent, _pageCount);
-
-    if (mounted) {
-      setState(() {
-        _generatedContent = content;
-        _characterCount = content.length;
-        _isGenerating = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Stress Test'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          if (_generatedContent != null)
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () => setState(() {
-                _generatedContent = null;
-                _characterCount = null;
-              }),
-              tooltip: 'Reset',
-            ),
-        ],
-      ),
-      body: _generatedContent == null ? _buildConfigPanel() : _buildRenderPanel(),
-    );
-  }
-
-  Widget _buildConfigPanel() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.red.shade700, Colors.orange.shade600],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.speed, color: Colors.white, size: 40),
-                SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Stress Test',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'Test performance with long content',
-                        style: TextStyle(fontSize: 14, color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Page count selector
-          const Text(
-            'Number of Pages:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: pageCounts.map((count) {
-              final isSelected = _pageCount == count;
-              return ChoiceChip(
-                label: Text('$count'),
-                selected: isSelected,
-                onSelected: (selected) {
-                  if (selected) setState(() => _pageCount = count);
-                },
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Library selector
-          const Text(
-            'Library:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: libraries.map((lib) {
-              final isSelected = _selectedLibrary == lib;
-              return ChoiceChip(
-                label: Text(lib),
-                selected: isSelected,
-                onSelected: (selected) {
-                  if (selected) setState(() => _selectedLibrary = lib);
-                },
-              );
-            }).toList(),
-          ),
-
-          const Spacer(),
-
-          // Start button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _isGenerating ? null : _generateAndRender,
-              icon: _isGenerating
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.play_arrow),
-              label: Text(_isGenerating ? 'Generating...' : 'Start Stress Test'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRenderPanel() {
-    return Column(
-      children: [
-        // Stats bar
-        Container(
-          padding: const EdgeInsets.all(12),
-          color: Colors.grey.shade100,
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStat('Pages', '$_pageCount'),
-                  _buildStat('Chars', '${(_characterCount ?? 0) ~/ 1000}K'),
-                  _buildStat('Library', _selectedLibrary),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        // Content
-        Expanded(
-          child: _buildRenderedContent(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStat(String label, String value) {
-    return Column(
-      children: [
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-      ],
-    );
-  }
-
-  Widget _buildRenderedContent() {
-    final content = _generatedContent!;
-
-    switch (_selectedLibrary) {
-      case 'HyperRender':
-        return HyperViewer(
-          html: content,
-          mode: HyperRenderMode.auto,
-          selectable: true,
-          placeholderBuilder: (context) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text(
-                  'Parsing ${(_characterCount ?? 0) ~/ 1000}K characters...',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'This may take a few seconds for large documents',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-        );
-      case 'flutter_html':
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: flutter_html.Html(data: content),
-        );
-      case 'fwfh':
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: fwfh.HtmlWidget(content),
-        );
-      case 'fwfh_core':
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: fwfh_core.HtmlWidget(content),
-        );
-      default:
-        return const Center(child: Text('Unknown library'));
-    }
-  }
-}
 
 // =============================================================================
 // QUILL DELTA DEMO
@@ -3078,13 +2579,13 @@ class QuillDeltaDemo extends StatelessWidget {
           ),
         ],
       ),
-      body: const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer.delta(
-            delta: deltaJson,
-            selectable: true,
-          ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: HyperViewer.delta(
+          delta: deltaJson,
+          selectable: true,
+          showSelectionMenu: false,
+          onError: (e, st) => debugPrint('QuillDeltaDemo error: $e\n$st'),
         ),
       ),
     );
@@ -3387,13 +2888,13 @@ class FeedScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: HyperViewer.markdown(
-            markdown: markdown,
-            selectable: true,
-          ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: HyperViewer.markdown(
+          markdown: markdown,
+          selectable: true,
+          showSelectionMenu: false,
+          onError: (e, st) => debugPrint('MarkdownDemo error: $e\n$st'),
         ),
       ),
     );
@@ -3617,6 +3118,272 @@ class VideoDemo extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// HUB PAGES — sub-navigation screens grouping related demos
+// =============================================================================
+
+Widget _hubCard(
+  BuildContext context, {
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required Color color,
+  required VoidCallback onTap,
+}) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 10),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2)),
+      ],
+    ),
+    child: Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A2E), letterSpacing: -0.1)),
+                    const SizedBox(height: 3),
+                    Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey.shade500, height: 1.3)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300, size: 22),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+AppBar _hubAppBar(BuildContext context, String title) => AppBar(
+      title: Text(title),
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      foregroundColor: Colors.white,
+      automaticallyImplyLeading: true,
+    );
+
+class _TablesHubPage extends StatelessWidget {
+  const _TablesHubPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _hubAppBar(context, 'Tables'),
+      backgroundColor: const Color(0xFFF5F5F7),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _hubCard(context,
+              icon: Icons.table_chart,
+              title: 'Basic Tables',
+              subtitle: 'Simple, wide, nested, and complex tables with auto column sizing',
+              color: DemoColors.primary,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TableDemo()))),
+          _hubCard(context,
+              icon: Icons.table_chart_outlined,
+              title: 'Wide Table Strategies',
+              subtitle: 'Tables wider than the screen — scroll, shrink-to-fit, or auto scale',
+              color: Colors.teal,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SmartTableDemo()))),
+        ],
+      ),
+    );
+  }
+}
+
+class _MediaHubPage extends StatelessWidget {
+  const _MediaHubPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _hubAppBar(context, 'Images & Video'),
+      backgroundColor: const Color(0xFFF5F5F7),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _hubCard(context,
+              icon: Icons.broken_image,
+              title: 'Images',
+              subtitle: 'Loading placeholders, error fallback, network and asset images',
+              color: DemoColors.warning,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ImageHandlingDemo()))),
+          _hubCard(context,
+              icon: Icons.zoom_in,
+              title: 'Zoom & Pan',
+              subtitle: 'Pinch to zoom and pan images — works with float and inline images',
+              color: DemoColors.warning,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZoomDemo()))),
+          _hubCard(context,
+              icon: Icons.play_circle_filled,
+              title: 'Video',
+              subtitle: 'Video thumbnail with play button — tap to open in external player',
+              color: DemoColors.warning,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ImprovedVideoDemo()))),
+        ],
+      ),
+    );
+  }
+}
+
+class _WidgetIntegrationHubPage extends StatelessWidget {
+  const _WidgetIntegrationHubPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _hubAppBar(context, 'Widget Injection & Animation'),
+      backgroundColor: const Color(0xFFF5F5F7),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _hubCard(context,
+              icon: Icons.widgets,
+              title: 'Widget Injection',
+              subtitle: 'Embed live Flutter widgets (charts, buttons, sliders) inside HTML content',
+              color: DemoColors.secondary,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WidgetInjectionDemo()))),
+          _hubCard(context,
+              icon: Icons.animation,
+              title: 'Animated Widgets',
+              subtitle: 'Injected widgets can animate — fade, slide, bounce inside HTML',
+              color: DemoColors.accent,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnimationDemo()))),
+        ],
+      ),
+    );
+  }
+}
+
+class _InputFormatsHubPage extends StatelessWidget {
+  const _InputFormatsHubPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _hubAppBar(context, 'Input Formats'),
+      backgroundColor: const Color(0xFFF5F5F7),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _hubCard(context,
+              icon: Icons.text_snippet,
+              title: 'Markdown',
+              subtitle: 'Render .md content — headings, lists, bold, code, links',
+              color: DemoColors.accent,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarkdownDemo()))),
+          _hubCard(context,
+              icon: Icons.data_object,
+              title: 'Quill Delta',
+              subtitle: 'Render JSON output from the Quill.js rich text editor',
+              color: DemoColors.accent,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuillDeltaDemo()))),
+        ],
+      ),
+    );
+  }
+}
+
+class _ComparisonPerfHubPage extends StatelessWidget {
+  const _ComparisonPerfHubPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _hubAppBar(context, 'Comparison & Performance'),
+      backgroundColor: const Color(0xFFF5F5F7),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _hubCard(context,
+              icon: Icons.compare,
+              title: 'vs flutter_html & fwfh',
+              subtitle: 'Side-by-side rendering of the same HTML in 3 libraries',
+              color: DemoColors.success,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LibraryComparisonDemo()))),
+          _hubCard(context,
+              icon: Icons.bug_report,
+              title: 'Features Other Libraries Miss',
+              subtitle: 'Float layout, ruby, details/summary, inline decoration — all unsupported elsewhere',
+              color: DemoColors.success,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FWFHIssuesTestDemo()))),
+          _hubCard(context,
+              icon: Icons.speed,
+              title: 'Stress Test — 1000-Page Book',
+              subtitle: 'Render and scroll a very long document — measure frame time and DOM node count',
+              color: DemoColors.error,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StressTestDemo()))),
+          _hubCard(context,
+              icon: Icons.insights,
+              title: 'Performance Deep Dive',
+              subtitle: 'Step-by-step render pipeline breakdown — parse, tokenize, layout, paint',
+              color: DemoColors.success,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceDeepDiveDemo()))),
+        ],
+      ),
+    );
+  }
+}
+
+class _QualityHubPage extends StatelessWidget {
+  const _QualityHubPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _hubAppBar(context, 'Security & Accessibility'),
+      backgroundColor: const Color(0xFFF5F5F7),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _hubCard(context,
+              icon: Icons.security,
+              title: 'XSS Protection',
+              subtitle: 'Malicious <script> and event handlers are stripped before rendering',
+              color: DemoColors.error,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SecurityDemo()))),
+          _hubCard(context,
+              icon: Icons.accessibility,
+              title: 'Accessibility',
+              subtitle: 'Semantic labels for screen readers — VoiceOver and TalkBack',
+              color: DemoColors.success,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccessibilityDemo()))),
+          _hubCard(context,
+              icon: Icons.auto_fix_high,
+              title: 'WebView Fallback',
+              subtitle: 'Detect HTML that is too complex and fall back to a WebView automatically',
+              color: DemoColors.warning,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HtmlHeuristicsDemo()))),
         ],
       ),
     );

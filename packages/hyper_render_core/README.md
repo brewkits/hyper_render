@@ -26,12 +26,12 @@ Zero-dependency core rendering engine for HyperRender.
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.0.0
+  hyper_render_core: ^1.1.0
 ```
 
-## Zero External Dependencies
+## Minimal Dependencies
 
-This package only depends on Flutter SDK. Parsing (HTML, Markdown, CSS) and syntax highlighting are provided by separate plugin packages:
+This package has a small, stable set of dependencies: `vector_math`, `csslib`, `flutter_highlight`, and `highlight`. Parsing (HTML, Markdown) and higher-level rendering are provided by separate plugin packages:
 
 - `hyper_render_html` - HTML parsing with CSS support
 - `hyper_render_markdown` - Markdown parsing (GFM)

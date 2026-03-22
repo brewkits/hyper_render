@@ -2,17 +2,15 @@
 .claude/
 *.txt
 
-# Private Strategy Documents (Not for public repository)
+# Private / internal documents (not for public repository)
+doc/internal/
 STRATEGIC_POSITIONING.md
 EXECUTIVE_SUMMARY.md
 PITCH_DECK.md
-TEST_SUMMARY.md
-
-# Internal Development Documents (Not for public)
-docs/internal/
 COMPREHENSIVE_REVIEW_REPORT.md
 IMPLEMENTATION_STATUS.md
 TEST_FIX_SUMMARY.md
+TEST_SUMMARY.md
 IMPROVEMENTS_SUMMARY.md
 PRIORITY_ACTION_PLAN.md
 

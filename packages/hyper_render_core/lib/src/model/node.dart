@@ -2,40 +2,6 @@ import 'package:flutter/painting.dart';
 
 import 'computed_style.dart';
 
-/// ID generator for UDT nodes
-///
-/// Provides unique IDs for nodes with automatic reset to prevent overflow
-/// in long-running applications.
-class NodeIdGenerator {
-  int _counter = 0;
-  static final NodeIdGenerator _instance = NodeIdGenerator._internal();
-
-  NodeIdGenerator._internal();
-
-  /// Get the singleton instance
-  factory NodeIdGenerator() => _instance;
-
-  /// Generate next unique ID
-  String next() {
-    final id = 'node_${DateTime.now().microsecondsSinceEpoch}_${_counter++}';
-
-    // Reset counter after 1M to prevent overflow
-    if (_counter >= 1000000) {
-      _counter = 0;
-    }
-
-    return id;
-  }
-
-  /// Reset counter (useful for testing)
-  void reset() {
-    _counter = 0;
-  }
-
-  /// Get current counter value (for testing)
-  int get counter => _counter;
-}
-
 /// Node type in the Unified Document Tree (UDT)
 ///
 /// Reference: doc1.txt - "Mỗi Node trong UDT sẽ có: Type (Block/Inline), Attributes (Styles), và Children"
@@ -73,10 +39,7 @@ enum NodeType {
   /// Line break (br)
   lineBreak,
 
-  /// Interactive details/summary element
-  details,
-
-  /// Error boundary for graceful error handling
+  /// Error boundary — wraps a parse/render error for graceful display
   errorBoundary,
 }
 
@@ -106,14 +69,15 @@ abstract class UDTNode {
   /// Child nodes
   final List<UDTNode> children;
 
+  /// Layout result - position relative to parent
+  /// Set by Layout Engine after performLayout()
+  Rect? layoutRect;
+
   /// Unique identifier for this node (for hit testing, selection)
-  ///
-  /// Layout information (position, size, baseline) is now stored separately
-  /// in [LayoutCache] for better separation of concerns and performance.
   final String id;
 
-  /// ID generator instance
-  static final NodeIdGenerator _idGenerator = NodeIdGenerator();
+  /// Counter for generating unique IDs
+  static int _idCounter = 0;
 
   UDTNode({
     required this.type,
@@ -125,7 +89,12 @@ abstract class UDTNode {
   })  : attributes = attributes ?? {},
         style = style ?? ComputedStyle(),
         children = children ?? [],
-        id = id ?? _idGenerator.next();
+        id = id ?? 'node_${_idCounter++}' {
+    // Set parent back-reference for all children passed to the constructor
+    for (final child in this.children) {
+      child.parent = this;
+    }
+  }
 
   /// Add a child node
   void appendChild(UDTNode child) {
@@ -193,7 +162,8 @@ abstract class UDTNode {
   String? get cssId => attributes['id'];
 
   @override
-  String toString() => 'UDTNode($type, tag=$tagName, children=${children.length})';
+  String toString() =>
+      'UDTNode($type, tag=$tagName, children=${children.length})';
 }
 
 /// Document root node
@@ -339,7 +309,7 @@ class TextNode extends UDTNode {
   /// The text content
   final String text;
 
-  TextNode(this.text, {super.style, super.id})
+  TextNode(this.text, {super.style})
       : super(
           type: NodeType.text,
           tagName: '#text',
@@ -349,7 +319,8 @@ class TextNode extends UDTNode {
   String get textContent => text;
 
   @override
-  String toString() => 'TextNode("${text.length > 20 ? '${text.substring(0, 20)}...' : text}")';
+  String toString() =>
+      'TextNode("${text.length > 20 ? '${text.substring(0, 20)}...' : text}")';
 }
 
 /// Line break node (br)
@@ -380,12 +351,16 @@ class AtomicNode extends UDTNode {
   /// Intrinsic height (from attribute or natural size)
   final double? intrinsicHeight;
 
+  /// Inline SVG data string (for `<svg>` elements serialized to string)
+  final String? svgData;
+
   AtomicNode({
     required String super.tagName,
     this.src,
     this.alt,
     this.intrinsicWidth,
     this.intrinsicHeight,
+    this.svgData,
     super.attributes,
     ComputedStyle? style,
   }) : super(
@@ -424,6 +399,35 @@ class AtomicNode extends UDTNode {
         intrinsicWidth: width,
         intrinsicHeight: height,
         attributes: {'src': src},
+      );
+
+  /// True if this node is a media element (video or audio)
+  bool get isMedia => tagName == 'video' || tagName == 'audio';
+
+  /// True if this node is a video element
+  bool get isVideo => tagName == 'video';
+
+  /// True if this node is an audio element
+  bool get isAudio => tagName == 'audio';
+
+  /// Factory for inline SVG element
+  factory AtomicNode.svg({
+    String? svgData,
+    String? src,
+    double? width,
+    double? height,
+  }) =>
+      AtomicNode(
+        tagName: 'svg',
+        src: src,
+        svgData: svgData,
+        intrinsicWidth: width ?? 200,
+        intrinsicHeight: height ?? 200,
+        attributes: {
+          if (src != null) 'src': src,
+          if (width != null) 'width': width.toString(),
+          if (height != null) 'height': height.toString(),
+        },
       );
 }
 
@@ -505,90 +509,55 @@ class TableCellNode extends UDTNode {
   int get rowspan => int.tryParse(attributes['rowspan'] ?? '1') ?? 1;
 }
 
-/// Details node for interactive disclosure widget (`<details>`/`<summary>`)
+/// Represents a parse or render error wrapped in the UDT for graceful display.
 ///
-/// Represents the HTML `<details>` element which provides an interactive
-/// disclosure widget that can be toggled open/closed by the user.
-class DetailsNode extends UDTNode {
-  /// Whether the details should be initially open
-  final bool open;
-
-  DetailsNode({
-    super.attributes,
-    ComputedStyle? style,
-    super.children,
-    this.open = false,
-  }) : super(
-          type: NodeType.details,
-          tagName: 'details',
-          style: style ?? ComputedStyle(display: DisplayType.block),
-        );
-
-  /// Check if the 'open' attribute is present in HTML
-  static bool isOpen(Map<String, String> attributes) {
-    return attributes.containsKey('open');
-  }
-}
-
-/// Error boundary node for graceful error handling
-///
-/// Represents an error that occurred during parsing or rendering.
-/// Instead of crashing the entire app, errors are captured and displayed
-/// in a user-friendly way.
-///
-/// Example usage:
-/// ```dart
-/// try {
-///   return parseHTML(html);
-/// } catch (e, stack) {
-///   return DocumentNode(children: [
-///     ErrorBoundaryNode(
-///       error: e,
-///       stackTrace: stack,
-///       friendlyMessage: 'Failed to parse HTML',
-///     ),
-///   ]);
-/// }
-/// ```
+/// Used by [ErrorBoundaryWidget] to show user-friendly error UI.
 class ErrorBoundaryNode extends UDTNode {
-  /// The error that was caught
-  final dynamic error;
+  /// The underlying error/exception
+  final Object? error;
 
-  /// Stack trace of the error
+  /// The full stack trace
   final StackTrace stackTrace;
 
-  /// User-friendly error message
+  /// Human-readable friendly message (optional)
   final String? friendlyMessage;
 
-  /// Original content that failed to parse (for debugging)
+  /// The original content that caused the error (optional)
   final String? originalContent;
 
   ErrorBoundaryNode({
-    required this.error,
+    this.error,
     required this.stackTrace,
     this.friendlyMessage,
     this.originalContent,
-    super.attributes,
   }) : super(
           type: NodeType.errorBoundary,
           tagName: 'error-boundary',
-          style: ComputedStyle(display: DisplayType.block),
-        );
+        ) {
+    style.display = DisplayType.block;
+  }
 
-  /// Get error message as string
+  /// Returns the error as a readable string
   String get errorMessage => error?.toString() ?? 'Unknown error';
 
-  /// Get abbreviated stack trace (first 5 lines)
+  /// Returns a shortened stack trace (first 5 lines + "(N more lines)" suffix).
   String get shortStackTrace {
-    final lines = stackTrace.toString().split('\n');
-    final abbreviated = lines.take(5).join('\n');
-    if (lines.length > 5) {
-      return '$abbreviated\n... (${lines.length - 5} more lines)';
-    }
-    return abbreviated;
+    final lines = stackTrace
+        .toString()
+        .split('\n')
+        .where((l) => l.trim().isNotEmpty)
+        .toList();
+    if (lines.length <= 5) return lines.join('\n');
+    final remaining = lines.length - 5;
+    return '${lines.take(5).join('\n')}\n... ($remaining more lines)';
   }
 
   @override
-  String toString() =>
-      'ErrorBoundaryNode(error: $errorMessage, message: $friendlyMessage)';
+  String toString() {
+    final parts = <String>[
+      '${error?.runtimeType}: $errorMessage',
+      if (friendlyMessage != null) 'message: $friendlyMessage',
+    ];
+    return 'ErrorBoundaryNode(${parts.join(', ')})';
+  }
 }

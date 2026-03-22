@@ -366,10 +366,11 @@ void main() {
         ),
       );
 
-      // Should render normal content and error boundary
-      expect(find.text('Title'), findsOneWidget);
+      // Normal text is rendered on canvas by RenderHyperBox (not as Flutter Text
+      // widgets), so we only check for the ErrorBoundaryWidget UI element.
+      expect(find.byType(HyperRenderWidget), findsOneWidget);
       expect(find.text('Section failed to render'), findsOneWidget);
-      expect(find.text('More content'), findsOneWidget);
+      expect(find.byType(ErrorBoundaryWidget), findsOneWidget);
     });
 
     testWidgets('widgetBuilder can customize error boundary',

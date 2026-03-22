@@ -250,7 +250,9 @@ void main() {
         buf.write('<div>Level $i ');
       }
       buf.write('<p>Leaf</p>');
-      for (int i = 0; i < 10; i++) buf.write('</div>');
+      for (int i = 0; i < 10; i++) {
+        buf.write('</div>');
+      }
       final doc = HtmlAdapter().parse(buf.toString());
       final t = doc.textContent;
       for (int i = 1; i <= 10; i++) {

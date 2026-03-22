@@ -344,7 +344,9 @@ void main() {
       bool foundImg = false;
       void walk(UDTNode node) {
         if (node is AtomicNode && node.tagName == 'img') foundImg = true;
-        for (final c in node.children) walk(c);
+        for (final c in node.children) {
+          walk(c);
+        }
       }
       walk(doc);
       expect(foundImg, isTrue);
@@ -355,7 +357,9 @@ void main() {
       bool foundTable = false;
       void walk(UDTNode node) {
         if (node is TableNode) foundTable = true;
-        for (final c in node.children) walk(c);
+        for (final c in node.children) {
+          walk(c);
+        }
       }
       walk(doc);
       expect(foundTable, isTrue);

@@ -34,7 +34,6 @@ class _InlineDecoration {
   final Gradient? backgroundGradient;
   final Color? borderColor;
   final double borderWidth;
-  final HyperBorderStyle borderStyle; // 🆕 ADDED
   final BorderRadius? borderRadius;
   final List<BoxShadow>? boxShadow;
   final ui.ImageFilter? filter;
@@ -47,7 +46,6 @@ class _InlineDecoration {
     this.backgroundGradient,
     this.borderColor,
     this.borderWidth = 0,
-    this.borderStyle = HyperBorderStyle.solid, // 🆕 ADDED
     this.borderRadius,
     this.boxShadow,
     this.filter,
@@ -63,11 +61,14 @@ class _BlockDecoration {
   final Gradient? backgroundGradient;
   final Color? borderLeftColor;
   final double borderLeftWidth;
-  final HyperBorderStyle borderLeftStyle; // 🆕 ADDED
   final BorderRadius? borderRadius;
   final List<BoxShadow>? boxShadow;
   final ui.ImageFilter? filter;
   final ui.ImageFilter? backdropFilter;
+  /// Whether to draw all 4 sides (true) or only the left side (false, blockquote-style)
+  final bool fullBorder;
+  /// The border style for the full-box border (solid, dashed, dotted, double, etc.)
+  final HyperBorderStyle borderStyle;
 
   _BlockDecoration({
     required this.node,
@@ -76,11 +77,12 @@ class _BlockDecoration {
     this.backgroundGradient,
     this.borderLeftColor,
     this.borderLeftWidth = 0,
-    this.borderLeftStyle = HyperBorderStyle.solid, // 🆕 ADDED
     this.borderRadius,
     this.boxShadow,
     this.filter,
     this.backdropFilter,
+    this.fullBorder = false,
+    this.borderStyle = HyperBorderStyle.solid,
   });
 }
 

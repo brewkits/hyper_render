@@ -1,33 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_highlight/flutter_highlight.dart';
+import 'package:flutter_highlight/themes/vs2015.dart';
+import 'package:flutter_highlight/themes/atom-one-dark.dart';
+import 'package:flutter_highlight/themes/atom-one-light.dart';
+import 'package:flutter_highlight/themes/github.dart';
+import 'package:flutter_highlight/themes/monokai-sublime.dart';
+import 'package:flutter_highlight/themes/dracula.dart';
 
-import '../interfaces/code_highlighter.dart';
+/// Available syntax highlighting themes
+enum CodeTheme {
+  vs2015,
+  atomOneDark,
+  atomOneLight,
+  github,
+  monokaiSublime,
+  dracula,
+}
 
 /// A widget that displays code with syntax highlighting
 ///
-/// Supports syntax highlighting via the [CodeHighlighter] interface.
+/// Supports 180+ programming languages via highlight.js
 /// Use [language] to specify the language (e.g., 'dart', 'javascript', 'html')
-/// If no [codeHighlighter] is provided, [PlainTextHighlighter] is used (no highlighting).
-///
-/// To enable syntax highlighting, provide a [CodeHighlighter] implementation:
-/// - Use `FlutterHighlightHighlighter` from `hyper_render_highlight` package
-/// - Or implement your own highlighter
+/// If language is not specified, auto-detection will be attempted
 class CodeBlockWidget extends StatelessWidget {
   /// The source code to display
   final String code;
 
   /// Programming language for syntax highlighting
   /// Common values: 'dart', 'javascript', 'python', 'java', 'html', 'css', 'xml', 'json'
-  /// If null, the highlighter may attempt auto-detection or return plain text
+  /// If null, highlight.js will attempt auto-detection
   final String? language;
 
-  /// Code highlighter implementation
-  /// If null, uses [PlainTextHighlighter] (no syntax highlighting)
-  final CodeHighlighter? codeHighlighter;
-
-  /// Background color for the code block
-  /// If null, uses a default dark background (#1E1E1E)
-  final Color? backgroundColor;
+  /// Theme for syntax highlighting
+  final CodeTheme theme;
 
   /// Padding inside the code block
   final EdgeInsets padding;
@@ -48,8 +54,7 @@ class CodeBlockWidget extends StatelessWidget {
     super.key,
     required this.code,
     this.language,
-    this.codeHighlighter,
-    this.backgroundColor,
+    this.theme = CodeTheme.vs2015,
     this.padding = const EdgeInsets.all(16),
     this.borderRadius = const BorderRadius.all(Radius.circular(8)),
     this.showLineNumbers = false,
@@ -57,14 +62,33 @@ class CodeBlockWidget extends StatelessWidget {
     this.textStyle,
   });
 
+  Map<String, TextStyle> _getThemeMap() {
+    switch (theme) {
+      case CodeTheme.vs2015:
+        return vs2015Theme;
+      case CodeTheme.atomOneDark:
+        return atomOneDarkTheme;
+      case CodeTheme.atomOneLight:
+        return atomOneLightTheme;
+      case CodeTheme.github:
+        return githubTheme;
+      case CodeTheme.monokaiSublime:
+        return monokaiSublimeTheme;
+      case CodeTheme.dracula:
+        return draculaTheme;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bgColor = backgroundColor ?? const Color(0xFF1E1E1E);
+    final themeMap = _getThemeMap();
+    final backgroundColor =
+        themeMap['root']?.backgroundColor ?? const Color(0xFF1E1E1E);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: backgroundColor,
         borderRadius: borderRadius,
       ),
       child: Stack(
@@ -76,7 +100,7 @@ class CodeBlockWidget extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               child: Padding(
                 padding: padding,
-                child: _buildCodeView(),
+                child: _buildHighlightView(themeMap),
               ),
             ),
           ),
@@ -115,18 +139,14 @@ class CodeBlockWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildCodeView() {
+  Widget _buildHighlightView(Map<String, TextStyle> themeMap) {
     // Prepare code - ensure no trailing whitespace issues
     final cleanCode = code.trimRight();
 
     if (showLineNumbers) {
-      return _buildWithLineNumbers(cleanCode);
+      return _buildWithLineNumbers(cleanCode, themeMap);
     }
 
-    return _buildHighlightedCode(cleanCode);
-  }
-
-  Widget _buildHighlightedCode(String cleanCode) {
     final codeStyle = textStyle ??
         const TextStyle(
           fontFamily: 'monospace',
@@ -134,22 +154,27 @@ class CodeBlockWidget extends StatelessWidget {
           height: 1.5,
         );
 
-    // Use provided highlighter or fall back to plain text
-    final highlighter = codeHighlighter ?? const PlainTextHighlighter(
-      baseStyle: TextStyle(color: Colors.white),
-    );
+    // If no language specified, render as plain text without highlighting
+    if (language == null || language!.isEmpty) {
+      final rootStyle = themeMap['root'];
+      return Text(
+        cleanCode,
+        style: codeStyle.copyWith(
+          color: rootStyle?.color ?? Colors.white,
+        ),
+      );
+    }
 
-    final spans = highlighter.highlight(cleanCode, language);
-
-    return RichText(
-      text: TextSpan(
-        style: codeStyle,
-        children: spans,
-      ),
+    return HighlightView(
+      cleanCode,
+      language: language!,
+      theme: themeMap,
+      textStyle: codeStyle,
     );
   }
 
-  Widget _buildWithLineNumbers(String cleanCode) {
+  Widget _buildWithLineNumbers(
+      String cleanCode, Map<String, TextStyle> themeMap) {
     final lines = cleanCode.split('\n');
     final lineCount = lines.length;
     final lineNumberWidth = lineCount.toString().length * 10.0 + 24;
@@ -161,12 +186,24 @@ class CodeBlockWidget extends StatelessWidget {
           height: 1.5,
         );
 
-    // Use provided highlighter or fall back to plain text
-    final highlighter = codeHighlighter ?? const PlainTextHighlighter(
-      baseStyle: TextStyle(color: Colors.white),
-    );
-
-    final spans = highlighter.highlight(cleanCode, language);
+    // Build code widget - plain text if no language, otherwise highlighted
+    Widget codeWidget;
+    if (language == null || language!.isEmpty) {
+      final rootStyle = themeMap['root'];
+      codeWidget = Text(
+        cleanCode,
+        style: codeStyle.copyWith(
+          color: rootStyle?.color ?? Colors.white,
+        ),
+      );
+    } else {
+      codeWidget = HighlightView(
+        cleanCode,
+        language: language!,
+        theme: themeMap,
+        textStyle: codeStyle,
+      );
+    }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,12 +240,7 @@ class CodeBlockWidget extends StatelessWidget {
         const SizedBox(width: 16),
 
         // Code
-        RichText(
-          text: TextSpan(
-            style: codeStyle,
-            children: spans,
-          ),
-        ),
+        codeWidget,
       ],
     );
   }

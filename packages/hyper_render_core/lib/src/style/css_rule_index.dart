@@ -112,8 +112,10 @@ class CssRuleIndex {
       idRules: _byId.length,
       universalRules: _universal.length,
       totalRules: totalRules,
-      averageRulesPerTag:
-          _byTag.isEmpty ? 0 : _byTag.values.map((l) => l.length).reduce((a, b) => a + b) / _byTag.length,
+      averageRulesPerTag: _byTag.isEmpty
+          ? 0
+          : _byTag.values.map((l) => l.length).reduce((a, b) => a + b) /
+              _byTag.length,
     );
   }
 
@@ -136,7 +138,8 @@ class CssRuleIndex {
     if (trimmed.contains('.')) {
       final match = RegExp(r'\.([\w-]+)').firstMatch(trimmed);
       if (match != null) {
-        return _SelectorIndexKey(_SelectorType.classSelector, '.${match.group(1)}');
+        return _SelectorIndexKey(
+            _SelectorType.classSelector, '.${match.group(1)}');
       }
     }
 
@@ -163,7 +166,8 @@ class CssRuleIndex {
       // Extract the tag part before any bracket or colon
       final tagMatch = RegExp(r'^([\w-]+)').firstMatch(trimmed);
       if (tagMatch != null && tagMatch.group(1) != '*') {
-        return _SelectorIndexKey(_SelectorType.tag, tagMatch.group(1)!.toLowerCase());
+        return _SelectorIndexKey(
+            _SelectorType.tag, tagMatch.group(1)!.toLowerCase());
       }
     }
 
@@ -175,10 +179,10 @@ class CssRuleIndex {
 
 /// Selector type for indexing
 enum _SelectorType {
-  id,           // #id
+  id, // #id
   classSelector, // .class
-  tag,          // div, p, h1
-  universal,    // *, complex selectors
+  tag, // div, p, h1
+  universal, // *, complex selectors
 }
 
 /// Key for indexing a selector

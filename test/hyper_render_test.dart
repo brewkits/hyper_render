@@ -71,8 +71,14 @@ void main() {
       expect(ruby.rubyText, equals('かんじ'));
     });
 
-    test('// TODO: CSS extraction from style tags is removed from the new adapter.', () {
-      // This test needs to be redesigned as the feature is no longer part of the adapter.
+    test('parses style tag attributes without crashing', () {
+      // <style> tags are skipped; content should still parse cleanly
+      const html = '<style>p { color: red; }</style><p>Hello</p>';
+      final adapter = HtmlAdapter();
+      final document = adapter.parse(html);
+      expect(document.children, isNotEmpty);
+      final p = document.children.first;
+      expect(p.tagName, equals('p'));
     });
   });
 
@@ -414,32 +420,49 @@ void main() {
   });
 
   group('Quill Delta adapter', () {
-    // Note: Most DeltaAdapter tests are valid as they test the adapter directly.
-    // The failing test was for the HyperViewer constructor which is now removed.
-    test('// TODO: HyperViewer constructor does not support delta anymore.', () {
-      // test('HyperViewer.delta factory creates viewer', () {
-      //   const viewer = HyperViewer(
-      //     delta: '{"ops":[{"insert":"Test\n"}]}',
-      //   );
-      //
-      //   expect(viewer.delta, isNotNull);
-      //   expect(viewer.html, isNull);
-      // });
+    test('DeltaAdapter parses plain insert op', () {
+      const delta = '{"ops":[{"insert":"Hello World\\n"}]}';
+      final adapter = DeltaAdapter();
+      final document = adapter.parse(delta);
+      expect(document.textContent.trim(), equals('Hello World'));
+    });
+
+    test('DeltaAdapter parses bold attribute', () {
+      const delta =
+          '{"ops":[{"insert":"Bold","attributes":{"bold":true}},{"insert":"\\n"}]}';
+      final adapter = DeltaAdapter();
+      final document = adapter.parse(delta);
+      expect(document.textContent, contains('Bold'));
+    });
+
+    test('HyperViewer.delta sets correct contentType', () {
+      const viewer = HyperViewer.delta(
+        delta: '{"ops":[{"insert":"Test\\n"}]}',
+      );
+      expect(viewer.contentType, equals(HyperContentType.delta));
     });
   });
 
   group('Markdown adapter', () {
-    // Note: Most MarkdownAdapter tests are valid.
-    // The failing test was for the HyperViewer constructor.
-    test('// TODO: HyperViewer constructor does not support markdown anymore.', () {
-      // test('HyperViewer.markdown factory works', () {
-      //   const viewer = HyperViewer(
-      //     markdown: '# Test',
-      //   );
-      //
-      //   expect(viewer.markdown, isNotNull);
-      //   expect(viewer.html, isNull);
-      // });
+    test('MarkdownAdapter parses heading', () {
+      const md = '# Hello World\n\nSome text.';
+      final adapter = MarkdownAdapter();
+      final document = adapter.parse(md);
+      expect(document.children, isNotEmpty);
+    });
+
+    test('MarkdownAdapter parses bold inline', () {
+      const md = '**bold** text';
+      final adapter = MarkdownAdapter();
+      final document = adapter.parse(md);
+      expect(document.textContent, contains('bold'));
+    });
+
+    test('HyperViewer.markdown sets correct contentType', () {
+      const viewer = HyperViewer.markdown(
+        markdown: '# Test',
+      );
+      expect(viewer.contentType, equals(HyperContentType.markdown));
     });
   });
 }

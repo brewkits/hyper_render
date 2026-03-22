@@ -153,7 +153,9 @@ void main() {
       AtomicNode? video;
       void walk(UDTNode n) {
         if (n is AtomicNode && n.tagName == 'video') video = n;
-        for (final c in n.children) walk(c);
+        for (final c in n.children) {
+          walk(c);
+        }
       }
       walk(doc);
 
@@ -172,7 +174,9 @@ void main() {
       AtomicNode? audio;
       void walk(UDTNode n) {
         if (n is AtomicNode && n.tagName == 'audio') audio = n;
-        for (final c in n.children) walk(c);
+        for (final c in n.children) {
+          walk(c);
+        }
       }
       walk(doc);
 
@@ -188,7 +192,9 @@ void main() {
       AtomicNode? video;
       void walk(UDTNode n) {
         if (n is AtomicNode && n.tagName == 'video') video = n;
-        for (final c in n.children) walk(c);
+        for (final c in n.children) {
+          walk(c);
+        }
       }
       walk(doc);
 

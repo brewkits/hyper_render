@@ -1,8 +1,14 @@
 name: hyper_render_core
-description: Core rendering engine for HyperRender - Zero external dependencies. Universal Document Tree (UDT) model and rendering primitives.
+description: Core engine for HyperRender. Universal Document Tree, single-RenderObject layout with CSS float, Flexbox, Grid, CJK typography, and crash-free text selection.
 version: 1.1.0
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_core
+
+topics:
+  - html
+  - rendering
+  - richtext
+  - css
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -11,9 +17,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # Zero external dependencies - only Flutter SDK
 
-  vector_math: any
+  vector_math: ^2.2.0
+  csslib: ^1.0.0
+  flutter_highlight: ^0.7.0
+  highlight: ^0.7.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

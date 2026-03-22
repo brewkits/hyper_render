@@ -1,5 +1,4 @@
-import '../interfaces/content_parser.dart';
-import '../model/node.dart';
+import 'package:hyper_render_core/hyper_render_core.dart';
 import '../parser/markdown/markdown_adapter.dart';
 
 /// Default Markdown parser using the `markdown` package

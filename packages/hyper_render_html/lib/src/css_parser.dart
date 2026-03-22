@@ -89,8 +89,7 @@ class DefaultCssParser implements CssParserInterface {
     // Count classes (.class), attributes ([attr]), and pseudo-classes (:hover)
     classes = RegExp(r'\.[a-zA-Z_-][\w-]*').allMatches(selector).length;
     classes += RegExp(r'\[[^\]]+\]').allMatches(selector).length;
-    classes +=
-        RegExp(r':[a-zA-Z_-][\w-]*(?!\()').allMatches(selector).length;
+    classes += RegExp(r':[a-zA-Z_-][\w-]*(?!\()').allMatches(selector).length;
 
     // Count elements (tag names) and pseudo-elements (::before)
     // This is simplified - doesn't handle all edge cases

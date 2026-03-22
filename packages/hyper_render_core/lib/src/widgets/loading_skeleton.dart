@@ -248,7 +248,8 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
     if (isDark) {
       return _SkeletonColors(
         baseColor: const Color(0xFF2D2D2D),
-        highlightColor: const Color(0xFF4F4F4F), // Better contrast for dark mode
+        highlightColor:
+            const Color(0xFF4F4F4F), // Better contrast for dark mode
       );
     } else {
       return _SkeletonColors(
@@ -393,7 +394,7 @@ class SkeletonListItem extends StatelessWidget {
           size: avatarSize,
           animate: animate,
         ),
-        SizedBox(width: DesignTokens.space2),
+        const SizedBox(width: DesignTokens.space2),
         Expanded(
           child: SkeletonParagraph(
             lines: lines,
@@ -403,7 +404,7 @@ class SkeletonListItem extends StatelessWidget {
           ),
         ),
         if (showTrailing) ...[
-          SizedBox(width: DesignTokens.space2),
+          const SizedBox(width: DesignTokens.space2),
           LoadingSkeleton(
             width: 24,
             height: 24,
@@ -469,7 +470,7 @@ class SkeletonCard extends StatelessWidget {
 
           // Content
           Padding(
-            padding: EdgeInsets.all(DesignTokens.space2),
+            padding: const EdgeInsets.all(DesignTokens.space2),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -480,7 +481,7 @@ class SkeletonCard extends StatelessWidget {
                   animate: animate,
                 ),
                 if (showActions) ...[
-                  SizedBox(height: DesignTokens.space2),
+                  const SizedBox(height: DesignTokens.space2),
                   Row(
                     children: [
                       LoadingSkeleton(
@@ -488,7 +489,7 @@ class SkeletonCard extends StatelessWidget {
                         height: 32,
                         animate: animate,
                       ),
-                      SizedBox(width: DesignTokens.space1),
+                      const SizedBox(width: DesignTokens.space1),
                       LoadingSkeleton(
                         width: 80,
                         height: 32,

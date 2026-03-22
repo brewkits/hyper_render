@@ -92,6 +92,15 @@ enum MediaType {
   video,
 }
 
+/// Convenience extension on [AtomicNode] for media-related helpers.
+///
+/// Defined here (not in node.dart) to avoid a circular import:
+/// render_media.dart imports node.dart, not the other way around.
+extension AtomicNodeMediaExtension on AtomicNode {
+  /// Returns a [MediaInfo] built from this node's attributes.
+  MediaInfo get mediaInfo => MediaInfo.fromNode(this);
+}
+
 /// Default media widget - shows a placeholder with play button
 ///
 /// This is used when no custom MediaWidgetBuilder is provided.
@@ -120,7 +129,6 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
       child: GestureDetector(
-        behavior: HitTestBehavior.opaque, // CRITICAL: Catch taps on entire area including transparent regions
         onTap: widget.onTap,
         child: widget.mediaInfo.isVideo
             ? _buildVideoPlaceholder()
@@ -130,36 +138,38 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
   }
 
   Widget _buildVideoPlaceholder() {
-    final width = widget.mediaInfo.width ?? 640;
-    final height = widget.mediaInfo.height ?? 360;
+    // Avoid LayoutBuilder here — it marks child parentData dirty during
+    // relayout which triggers a Flutter semantics assertion when this widget
+    // is embedded inside HyperRenderWidget (a MultiChildRenderObjectWidget).
+    // Use intrinsic dimensions from the HTML attributes instead.
+    final intrinsicW = widget.mediaInfo.width;
+    final intrinsicH = widget.mediaInfo.height;
 
-    // Use LayoutBuilder to make video responsive
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Determine available width - always constrain to parent
-        final availableWidth = constraints.maxWidth != double.infinity
-            ? constraints.maxWidth
-            : 480.0; // Reasonable default max width for unconstrained layouts
+    double width, height;
+    if (intrinsicW != null && intrinsicH != null) {
+      width = intrinsicW;
+      height = intrinsicH;
+    } else if (intrinsicW != null) {
+      width = intrinsicW;
+      height = intrinsicW * 9.0 / 16.0;
+    } else {
+      width = 320.0;
+      height = 180.0;
+    }
 
-        // Calculate responsive dimensions maintaining aspect ratio
-        // ALWAYS constrain to available width to prevent overlap
-        final constrainedWidth = width > availableWidth ? availableWidth : width.toDouble();
-        final scale = constrainedWidth / width;
-        final responsiveWidth = constrainedWidth;
-        final responsiveHeight = height * scale;
+    // Clamp to a sensible maximum so the widget doesn't overflow on narrow screens.
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: width),
+      child: _buildVideoContainer(width, height),
+    );
+  }
 
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-
-        return ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: availableWidth,
-            maxHeight: responsiveHeight,
-          ),
-          child: Container(
-            width: responsiveWidth,
-            height: responsiveHeight,
-          decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFF000000),
+  Widget _buildVideoContainer(double width, double height) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.black87,
         borderRadius: BorderRadius.circular(8),
         image: widget.mediaInfo.poster != null
             ? DecorationImage(
@@ -186,34 +196,21 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
               ),
             ),
 
-          // Play button with smooth animation
+          // Play button
           Center(
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: _isHovering
-                    ? Colors.white.withValues(alpha: 0.35)
+                    ? Colors.white.withValues(alpha: 0.3)
                     : Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
-                boxShadow: _isHovering
-                    ? [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        )
-                      ]
-                    : null,
               ),
-              child: Transform.scale(
-                scale: _isHovering ? 1.08 : 1.0,
-                child: const Icon(
-                  Icons.play_arrow,
-                  size: 48,
-                  color: Colors.white,
-                ),
+              child: Icon(
+                Icons.play_arrow,
+                size: _isHovering ? 52 : 48,
+                color: Colors.white,
               ),
             ),
           ),
@@ -264,40 +261,23 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
             ),
         ],
       ),
-          ),
-        );
-      },
     );
   }
 
   Widget _buildAudioPlaceholder() {
-    final width = widget.mediaInfo.width ?? 320;
+    // Same reason as _buildVideoPlaceholder: avoid LayoutBuilder.
+    final width = widget.mediaInfo.width ?? 300.0;
+    return _buildAudioContainer(width);
+  }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Determine available width - always constrain to parent
-        final availableWidth = constraints.maxWidth != double.infinity
-            ? constraints.maxWidth
-            : 360.0; // Reasonable default max width for unconstrained layouts
-
-        // ALWAYS constrain to available width to prevent overlap
-        final responsiveWidth = width > availableWidth ? availableWidth : width.toDouble();
-
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-
-        return ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: availableWidth,
-          ),
-          child: Container(
-            width: responsiveWidth,
-            padding: const EdgeInsets.all(12),
+  Widget _buildAudioContainer(double width) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5),
+        color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDark ? const Color(0xFF424242) : const Color(0xFFE0E0E0),
-        ),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -307,8 +287,8 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: _isHovering
-                  ? Theme.of(context).primaryColor
-                  : Theme.of(context).primaryColor.withValues(alpha: 0.8),
+                  ? Colors.blue
+                  : Colors.blue.withValues(alpha: 0.8),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -371,9 +351,6 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
           ),
         ],
       ),
-          ),
-        );
-      },
     );
   }
 }
