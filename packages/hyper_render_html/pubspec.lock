@@ -102,9 +102,10 @@ packages:
   hyper_render_core:
     dependency: "direct main"
     description:
-      path: "../hyper_render_core"
-      relative: true
-    source: path
+      name: hyper_render_core
+      sha256: ed1b8649fa46e0110bdb19c4b1c203f3f5c4fed30398ca856660e93103b33738
+      url: "https://pub.dev"
+    source: hosted
     version: "1.1.0"
   leak_tracker:
     dependency: transitive

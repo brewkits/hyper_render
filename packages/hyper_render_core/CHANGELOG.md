@@ -1,5 +1,10 @@
 # Changelog — hyper_render_core
 
+## [1.1.1] - 2026-03-23
+
+### 🐛 Bug Fixes
+- **`details_widget.dart`**: Fixed undefined `DetailsNode` class — changed field type to `UDTNode` and replaced `.open` property access with `attributes.containsKey('open')` for HTML-spec-compliant initial state
+
 ## [1.1.0] - 2026-03-20
 
 ### ✨ New Features (synced from hyper_render)

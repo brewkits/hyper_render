@@ -60,7 +60,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
               ..label = node.textContent
               ..hint = 'Link to $href'
               ..onTap = () {
-                _onLinkTap?.call(href);
+                onLinkTap?.call(href);
               },
           );
 
