@@ -5,6 +5,7 @@ homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_core
 
 topics:
+  - flutter
   - html
   - rendering
   - richtext

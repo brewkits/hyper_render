@@ -461,21 +461,24 @@ Use the convenience `hyper_render` package (this one) to get all of the above in
 
 ## 🗺️ Roadmap
 
-### ✅ Shipped in v1.x
+### ✅ Shipped (v1.0 → v1.1)
 
 CSS float · Flexbox · Grid · CSS Variables · `calc()` · Kinsoku + Ruby · `<details>` · RTL/BiDi · Quill Delta · Markdown · XSS sanitization · Screenshot export · `HtmlHeuristics` fallback · View virtualization · Design tokens · Dark mode · Performance monitoring
 
-### 🚧 In Progress
+### 🔜 v1.2 — Stability & CSS polish
 
+- Memory-pressure handling (`WidgetsBindingObserver` — auto-evict caches on low-memory signal)
 - Full SVG renderer (currently shows placeholder)
-- `video_player` integration for `<video>` / `<audio>`
-- CSS `@keyframes` animation
+- `video_player` / `audio` integration
 
-### 🔮 v4.0 Targets
+### 🔮 v2.0+ — Plugin ecosystem & animation
 
-- `position: absolute/fixed` layout
-- Vanilla JS via QuickJS FFI (accordion, show/hide, form validation — no React/Vue)
-- PDF export via `printing` package
+- `hyper_render_media` package — extract media layer so core stays zero-dep
+- CSS `@keyframes` / `transition` execution (currently parsed but not animated)
+- `hyper_render_devtools` first working release (UDT inspector, computed-style panel)
+- `hyper_render_export` — full-document PDF and high-res image export
+
+Full details → [`doc/ROADMAP.md`](doc/ROADMAP.md)
 
 ---
 
@@ -495,6 +498,24 @@ Read the [Architecture Decision Records](doc/adr/) and [Contributing Guide](doc/
 ## 📄 License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+## ⭐ Star History
+
+If HyperRender saves you from WebView overhead, a star goes a long way:
+
+[![Star History Chart](https://api.star-history.com/svg?repos=brewkits/hyper_render&type=Date)](https://star-history.com/#brewkits/hyper_render&Date)
+
+---
+
+## 👤 Author & Maintainer
+
+**HyperRender** is designed and maintained by [**brewkits**](https://github.com/brewkits).
+
+Built to solve a real problem: Flutter's rich-text ecosystem either uses WebView (heavy) or flutter_widget_from_html (no float, no CJK). HyperRender is the third option — a native single-`RenderObject` engine that runs at 60 FPS and handles real-world editorial HTML.
+
+If this library helps your product ship faster, consider [sponsoring development](https://github.com/sponsors/brewkits) or leaving a ⭐ on GitHub.
 
 ---
 
