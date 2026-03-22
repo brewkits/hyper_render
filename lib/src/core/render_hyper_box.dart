@@ -8,7 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../model/computed_style.dart' hide TextDirection, BorderStyle;
+import '../model/computed_style.dart';
 import '../model/fragment.dart';
 import '../model/node.dart';
 import 'image_provider.dart';

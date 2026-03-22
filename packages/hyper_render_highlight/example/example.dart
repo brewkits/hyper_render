@@ -35,11 +35,6 @@ class _HighlightExamplePageState extends State<HighlightExamplePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Create highlighter with selected theme
-    final highlighter = FlutterHighlightCodeHighlighter(
-      theme: _selectedTheme,
-    );
-
     // Create a simple document with code blocks
     final document = _createCodeDocument();
 

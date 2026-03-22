@@ -2,6 +2,7 @@ part of 'render_hyper_box.dart';
 
 extension _RenderHyperBoxAccessibility on RenderHyperBox {
   /// Builds a plain text representation of the content for screen readers
+  // ignore: unused_element
   String _buildTextContentForSemantics() {
     if (_document == null) return '';
 
@@ -37,6 +38,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
   }
 
   /// Recursively builds semantic nodes for the document tree
+  // ignore: unused_element
   void _buildSemanticNodes(
     UDTNode node,
     List<SemanticsNode> semanticNodes,

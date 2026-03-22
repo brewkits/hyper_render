@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../model/node.dart';
-import '../model/computed_style.dart' hide TextDirection, BorderStyle;
+import '../model/computed_style.dart';
 
 /// Widget that renders a flex container (display: flex)
 ///
