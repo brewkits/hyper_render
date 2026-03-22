@@ -1,6 +1,6 @@
 # HyperRender — Product Roadmap
 
-**Last Updated**: 2026-03-20
+**Last Updated**: 2026-03-22
 **Current Stable**: v1.1.0
 **Repository**: [github.com/brewkits/hyper_render](https://github.com/brewkits/hyper_render)
 
@@ -23,6 +23,8 @@ For detailed CSS property tracking, see [`internal/CSS_SUPPORT_ROADMAP.md`](inte
 - Multimedia error boundaries via `_safeWidgetBuilder`
 - CSS Box Shadow, linear-gradient, retina image rendering
 - Adaptive text selection colors (iOS / Material)
+- CSS Grid layout (`display:grid` — full row/column track sizing, `gap`, span)
+- RTL / bidirectional text (Arabic, Hebrew, Persian via `direction: rtl`)
 - Modular package architecture: `hyper_render_core`, `hyper_render_html`,
   `hyper_render_markdown`, `hyper_render_highlight`, `hyper_render_clipboard`
 - `hyper_render_devtools` — package scaffolded, UI panels stubbed
@@ -67,7 +69,6 @@ Properties deferred from Phase 3 in [`internal/CSS_SUPPORT_ROADMAP.md`](internal
 - [ ] `box-shadow` — design system compatibility
 - [ ] `list-style-type`, `list-style-position` — better `<ul>` / `<ol>` rendering
 - [ ] `word-break`, `overflow-wrap` — CJK and long-URL handling
-- [ ] `direction: rtl/ltr` — Arabic, Hebrew, Persian (i18n critical)
 - [ ] `background-repeat`, `background-position`, `background-size`
 
 ---
@@ -183,12 +184,10 @@ Items under consideration, not yet scheduled:
 
 | Item | Notes |
 |------|-------|
-| CSS Grid layout | `display:grid` parsed; layout algorithm not yet implemented |
 | `position: absolute / fixed / sticky` | Complex with single-RenderObject model |
 | `clip-path`, `filter` | Advanced visual effects |
 | `object-fit` for `<img>` | Requires changes to image layout pass |
 | `aspect-ratio` | Responsive media sizing |
-| RTL bidirectional text (bidi) | Arabic, Hebrew — requires Unicode bidi algorithm |
 | Server-side UDT snapshot | Pre-render on server, hydrate on client |
 
 ---
