@@ -1,7 +1,7 @@
 publish_to: none
 name: hyper_render_html
 description: HTML parsing plugin for HyperRender. Converts HTML content to UDT with full CSS support.
-version: 1.1.0
+version: 1.1.1
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_html
 

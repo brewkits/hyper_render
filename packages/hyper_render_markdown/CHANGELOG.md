@@ -1,5 +1,9 @@
 # Changelog — hyper_render_markdown
 
+## [1.1.1] - 2026-03-23
+
+- Maintenance release: no code changes — republish to sync repository verification with current git HEAD
+
 ## [1.1.0] - 2026-03-20
 
 ### ✨ New Features
