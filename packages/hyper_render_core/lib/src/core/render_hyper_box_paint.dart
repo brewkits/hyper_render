@@ -7,11 +7,12 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
 
       // 1. Backdrop Filter (Glassmorphism) - Paints BEFORE background
       if (decoration.backdropFilter != null && enableComplexFilters) {
-        canvas.saveLayer(adjustedRect, Paint());
-        final filterPaint = Paint()
-          ..imageFilter = decoration.backdropFilter
-          ..blendMode = BlendMode.srcOver;
-        canvas.drawRect(adjustedRect, filterPaint);
+        canvas.saveLayer(adjustedRect, _sLayerPaint);
+        canvas.drawRect(
+            adjustedRect,
+            Paint()
+              ..imageFilter = decoration.backdropFilter
+              ..blendMode = BlendMode.srcOver);
         canvas.restore();
       }
 
@@ -48,13 +49,13 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       // Paint background or gradient if specified
       if (decoration.backgroundColor != null ||
           decoration.backgroundGradient != null) {
-        final bgPaint = Paint()..isAntiAlias = true;
-
         if (decoration.backgroundGradient != null) {
-          bgPaint.shader =
+          _fillPaint.shader =
               decoration.backgroundGradient!.createShader(adjustedRect);
+          _fillPaint.color = const Color(0x00000000); // reset color (unused when shader set)
         } else {
-          bgPaint.color = decoration.backgroundColor!;
+          _fillPaint.shader = null;
+          _fillPaint.color = decoration.backgroundColor!;
         }
 
         if (decoration.borderRadius != null) {
@@ -67,11 +68,12 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
               bottomLeft: decoration.borderRadius!.bottomLeft,
               bottomRight: decoration.borderRadius!.bottomRight,
             ),
-            bgPaint,
+            _fillPaint,
           );
         } else {
-          canvas.drawRect(adjustedRect, bgPaint);
+          canvas.drawRect(adjustedRect, _fillPaint);
         }
+        _fillPaint.shader = null; // reset shader so next fill uses color
       }
 
       // Paint border — either full-box (all 4 sides) or left-only (blockquote)
@@ -91,6 +93,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           // Previously used drawLine with StrokeCap.square which extended the
           // line endpoints by half the stroke width, bleeding outside the
           // element bounds. A filled rect gives pixel-perfect edges.
+          _fillPaint.color = decoration.borderLeftColor!;
           canvas.drawRect(
             Rect.fromLTWH(
               adjustedRect.left,
@@ -98,9 +101,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
               decoration.borderLeftWidth,
               adjustedRect.height,
             ),
-            Paint()
-              ..color = decoration.borderLeftColor!
-              ..isAntiAlias = true,
+            _fillPaint,
           );
         }
       }
@@ -119,7 +120,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
 
         // 1. Backdrop Filter
         if (decoration.backdropFilter != null && enableComplexFilters) {
-          canvas.saveLayer(adjustedRect, Paint());
+          canvas.saveLayer(adjustedRect, _sLayerPaint);
           canvas.drawRect(
               adjustedRect, Paint()..imageFilter = decoration.backdropFilter);
           canvas.restore();
@@ -158,13 +159,13 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         // Paint background or gradient
         if (decoration.backgroundColor != null ||
             decoration.backgroundGradient != null) {
-          final paint = Paint()..isAntiAlias = true;
-
           if (decoration.backgroundGradient != null) {
-            paint.shader =
+            _fillPaint.shader =
                 decoration.backgroundGradient!.createShader(adjustedRect);
+            _fillPaint.color = const Color(0x00000000);
           } else {
-            paint.color = decoration.backgroundColor!;
+            _fillPaint.shader = null;
+            _fillPaint.color = decoration.backgroundColor!;
           }
 
           if (decoration.borderRadius != null) {
@@ -176,25 +177,24 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
                 bottomLeft: decoration.borderRadius!.bottomLeft,
                 bottomRight: decoration.borderRadius!.bottomRight,
               ),
-              paint,
+              _fillPaint,
             );
           } else {
-            canvas.drawRect(adjustedRect, paint);
+            canvas.drawRect(adjustedRect, _fillPaint);
           }
+          _fillPaint.shader = null;
         }
 
         // Paint border
         if (decoration.borderColor != null && decoration.borderWidth > 0) {
-          final paint = Paint()
-            ..color = decoration.borderColor!
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = decoration.borderWidth
-            ..isAntiAlias = true;
-
           // deflate(width/2) places the stroke centerline exactly on the rect
           // edge — prevents the stroke from bleeding half a pixel outside the
           // element bounds (pixel bleeding artefact).
           final borderRect = adjustedRect.deflate(decoration.borderWidth / 2);
+          _strokePaint
+            ..color = decoration.borderColor!
+            ..strokeWidth = decoration.borderWidth
+            ..strokeCap = StrokeCap.square;
 
           if (decoration.borderRadius != null) {
             canvas.drawRRect(
@@ -205,10 +205,10 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
                 bottomLeft: decoration.borderRadius!.bottomLeft,
                 bottomRight: decoration.borderRadius!.bottomRight,
               ),
-              paint,
+              _strokePaint,
             );
           } else {
-            canvas.drawRect(borderRect, paint);
+            canvas.drawRect(borderRect, _strokePaint);
           }
         }
 
@@ -248,11 +248,10 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       case HyperBorderStyle.inset:
       case HyperBorderStyle.outset:
         // Solid (and unsupported 3D styles rendered as solid)
-        final paint = Paint()
+        _strokePaint
           ..color = color
-          ..style = PaintingStyle.stroke
           ..strokeWidth = width
-          ..isAntiAlias = true;
+          ..strokeCap = StrokeCap.square;
         final innerRect = rect.deflate(width / 2);
         if (borderRadius != null) {
           canvas.drawRRect(
@@ -263,10 +262,10 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
               bottomLeft: borderRadius.bottomLeft,
               bottomRight: borderRadius.bottomRight,
             ),
-            paint,
+            _strokePaint,
           );
         } else {
-          canvas.drawRect(innerRect, paint);
+          canvas.drawRect(innerRect, _strokePaint);
         }
     }
   }
@@ -275,12 +274,11 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
   void _paintDashedBoxBorder(
       Canvas canvas, Rect rect, Color color, double width,
       BorderRadius? borderRadius) {
-    final paint = Paint()
+    _strokePaint
       ..color = color
-      ..style = PaintingStyle.stroke
       ..strokeWidth = width
-      ..isAntiAlias = true
       ..strokeCap = StrokeCap.butt;
+    final paint = _strokePaint;
 
     final dashLen = math.max(4.0, width * 3);
     final gapLen = math.max(3.0, width * 2);
@@ -305,12 +303,11 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
   void _paintDottedBoxBorder(
       Canvas canvas, Rect rect, Color color, double width,
       BorderRadius? borderRadius) {
-    final paint = Paint()
+    _strokePaint
       ..color = color
-      ..style = PaintingStyle.stroke
       ..strokeWidth = width
-      ..isAntiAlias = true
       ..strokeCap = StrokeCap.round; // Round caps give dot appearance
+    final paint = _strokePaint;
 
     const dashLen = 0.01; // Nearly zero length with round cap = dot
     final gapLen = math.max(2.0, width * 2);
@@ -336,11 +333,11 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       Canvas canvas, Rect rect, Color color, double width,
       BorderRadius? borderRadius) {
     final lineWidth = (width / 3).clamp(1.0, double.infinity);
-    final paint = Paint()
+    _strokePaint
       ..color = color
-      ..style = PaintingStyle.stroke
       ..strokeWidth = lineWidth
-      ..isAntiAlias = true;
+      ..strokeCap = StrokeCap.square;
+    final paint = _strokePaint;
 
     // Outer line: center at rect edge inset by lineWidth/2
     final outerInset = lineWidth / 2;
@@ -396,8 +393,9 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     // 1. Explicit color passed from HyperViewer
     // 2. Adaptive default based on platform
     final selectionColor = _selectionColor ??
-        (Platform.isIOS || Platform.isMacOS
-            ? const Color(0x40007AFF) // iOS blue at 25% opacity
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+                defaultTargetPlatform == TargetPlatform.macOS
+            ? const Color(0x40007AFF) // iOS / macOS blue at 25% opacity
             : const Color(0x404285F4)); // Material 3 blue at 25% opacity
 
     final selectionPaint = Paint()
@@ -465,8 +463,16 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
                 offset.dx + fragmentOffset.dx + box.right,
                 offset.dy + fragmentOffset.dy + box.bottom,
               );
-              linePath ??= Path();
-              linePath.addRRect(RRect.fromRectAndRadius(rect, selectionRadius));
+              // Use PathOperation.union so adjacent/overlapping boxes from
+              // the same line merge into a single filled region.  addRRect
+              // creates separate sub-paths — when two rects share an edge
+              // the hairline boundary is visible at non-integer pixel scales
+              // and overlaps double the alpha, breaking the uniform highlight.
+              final boxPath = Path()
+                ..addRRect(RRect.fromRectAndRadius(rect, selectionRadius));
+              linePath = linePath == null
+                  ? boxPath
+                  : Path.combine(PathOperation.union, linePath, boxPath);
             }
           }
 
@@ -642,44 +648,50 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     }
   }
 
-  /// Paint a skeleton loading placeholder (similar to shimmer effect)
+  /// Paint an animated skeleton shimmer placeholder.
+  ///
+  /// The shimmer highlight sweeps left → right, driven by [_shimmerPhase]
+  /// which is updated each frame via [SchedulerBinding.scheduleFrameCallback].
+  /// This matches the Facebook / LinkedIn / Material 3 skeleton pattern —
+  /// a moving highlight over a base grey that signals "content loading".
   void _paintSkeletonPlaceholder(Canvas canvas, Rect rect) {
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
 
-    // Horizontal shimmer-style gradient: light → slightly brighter → light.
-    // Horizontal sweep mimics the standard skeleton shimmer pattern used by
-    // Facebook / Instagram / LinkedIn (even without animation the directionality
-    // gives a more polished, "in-progress" feel than a diagonal fill).
-    final bgPaint = Paint()
-      ..shader = ui.Gradient.linear(
-        Offset(rect.left, rect.center.dy),
-        Offset(rect.right, rect.center.dy),
-        const [
-          Color(0xFFEEEEEE),
-          Color(0xFFF8F8F8),
-          Color(0xFFEEEEEE),
-        ],
-        [0.0, 0.5, 1.0],
-      )
-      ..isAntiAlias = true;
-    canvas.drawRRect(rrect, bgPaint);
+    // Base grey background.
+    canvas.drawRRect(rrect, _skeletonBasePaint);
+
+    // Animated shimmer highlight.  The bright band is 40% of the rect width;
+    // it sweeps from left (-40%) to right (140%) using [_shimmerPhase] 0→1.
+    final phase = _shimmerPhase; // 0.0 → 1.0 looping
+    // Map phase to the center-x of the highlight band in local coordinates.
+    // At phase=0 the band is fully off-screen-left; at phase=1 off-screen-right.
+    final bandW = rect.width * 0.40;
+    final startX = rect.left - bandW + (rect.width + bandW * 2) * phase;
+    // Reuse the static Paint wrapper; only the shader changes each frame.
+    _shimmerHighlightPaint.shader = ui.Gradient.linear(
+      Offset(startX - bandW * 0.5, rect.center.dy),
+      Offset(startX + bandW * 0.5, rect.center.dy),
+      const [
+        Color(0x00FFFFFF), // transparent
+        Color(0x99FFFFFF), // bright white centre
+        Color(0x00FFFFFF), // transparent
+      ],
+      [0.0, 0.5, 1.0],
+    );
+
+    canvas.save();
+    canvas.clipRRect(rrect);
+    canvas.drawRect(rect, _shimmerHighlightPaint);
+    canvas.restore();
 
     // Hairline border — no StrokeCap needed for drawRRect.
-    final borderPaint = Paint()
-      ..color = const Color(0xFFE0E0E0)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..isAntiAlias = true;
-    canvas.drawRRect(rrect, borderPaint);
+    canvas.drawRRect(rrect, _skeletonBorderPaint);
 
     // Minimal loading indicator: a small rounded rectangle placeholder line
     // centered in the image area. Pure shimmer + subtle hint is the modern
     // skeleton standard (Facebook/LinkedIn) — no hand-drawn icon needed.
     if (rect.width > 40 && rect.height > 30) {
       final center = rect.center;
-      final indicatorPaint = Paint()
-        ..color = const Color(0xFFE0E0E0)
-        ..isAntiAlias = true;
 
       // Two stacked pill-shaped lines — universally understood as "loading"
       final lineW = (rect.width * 0.35).clamp(20.0, 80.0);
@@ -694,7 +706,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
               height: lineH),
           const Radius.circular(3),
         ),
-        indicatorPaint,
+        _skeletonIndicatorPaint,
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -704,27 +716,16 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
               height: lineH),
           const Radius.circular(3),
         ),
-        indicatorPaint,
+        _skeletonIndicatorPaint,
       );
     }
   }
 
   /// Paint an error placeholder with broken image icon
   void _paintErrorPlaceholder(Canvas canvas, Rect rect) {
-    // Background
-    final bgPaint = Paint()
-      ..color = const Color(0xFFFAFAFA)
-      ..isAntiAlias = true;
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
-    canvas.drawRRect(rrect, bgPaint);
-
-    // Hairline border — no StrokeCap needed for drawRRect.
-    final borderPaint = Paint()
-      ..color = const Color(0xFFE0E0E0)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..isAntiAlias = true;
-    canvas.drawRRect(rrect, borderPaint);
+    canvas.drawRRect(rrect, _errorBgPaint);
+    canvas.drawRRect(rrect, _errorBorderPaint);
 
     // Broken image indicator: a soft rounded frame + small diagonal slash.
     // Uses rounded corners and muted colors — premium feel, not hand-drawn.
@@ -733,31 +734,20 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       final iconSize = (rect.shortestSide * 0.28).clamp(14.0, 28.0);
 
       // Rounded frame
-      final framePaint = Paint()
-        ..color = const Color(0xFFD1D5DB)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..isAntiAlias = true;
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromCenter(
               center: center, width: iconSize * 1.5, height: iconSize),
           const Radius.circular(3),
         ),
-        framePaint,
+        _errorFramePaint,
       );
 
       // Diagonal slash in error red — universally understood as "broken"
-      final slashPaint = Paint()
-        ..color = const Color(0xFFF87171) // Tailwind red-400 — softer than pure red
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..strokeCap = StrokeCap.round
-        ..isAntiAlias = true;
       canvas.drawLine(
         Offset(center.dx - iconSize * 0.45, center.dy - iconSize * 0.28),
         Offset(center.dx + iconSize * 0.45, center.dy + iconSize * 0.28),
-        slashPaint,
+        _errorSlashPaint,
       );
     }
   }

@@ -10,39 +10,57 @@ library;
 
 /// Kinsoku processor for CJK line-breaking rules
 class KinsokuProcessor {
-  /// Characters that cannot start a line (行頭禁則文字)
+  /// Characters that cannot start a line (行頭禁則文字).
   ///
-  /// These include:
-  /// - Closing brackets: ）」』】〉》〕〗〙〛
-  /// - Punctuation: 、。，．！？：；
-  /// - Small kana: ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮ
-  /// - Prolonged sound mark: ー
-  /// - Special characters: 々〻
-  static const String kinsokuStart = '）」』】〉》〕〗〙〛'
+  /// Sources:
+  /// - JIS X 4051 §4.3 (Japanese)
+  /// - GB/T 15834-2011 §5 (Simplified Chinese)
+  /// - CNS 11643 / MOE standard (Traditional Chinese)
+  /// - KS X 1001 (Korean)
+  static const String kinsokuStart =
+      // ── Closing brackets (all CJK scripts) ─────────────────────────────
+      '）」』】〉》〕〗〙〛'
+      '｣' // U+FF63 halfwidth right corner bracket (Japanese/Korean)
+      '〞〟' // U+301E/301F Traditional Chinese double-prime closing quotes
+      // ── Punctuation (Japanese / Chinese shared) ──────────────────────
       '、。，．！？：；'
-      'ぁぃぅぇぉっゃゅょゎ'
-      'ァィゥェォッャュョヮ'
-      'ヵヶ'
-      'ー'
-      '々〻'
-      '・'
-      '゛゜'
-      '〜'
-      '‐'
-      '―'
-      '…'
-      '‥';
+      // ── Small kana — cannot lead a syllable (Japanese) ───────────────
+      'ぁぃぅぇぉっゃゅょゎ' // small Hiragana
+      'ァィゥェォッャュョヮ' // small Katakana
+      'ヵヶ' // small KA/KE
+      // ── Japanese-specific ─────────────────────────────────────────────
+      'ー' // prolonged sound mark
+      '々〻' // iteration marks
+      '・' // katakana middle dot
+      '゛゜' // voiced / semi-voiced sound marks
+      '〜' // wave dash
+      '‐―' // hyphen, horizontal bar
+      '…‥' // ellipsis, two-dot leader
+      // ── Chinese (Simplified — GB/T 15834) ────────────────────────────
+      '"\'' // U+201D " U+2019 ' — right smart quotes
+      '·' // U+00B7 middle dot (name interpunct: 巴拉克·奥巴马)
+      '—' // U+2014 em dash (must not open a line in Chinese)
+      // ── Korean ────────────────────────────────────────────────────────
+      '〃'; // U+3003 ditto mark (used in Korean/Japanese tables)
 
-  /// Characters that cannot end a line (行末禁則文字)
+  /// Characters that cannot end a line (行末禁則文字).
   ///
-  /// These include:
-  /// - Opening brackets: （「『【〈《〔〖〘〚
-  static const String kinsokuEnd = '（「『【〈《〔〖〘〚';
+  /// Sources: JIS X 4051, GB/T 15834, KS X 1001.
+  static const String kinsokuEnd =
+      // ── Opening brackets (all CJK scripts) ──────────────────────────
+      '（「『【〈《〔〖〘〚'
+      '｢' // U+FF62 halfwidth left corner bracket (Japanese/Korean)
+      '〝' // U+301D Traditional Chinese left double-prime quotation mark
+      '［｛' // U+FF3B fullwidth [ , U+FF5B fullwidth {
+      // ── Chinese smart-quote opens ────────────────────────────────────
+      '"\'' // U+201C " U+2018 '
+  ;
 
-  /// Characters that should not be separated (分離禁止)
+  /// Matching bracket/quote pairs that must not be split across lines (分離禁止).
   ///
-  /// These pairs should stay together on the same line
+  /// Key = opening character, value = its corresponding closing character.
   static const Map<String, String> inseparablePairs = {
+    // Japanese / shared CJK
     '（': '）',
     '「': '」',
     '『': '』',
@@ -53,6 +71,16 @@ class KinsokuProcessor {
     '〖': '〗',
     '〘': '〙',
     '〚': '〛',
+    // Halfwidth corner brackets (Japanese/Korean)
+    '｢': '｣',
+    // Traditional Chinese double-prime quotes
+    '〝': '〞',
+    // Smart quotes (Chinese Simplified / Korean)
+    '\u201C': '\u201D', // " "
+    '\u2018': '\u2019', // ' '
+    // Fullwidth brackets
+    '［': '］',
+    '｛': '｝',
   };
 
   /// Check if a character cannot start a line
@@ -91,37 +119,47 @@ class KinsokuProcessor {
     return true;
   }
 
-  /// Find the best break point in a string near a given position
+  /// Returns true if a line break is allowed between [text[i-1]] and [text[i]].
   ///
-  /// If the position is not a valid break point, this method will search
-  /// backwards for a valid break point.
+  /// O(1) — uses direct code-unit checks instead of substring allocation.
+  /// This is the hot-path version used inside the scan loops of [findBreakPoint].
+  static bool _canBreakAt(String text, int i) {
+    // text[i-1] cannot end a line
+    if (kinsokuEnd.contains(text[i - 1])) return false;
+    // text[i] cannot start a line
+    if (kinsokuStart.contains(text[i])) return false;
+    return true;
+  }
+
+  /// Find the best break point in a string near a given position.
+  ///
+  /// If the position is not a valid break point, searches backwards then
+  /// forwards for the nearest valid break.
   ///
   /// Returns the index where the break should occur, or -1 if no valid
   /// break point is found.
+  ///
+  /// **Performance note**: uses [_canBreakAt] which avoids `O(N)` substring
+  /// allocations per check. The previous implementation called
+  /// `canBreakBetween(text.substring(0, i), text.substring(i))` inside every
+  /// loop iteration, making the scan `O(N²)` in string allocations for a
+  /// fragment of length N. This version is `O(N)`.
   static int findBreakPoint(String text, int preferredPosition) {
     if (text.isEmpty) return -1;
     if (preferredPosition >= text.length) return text.length;
     if (preferredPosition <= 0) return -1;
 
-    // Check if preferred position is valid
-    if (canBreakBetween(text.substring(0, preferredPosition),
-        text.substring(preferredPosition))) {
-      return preferredPosition;
-    }
+    // Check if preferred position is valid (O(1))
+    if (_canBreakAt(text, preferredPosition)) return preferredPosition;
 
-    // Search backwards for a valid break point
+    // Search backwards for a valid break point (O(N), no substring allocs)
     for (int i = preferredPosition - 1; i > 0; i--) {
-      if (canBreakBetween(text.substring(0, i), text.substring(i))) {
-        return i;
-      }
+      if (_canBreakAt(text, i)) return i;
     }
 
-    // No valid break point found before preferred position
-    // Try searching forward
+    // No valid break point found before preferred position — try forward
     for (int i = preferredPosition + 1; i < text.length; i++) {
-      if (canBreakBetween(text.substring(0, i), text.substring(i))) {
-        return i;
-      }
+      if (_canBreakAt(text, i)) return i;
     }
 
     // No valid break point found
@@ -148,46 +186,99 @@ class KinsokuProcessor {
     return adjusted;
   }
 
-  /// Check if a character is a CJK character
+  /// Returns true if [code] (a UTF-16 code unit) belongs to a CJK or
+  /// East-Asian script that requires character-level line breaking.
   ///
-  /// This includes:
-  /// - CJK Unified Ideographs (U+4E00 - U+9FFF)
-  /// - Hiragana (U+3040 - U+309F)
-  /// - Katakana (U+30A0 - U+30FF)
-  /// - CJK Symbols and Punctuation (U+3000 - U+303F)
-  /// - Fullwidth ASCII variants (U+FF00 - U+FFEF)
-  static bool isCjkCharacter(String char) {
-    if (char.isEmpty) return false;
-
-    final code = char.codeUnitAt(0);
-
-    // CJK Unified Ideographs
+  /// This is the O(1) hot-path used by [containsCjk]. Accepts a raw code unit
+  /// so the caller can use [String.codeUnitAt] and avoid the `text[i]` indexing
+  /// operator which allocates a new single-character String in Dart.
+  ///
+  /// ### Coverage
+  /// | Script | Range | Language |
+  /// |--------|-------|----------|
+  /// | CJK Unified Ideographs | U+4E00–U+9FFF | ZH / JA |
+  /// | CJK Extension A | U+3400–U+4DBF | ZH (rare) |
+  /// | CJK Compatibility Ideographs | U+F900–U+FAFF | ZH / JA |
+  /// | CJK Symbols & Punctuation | U+3000–U+303F | ZH / JA / KO |
+  /// | CJK Radicals Supplement | U+2E80–U+2EFF | ZH (dictionary) |
+  /// | Kangxi Radicals | U+2F00–U+2FDF | ZH (dictionary) |
+  /// | Hiragana | U+3040–U+309F | JA |
+  /// | Katakana | U+30A0–U+30FF | JA |
+  /// | Katakana Phonetic Extensions | U+31F0–U+31FF | JA (Ainu) |
+  /// | Bopomofo | U+3100–U+312F | ZH-TW (注音) |
+  /// | Bopomofo Extended | U+31A0–U+31BF | ZH-TW |
+  /// | Fullwidth ASCII variants | U+FF00–U+FFEF | ZH / JA / KO |
+  /// | Hangul Syllables | U+AC00–U+D7A3 | KO (modern) |
+  /// | Hangul Jamo | U+1100–U+11FF | KO (combining) |
+  /// | Hangul Compatibility Jamo | U+3130–U+318F | KO (fonts) |
+  /// | Hangul Jamo Extended-A | U+A960–U+A97F | KO (rare) |
+  /// | Hangul Jamo Extended-B | U+D7B0–U+D7FF | KO (rare) |
+  ///
+  /// CJK Extension B and above (U+20000+) require surrogate pairs in UTF-16
+  /// and are not covered here — they represent rare classical characters.
+  static bool isCjkCodeUnit(int code) {
+    // ── Chinese / Japanese shared ──────────────────────────────────────────
+    // CJK Unified Ideographs — the bulk of Kanji/Hanzi
     if (code >= 0x4E00 && code <= 0x9FFF) return true;
+    // CJK Extension A — rare/classical Hanzi
+    if (code >= 0x3400 && code <= 0x4DBF) return true;
+    // CJK Compatibility Ideographs
+    if (code >= 0xF900 && code <= 0xFAFF) return true;
+    // CJK Symbols and Punctuation (includes 〇 々 etc.)
+    if (code >= 0x3000 && code <= 0x303F) return true;
+    // CJK Radicals Supplement (radical forms used in dictionaries)
+    if (code >= 0x2E80 && code <= 0x2EFF) return true;
+    // Kangxi Radicals (dictionary radical index)
+    if (code >= 0x2F00 && code <= 0x2FDF) return true;
 
+    // ── Japanese ──────────────────────────────────────────────────────────
     // Hiragana
     if (code >= 0x3040 && code <= 0x309F) return true;
-
     // Katakana
     if (code >= 0x30A0 && code <= 0x30FF) return true;
+    // Katakana Phonetic Extensions (small kana for Ainu/foreign phonology)
+    if (code >= 0x31F0 && code <= 0x31FF) return true;
 
-    // CJK Symbols and Punctuation
-    if (code >= 0x3000 && code <= 0x303F) return true;
+    // ── Traditional Chinese (ZH-TW / ZH-HK) ──────────────────────────────
+    // Bopomofo 注音符號 — phonetic script used in Taiwan
+    if (code >= 0x3100 && code <= 0x312F) return true;
+    // Bopomofo Extended
+    if (code >= 0x31A0 && code <= 0x31BF) return true;
 
-    // Fullwidth forms
+    // ── Fullwidth / Halfwidth forms (all CJK) ─────────────────────────────
     if (code >= 0xFF00 && code <= 0xFFEF) return true;
 
-    // CJK Unified Ideographs Extension A
-    if (code >= 0x3400 && code <= 0x4DBF) return true;
+    // ── Korean ────────────────────────────────────────────────────────────
+    // Hangul Syllables — all modern precomposed Korean syllable blocks
+    if (code >= 0xAC00 && code <= 0xD7A3) return true;
+    // Hangul Jamo — base consonant/vowel components
+    if (code >= 0x1100 && code <= 0x11FF) return true;
+    // Hangul Compatibility Jamo — used by Korean fonts and keyboards
+    if (code >= 0x3130 && code <= 0x318F) return true;
+    // Hangul Jamo Extended-A (rare archaic letters)
+    if (code >= 0xA960 && code <= 0xA97F) return true;
+    // Hangul Jamo Extended-B (rare archaic letters)
+    if (code >= 0xD7B0 && code <= 0xD7FF) return true;
 
     return false;
   }
 
-  /// Check if text contains any CJK characters
+  /// Check if a character is a CJK character.
+  ///
+  /// Accepts a single-character [String]. Prefer [isCjkCodeUnit] in tight
+  /// loops to avoid the `text[i]` String allocation.
+  static bool isCjkCharacter(String char) {
+    if (char.isEmpty) return false;
+    return isCjkCodeUnit(char.codeUnitAt(0));
+  }
+
+  /// Check if text contains any CJK characters.
+  ///
+  /// Uses [codeUnitAt] directly to avoid allocating a String per character
+  /// (Dart's `text[i]` operator creates a new single-char String each call).
   static bool containsCjk(String text) {
     for (int i = 0; i < text.length; i++) {
-      if (isCjkCharacter(text[i])) {
-        return true;
-      }
+      if (isCjkCodeUnit(text.codeUnitAt(i))) return true;
     }
     return false;
   }

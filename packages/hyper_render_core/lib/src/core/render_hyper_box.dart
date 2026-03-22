@@ -1,10 +1,12 @@
 import 'dart:collection';
-import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -21,6 +23,56 @@ part 'render_hyper_box_layout.dart';
 part 'render_hyper_box_paint.dart';
 part 'render_hyper_box_selection.dart';
 part 'render_hyper_box_accessibility.dart';
+
+// ── Library-level cached Paint objects ────────────────────────────────────────
+//
+// These paints have fixed colors AND fixed properties so a single instance is
+// shared across all RenderHyperBox instances. Declared at library scope so
+// part files (render_hyper_box_paint.dart) can access them without any class
+// qualifier. Safe because Flutter's rendering pipeline is single-threaded and
+// paint() is never re-entrant.
+
+/// Empty paint used for `canvas.saveLayer` calls (backdrop-filter / CSS filter).
+final Paint _sLayerPaint = Paint();
+
+// Skeleton placeholder:
+final Paint _skeletonBasePaint = Paint()
+  ..color = const Color(0xFFEEEEEE)
+  ..isAntiAlias = true;
+final Paint _skeletonBorderPaint = Paint()
+  ..color = const Color(0xFFE0E0E0)
+  ..style = PaintingStyle.stroke
+  ..strokeWidth = 1.0
+  ..isAntiAlias = true;
+final Paint _skeletonIndicatorPaint = Paint()
+  ..color = const Color(0xFFE0E0E0)
+  ..isAntiAlias = true;
+
+/// Shimmer highlight — [shader] is replaced each frame; the Paint wrapper is reused.
+final Paint _shimmerHighlightPaint = Paint()..isAntiAlias = true;
+
+// Error placeholder:
+final Paint _errorBgPaint = Paint()
+  ..color = const Color(0xFFFAFAFA)
+  ..isAntiAlias = true;
+final Paint _errorBorderPaint = Paint()
+  ..color = const Color(0xFFE0E0E0)
+  ..style = PaintingStyle.stroke
+  ..strokeWidth = 1.0
+  ..isAntiAlias = true;
+final Paint _errorFramePaint = Paint()
+  ..color = const Color(0xFFD1D5DB)
+  ..style = PaintingStyle.stroke
+  ..strokeWidth = 1.5
+  ..isAntiAlias = true;
+final Paint _errorSlashPaint = Paint()
+  ..color = const Color(0xFFF87171)
+  ..style = PaintingStyle.stroke
+  ..strokeWidth = 1.5
+  ..strokeCap = StrokeCap.round
+  ..isAntiAlias = true;
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 /// Callback for handling link taps
 typedef HyperLinkTapCallback = void Function(String url);
@@ -104,6 +156,24 @@ class RenderHyperBox extends RenderBox
   /// Image cache
   final Map<String, CachedImage> _imageCache = {};
 
+  /// Shimmer animation state.
+  /// [_shimmerEpoch] marks when animation started; null = not animating.
+  /// [_shimmerCallbackId] holds the pending [SchedulerBinding] frame callback
+  /// id so we can cancel it in [dispose] to avoid callbacks on dead objects.
+  Duration? _shimmerEpoch;
+  int? _shimmerCallbackId;
+
+  /// Returns a 0.0→1.0 phase value that advances with time, looping every
+  /// [periodMs] milliseconds. Returns 0.0 when no loading is happening.
+  /// Used by [_paintSkeletonPlaceholder] to animate the shimmer sweep.
+  double get _shimmerPhase {
+    final epoch = _shimmerEpoch;
+    if (epoch == null) return 0.0;
+    final elapsed = SchedulerBinding.instance.currentFrameTimeStamp - epoch;
+    const periodMs = 1400.0; // 1.4 s per sweep — matches Material skeleton speed
+    return (elapsed.inMicroseconds / 1000.0 % periodMs) / periodMs;
+  }
+
   /// Current text selection
   HyperTextSelection? _selection;
 
@@ -138,6 +208,21 @@ class RenderHyperBox extends RenderBox
   /// excessive rasterization cost from complex filters.
   bool enableComplexFilters = true;
 
+  /// When true, suppresses the top margin of the first block element in
+  /// this render box. Used in virtualized mode where each section is a
+  /// separate RenderHyperBox — without suppression, the last block margin of
+  /// section N and the first block margin of section N+1 both render in full,
+  /// producing double-spacing at section boundaries instead of CSS margin
+  /// collapsing.
+  bool _suppressFirstBlockMarginTop = false;
+  bool get suppressFirstBlockMarginTop => _suppressFirstBlockMarginTop;
+  set suppressFirstBlockMarginTop(bool value) {
+    if (_suppressFirstBlockMarginTop == value) return;
+    _suppressFirstBlockMarginTop = value;
+    _invalidateLayout();
+    markNeedsLayout();
+  }
+
   /// Track list item indices for ordered lists
   final Map<UDTNode, int> _listItemIndices = {};
 
@@ -154,6 +239,44 @@ class RenderHyperBox extends RenderBox
   /// cleared by [_invalidateLayout]. Used by [_getNodeRect] so that
   /// VoiceOver/TalkBack semantics queries are instant rather than O(fragments).
   final Map<UDTNode, Rect> _nodeRectCache = {};
+
+  /// Maps CSS `id` attribute values → their y-offset within this RenderObject.
+  /// Populated during [_performLineLayout]; cleared by [_invalidateLayout].
+  /// Consumed by [HyperViewerController.scrollToId].
+  final Map<String, double> anchorOffsets = {};
+
+  /// Heading anchors collected during [_performLineLayout].
+  /// Each entry: `(level, text, cssId-or-null, yOffset)`.
+  /// Cleared by [_invalidateLayout].
+  final List<({int level, String text, String? cssId, double yOffset})>
+      headingAnchors = [];
+
+  /// Called after each layout pass with the updated [anchorOffsets] and
+  /// [headingAnchors]. Consumers (e.g. [HyperViewerController]) use this to
+  /// build scroll-to-id and TOC features.
+  void Function(
+    Map<String, double> offsets,
+    List<({int level, String text, String? cssId, double yOffset})> headings,
+  )? onAnchorLayout;
+
+  // ── Per-instance cached Paint objects ─────────────────────────────────────
+  //
+  // paint() runs at 60 fps during scrolling/animations. Allocating Paint()
+  // inside the loop body generates GC pressure: a typical document with 10+
+  // code blocks / blockquotes / tables creates 25-40 Paint objects per frame.
+  // Solution: mutate a small set of cached instances instead.
+  //
+  // Instance fields are used for paints whose color/strokeWidth vary per draw.
+  // Library-level constants (see top of file) cover paints with fixed properties.
+
+  /// Reusable fill paint. Set `.color` (and optionally `.shader`) before use.
+  final Paint _fillPaint = Paint()..isAntiAlias = true;
+
+  /// Reusable stroke paint. Set `.color`, `.strokeWidth`, `.strokeCap` before
+  /// use. `style` is always `PaintingStyle.stroke`.
+  final Paint _strokePaint = Paint()
+    ..isAntiAlias = true
+    ..style = PaintingStyle.stroke;
 
   // ── Incremental layout dirty tracking ─────────────────────────────────────
   /// Bumped each time _fragments is rebuilt (via _ensureFragments).
@@ -290,6 +413,14 @@ class RenderHyperBox extends RenderBox
 
   @override
   void dispose() {
+    // Cancel pending shimmer frame callback to prevent callbacks on a disposed
+    // RenderObject. SchedulerBinding.cancelFrameCallbackWithId is safe to call
+    // with an id that has already fired (it's a no-op in that case).
+    if (_shimmerCallbackId != null) {
+      SchedulerBinding.instance
+          .cancelFrameCallbackWithId(_shimmerCallbackId!);
+      _shimmerCallbackId = null;
+    }
     _disposeTextPainters();
     _disposeLinkRecognizers();
     _disposeImages();
@@ -331,6 +462,8 @@ class RenderHyperBox extends RenderBox
     _fragmentRanges.clear();
     _fragmentChildMap.clear();
     _nodeRectCache.clear();
+    anchorOffsets.clear();
+    headingAnchors.clear();
     _totalCharacterCount = 0;
     _cachedMinIntrinsicWidth = null;
     _cachedMaxIntrinsicWidth = null;
@@ -366,6 +499,38 @@ class RenderHyperBox extends RenderBox
     // onSelectionChanged after detach can invoke state on a disposed widget.
     if (!attached) return;
     onSelectionChanged?.call();
+  }
+
+  // ============================================
+  // Shimmer Animation
+  // ============================================
+
+  /// Starts the per-frame shimmer loop if not already running.
+  /// Safe to call repeatedly — no-ops when already scheduled.
+  void _ensureShimmerRunning() {
+    if (_shimmerCallbackId != null) return;
+    _shimmerCallbackId =
+        SchedulerBinding.instance.scheduleFrameCallback(_onShimmerTick);
+  }
+
+  void _onShimmerTick(Duration timestamp) {
+    _shimmerCallbackId = null;
+    if (!attached) return;
+
+    // Record start time on first tick.
+    _shimmerEpoch ??= timestamp;
+
+    final hasLoading =
+        _imageCache.values.any((c) => c.state == ImageLoadState.loading);
+    if (hasLoading) {
+      markNeedsPaint();
+      // Schedule the next frame to keep the animation going.
+      _shimmerCallbackId =
+          SchedulerBinding.instance.scheduleFrameCallback(_onShimmerTick);
+    } else {
+      // No more loading images — stop the loop and reset epoch.
+      _shimmerEpoch = null;
+    }
   }
 
   // ============================================
@@ -410,6 +575,8 @@ class RenderHyperBox extends RenderBox
 
   void _loadImage(String src, {int priority = 999999}) {
     _imageCache[src] = const CachedImage(state: ImageLoadState.loading);
+    // Start the shimmer animation loop as soon as the first image starts loading.
+    if (attached) _ensureShimmerRunning();
 
     final loader = _imageLoader ?? defaultImageLoader;
 
@@ -563,9 +730,14 @@ class RenderHyperBox extends RenderBox
       // Step 1: Tokenization — rebuilds only if _fragments was cleared.
       _ensureFragments();
 
-      // Step 1.5: Link children to fragments (CRITICAL - must be done right after fragments are created)
-      // This uses order-based matching since fragments and children are created in same traversal order
+      // Step 1.5: Link children to fragments, then immediately build the O(1)
+      // lookup map so that _performLineLayout (Step 3) can call
+      // _findChildForFragment in O(1) rather than falling through to the O(M)
+      // linear scan.  Without the early _buildFragmentChildMap() call the map
+      // was empty until _layoutChildren (Step 7) finished, causing every flex/
+      // table/image lookup during line layout to scan the full child list.
       _linkFragmentsToChildrenByOrder();
+      _buildFragmentChildMap();
 
       // Steps 2–6: Measure + line layout.
       // Skipped when fragments and constraint width are both unchanged —
@@ -640,6 +812,15 @@ class RenderHyperBox extends RenderBox
       }
 
       size = constraints.constrain(Size(_maxWidth, height));
+
+      // Notify anchor/TOC consumers after layout is complete.
+      if (onAnchorLayout != null &&
+          (anchorOffsets.isNotEmpty || headingAnchors.isNotEmpty)) {
+        onAnchorLayout!(
+          Map.unmodifiable(anchorOffsets),
+          List.unmodifiable(headingAnchors),
+        );
+      }
     } catch (e, stack) {
       // Error boundary: Catch layout errors to prevent full app crash
       debugPrint('HyperRender layout error: $e');
@@ -773,7 +954,14 @@ class RenderHyperBox extends RenderBox
         if (charPos >= 0) {
           final start = math.min(_selectionStartPosition!, charPos);
           final end = math.max(_selectionStartPosition!, charPos);
+          final hadSelection = _selection != null && !_selection!.isCollapsed;
           _selection = HyperTextSelection(start: start, end: end);
+          // Trigger selection haptic on the first frame a non-collapsed
+          // selection appears — matches iOS "selection click" and Android
+          // vibration patterns for text selection initiation.
+          if (!hadSelection && !_selection!.isCollapsed) {
+            HapticFeedback.selectionClick();
+          }
           markNeedsPaint();
         }
       }

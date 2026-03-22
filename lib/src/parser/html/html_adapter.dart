@@ -3,6 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as dom;
 
+/// Converts an HTML string into a [DocumentNode] (Unified Document Tree).
+///
+/// Handles a broad subset of HTML including headings, paragraphs, lists,
+/// tables, inline formatting, links, images, `<details>`/`<summary>`, ruby
+/// annotations, and `<pre>`/`<code>` blocks.  Unknown or unsupported tags are
+/// treated as transparent containers so content is never silently dropped.
+///
+/// Use [HyperViewer] rather than this class directly; it selects the
+/// appropriate adapter automatically based on [HyperContentType].
 class HtmlAdapter {
   static final Map<String, ComputedStyle> _defaultStyles = {
     'h1': ComputedStyle(
@@ -112,17 +121,50 @@ class HtmlAdapter {
     final nodesToProcess =
         _flattenLargeContainers(body.nodes.toList(), chunkSize);
 
-    for (var child in nodesToProcess) {
-      UDTNode? udtNode = _parseNode(child);
+    for (int i = 0; i < nodesToProcess.length; i++) {
+      final child = nodesToProcess[i];
+      final UDTNode? udtNode = _parseNode(child);
 
       if (udtNode != null) {
         currentSection.children.add(udtNode);
         currentSize += _estimateNodeSize(child);
 
         if (currentSize >= chunkSize && udtNode.isBlock) {
-          sections.add(currentSection);
-          currentSection = DocumentNode(children: []);
-          currentSize = 0;
+          // Don't cut here if the LAST added node is a heading (h1–h6) — keep
+          // headings bound to their following content to avoid orphaned headings
+          // at section boundaries ("widow heading" problem).
+          final lastTag = udtNode.tagName?.toLowerCase();
+          final isHeading = lastTag == 'h1' ||
+              lastTag == 'h2' ||
+              lastTag == 'h3' ||
+              lastTag == 'h4' ||
+              lastTag == 'h5' ||
+              lastTag == 'h6';
+
+          // Also check: is the very NEXT sibling a heading that would open the
+          // next section? Pull it into the current section so it leads the
+          // content it belongs to rather than arriving at the top of an empty-
+          // looking next section.
+          bool nextIsHeading = false;
+          if (!isHeading && i + 1 < nodesToProcess.length) {
+            final nextTag = nodesToProcess[i + 1] is dom.Element
+                ? (nodesToProcess[i + 1] as dom.Element)
+                    .localName
+                    ?.toLowerCase()
+                : null;
+            nextIsHeading = nextTag == 'h1' ||
+                nextTag == 'h2' ||
+                nextTag == 'h3' ||
+                nextTag == 'h4' ||
+                nextTag == 'h5' ||
+                nextTag == 'h6';
+          }
+
+          if (!isHeading && !nextIsHeading) {
+            sections.add(currentSection);
+            currentSection = DocumentNode(children: []);
+            currentSize = 0;
+          }
         }
       }
     }

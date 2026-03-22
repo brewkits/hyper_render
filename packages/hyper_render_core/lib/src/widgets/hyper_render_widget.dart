@@ -112,6 +112,13 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// See [RenderHyperBox.suppressFirstBlockMarginTop].
   final bool suppressFirstBlockMarginTop;
 
+  /// Called after each layout pass with anchor id→yOffset map and heading list.
+  /// Used by [HyperViewerController] to power [scrollToId] and TOC generation.
+  final void Function(
+    Map<String, double> offsets,
+    List<({int level, String text, String? cssId, double yOffset})> headings,
+  )? onAnchorLayout;
+
   /// Creates a HyperRenderWidget
   ///
   /// The [document] parameter is required and contains the parsed UDT tree.
@@ -130,6 +137,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.debugShowBounds = false,
     this.enableComplexFilters = true,
     this.suppressFirstBlockMarginTop = false,
+    this.onAnchorLayout,
   }) : super(
             children: _buildChildren(document, widgetBuilder,
                 selectable: selectable));
@@ -628,7 +636,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       onSelectionChanged: onSelectionChanged,
     )..debugShowBounds = debugShowBounds
       ..enableComplexFilters = enableComplexFilters
-      ..suppressFirstBlockMarginTop = suppressFirstBlockMarginTop;
+      ..suppressFirstBlockMarginTop = suppressFirstBlockMarginTop
+      ..onAnchorLayout = onAnchorLayout;
   }
 
   @override
@@ -669,6 +678,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       renderObject.suppressFirstBlockMarginTop = suppressFirstBlockMarginTop;
       renderObject.markNeedsLayout();
     }
+    renderObject.onAnchorLayout = onAnchorLayout;
   }
 }
 

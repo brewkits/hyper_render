@@ -255,7 +255,55 @@ void main() {
         expect(find.byType(HyperViewer), findsOneWidget);
       });
 
-      // TODO: Add tests for virtualized mode with long content
+      testWidgets('renders with virtualized mode',
+          (WidgetTester tester) async {
+        final longContent = List.generate(
+          50,
+          (i) => '<p>Paragraph $i with enough text to be meaningful.</p>',
+        ).join();
+
+        // Virtualized mode uses Future.microtask for async parse — must use
+        // tester.runAsync so the real event loop drives the microtask.
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: HyperViewer(
+                  html: longContent,
+                  mode: HyperRenderMode.virtualized,
+                ),
+              ),
+            ),
+          );
+          await Future<void>.delayed(Duration.zero);
+          await tester.pump();
+        });
+
+        expect(find.byType(HyperViewer), findsOneWidget);
+      });
+
+      testWidgets('auto mode uses virtualized for large content',
+          (WidgetTester tester) async {
+        // Content > 10,000 chars triggers auto → async virtualized path.
+        final largeContent = '<p>${'A' * 400}</p>' * 30; // ~12,000 chars
+
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: HyperViewer(
+                  html: largeContent,
+                  mode: HyperRenderMode.auto,
+                ),
+              ),
+            ),
+          );
+          await Future<void>.delayed(Duration.zero);
+          await tester.pump();
+        });
+
+        expect(find.byType(HyperViewer), findsOneWidget);
+      });
     });
   });
 }

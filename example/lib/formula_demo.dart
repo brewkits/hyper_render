@@ -47,7 +47,7 @@ class _FormulaDemoState extends State<FormulaDemo>
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          unselectedLabelColor: Colors.white,
           indicatorColor: Colors.white,
           isScrollable: true,
           tabs: const [

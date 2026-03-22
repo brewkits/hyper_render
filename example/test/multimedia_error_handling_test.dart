@@ -7,6 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// Validates if a URL is safe and well-formed
 bool _isValidUrl(String? url) {
   if (url == null || url.isEmpty) return false;
+  
+  // Basic validation: reject whitespace and common invalid chars
+  if (url.contains(RegExp(r'[\s<>]'))) return false;
 
   final uri = Uri.tryParse(url);
   if (uri == null) return false;
@@ -14,7 +17,12 @@ bool _isValidUrl(String? url) {
   // Must have a scheme (http, https, etc.)
   if (!uri.hasScheme) return false;
 
-  // Must have a host
+  // Special schemes that don't require a host
+  if (uri.isScheme('data') || uri.isScheme('file') || uri.isScheme('mailto')) {
+    return true;
+  }
+
+  // For web URLs, require a host
   if (uri.host.isEmpty) return false;
 
   return true;

@@ -52,24 +52,58 @@ class FlexContainerWidget extends StatelessWidget {
       final gappedChildren =
           _buildChildrenWithGap(children, mainAxisSpacing, axis);
 
+      // Re-wrap any FlexItemWidget with the correct parentAxis so that
+      // align-self can compute axis-relative Alignment and stretch dimensions.
+      final axisAwareChildren = gappedChildren.map((child) {
+        if (child is FlexItemWidget && child.parentAxis != axis) {
+          return FlexItemWidget(
+            style: child.style,
+            parentAxis: axis,
+            child: child.child,
+          );
+        }
+        return child;
+      }).toList();
+
       if (axis == Axis.horizontal) {
         // Wrap horizontal children in Flexible to prevent overflow.
-        final processedChildren = gappedChildren.map((child) {
+        final processedChildren = axisAwareChildren.map((child) {
           if (child is FlexItemWidget) return child;
           return Flexible(fit: FlexFit.loose, child: child);
         }).toList();
 
+        // IntrinsicHeight is incompatible with Expanded children (FlexItemWidget
+        // with flexGrow > 0 builds Expanded). If any child has flex growth,
+        // skip IntrinsicHeight to avoid the Flutter assertion error:
+        // "RenderFlex children have non-zero flex but incoming height constraints
+        // are unbounded."
+        final hasFlexGrow = axisAwareChildren
+            .any((c) => c is FlexItemWidget && (c.style.flexGrow ?? 0) > 0);
+
+        final effectiveCrossAxis = (crossAxisAlignment ==
+                    CrossAxisAlignment.stretch &&
+                hasFlexGrow)
+            ? CrossAxisAlignment.start
+            : crossAxisAlignment;
+
+        // Also need IntrinsicHeight when any child uses align-self:stretch,
+        // so that SizedBox(height:infinity) in _wrapWithAlignSelf is bounded.
+        final hasAlignSelfStretch = axisAwareChildren.any((c) =>
+            c is FlexItemWidget && c.style.alignSelf == AlignItems.stretch);
+
         Widget row = Row(
           mainAxisAlignment: mainAxisAlignment,
-          crossAxisAlignment: crossAxisAlignment,
+          crossAxisAlignment: effectiveCrossAxis,
           mainAxisSize: MainAxisSize.max,
           textDirection: isReverse ? TextDirection.rtl : TextDirection.ltr,
           children: processedChildren,
         );
-        // CSS align-items:stretch on a horizontal flex requires bounded height.
-        // Wrap with IntrinsicHeight so children stretch to the tallest sibling
-        // height instead of trying to fill an infinite parent (e.g. ListView).
-        if (crossAxisAlignment == CrossAxisAlignment.stretch) {
+        // CSS align-items:stretch or any child's align-self:stretch needs bounded
+        // height.  Wrap with IntrinsicHeight so the cross-axis is finite.
+        // Only safe when no Expanded children exist (already excluded above for
+        // align-items:stretch; align-self:stretch children use SizedBox not Expanded).
+        if (effectiveCrossAxis == CrossAxisAlignment.stretch ||
+            (hasAlignSelfStretch && !hasFlexGrow)) {
           row = IntrinsicHeight(child: row);
         }
         flexWidget = row;
@@ -85,7 +119,7 @@ class FlexContainerWidget extends StatelessWidget {
           mainAxisSize: hasExplicitHeight ? MainAxisSize.max : MainAxisSize.min,
           verticalDirection:
               isReverse ? VerticalDirection.up : VerticalDirection.down,
-          children: gappedChildren.map((child) {
+          children: axisAwareChildren.map((child) {
             if (child is FlexItemWidget) {
               // FlexItemWidget with flex-grow > 0 produces Expanded(flex: N).
               // Expanded inside a Column with unbounded height throws:
@@ -256,10 +290,18 @@ class FlexItemWidget extends StatelessWidget {
   final Widget child;
   final ComputedStyle style;
 
+  /// The main axis of the parent flex container.
+  ///
+  /// Required for `align-self` to apply the correct cross-axis alignment:
+  /// - In a [Row] (horizontal), the cross-axis is vertical → stretch changes height.
+  /// - In a [Column] (vertical), the cross-axis is horizontal → stretch changes width.
+  final Axis parentAxis;
+
   const FlexItemWidget({
     super.key,
     required this.child,
     required this.style,
+    this.parentAxis = Axis.horizontal,
   });
 
   @override
@@ -289,29 +331,55 @@ class FlexItemWidget extends StatelessWidget {
   }
 
   Widget _wrapWithAlignSelf(Widget child, AlignItems? alignSelf) {
-    // align-self overrides the container's align-items for a specific item
-    // This is tricky in Flutter because CrossAxisAlignment is per-container
-    // We can use Align widget to override for a specific child
-    if (alignSelf != null) {
-      Alignment? alignment;
-      switch (alignSelf) {
-        case AlignItems.flexStart:
-          alignment = Alignment.topLeft;
-          break;
-        case AlignItems.flexEnd:
-          alignment = Alignment.bottomRight;
-          break;
-        case AlignItems.center:
-          alignment = Alignment.center;
-          break;
-        case AlignItems.baseline:
-        case AlignItems.stretch:
-          // Baseline and stretch are harder to implement with Align
-          // Just return the child as-is for now
-          return child;
-      }
-      return Align(alignment: alignment, child: child);
+    // align-self overrides the container's align-items for a specific item.
+    // CrossAxisAlignment is per-container in Flutter, so we use Align/SizedBox
+    // per-child as an approximation.
+    //
+    // Alignment is axis-relative:
+    //   Row  (horizontal, cross = vertical):   start=top,   end=bottom
+    //   Column (vertical,   cross = horizontal): start=left,  end=right
+    if (alignSelf == null) return child;
+
+    switch (alignSelf) {
+      case AlignItems.flexStart:
+        final alignment = parentAxis == Axis.horizontal
+            ? Alignment.topCenter    // row: align to top
+            : Alignment.centerLeft;  // column: align to left
+        return Align(alignment: alignment, child: child);
+
+      case AlignItems.flexEnd:
+        final alignment = parentAxis == Axis.horizontal
+            ? Alignment.bottomCenter  // row: align to bottom
+            : Alignment.centerRight;  // column: align to right
+        return Align(alignment: alignment, child: child);
+
+      case AlignItems.center:
+        return Align(alignment: Alignment.center, child: child);
+
+      case AlignItems.stretch:
+        // Fill the cross-axis dimension.
+        //
+        // For Row (horizontal): stretch height.
+        //   FlexContainerWidget wraps the Row with IntrinsicHeight when any
+        //   child has align-self:stretch, so maxHeight is always bounded here.
+        //   SizedBox(height: infinity) is then safely clamped to that bound.
+        //
+        // For Column (vertical): stretch width.
+        //   Column children always receive a bounded maxWidth (screen width),
+        //   so SizedBox(width: infinity) is safe without an explicit guard.
+        if (parentAxis == Axis.horizontal) {
+          return SizedBox(height: double.infinity, child: child);
+        } else {
+          return SizedBox(width: double.infinity, child: child);
+        }
+
+      case AlignItems.baseline:
+        // Baseline alignment requires TextBaseline knowledge at layout time.
+        // Approximating as flex-start is safer than being a no-op for stretch.
+        final alignment = parentAxis == Axis.horizontal
+            ? Alignment.topCenter
+            : Alignment.centerLeft;
+        return Align(alignment: alignment, child: child);
     }
-    return child;
   }
 }

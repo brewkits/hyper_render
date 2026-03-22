@@ -533,14 +533,31 @@ class ErrorBoundaryNode extends UDTNode {
   }) : super(
           type: NodeType.errorBoundary,
           tagName: 'error-boundary',
-        );
+        ) {
+    style.display = DisplayType.block;
+  }
 
   /// Returns the error as a readable string
   String get errorMessage => error?.toString() ?? 'Unknown error';
 
-  /// Returns a shortened stack trace (first 500 chars)
+  /// Returns a shortened stack trace (first 5 lines + "(N more lines)" suffix).
   String get shortStackTrace {
-    final full = stackTrace.toString();
-    return full.length > 500 ? '${full.substring(0, 500)}...' : full;
+    final lines = stackTrace
+        .toString()
+        .split('\n')
+        .where((l) => l.trim().isNotEmpty)
+        .toList();
+    if (lines.length <= 5) return lines.join('\n');
+    final remaining = lines.length - 5;
+    return '${lines.take(5).join('\n')}\n... ($remaining more lines)';
+  }
+
+  @override
+  String toString() {
+    final parts = <String>[
+      '${error?.runtimeType}: $errorMessage',
+      if (friendlyMessage != null) 'message: $friendlyMessage',
+    ];
+    return 'ErrorBoundaryNode(${parts.join(', ')})';
   }
 }

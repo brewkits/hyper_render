@@ -21,26 +21,26 @@ class DemoColors {
 
   /// Accent - Content formats (Teal/Cyan family)
   /// Used for: Quill Delta, Markdown, Code Blocks, Image Handling
-  static const accent = Color(0xFF26A69A); // Teal 400
+  static const accent = Color(0xFF00695C); // Teal 800 — contrast 6.3:1 on white
 
   /// Warning - Media & Performance (Amber/Orange family)
   /// Used for: Video, Zoom, Stress Test
-  static const warning = Color(0xFFFF9800); // Orange 500
+  static const warning = Color(0xFFBF360C); // Deep Orange 900 — contrast 5.6:1 on white
 
   /// Success - Quality & Accessibility (Green family)
   /// Used for: Accessibility, Library Comparison, FWFH Tests
-  static const success = Color(0xFF66BB6A); // Green 400
+  static const success = Color(0xFF2E7D32); // Green 800 — contrast 5.0:1 on white
 
   /// Error - Security & Critical (Red family)
   /// Used for: Security Demo, Critical warnings
-  static const error = Color(0xFFEF5350); // Red 400
+  static const error = Color(0xFFC62828); // Red 900 — contrast 5.6:1 on white
 
   // ============================================
   // NEUTRAL PALETTE
   // ============================================
 
   /// Neutral for less important items
-  static const neutral = Color(0xFF78909C); // Blue Grey 400
+  static const neutral = Color(0xFF546E7A); // Blue Grey 600 — contrast 5.1:1 on white
 
   // ============================================
   // COLOR SEMANTICS

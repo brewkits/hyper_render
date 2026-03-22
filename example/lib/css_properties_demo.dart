@@ -431,7 +431,7 @@ class CssPropertiesDemo extends StatelessWidget {
                     ),
                     Text(
                       'Comprehensive CSS support showcase',
-                      style: TextStyle(fontSize: 13, color: Colors.white70),
+                      style: TextStyle(fontSize: 13, color: Colors.white),
                     ),
                   ],
                 ),
@@ -441,7 +441,7 @@ class CssPropertiesDemo extends StatelessWidget {
           SizedBox(height: 12),
           Text(
             '✅ text-shadow • text-overflow • border-style • direction (RTL/LTR)',
-            style: TextStyle(fontSize: 12, color: Colors.white70),
+            style: TextStyle(fontSize: 12, color: Colors.white),
           ),
         ],
       ),

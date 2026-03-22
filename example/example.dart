@@ -13,7 +13,7 @@
 ///   onLinkTap: (url) => print(url),
 /// )
 /// ```
-library hyper_render_example;
+library;
 
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
