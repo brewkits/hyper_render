@@ -269,6 +269,14 @@ class RenderHyperBox extends RenderBox
     List<({int level, String text, String? cssId, double yOffset})> headings,
   )? onAnchorLayout;
 
+  /// Cached semantic nodes for headings and links.
+  ///
+  /// Reusing the same [SemanticsNode] objects across [assembleSemanticsNode]
+  /// calls avoids the parentDataDirty assertion that fires in debug mode when
+  /// newly created nodes are adopted by [SemanticsNode.updateWith].
+  /// Modelled after the same pattern in Flutter's [RenderParagraph].
+  final List<SemanticsNode> _cachedSemanticAnchorNodes = [];
+
   // ── Per-instance cached Paint objects ─────────────────────────────────────
   //
   // paint() runs at 60 fps during scrolling/animations. Allocating Paint()
@@ -472,6 +480,10 @@ class RenderHyperBox extends RenderBox
     _disposeTextPainters();
     _disposeLinkRecognizers();
     _disposeImages();
+    for (final node in _cachedSemanticAnchorNodes) {
+      if (node.attached) node.detach(); // ignore: invalid_use_of_visible_for_testing_member
+    }
+    _cachedSemanticAnchorNodes.clear();
     super.dispose();
   }
 
@@ -851,20 +863,19 @@ class RenderHyperBox extends RenderBox
       _buildFragmentChildMap();
 
       // Steps 2–6: Measure + line layout.
-      // Skipped when fragments and constraint width are both unchanged —
-      // e.g. a repaint-only trigger (selection change, scroll) that happens
-      // to call performLayout.  Version mismatch forces a full rebuild.
-      // <details> elements can change height dynamically (expand/collapse),
-      // so always redo line layout when the document contains any.
+      // Run full line layout (including text measurement) only when document
+      // content or constraint width has changed.  A <details> expand/collapse
+      // only changes block heights — text fragments are untouched — so
+      // _measureFragments() can be skipped for those frames.
+      final bool fragmentsOrWidthChanged =
+          _linesFragmentsVersion != _fragmentsVersion ||
+          _linesMaxWidth != _maxWidth ||
+          _lines.isEmpty;
       final bool hasDetailsFragments =
           _fragments.any((f) => f is _DetailsFragment);
-      final bool needsLineLayout =
-          _linesFragmentsVersion != _fragmentsVersion ||
-              _linesMaxWidth != _maxWidth ||
-              _lines.isEmpty ||
-              hasDetailsFragments;
 
-      if (needsLineLayout) {
+      if (fragmentsOrWidthChanged) {
+        // Full rebuild: text or constraint width changed.
         // Step 2: Measure all fragments
         _measureFragments();
 
@@ -882,6 +893,15 @@ class RenderHyperBox extends RenderBox
 
         _linesFragmentsVersion = _fragmentsVersion;
         _linesMaxWidth = _maxWidth;
+      } else if (hasDetailsFragments) {
+        // A details child changed height (each animation frame during
+        // expand/collapse).  Re-run line layout to update block y-offsets, but
+        // skip _measureFragments() — TextPainter output is identical because
+        // text content and constraint width are both unchanged.
+        _performLineLayout();
+        _positionFragments();
+        _buildInlineDecorations();
+        _buildCharacterMapping();
       }
 
       // Step 7: Layout child RenderBoxes (always — child constraints may change)
@@ -1110,7 +1130,10 @@ class RenderHyperBox extends RenderBox
       // too loose for mouse clicks (stray drags triggered taps).
       final tapSlop = computeHitSlop(
         event.kind,
-        GestureBinding.instance.gestureSettings,
+        // DeviceGestureSettings is only available via MediaQuery in widget
+        // context; pass null so computeHitSlop falls back to kTouchSlop (18 px)
+        // for touch/stylus and kPrecisePointerHitSlop (1 px) for mouse.
+        null,
       );
       final isTap = downPosition == null ||
           (upPosition - downPosition).distance < tapSlop;
@@ -1130,10 +1153,10 @@ class RenderHyperBox extends RenderBox
                 // The built-in safe set covers standard web links; apps can add
                 // their own deep-link schemes via HyperRenderConfig.extraLinkSchemes
                 // (e.g. 'myapp', 'shopee', 'fb', 'momo').
-                const _builtinSchemes = {'http', 'https', 'mailto', 'tel'};
+                const builtinSchemes = {'http', 'https', 'mailto', 'tel'};
                 final scheme =
                     Uri.tryParse(href)?.scheme.toLowerCase() ?? '';
-                final allowed = _builtinSchemes.contains(scheme) ||
+                final allowed = builtinSchemes.contains(scheme) ||
                     _config.extraLinkSchemes.contains(scheme);
                 if (allowed) {
                   onLinkTap!(href);
@@ -1179,19 +1202,73 @@ class RenderHyperBox extends RenderBox
     SemanticsConfiguration config,
     Iterable<SemanticsNode> children,
   ) {
-    // Use only the children that Flutter's own pipeline provides (child
-    // RenderObjects: HyperDetailsWidget, HyperTable, CodeBlockWidget, etc.).
-    // The full text content is already announced via the `label` set in
-    // describeSemanticsConfiguration.
+    // Build semantic nodes for headings (h1–h6) and links (<a href>).
     //
-    // Previously _buildSemanticNodes() created new SemanticsNode() objects on
-    // every assembleSemanticsNode call.  Newly created nodes are not attached
-    // to the SemanticsOwner, so node.updateWith() calls _adoptChild() on them
-    // which sets parentDataDirty = true.  flushSemantics() then walks the tree
-    // in debug mode and fires '!semantics.parentDataDirty'.
+    // These two element types are the primary WCAG 2.1 AA requirements for
+    // a read-only renderer:
+    //   • Headings: TalkBack/VoiceOver "swipe to next heading" navigation
+    //   • Links:    double-tap to activate via the accessibility service
+    //
+    // Regular paragraph text is announced via the flat `label` set in
+    // describeSemanticsConfiguration and does not need per-fragment nodes.
+    //
+    // We reuse the same SemanticsNode objects across calls (pooled in
+    // _cachedSemanticAnchorNodes) instead of creating new ones every frame.
+    // This mirrors the pattern used by Flutter's own RenderParagraph: newly
+    // created SemanticsNodes get parentDataDirty=true when adopted, which
+    // fires an assertion in flushSemantics() in debug mode.
+    final anchors = _collectSemanticAnchors();
+    final pool = List<SemanticsNode>.of(_cachedSemanticAnchorNodes);
+    final newCache = <SemanticsNode>[];
+
+    for (final anchor in anchors) {
+      // Reuse a pooled node when available; only allocate a new one if needed.
+      final semanticsNode = pool.isNotEmpty ? pool.removeAt(0) : SemanticsNode();
+      newCache.add(semanticsNode);
+
+      final cfg = SemanticsConfiguration()
+        ..textDirection = _textDirection
+        ..label = anchor.label;
+
+      if (anchor.isHeading) {
+        cfg.isHeader = true;
+      } else {
+        cfg.isLink = true;
+        final href = anchor.href;
+        if (href != null && onLinkTap != null) {
+          cfg.onTap = () {
+            // Reuse the same scheme-allow-list logic as pointer events.
+            const builtinSchemes = {'http', 'https', 'mailto', 'tel'};
+            final scheme = Uri.tryParse(href)?.scheme.toLowerCase() ?? '';
+            if (builtinSchemes.contains(scheme) ||
+                _config.extraLinkSchemes.contains(scheme)) {
+              onLinkTap!(href);
+            }
+          };
+        }
+      }
+
+      semanticsNode
+        ..rect = anchor.rect
+        ..updateWith(config: cfg, childrenInInversePaintOrder: const []);
+    }
+
+    // Detach any surplus cached nodes (document shrank or anchor count dropped).
+    for (final stale in pool) {
+      if (stale.attached) stale.detach(); // ignore: invalid_use_of_visible_for_testing_member
+    }
+    _cachedSemanticAnchorNodes
+      ..clear()
+      ..addAll(newCache);
+
     node.updateWith(
       config: config,
-      childrenInInversePaintOrder: children.toList(),
+      // Anchors first (painted below child widgets), then child RenderObjects
+      // (HyperDetailsWidget, HyperTable, CodeBlockWidget, etc.).
+      childrenInInversePaintOrder: [
+        ..._cachedSemanticAnchorNodes.reversed,
+        ...children,
+      ],
     );
   }
 
