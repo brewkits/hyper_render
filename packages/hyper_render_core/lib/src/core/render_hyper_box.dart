@@ -237,12 +237,6 @@ class RenderHyperBox extends RenderBox
   /// Rebuilt at the end of [_layoutChildren]; cleared by [_invalidateLayout].
   final Map<Fragment, RenderBox> _fragmentChildMap = {};
 
-  /// Maps UDTNode → its bounding Rect for O(1) accessibility lookup.
-  /// Built at the end of [performLayout] after all fragment offsets are set;
-  /// cleared by [_invalidateLayout]. Used by [_getNodeRect] so that
-  /// VoiceOver/TalkBack semantics queries are instant rather than O(fragments).
-  final Map<UDTNode, Rect> _nodeRectCache = {};
-
   /// Maps CSS `id` attribute values → their y-offset within this RenderObject.
   /// Populated during [_performLineLayout]; cleared by [_invalidateLayout].
   /// Consumed by [HyperViewerController.scrollToId].
@@ -503,7 +497,7 @@ class RenderHyperBox extends RenderBox
     _characterToFragment.clear();
     _fragmentRanges.clear();
     _fragmentChildMap.clear();
-    _nodeRectCache.clear();
+
     anchorOffsets.clear();
     headingAnchors.clear();
     _totalCharacterCount = 0;
@@ -846,10 +840,6 @@ class RenderHyperBox extends RenderBox
       // Step 7: Layout child RenderBoxes (always — child constraints may change)
       _layoutChildren();
 
-      // Step 8: Build node→Rect cache for O(1) accessibility queries.
-      // Done here (after _layoutChildren) so child-widget offsets are final.
-      _buildNodeRectCache();
-
       // Calculate final size
       double height = 0;
       if (_lines.isNotEmpty) {
@@ -1112,42 +1102,26 @@ class RenderHyperBox extends RenderBox
       ..textDirection = _textDirection;
   }
 
-  /// Fragment count above which we skip per-node semantic tree building.
-  ///
-  /// Building thousands of [SemanticsNode]s for large documents causes
-  /// measurable TalkBack/VoiceOver jank because every `updateWith` call
-  /// triggers a synchronous tree diff on the accessibility thread.
-  ///
-  /// Above this threshold we fall back to Flutter's default flat semantics
-  /// (the coarse document-level label set in [describeSemanticsConfiguration]).
-  /// Interactive elements like links already receive individual nodes from
-  /// Flutter's own semantics pipeline, so screen-reader users keep tap targets.
-  static const int _kSemanticNodeBuildThreshold = 500;
-
   @override
   void assembleSemanticsNode(
     SemanticsNode node,
     SemanticsConfiguration config,
     Iterable<SemanticsNode> children,
   ) {
-    final doc = _document;
-    if (doc != null && _fragments.length <= _kSemanticNodeBuildThreshold) {
-      final semanticNodes = <SemanticsNode>[];
-      _buildSemanticNodes(doc, semanticNodes, node);
-      node.updateWith(
-        config: config,
-        childrenInInversePaintOrder:
-            semanticNodes.isNotEmpty ? semanticNodes : children.toList(),
-      );
-    } else {
-      // Large document or no document: use flat children provided by Flutter's
-      // semantics pipeline. The document-level label (set in
-      // describeSemanticsConfiguration) remains readable for screen readers.
-      node.updateWith(
-        config: config,
-        childrenInInversePaintOrder: children.toList(),
-      );
-    }
+    // Use only the children that Flutter's own pipeline provides (child
+    // RenderObjects: HyperDetailsWidget, HyperTable, CodeBlockWidget, etc.).
+    // The full text content is already announced via the `label` set in
+    // describeSemanticsConfiguration.
+    //
+    // Previously _buildSemanticNodes() created new SemanticsNode() objects on
+    // every assembleSemanticsNode call.  Newly created nodes are not attached
+    // to the SemanticsOwner, so node.updateWith() calls _adoptChild() on them
+    // which sets parentDataDirty = true.  flushSemantics() then walks the tree
+    // in debug mode and fires '!semantics.parentDataDirty'.
+    node.updateWith(
+      config: config,
+      childrenInInversePaintOrder: children.toList(),
+    );
   }
 
   @override
