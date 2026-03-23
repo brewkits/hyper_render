@@ -12,6 +12,8 @@ dependencies:
     sdk: flutter
   flutter_web_plugins:
     sdk: flutter
+  # DevTools extension SDK — connects the panel to the running app's VM service.
+  devtools_extensions: ^0.2.0
 
 flutter:
   uses-material-design: true

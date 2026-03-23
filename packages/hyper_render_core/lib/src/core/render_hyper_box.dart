@@ -14,6 +14,7 @@ import '../model/computed_style.dart';
 import '../model/fragment.dart';
 import '../model/node.dart';
 import 'hyper_render_config.dart';
+import 'hyper_render_debug_hooks.dart';
 import 'image_provider.dart';
 import 'kinsoku_processor.dart';
 import 'lazy_image_queue.dart';
@@ -303,6 +304,13 @@ class RenderHyperBox extends RenderBox
   /// Default float size when not specified in CSS
   static const double defaultFloatSize = 100.0;
 
+  /// Stable identifier for this renderer instance.
+  ///
+  /// Used by [HyperRenderDebugHooks] so DevTools can address a specific
+  /// renderer across layout passes.  Based on identity hash so it never
+  /// changes for the lifetime of this object.
+  late final String _debugId = 'r${identityHashCode(this).toRadixString(16)}';
+
   RenderHyperBox({
     DocumentNode? document,
     TextStyle baseStyle =
@@ -426,6 +434,17 @@ class RenderHyperBox extends RenderBox
     super.attach(owner);
     // Load images when attached
     _loadImages();
+    if (kDebugMode) {
+      HyperRenderDebugHooks.onRendererAttached?.call(_debugId, () => _document);
+    }
+  }
+
+  @override
+  void detach() {
+    if (kDebugMode) {
+      HyperRenderDebugHooks.onRendererDetached?.call(_debugId);
+    }
+    super.detach();
   }
 
   @override
@@ -888,6 +907,17 @@ class RenderHyperBox extends RenderBox
         onAnchorLayout!(
           Map.unmodifiable(anchorOffsets),
           List.unmodifiable(headingAnchors),
+        );
+      }
+
+      // Notify DevTools of layout completion (debug mode only, no-op if no
+      // listener is registered — HyperRenderDebugHooks.onLayoutComplete is
+      // null in release builds and when devtools is not initialised).
+      if (kDebugMode) {
+        HyperRenderDebugHooks.onLayoutComplete?.call(
+          _debugId,
+          debugFragments,
+          debugLines,
         );
       }
     } catch (e, stack) {
