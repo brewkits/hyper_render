@@ -157,8 +157,15 @@ class RenderHyperBox extends RenderBox
   /// Block decorations for painting border-left, backgrounds
   final List<_BlockDecoration> _blockDecorations = [];
 
-  /// Image cache
-  final Map<String, CachedImage> _imageCache = {};
+  /// LRU image cache — bounded by [HyperRenderConfig.imageCacheSize].
+  ///
+  /// Evicting an entry calls [ui.Image.dispose] to release the GPU texture.
+  /// If a paint pass requests a URL that was evicted, [_paintImage] shows a
+  /// shimmer and schedules a re-fetch via [addPostFrameCallback].
+  late final _LruCache<String, CachedImage> _imageCache = _LruCache(
+    maxSize: _config.imageCacheSize,
+    onEvict: (ci) => ci.image?.dispose(),
+  );
 
   /// Shimmer animation state.
   /// [_shimmerEpoch] marks when animation started; null = not animating.
@@ -495,13 +502,9 @@ class RenderHyperBox extends RenderBox
   }
 
   void _disposeImages() {
-    // BUG-C FIX: ui.Image is a native GPU resource that must be explicitly
-    // disposed. Calling _imageCache.clear() without dispose() leaks GPU
-    // texture memory — the Dart GC cannot free it. This matters especially
-    // when documents with many images are swapped frequently.
-    for (final entry in _imageCache.values) {
-      entry.image?.dispose();
-    }
+    // _LruCache.clear() calls onEvict on every entry, which calls
+    // ci.image?.dispose().  The Dart GC cannot release the native GPU texture
+    // backing a ui.Image — only dispose() does that.
     _imageCache.clear();
   }
 
@@ -629,7 +632,7 @@ class RenderHyperBox extends RenderBox
   }
 
   void _loadImage(String src, {int priority = 999999}) {
-    _imageCache[src] = const CachedImage(state: ImageLoadState.loading);
+    _imageCache.put(src, const CachedImage(state: ImageLoadState.loading));
     // Start the shimmer animation loop as soon as the first image starts loading.
     if (attached) _ensureShimmerRunning();
 
@@ -649,10 +652,10 @@ class RenderHyperBox extends RenderBox
           image.dispose();
           return;
         }
-        _imageCache[src] = CachedImage(
+        _imageCache.put(src, CachedImage(
           image: image,
           state: ImageLoadState.loaded,
-        );
+        ));
         // Invalidate fragments so _tokenizeAtomic re-reads actual image
         // dimensions. Preserves text painter cache (text metrics unchanged).
         _invalidateFragments();
@@ -661,10 +664,10 @@ class RenderHyperBox extends RenderBox
       },
       onError: (Object error) {
         if (!attached) return;
-        _imageCache[src] = CachedImage(
+        _imageCache.put(src, CachedImage(
           state: ImageLoadState.error,
           error: error.toString(),
-        );
+        ));
         markNeedsPaint();
       },
     );
