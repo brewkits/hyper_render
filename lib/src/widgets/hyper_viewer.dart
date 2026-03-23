@@ -54,6 +54,19 @@ class HyperViewer extends StatefulWidget {
   final HyperRenderMode mode;
   final bool selectable;
   final Function(String)? onLinkTap;
+
+  /// Additional URL schemes allowed by [onLinkTap], beyond the built-in
+  /// whitelist (`http`, `https`, `mailto`, `tel`).
+  ///
+  /// Enterprise apps with custom deeplinks should list their schemes here:
+  /// ```dart
+  /// HyperViewer(
+  ///   html: content,
+  ///   onLinkTap: _handleLink,
+  ///   allowedCustomSchemes: ['myapp', 'shopee', 'momo'],
+  /// )
+  /// ```
+  final List<String>? allowedCustomSchemes;
   final HyperWidgetBuilder? widgetBuilder;
   final WidgetBuilder? placeholderBuilder;
 
@@ -311,6 +324,7 @@ class HyperViewer extends StatefulWidget {
     this.mode = HyperRenderMode.auto,
     this.selectable = true,
     this.onLinkTap,
+    this.allowedCustomSchemes,
     this.widgetBuilder,
     this.placeholderBuilder,
     this.fallbackBuilder,
@@ -356,6 +370,7 @@ class HyperViewer extends StatefulWidget {
     this.mode = HyperRenderMode.auto,
     this.selectable = true,
     this.onLinkTap,
+    this.allowedCustomSchemes,
     this.widgetBuilder,
     this.placeholderBuilder,
     this.fallbackBuilder,
@@ -401,6 +416,7 @@ class HyperViewer extends StatefulWidget {
     this.mode = HyperRenderMode.auto,
     this.selectable = true,
     this.onLinkTap,
+    this.allowedCustomSchemes,
     this.widgetBuilder,
     this.placeholderBuilder,
     this.fallbackBuilder,
@@ -448,6 +464,7 @@ class HyperViewer extends StatefulWidget {
     required DocumentNode document,
     this.selectable = true,
     this.onLinkTap,
+    this.allowedCustomSchemes,
     this.widgetBuilder,
     this.enableZoom = false,
     this.minScale = 0.5,
@@ -486,7 +503,7 @@ class HyperViewer extends StatefulWidget {
 }
 
 class _HyperViewerState extends State<HyperViewer>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _contentFadeController;
   late final Animation<double> _contentFadeAnimation;
   // Dùng cho chế độ Sync
@@ -503,6 +520,7 @@ class _HyperViewerState extends State<HyperViewer>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _contentFadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -532,21 +550,43 @@ class _HyperViewerState extends State<HyperViewer>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _contentFadeController.dispose();
     super.dispose();
+  }
+
+  /// Called by the system when available memory is low.
+  /// Clears TextPainter and image caches in all active RenderHyperBox
+  /// instances to free native GPU and Dart heap memory.
+  @override
+  void didHaveMemoryPressure() {
+    void clearBox(RenderObject obj) {
+      if (obj is RenderHyperBox) {
+        obj.clearMemoryCaches();
+      }
+      obj.visitChildren(clearBox);
+    }
+
+    final ro = context.findRenderObject();
+    if (ro != null) clearBox(ro);
   }
 
   static const _kAllowedSchemes = {'http', 'https', 'mailto', 'tel'};
 
   /// Returns a wrapped [onLinkTap] callback that validates the URL scheme
   /// before forwarding to the user-supplied handler.
-  /// Only [http], [https], [mailto], and [tel] schemes are allowed.
+  ///
+  /// Built-in whitelist: `http`, `https`, `mailto`, `tel`.
+  /// Extend with [HyperViewer.allowedCustomSchemes] for app-specific deeplinks.
   Function(String)? get _safeOnLinkTap {
     final handler = widget.onLinkTap;
     if (handler == null) return null;
     return (String url) {
       final scheme = Uri.tryParse(url)?.scheme.toLowerCase() ?? '';
-      if (_kAllowedSchemes.contains(scheme)) {
+      final customSchemes = widget.allowedCustomSchemes;
+      final isAllowed = _kAllowedSchemes.contains(scheme) ||
+          (customSchemes != null && customSchemes.contains(scheme));
+      if (isAllowed) {
         handler(url);
       } else {
         assert(() {

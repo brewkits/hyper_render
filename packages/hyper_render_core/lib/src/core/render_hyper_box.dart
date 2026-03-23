@@ -427,6 +427,25 @@ class RenderHyperBox extends RenderBox
     super.dispose();
   }
 
+  /// Releases in-memory caches without destroying the render object.
+  ///
+  /// Call this when the system signals low memory (e.g. from
+  /// [WidgetsBindingObserver.didHaveMemoryPressure]). Text painters and
+  /// images will be re-created on the next layout/paint pass.
+  ///
+  /// ```dart
+  /// // In your State:
+  /// @override
+  /// void didHaveMemoryPressure() {
+  ///   (context.findRenderObject() as RenderHyperBox?)?.clearMemoryCaches();
+  /// }
+  /// ```
+  void clearMemoryCaches() {
+    _disposeTextPainters();
+    _disposeImages();
+    markNeedsLayout(); // Re-measure text after cache clear
+  }
+
   void _disposeTextPainters() {
     // LRU cache will call dispose on each painter via onEvict callback
     _textPainters.clear();
@@ -822,9 +841,14 @@ class RenderHyperBox extends RenderBox
         );
       }
     } catch (e, stack) {
-      // Error boundary: Catch layout errors to prevent full app crash
-      debugPrint('HyperRender layout error: $e');
-      debugPrintStack(stackTrace: stack);
+      // Error boundary: prevent full app crash, but report to Flutter framework
+      // so Crashlytics / Sentry / FlutterError.onError can capture it.
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: e,
+        stack: stack,
+        library: 'HyperRender',
+        context: ErrorDescription('during performLayout() in RenderHyperBox'),
+      ));
 
       // Fallback: Render minimum viable size to show something
       size = constraints.constrain(Size(constraints.maxWidth, 0));
@@ -871,9 +895,14 @@ class RenderHyperBox extends RenderBox
         _paintDebugBounds(canvas, offset);
       }
     } catch (e, stack) {
-      // Error boundary: Catch paint errors to prevent full app crash
-      debugPrint('HyperRender paint error: $e');
-      debugPrintStack(stackTrace: stack);
+      // Error boundary: prevent full app crash, but report to Flutter framework
+      // so Crashlytics / Sentry / FlutterError.onError can capture it.
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: e,
+        stack: stack,
+        library: 'HyperRender',
+        context: ErrorDescription('during paint() in RenderHyperBox'),
+      ));
 
       // Fallback: Paint error indicator (red box) to show something went wrong
       final paint = Paint()
