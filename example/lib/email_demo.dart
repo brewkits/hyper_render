@@ -143,6 +143,7 @@ class _EmailTab extends StatelessWidget {
               child: HyperViewer(
                 html: html,
                 selectable: true,
+                shrinkWrap: true,
                 onLinkTap: (url) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

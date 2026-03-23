@@ -60,6 +60,7 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
                 </blockquote>
               ''',
               selectable: true,
+              shrinkWrap: true,
               selectionMenuActionsBuilder: (overlayState) {
                 return [
                   // Default actions
@@ -114,6 +115,7 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
                 </article>
               ''',
               selectable: true,
+              shrinkWrap: true,
               selectionMenuActionsBuilder: (overlayState) {
                 return [
                   SelectionMenuAction(
@@ -163,17 +165,20 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
             title: '3. Custom Colors & Icons',
             description: 'Themed selection with custom handle color',
             child: HyperViewer(
+              // Use dark text on light purple background so content is always
+              // readable — avoids invisible white-text-on-unrendered-bg issue.
               html: '''
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            padding: 24px; border-radius: 12px; color: white;">
-                  <h2 style="color: white;">Gradient Theme</h2>
-                  <p style="color: rgba(255,255,255,0.9);">
-                    This example shows custom selection handle colors.
-                    Try selecting this text to see purple handles and a custom menu!
+                <div style="background: #ede7f6; border: 2px solid #7e57c2;
+                            padding: 20px; border-radius: 12px;">
+                  <h2 style="color: #4527a0; margin: 0 0 10px 0;">Purple Theme</h2>
+                  <p style="color: #37474f; margin: 0; line-height: 1.7;">
+                    This example shows <strong style="color: #4527a0;">custom selection handle colors</strong>.
+                    Try selecting this text to see <em>purple handles</em> and a custom context menu!
                   </p>
                 </div>
               ''',
               selectable: true,
+              shrinkWrap: true,
               selectionHandleColor: Colors.purple,
               selectionMenuActionsBuilder: (overlayState) {
                 return [

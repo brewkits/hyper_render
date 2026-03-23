@@ -18,22 +18,24 @@ class WhyHyperRenderDemo extends StatelessWidget {
 <div style="font-family: sans-serif; line-height: 1.7; color: #1a1a2e;">
 
   <!-- ── 1. Float Layout ── -->
-  <div style="background:#5c35a5;
+  <!-- Use dark text on light background so content is always readable,
+       regardless of whether the block background-color renders. -->
+  <div style="background: #ede7f6; border: 2px solid #7e57c2;
               padding: 16px 20px; border-radius: 14px; margin-bottom: 20px;">
-    <p style="color: white; font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
-              margin: 0 0 6px 0; text-transform: uppercase; opacity: 0.85;">
+    <p style="color: #4527a0; font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+              margin: 0 0 6px 0; text-transform: uppercase;">
       ① Exclusive Feature
     </p>
-    <p style="color: white; font-size: 18px; font-weight: 800; margin: 0 0 12px 0;">
+    <p style="color: #311b92; font-size: 18px; font-weight: 800; margin: 0 0 12px 0;">
       Float Layout — Like Real Browsers
     </p>
     <img src="https://picsum.photos/seed/hr_why1/90/90"
          style="float: left; width: 90px; height: 90px; border-radius: 10px;
-                margin: 0 14px 6px 0; border: 2px solid rgba(255,255,255,0.4);" />
-    <p style="color: rgba(255,255,255,0.92); font-size: 14px; margin: 0;">
+                margin: 0 14px 6px 0; border: 2px solid #7e57c2;" />
+    <p style="color: #37474f; font-size: 14px; margin: 0; line-height: 1.7;">
       This text wraps around the floated image exactly like a browser.
       HyperRender implements the full IFC (Inline Formatting Context) algorithm.
-      <strong style="color: white;">flutter_html and fwfh cannot do this.</strong>
+      <strong style="color: #311b92;">flutter_html and fwfh cannot do this.</strong>
       The text continues below the image when it runs out of space beside it.
     </p>
     <div style="clear: both;"></div>
@@ -308,6 +310,15 @@ class WhyHyperRenderDemo extends StatelessWidget {
               html: _showcaseHtml,
               mode: HyperRenderMode.sync,
               selectable: true,
+              // shrinkWrap: true is required when embedding a selectable
+              // HyperViewer inside a ListView.  Without it, HyperViewer wraps
+              // in its own SingleChildScrollView which:
+              //   1. Intercepts vertical drag before the outer ListView —
+              //      the scroll gesture conflict makes it impossible to scroll
+              //      down the page after a long-press selection starts.
+              //   2. Breaks copy-to-clipboard: the selection popup positions
+              //      itself relative to the inner scroll offset, not the screen.
+              shrinkWrap: true,
             ),
           ),
           const SizedBox(height: 16),
@@ -319,6 +330,7 @@ class WhyHyperRenderDemo extends StatelessWidget {
             child: HyperViewer(
               html: _matrixHtml,
               mode: HyperRenderMode.sync,
+              shrinkWrap: true,
             ),
           ),
           const SizedBox(height: 16),
