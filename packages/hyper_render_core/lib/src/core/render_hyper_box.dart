@@ -681,8 +681,11 @@ class RenderHyperBox extends RenderBox
           fragment.type == FragmentType.ruby) {
         // Ensure fragment is measured if it hasn't been already
         if (fragment.measuredSize == null) _measureFragment(fragment);
-        if (fragment.width > maxWidth) {
-          maxWidth = fragment.width;
+        // Guard against negative/NaN widths (e.g. unloaded image or ZWJ glyph
+        // before its font is ready).
+        final w = fragment.width;
+        if (w.isFinite && w > maxWidth) {
+          maxWidth = w;
         }
       }
     }
@@ -723,7 +726,13 @@ class RenderHyperBox extends RenderBox
       } else if (fragment.type == FragmentType.text ||
           fragment.type == FragmentType.atomic ||
           fragment.type == FragmentType.ruby) {
-        lineWidth += fragment.width;
+        // Guard against negative or NaN widths that can arise when a ZWJ
+        // sequence is measured before its font is loaded, or when an atomic
+        // fragment has not yet received its intrinsic size from the image
+        // decoder.  Such values would produce garbage (negative) results that
+        // confuse IntrinsicWidth parents and trigger assertion failures.
+        final w = fragment.width;
+        if (w.isFinite && w > 0) lineWidth += w;
       }
     }
     flushLine(); // flush any trailing line
@@ -1084,6 +1093,18 @@ class RenderHyperBox extends RenderBox
       ..textDirection = _textDirection;
   }
 
+  /// Fragment count above which we skip per-node semantic tree building.
+  ///
+  /// Building thousands of [SemanticsNode]s for large documents causes
+  /// measurable TalkBack/VoiceOver jank because every `updateWith` call
+  /// triggers a synchronous tree diff on the accessibility thread.
+  ///
+  /// Above this threshold we fall back to Flutter's default flat semantics
+  /// (the coarse document-level label set in [describeSemanticsConfiguration]).
+  /// Interactive elements like links already receive individual nodes from
+  /// Flutter's own semantics pipeline, so screen-reader users keep tap targets.
+  static const int _kSemanticNodeBuildThreshold = 500;
+
   @override
   void assembleSemanticsNode(
     SemanticsNode node,
@@ -1091,7 +1112,7 @@ class RenderHyperBox extends RenderBox
     Iterable<SemanticsNode> children,
   ) {
     final doc = _document;
-    if (doc != null) {
+    if (doc != null && _fragments.length <= _kSemanticNodeBuildThreshold) {
       final semanticNodes = <SemanticsNode>[];
       _buildSemanticNodes(doc, semanticNodes, node);
       node.updateWith(
@@ -1100,6 +1121,9 @@ class RenderHyperBox extends RenderBox
             semanticNodes.isNotEmpty ? semanticNodes : children.toList(),
       );
     } else {
+      // Large document or no document: use flat children provided by Flutter's
+      // semantics pipeline. The document-level label (set in
+      // describeSemanticsConfiguration) remains readable for screen readers.
       node.updateWith(
         config: config,
         childrenInInversePaintOrder: children.toList(),
