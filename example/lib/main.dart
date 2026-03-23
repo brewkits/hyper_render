@@ -29,6 +29,7 @@ import 'cjk_languages_demo.dart';
 import 'email_demo.dart';
 import 'stress_test_demo.dart';
 import 'why_hyper_render_demo.dart';
+import 'enterprise_features_demo.dart';
 
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
@@ -231,6 +232,14 @@ class DemoHomePage extends StatelessWidget {
             subtitle: 'XSS protection, screen reader support, WebView fallback detection',
             color: DemoColors.success,
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _QualityHubPage())),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.business_center,
+            title: 'Enterprise Features',
+            subtitle: 'GPU resource safety, error routing, device tuning, deeplink security, zoom modes',
+            color: const Color(0xFF1A237E),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EnterpriseFeaturesDemo())),
           ),
         ],
       ),
