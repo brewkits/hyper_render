@@ -13,6 +13,7 @@ import 'package:flutter/widgets.dart';
 import '../model/computed_style.dart';
 import '../model/fragment.dart';
 import '../model/node.dart';
+import 'hyper_render_config.dart';
 import 'image_provider.dart';
 import 'kinsoku_processor.dart';
 import 'lazy_image_queue.dart';
@@ -131,13 +132,15 @@ class RenderHyperBox extends RenderBox
   final List<_FloatArea> _leftFloats = [];
   final List<_FloatArea> _rightFloats = [];
 
-  /// Text painters cache (for measuring and painting text)
-  /// Uses LRU cache with max 5000 entries for large documents (e.g., novel reading apps)
-  /// The LRU eviction ensures memory stays bounded while keeping frequently used painters
-  /// Larger cache = better performance for stress tests with 500+ pages
-  /// 5000 entries ≈ ~20MB memory for typical text styles
+  /// Engine configuration — tunable cache sizes, concurrency, chunk size.
+  /// Defaults to [HyperRenderConfig.defaults] (5000 TextPainters, 3 concurrent
+  /// image loads, 6000-char virtualization chunks).
+  HyperRenderConfig _config;
+
+  /// Text painters cache. Size driven by [HyperRenderConfig.textPainterCacheSize].
+  /// The LRU eviction calls [TextPainter.dispose] so native resources are freed.
   late final _LruCache<int, TextPainter> _textPainters = _LruCache(
-    maxSize: 5000,
+    maxSize: _config.textPainterCacheSize,
     onEvict: (painter) => painter.dispose(),
   );
 
@@ -290,8 +293,10 @@ class RenderHyperBox extends RenderBox
   /// The [_maxWidth] value when _lines was last successfully built.
   double _linesMaxWidth = double.nan;
 
-  /// Default placeholder size for images without dimensions
-  static const double _defaultImageWidth = 200.0;
+  /// Default placeholder width for images without known dimensions.
+  /// Driven by [HyperRenderConfig.defaultImagePlaceholderWidth].
+  double get _defaultImageWidth => _config.defaultImagePlaceholderWidth;
+
   // Note: default height is computed from width / aspect ratio
   static const double _defaultAspectRatio = 16.0 / 9.0;
 
@@ -314,12 +319,19 @@ class RenderHyperBox extends RenderBox
     TextDirection textDirection = TextDirection.ltr,
     Color? selectionColor,
     this.onSelectionChanged,
+    HyperRenderConfig config = HyperRenderConfig.defaults,
   })  : _document = document,
         _baseStyle = baseStyle,
         _imageLoader = imageLoader,
         _selectable = selectable,
         _textDirection = textDirection,
-        _selectionColor = selectionColor;
+        _selectionColor = selectionColor,
+        _config = config {
+    // Apply image concurrency from config to the global queue.
+    // The queue is a singleton; last writer wins — set once per widget tree
+    // via HyperViewer.renderConfig to avoid conflicts.
+    LazyImageQueue.instance.maxConcurrent = config.imageConcurrency;
+  }
 
   // ============================================
   // Properties
@@ -342,6 +354,17 @@ class RenderHyperBox extends RenderBox
     if (_baseStyle == value) return;
     _baseStyle = value;
     _invalidateLayout();
+    markNeedsLayout();
+  }
+
+  HyperRenderConfig get config => _config;
+  set config(HyperRenderConfig value) {
+    if (_config == value) return;
+    _config = value;
+    LazyImageQueue.instance.maxConcurrent = value.imageConcurrency;
+    // TextPainter cache size cannot be changed on an existing LRU instance
+    // (the late-final field is already initialized). Changing cache size
+    // requires a full layout invalidation so the cache is rebuilt next frame.
     markNeedsLayout();
   }
 

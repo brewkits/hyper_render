@@ -67,6 +67,25 @@ class HyperViewer extends StatefulWidget {
   /// )
   /// ```
   final List<String>? allowedCustomSchemes;
+
+  /// Engine performance configuration.
+  ///
+  /// Use this to tune cache sizes and concurrency for your target device tier:
+  ///
+  /// ```dart
+  /// // Low-end Android (≤ 2 GB RAM)
+  /// HyperViewer(
+  ///   html: content,
+  ///   renderConfig: HyperRenderConfig(
+  ///     textPainterCacheSize: 500,
+  ///     imageConcurrency: 2,
+  ///     virtualizationChunkSize: 3000,
+  ///   ),
+  /// )
+  /// ```
+  ///
+  /// Defaults to [HyperRenderConfig.defaults] which is tuned for mid-range devices.
+  final HyperRenderConfig renderConfig;
   final HyperWidgetBuilder? widgetBuilder;
   final WidgetBuilder? placeholderBuilder;
 
@@ -353,6 +372,7 @@ class HyperViewer extends StatefulWidget {
     this.physics,
     this.onError,
     this.controller,
+    this.renderConfig = HyperRenderConfig.defaults,
   })  : content = html,
         contentType = HyperContentType.html,
         _prebuiltDocument = null;
@@ -399,6 +419,7 @@ class HyperViewer extends StatefulWidget {
     this.physics,
     this.onError,
     this.controller,
+    this.renderConfig = HyperRenderConfig.defaults,
   })  : content = delta,
         contentType = HyperContentType.delta,
         _prebuiltDocument = null;
@@ -445,6 +466,7 @@ class HyperViewer extends StatefulWidget {
     this.physics,
     this.onError,
     this.controller,
+    this.renderConfig = HyperRenderConfig.defaults,
   })  : content = markdown,
         contentType = HyperContentType.markdown,
         _prebuiltDocument = null;
@@ -483,6 +505,7 @@ class HyperViewer extends StatefulWidget {
     this.shrinkWrap = false,
     this.physics,
     this.controller,
+    this.renderConfig = HyperRenderConfig.defaults,
   })  : content = '',
         contentType = HyperContentType.html,
         mode = HyperRenderMode.sync,
@@ -690,7 +713,7 @@ class _HyperViewerState extends State<HyperViewer>
 
         // Capture parse ID before async gap to detect stale results.
         final currentParseId = ++_parseId;
-        compute(_parseAndChunk, (contentToRender, cssToApply)).then((sections) {
+        compute(_parseAndChunk, (contentToRender, cssToApply, widget.renderConfig.virtualizationChunkSize)).then((sections) {
           if (mounted && _parseId == currentParseId) {
             setState(() {
               _sections = sections;
@@ -751,13 +774,12 @@ class _HyperViewerState extends State<HyperViewer>
 
   // Static function that runs in an isolate — must not capture context.
   // Accepts a (html, css) record so CSS rules are available inside the isolate.
-  static List<DocumentNode> _parseAndChunk((String, String) args) {
-    final (html, css) = args;
+  static List<DocumentNode> _parseAndChunk((String, String, int) args) {
+    final (html, css, chunkSize) = args;
     final adapter = HtmlAdapter();
-    // chunkSize 6000: keeps each RenderHyperBox well under GPU texture limits
-    // (~4096px physical on most devices). Smaller chunks spread layout cost
-    // across frames and reduce peak memory vs the old 25000 setting.
-    final sections = adapter.parseToSections(html, chunkSize: 6000);
+    // chunkSize: keeps each RenderHyperBox well under GPU texture limits
+    // (~4096px physical on most devices). Configurable via HyperRenderConfig.
+    final sections = adapter.parseToSections(html, chunkSize: chunkSize);
 
     // Resolve styles in the isolate so the main thread doesn't bear the cost.
     final resolver = StyleResolver();
@@ -851,6 +873,7 @@ class _HyperViewerState extends State<HyperViewer>
                 widgetBuilder: widget.widgetBuilder,
                 debugShowBounds: widget.debugShowHyperRenderBounds,
                 enableComplexFilters: widget.enableComplexFilters,
+                config: widget.renderConfig,
                 // Suppress the first block's top margin on all sections after
                 // the first. This prevents double-spacing at section
                 // boundaries in virtualized mode: without suppression, section
@@ -893,6 +916,7 @@ class _HyperViewerState extends State<HyperViewer>
           widgetBuilder: widget.widgetBuilder,
           debugShowBounds: widget.debugShowHyperRenderBounds,
           onAnchorLayout: widget.controller?._onAnchorLayout,
+          config: widget.renderConfig,
         );
       }
 

@@ -368,7 +368,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         } else {
           // No dimensions specified - use responsive placeholder
           // Width fills available space (with margin), height maintains 16:9 ratio
-          width = math.min(RenderHyperBox._defaultImageWidth, maxW);
+          width = math.min(_defaultImageWidth, maxW);
           height = width / RenderHyperBox._defaultAspectRatio;
         }
       }
@@ -1448,7 +1448,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           sourceNode.intrinsicWidth ??
               sourceNode.style.width ??
               sourceNode.style.maxWidth ??
-              RenderHyperBox._defaultImageWidth,
+              _defaultImageWidth,
           availableWidth,
         );
         height = sourceNode.intrinsicHeight ??

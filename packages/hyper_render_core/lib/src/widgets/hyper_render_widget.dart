@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/hyper_render_config.dart';
 import '../core/image_provider.dart';
 import '../core/render_formula.dart';
 import '../core/render_hyper_box.dart';
@@ -119,6 +120,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     List<({int level, String text, String? cssId, double yOffset})> headings,
   )? onAnchorLayout;
 
+  /// Engine configuration — tunable cache sizes and concurrency.
+  /// See [HyperRenderConfig] for all options and defaults.
+  final HyperRenderConfig config;
+
   /// Creates a HyperRenderWidget
   ///
   /// The [document] parameter is required and contains the parsed UDT tree.
@@ -138,6 +143,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.enableComplexFilters = true,
     this.suppressFirstBlockMarginTop = false,
     this.onAnchorLayout,
+    this.config = HyperRenderConfig.defaults,
   }) : super(
             children: _buildChildren(document, widgetBuilder,
                 selectable: selectable));
@@ -634,6 +640,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       textDirection: textDirection,
       selectionColor: selectionColor,
       onSelectionChanged: onSelectionChanged,
+      config: config,
     )..debugShowBounds = debugShowBounds
       ..enableComplexFilters = enableComplexFilters
       ..suppressFirstBlockMarginTop = suppressFirstBlockMarginTop
@@ -679,6 +686,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       renderObject.markNeedsLayout();
     }
     renderObject.onAnchorLayout = onAnchorLayout;
+    if (renderObject.config != config) {
+      renderObject.config = config;
+    }
   }
 }
 
