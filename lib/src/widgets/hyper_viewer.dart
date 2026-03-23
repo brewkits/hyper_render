@@ -1,3 +1,5 @@
+import 'dart:isolate';
+
 import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -525,10 +527,26 @@ class HyperViewer extends StatefulWidget {
   State<HyperViewer> createState() => _HyperViewerState();
 }
 
+/// Argument bundle sent into the parse isolate.
+/// All fields must be sendable (primitives + SendPort).
+class _ParseArgs {
+  final String content;
+  final String css;
+  final int chunkSize;
+  final SendPort port;
+  const _ParseArgs(this.content, this.css, this.chunkSize, this.port);
+}
+
 class _HyperViewerState extends State<HyperViewer>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _contentFadeController;
   late final Animation<double> _contentFadeAnimation;
+
+  /// Active parse isolate — killed immediately when content changes or widget
+  /// is disposed, preventing CPU waste from abandoned parses.
+  Isolate? _parseIsolate;
+  ReceivePort? _parseReceivePort;
+
   // Dùng cho chế độ Sync
   DocumentNode? _syncDocument;
 
@@ -574,8 +592,20 @@ class _HyperViewerState extends State<HyperViewer>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _cancelParsing();
     _contentFadeController.dispose();
     super.dispose();
+  }
+
+  /// Kills any in-flight parse isolate and closes its ReceivePort.
+  ///
+  /// Called before spawning a new parse and in [dispose] so we never leave
+  /// a CPU-burning isolate running after the widget is gone.
+  void _cancelParsing() {
+    _parseIsolate?.kill(priority: Isolate.immediate);
+    _parseIsolate = null;
+    _parseReceivePort?.close();
+    _parseReceivePort = null;
   }
 
   /// Called by the system when available memory is low.
@@ -713,16 +743,46 @@ class _HyperViewerState extends State<HyperViewer>
 
         // Capture parse ID before async gap to detect stale results.
         final currentParseId = ++_parseId;
-        compute(_parseAndChunk, (contentToRender, cssToApply, widget.renderConfig.virtualizationChunkSize)).then((sections) {
-          if (mounted && _parseId == currentParseId) {
+
+        // Cancel any in-flight isolate from a previous parse before spawning a
+        // new one, so we don't burn CPU on an abandoned parse.
+        _cancelParsing();
+        final receivePort = ReceivePort();
+        _parseReceivePort = receivePort;
+
+        Isolate.spawn(
+          _isolateEntry,
+          _ParseArgs(
+            contentToRender,
+            cssToApply,
+            widget.renderConfig.virtualizationChunkSize,
+            receivePort.sendPort,
+          ),
+        ).then((isolate) {
+          _parseIsolate = isolate;
+          return receivePort.first;
+        }).then((dynamic message) {
+          // Isolate finished — release references.
+          _parseIsolate = null;
+          _parseReceivePort = null;
+          if (!mounted || _parseId != currentParseId) return;
+          if (message is List) {
             setState(() {
-              _sections = sections;
+              _sections = List<DocumentNode>.from(message);
               _syncDocument = null;
               _isLoading = false;
             });
             _contentFadeController.forward();
+          } else {
+            // _isolateEntry sent an error string.
+            final err = FormatException(
+              message is String ? message : 'Content parsing failed',
+            );
+            widget.onError?.call(err, StackTrace.empty);
+            setState(() => _isLoading = false);
           }
         }).catchError((Object e, StackTrace st) {
+          _cancelParsing();
           if (mounted && _parseId == currentParseId) {
             widget.onError?.call(e, st);
             setState(() => _isLoading = false);
@@ -770,6 +830,22 @@ class _HyperViewerState extends State<HyperViewer>
         return '$attr=$quote$resolved$quote';
       },
     );
+  }
+
+  /// Isolate entry point. Runs [_parseAndChunk] and sends the result (or an
+  /// error string) back via [_ParseArgs.port].
+  ///
+  /// Sending a plain `String` on error keeps the message always sendable —
+  /// exception objects can hold closures or native resources that the isolate
+  /// message protocol cannot transfer.
+  static void _isolateEntry(_ParseArgs args) {
+    try {
+      final sections =
+          _parseAndChunk((args.content, args.css, args.chunkSize));
+      args.port.send(sections);
+    } catch (e) {
+      args.port.send('$e');
+    }
   }
 
   // Static function that runs in an isolate — must not capture context.
@@ -842,48 +918,56 @@ class _HyperViewerState extends State<HyperViewer>
     }
 
     // Case 1: Virtualized List (cho văn bản dài)
-    // Note: Zoom is NOT supported in virtualized mode due to:
-    // 1. Conflicting scroll gestures between InteractiveViewer and ListView
-    // 2. Unbounded constraints issues
-    // 3. Performance considerations with large documents
     if (_sections != null) {
+      // cacheExtent 800: pre-renders ~1 screen ahead/behind. Smaller than
+      // the old 1500 because chunks are now 6000 chars (was 25000), so
+      // each item is cheaper — we need fewer pixels of pre-render buffer.
+      final listView = ListView.builder(
+        cacheExtent: 800,
+        controller: widget.controller?.scrollController,
+        shrinkWrap: widget.shrinkWrap,
+        physics: widget.physics ?? const AlwaysScrollableScrollPhysics(),
+        itemCount: _sections!.length,
+        itemBuilder: (context, index) {
+          // RepaintBoundary isolates each chunk into its own GPU layer.
+          // Prevents a re-paint in one chunk from invalidating neighbours,
+          // and keeps each composited layer well under GL_MAX_TEXTURE_SIZE.
+          return RepaintBoundary(
+            child: HyperRenderWidget(
+              document: _sections![index],
+              selectable: widget.selectable,
+              selectionColor: widget.selectionColor,
+              textDirection:
+                  widget.textDirection ?? Directionality.of(context),
+              onLinkTap: _safeOnLinkTap,
+              widgetBuilder: widget.widgetBuilder,
+              debugShowBounds: widget.debugShowHyperRenderBounds,
+              enableComplexFilters: widget.enableComplexFilters,
+              config: widget.renderConfig,
+              // Suppress the first block's top margin on all sections after
+              // the first. This prevents double-spacing at section
+              // boundaries in virtualized mode: without suppression, section
+              // N's last marginBottom and section N+1's first marginTop both
+              // render fully instead of collapsing as CSS specifies.
+              suppressFirstBlockMarginTop: index > 0,
+            ),
+          );
+        },
+      );
+
       return KeyedSubtree(
         key: const ValueKey('virtualized'),
-        child: ListView.builder(
-          // cacheExtent 800: pre-renders ~1 screen ahead/behind. Smaller than
-          // the old 1500 because chunks are now 6000 chars (was 25000), so
-          // each item is cheaper — we need fewer pixels of pre-render buffer.
-          cacheExtent: 800,
-          controller: widget.controller?.scrollController,
-          shrinkWrap: widget.shrinkWrap,
-          physics: widget.physics ?? const AlwaysScrollableScrollPhysics(),
-          itemCount: _sections!.length,
-          itemBuilder: (context, index) {
-            // RepaintBoundary isolates each chunk into its own GPU layer.
-            // Prevents a re-paint in one chunk from invalidating neighbours,
-            // and keeps each composited layer well under GL_MAX_TEXTURE_SIZE.
-            return RepaintBoundary(
-              child: HyperRenderWidget(
-                document: _sections![index],
-                selectable: widget.selectable,
-                selectionColor: widget.selectionColor,
-                textDirection:
-                    widget.textDirection ?? Directionality.of(context),
-                onLinkTap: _safeOnLinkTap,
-                widgetBuilder: widget.widgetBuilder,
-                debugShowBounds: widget.debugShowHyperRenderBounds,
-                enableComplexFilters: widget.enableComplexFilters,
-                config: widget.renderConfig,
-                // Suppress the first block's top margin on all sections after
-                // the first. This prevents double-spacing at section
-                // boundaries in virtualized mode: without suppression, section
-                // N's last marginBottom and section N+1's first marginTop both
-                // render fully instead of collapsing as CSS specifies.
-                suppressFirstBlockMarginTop: index > 0,
-              ),
-            );
-          },
-        ),
+        // panEnabled: false — InteractiveViewer handles pinch-to-zoom only;
+        // ListView retains scroll ownership so both gestures work together.
+        child: widget.enableZoom
+            ? InteractiveViewer(
+                panEnabled: false,
+                scaleEnabled: true,
+                minScale: widget.minScale,
+                maxScale: widget.maxScale,
+                child: listView,
+              )
+            : listView,
       );
     }
 
