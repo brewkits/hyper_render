@@ -866,15 +866,19 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         RenderBox? tableChild = _findChildForFragment(fragment);
         double tableHeight = _kDefaultTableFallbackHeight;
         double tableWidth = _maxWidth;
+        // Subtract the current block insets so the table does not overflow
+        // when it is nested inside a padded block element.
+        final tableMaxWidth =
+            (_maxWidth - leftInset - rightInset).clamp(0.0, _maxWidth);
 
         if (tableChild != null) {
           if (intrinsicMode) {
             // During intrinsic measurement calling layout() + size is forbidden.
             // Use intrinsic APIs instead.
-            tableHeight = tableChild.getMaxIntrinsicHeight(_maxWidth);
+            tableHeight = tableChild.getMaxIntrinsicHeight(tableMaxWidth);
           } else {
             tableChild.layout(
-              BoxConstraints(maxWidth: _maxWidth),
+              BoxConstraints(maxWidth: tableMaxWidth),
               parentUsesSize: true,
             );
             tableHeight = tableChild.size.height;
@@ -921,13 +925,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         RenderBox? detailsChild = _findChildForFragment(fragment);
         double blockHeight = _kDefaultDetailsFallbackHeight;
         double blockWidth = _maxWidth;
+        // Subtract the current block insets so the details widget does not
+        // overflow when it is nested inside a padded block element.
+        final detailsMaxWidth =
+            (_maxWidth - leftInset - rightInset).clamp(0.0, _maxWidth);
 
         if (detailsChild != null) {
           if (intrinsicMode) {
-            blockHeight = detailsChild.getMaxIntrinsicHeight(_maxWidth);
+            blockHeight = detailsChild.getMaxIntrinsicHeight(detailsMaxWidth);
           } else {
             detailsChild.layout(
-              BoxConstraints(maxWidth: _maxWidth),
+              BoxConstraints(maxWidth: detailsMaxWidth),
               parentUsesSize: true,
             );
             blockHeight = detailsChild.size.height;
@@ -1842,9 +1850,13 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final fragment = parentData.fragment!;
         // Always layout to ensure parent data is properly cleaned
         if (fragment is _DetailsFragment) {
-          // Use unconstrained height so HyperDetailsWidget is NOT a relayout boundary
-          // This ensures setState toggle propagates markNeedsLayout to parent RenderHyperBox
-          child.layout(BoxConstraints(maxWidth: _maxWidth),
+          // Use the measured width (set during _performLineLayout) so the
+          // details widget stays within its padded-block bounds.
+          // Unconstrained height is kept so the expand/collapse animation
+          // can change height without making this a relayout boundary.
+          final detailsWidth =
+              fragment.measuredSize?.width ?? _maxWidth;
+          child.layout(BoxConstraints(maxWidth: detailsWidth),
               parentUsesSize: true);
         } else {
           child.layout(
@@ -1863,7 +1875,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         if (fragment != null) {
           parentData.fragment = fragment;
           if (fragment is _DetailsFragment) {
-            child.layout(BoxConstraints(maxWidth: _maxWidth),
+            final detailsWidth =
+                fragment.measuredSize?.width ?? _maxWidth;
+            child.layout(BoxConstraints(maxWidth: detailsWidth),
                 parentUsesSize: true);
           } else {
             child.layout(
