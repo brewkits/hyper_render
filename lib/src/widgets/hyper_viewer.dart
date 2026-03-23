@@ -609,8 +609,13 @@ class _HyperViewerState extends State<HyperViewer>
   }
 
   /// Called by the system when available memory is low.
-  /// Clears TextPainter and image caches in all active RenderHyperBox
-  /// instances to free native GPU and Dart heap memory.
+  ///
+  /// Releases memory on three fronts:
+  ///   1. TextPainter and image caches in every live [RenderHyperBox].
+  ///   2. The [LazyImageQueue] pending queue — drops not-yet-started loads so
+  ///      off-screen images are not decoded into a constrained heap.
+  ///   3. Flutter's own decoded-image cache ([PaintingBinding.imageCache]) to
+  ///      release GPU textures that Flutter holds independently of HyperRender.
   @override
   void didHaveMemoryPressure() {
     void clearBox(RenderObject obj) {
@@ -622,6 +627,14 @@ class _HyperViewerState extends State<HyperViewer>
 
     final ro = context.findRenderObject();
     if (ro != null) clearBox(ro);
+
+    // Drop pending (not-yet-started) image loads to avoid decoding off-screen
+    // images into an already-constrained heap on low-memory devices.
+    LazyImageQueue.instance.clearPending();
+
+    // Release Flutter's own decoded-image cache.  This covers any images
+    // loaded via Image.network / precacheImage that HyperRender didn't track.
+    PaintingBinding.instance.imageCache.clear();
   }
 
   /// Routes a parse/render error to [HyperViewer.onError] when provided,

@@ -77,6 +77,15 @@ class LazyImageQueue {
     _queue.removeWhere((_, load) => load.url == url);
   }
 
+  /// Drop all queued (not-yet-started) load requests.
+  ///
+  /// Called during memory pressure to release pending work that hasn't started.
+  /// In-flight loads are not cancelled because their completion callbacks may
+  /// still be needed by live widgets.
+  void clearPending() {
+    _queue.clear();
+  }
+
   /// Resets all internal state for testing purposes.
   ///
   /// Clears the pending queue and resets the in-flight counter so that each

@@ -1719,6 +1719,16 @@ class StyleResolver {
             px = num * StyleResolver.rootFontSize;
             break;
           case '%':
+            // % values require a layout-context width to resolve.
+            // Log in debug mode so developers know which calc() expressions
+            // cannot be evaluated at parse time and will fall back to 0 / auto.
+            assert(() {
+              debugPrint(
+                'HyperRender: calc() contains a % value ("$expr") which '
+                'cannot be resolved without layout context — result ignored.',
+              );
+              return true;
+            }());
             return null; // Can't resolve % without context
           default:
             px = num;

@@ -668,19 +668,26 @@ class RenderHyperBox extends RenderBox
     // This is expensive but correct. It finds the longest unbreakable word.
     double maxWidth = 0;
 
+    // Two reusable painters — one per text direction — shared across all
+    // fragments.  Creating and disposing a TextPainter per fragment (the
+    // previous approach) was measurably slower for large tables because each
+    // table cell calls computeMinIntrinsicWidth independently, producing many
+    // short-lived native objects.  Reusing the painters across the full
+    // fragment list reduces allocations to at most 2 per
+    // computeMinIntrinsicWidth call regardless of fragment count.
+    //
+    // These are still throw-away painters (not stored in _textPainters) so
+    // they do NOT pollute the LRU cache with per-word entries.
+    final ltrPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+    final rtlPainter = TextPainter(textDirection: ui.TextDirection.rtl);
+
     for (final fragment in _fragments) {
       if (fragment.type == FragmentType.text && fragment.text != null) {
         final text = fragment.text!;
         final words = text.split(RegExp(r'\s+'));
-        // Use a throw-away TextPainter so measuring individual words does NOT
-        // evict real paragraph painters from the LRU cache.  A 3 000-word
-        // article would otherwise push ~3 000 single-word entries into the
-        // 5 000-slot cache, displacing the painters that paint() actually needs
-        // and forcing them to be rebuilt — causing paint-phase FPS drops.
-        final fragDir =
-            fragment.style.isRtl ? ui.TextDirection.rtl : _textDirection;
+        final isRtl = fragment.style.isRtl;
+        final measurePainter = isRtl ? rtlPainter : ltrPainter;
         final mergedStyle = _baseStyle.merge(fragment.style.toTextStyle());
-        final measurePainter = TextPainter(textDirection: fragDir);
         for (final word in words) {
           if (word.isEmpty) continue;
           measurePainter.text = TextSpan(text: word, style: mergedStyle);
@@ -689,7 +696,6 @@ class RenderHyperBox extends RenderBox
             maxWidth = measurePainter.width;
           }
         }
-        measurePainter.dispose();
       } else if (fragment.type == FragmentType.atomic ||
           fragment.type == FragmentType.ruby) {
         // Ensure fragment is measured if it hasn't been already
@@ -702,6 +708,9 @@ class RenderHyperBox extends RenderBox
         }
       }
     }
+
+    ltrPainter.dispose();
+    rtlPainter.dispose();
 
     _cachedMinIntrinsicWidth = maxWidth;
     return maxWidth;
