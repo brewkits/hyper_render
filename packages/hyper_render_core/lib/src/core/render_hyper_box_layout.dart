@@ -1243,6 +1243,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       return null;
     }
 
+    // Snap breakIndex off any UTF-16 low surrogate (0xDC00–0xDFFF).
+    // Low surrogates are the *second* code unit of a surrogate pair (emoji,
+    // rare CJK extension B, etc.).  If breakIndex lands there, substring()
+    // would put the lone high surrogate at the end of the first fragment —
+    // an invalid Dart string that crashes TextPainter and corrupts clipboard.
+    // Stepping back by one puts the break BEFORE the whole surrogate pair.
+    if ((text.codeUnitAt(breakIndex) & 0xFC00) == 0xDC00) {
+      breakIndex -= 1;
+      if (breakIndex <= 0) return null;
+    }
+
     // Only trim spaces for normal/nowrap/pre-line modes
     // For pre/pre-wrap/break-spaces, preserve all whitespace
     final whiteSpace = fragment.style.whiteSpace;
@@ -1357,6 +1368,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       } else {
         return null;
       }
+    }
+
+    // Snap off any low surrogate — same reason as in _splitTextFragment.
+    if ((text.codeUnitAt(breakIndex) & 0xFC00) == 0xDC00) {
+      breakIndex -= 1;
+      if (breakIndex <= 0) return null;
     }
 
     final firstPart = text.substring(0, breakIndex);

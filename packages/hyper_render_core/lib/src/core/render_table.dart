@@ -5,6 +5,13 @@ import 'package:flutter/rendering.dart';
 
 import '../model/node.dart';
 
+/// Maximum colspan/rowspan value accepted from HTML attributes.
+///
+/// Browsers cap at 1 000; values beyond this trigger [List.generate] calls
+/// that allocate millions of grid cells, causing OOM on adversarial or
+/// malformed markup.
+const int _kMaxSpan = 1000;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // PUBLIC API
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -260,11 +267,13 @@ class _TableGrid {
       return _TableGrid(cells: [], columnCount: 0, rowCount: 0);
     }
 
+    // Clamp per-cell colspan to [_kMaxSpan] so adversarial or malformed HTML
+    // (e.g. colspan="1000000") cannot trigger an OOM List.generate call.
     int maxCols = 0;
     for (final row in rows) {
       int colCount = 0;
       for (final cell in row.children) {
-        if (cell is TableCellNode) colCount += cell.colspan;
+        if (cell is TableCellNode) colCount += cell.colspan.clamp(1, _kMaxSpan);
       }
       if (colCount > maxCols) maxCols = colCount;
     }
@@ -284,8 +293,8 @@ class _TableGrid {
           }
           if (colIdx >= maxCols) break;
 
-          final colspan = child.colspan;
-          final rowspan = child.rowspan;
+          final colspan = child.colspan.clamp(1, _kMaxSpan);
+          final rowspan = child.rowspan.clamp(1, _kMaxSpan);
           final rowNode = rows[rowIdx];
           final primary = _GridCell(
             cellNode: child,

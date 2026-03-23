@@ -3,6 +3,13 @@ import 'package:flutter/rendering.dart';
 
 import '../model/node.dart';
 
+/// Maximum colspan/rowspan value accepted from HTML attributes.
+///
+/// Browsers cap at 1 000; values beyond this trigger [List.generate] calls
+/// that allocate millions of grid cells, causing OOM on adversarial or
+/// malformed markup.
+const int _kMaxSpan = 1000;
+
 /// Table display strategy
 ///
 /// Determines how tables that are wider than screen are handled
@@ -74,111 +81,43 @@ class SmartTableWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Build the table widget
-        final table = _buildTable(context);
+    // Strategy is resolved statically at build time — no LayoutBuilder.
+    //
+    // LayoutBuilder cannot answer intrinsic-dimension queries propagated by an
+    // outer IntrinsicHeight (e.g. a row in a parent table).  Resolving the
+    // strategy without LayoutBuilder keeps nested tables compatible with
+    // IntrinsicHeight while still honouring the caller's chosen strategy.
+    switch (strategy) {
+      case TableStrategy.fitWidth:
+        return _buildTable(useIntrinsicWidth: false);
 
-        // Calculate effective strategy based on constraints
-        final effectiveStrategy = _calculateEffectiveStrategy(constraints);
+      case TableStrategy.autoScale:
+        // FittedBox gives the child unconstrained width; IntrinsicWidth then
+        // constrains _TableLayout to its natural content width so FittedBox
+        // can measure and scale it correctly.
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topLeft,
+          child: _buildTable(useIntrinsicWidth: true),
+        );
 
-        // Apply strategy based on configuration
-        switch (effectiveStrategy) {
-          case TableStrategy.fitWidth:
-            // Render table with width constraints
-            return ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: constraints.maxWidth),
-              child: table,
-            );
-
-          case TableStrategy.autoScale:
-            // Use FittedBox to scale down if needed
-            return FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.topLeft,
-              child: table,
-            );
-
-          case TableStrategy.horizontalScroll:
-            // Enable horizontal scrolling
-            return _buildScrollableTable(table);
-        }
-      },
-    );
+      case TableStrategy.horizontalScroll:
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: _buildTable(useIntrinsicWidth: true),
+        );
+    }
   }
 
-  /// Calculate the effective strategy based on table size and constraints
-  ///
-  /// If the requested strategy would result in columns that are too narrow,
-  /// automatically switch to horizontal scroll to prevent unreadable text.
-  TableStrategy _calculateEffectiveStrategy(BoxConstraints constraints) {
-    if (strategy == TableStrategy.horizontalScroll) {
-      return strategy; // Already using scroll, no change needed
-    }
-
-    // Estimate table width based on column count
-    final columnCount = _estimateColumnCount();
-    if (columnCount == 0) return strategy;
-
-    final availableWidth = constraints.maxWidth;
-    final estimatedColumnWidth = availableWidth / columnCount;
-
-    // If columns would be too narrow, switch to horizontal scroll
-    if (estimatedColumnWidth < minColumnWidth) {
-      return TableStrategy.horizontalScroll;
-    }
-
-    // For autoScale, also check if scale factor would be too small
-    if (strategy == TableStrategy.autoScale) {
-      // Estimate natural table width (rough estimate based on column count and min width)
-      final naturalWidth = columnCount * minColumnWidth * 2; // Assume 2x min as natural
-      final scaleFactor = availableWidth / naturalWidth;
-
-      if (scaleFactor < minScaleFactor) {
-        return TableStrategy.horizontalScroll;
-      }
-    }
-
-    return strategy;
-  }
-
-  /// Estimate the number of columns in the table
-  int _estimateColumnCount() {
-    // TableNode stores rows as children
-    final rows = tableNode.children.whereType<TableRowNode>();
-    if (rows.isEmpty) return 0;
-
-    // Find the maximum number of cells in any row (accounting for colspan)
-    int maxColumns = 0;
-    for (final row in rows) {
-      int rowColumns = 0;
-      // TableRowNode stores cells as children
-      final cells = row.children.whereType<TableCellNode>();
-      for (final cell in cells) {
-        rowColumns += cell.colspan;
-      }
-      if (rowColumns > maxColumns) {
-        maxColumns = rowColumns;
-      }
-    }
-    return maxColumns;
-  }
-
-  Widget _buildScrollableTable(Widget table) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: table,
-    );
-  }
-
-  Widget _buildTable(BuildContext context) {
+  Widget _buildTable({required bool useIntrinsicWidth}) {
     return HyperTable(
       tableNode: tableNode,
       baseStyle: baseStyle,
       onLinkTap: onLinkTap,
       selectable: selectable,
       cellContentBuilder: cellContentBuilder,
+      useIntrinsicWidth: useIntrinsicWidth,
     );
   }
 }
@@ -217,6 +156,14 @@ class HyperTable extends StatelessWidget {
   /// tables, paragraphs, images) that cannot be represented as inline spans.
   final Widget Function(TableCellNode)? cellContentBuilder;
 
+  /// When true, wraps the table widget in [IntrinsicWidth] so it can be placed
+  /// inside an unbounded-width parent (horizontal scroll, FittedBox).
+  ///
+  /// Must be false when the parent supplies bounded width constraints —
+  /// [IntrinsicWidth] constrains the child to its natural content width, which
+  /// would prevent the table from expanding to fill its parent.
+  final bool useIntrinsicWidth;
+
   const HyperTable({
     super.key,
     required this.tableNode,
@@ -227,6 +174,7 @@ class HyperTable extends StatelessWidget {
     this.cellPadding = const EdgeInsets.all(8.0),
     this.selectable = true,
     this.cellContentBuilder,
+    this.useIntrinsicWidth = false,
   });
 
   @override
@@ -244,6 +192,7 @@ class HyperTable extends StatelessWidget {
       borderWidth: borderWidth,
       cellPadding: cellPadding,
       cellBuilder: _buildCellContent,
+      useIntrinsicWidth: useIntrinsicWidth,
     );
 
     // Wrap with SelectionArea for cross-cell text selection
@@ -367,13 +316,15 @@ class _TableGrid {
       return _TableGrid(cells: [], columnCount: 0, rowCount: 0);
     }
 
-    // Calculate column count (max cells in any row, considering colspan)
+    // Calculate column count (max cells in any row, considering colspan).
+    // Clamp per-cell colspan to [_kMaxSpan] so adversarial or malformed HTML
+    // (e.g. colspan="1000000") cannot trigger an OOM List.generate call.
     int maxCols = 0;
     for (final row in rows) {
       int colCount = 0;
       for (final cell in row.children) {
         if (cell is TableCellNode) {
-          colCount += cell.colspan;
+          colCount += cell.colspan.clamp(1, _kMaxSpan);
         }
       }
       if (colCount > maxCols) maxCols = colCount;
@@ -398,8 +349,8 @@ class _TableGrid {
 
           if (colIdx >= maxCols) break;
 
-          final colspan = child.colspan;
-          final rowspan = child.rowspan;
+          final colspan = child.colspan.clamp(1, _kMaxSpan);
+          final rowspan = child.rowspan.clamp(1, _kMaxSpan);
 
           // Create primary cell
           final gridCell = _GridCell(
@@ -470,39 +421,39 @@ class _TableLayout extends StatelessWidget {
   final EdgeInsets cellPadding;
   final Widget Function(TableCellNode) cellBuilder;
 
+  /// When true, the table is wrapped in [IntrinsicWidth].
+  ///
+  /// Required when the parent gives unbounded width (horizontal scroll,
+  /// FittedBox).  Must be false under bounded width so the table can expand
+  /// to fill the available space rather than collapsing to content width.
+  ///
+  /// Formerly determined via [LayoutBuilder], which blocked intrinsic-dimension
+  /// queries from outer [IntrinsicHeight] widgets (nested-table rows). The flag
+  /// is now set statically by [SmartTableWrapper] based on the chosen strategy.
+  final bool useIntrinsicWidth;
+
   const _TableLayout({
     required this.grid,
     required this.borderColor,
     required this.borderWidth,
     required this.cellPadding,
     required this.cellBuilder,
+    required this.useIntrinsicWidth,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Wrap in LayoutBuilder to handle unbounded constraints
-    // This fixes "NEEDS-LAYOUT" error when used in horizontal scroll
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final child = Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor, width: borderWidth),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _buildRows(),
-          ),
-        );
-
-        // If width is unbounded (e.g., in horizontal scroll),
-        // wrap in IntrinsicWidth to provide bounded constraints
-        if (constraints.maxWidth == double.infinity) {
-          return IntrinsicWidth(child: child);
-        }
-
-        return child;
-      },
+    final child = Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: borderColor, width: borderWidth),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: _buildRows(),
+      ),
     );
+
+    return useIntrinsicWidth ? IntrinsicWidth(child: child) : child;
   }
 
   List<Widget> _buildRows() {

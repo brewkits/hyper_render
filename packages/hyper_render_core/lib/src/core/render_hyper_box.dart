@@ -159,6 +159,10 @@ class RenderHyperBox extends RenderBox
   /// Image cache
   final Map<String, CachedImage> _imageCache = {};
 
+  /// Subscription tokens returned by [LazyImageQueue.enqueue].
+  /// Cancelled in [_disposeImages] so in-flight callbacks are dropped safely.
+  final Set<int> _imageTokens = {};
+
   /// Shimmer animation state.
   /// [_shimmerEpoch] marks when animation started; null = not animating.
   /// [_shimmerCallbackId] holds the pending [SchedulerBinding] frame callback
@@ -482,6 +486,14 @@ class RenderHyperBox extends RenderBox
   }
 
   void _disposeImages() {
+    // Cancel all pending/in-flight subscriptions so callbacks are not invoked
+    // on this (now-disposing) RenderBox. For in-flight loads the queue will
+    // dispose the ui.Image itself if no other subscribers remain.
+    for (final token in _imageTokens) {
+      LazyImageQueue.instance.cancel(token);
+    }
+    _imageTokens.clear();
+
     // BUG-C FIX: ui.Image is a native GPU resource that must be explicitly
     // disposed. Calling _imageCache.clear() without dispose() leaks GPU
     // texture memory — the Dart GC cannot free it. This matters especially
@@ -622,20 +634,23 @@ class RenderHyperBox extends RenderBox
 
     final loader = _imageLoader ?? defaultImageLoader;
 
-    LazyImageQueue.instance.enqueue(
+    // late allows the closures below to reference `token` before it is
+    // assigned; they only execute asynchronously, after enqueue() returns.
+    late final int token;
+    token = LazyImageQueue.instance.enqueue(
       url: src,
       priority: priority,
       loader: loader,
       onLoad: (ui.Image image) {
         if (!attached) {
-          // Widget was removed from the tree while the image was loading.
-          // We MUST call dispose() here — Dart GC cannot release the native GPU
-          // texture backing ui.Image; only dispose() does that.  Skipping this
-          // causes an unbounded GPU memory leak: each back-navigation leaks the
-          // images that were still in flight.
+          // Safety net: token should have been cancelled by _disposeImages(),
+          // but guard here in case of unusual teardown ordering.
+          // Each callback receives its own clone from the queue, so disposing
+          // here does not affect other viewers sharing the same URL.
           image.dispose();
           return;
         }
+        _imageTokens.remove(token);
         _imageCache[src] = CachedImage(
           image: image,
           state: ImageLoadState.loaded,
@@ -648,6 +663,7 @@ class RenderHyperBox extends RenderBox
       },
       onError: (Object error) {
         if (!attached) return;
+        _imageTokens.remove(token);
         _imageCache[src] = CachedImage(
           state: ImageLoadState.error,
           error: error.toString(),
@@ -655,6 +671,7 @@ class RenderHyperBox extends RenderBox
         markNeedsPaint();
       },
     );
+    _imageTokens.add(token);
   }
 
   // ============================================
