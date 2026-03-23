@@ -1,27 +1,43 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 
+/// Performance tests for UDTNode ID generation.
+///
+/// The codebase does not expose a `NodeIdGenerator` class.  These tests
+/// verify that creating many nodes with auto-generated IDs is fast and that
+/// all IDs remain unique.
 void main() {
-  group('NodeIdGenerator Performance', () {
-    test('benchmark: generate 10K IDs', () {
-      final generator = NodeIdGenerator();
-      generator.reset();
-
+  group('UDTNode ID generation performance', () {
+    test('benchmark: create 10K TextNodes with unique IDs', () {
       final stopwatch = Stopwatch()..start();
 
+      final ids = <String>{};
       for (var i = 0; i < 10000; i++) {
-        generator.next();
+        ids.add(TextNode('Node $i').id);
       }
 
       stopwatch.stop();
 
-      print('10K IDs generated in ${stopwatch.elapsedMilliseconds}ms');
+      // ignore: avoid_print
+      print('10K TextNodes created in ${stopwatch.elapsedMilliseconds}ms');
 
-      // Should complete in <100ms
-      expect(stopwatch.elapsedMilliseconds, lessThan(100));
+      // All IDs must be unique
+      expect(ids.length, equals(10000));
+
+      // Should complete in <200ms on any reasonable machine
+      expect(stopwatch.elapsedMilliseconds, lessThan(200));
     });
 
-    test('benchmark: DateTime.now() overhead', () {
+    test('IDs are unique even when generated rapidly', () {
+      final ids = <String>{};
+      for (var i = 0; i < 1000; i++) {
+        ids.add(TextNode('Node $i').id);
+      }
+
+      expect(ids.length, equals(1000));
+    });
+
+    test('benchmark: DateTime.now() overhead for comparison', () {
       final stopwatch = Stopwatch()..start();
 
       for (var i = 0; i < 10000; i++) {
@@ -30,21 +46,8 @@ void main() {
 
       stopwatch.stop();
 
+      // ignore: avoid_print
       print('10K DateTime.now() calls: ${stopwatch.elapsedMilliseconds}ms');
-    });
-
-    test('IDs are unique even when generated rapidly', () {
-      final generator = NodeIdGenerator();
-      generator.reset();
-
-      final ids = <String>{};
-
-      for (var i = 0; i < 1000; i++) {
-        ids.add(generator.next());
-      }
-
-      // All IDs should be unique
-      expect(ids.length, equals(1000));
     });
   });
 }

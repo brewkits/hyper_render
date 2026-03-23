@@ -1,125 +1,80 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 
+/// Tests for UDTNode ID generation.
+///
+/// The codebase does not expose a `NodeIdGenerator` class.  Node IDs are
+/// assigned automatically inside [UDTNode]'s constructor using a static
+/// counter, or can be provided explicitly via the `id` parameter.
 void main() {
-  group('NodeIdGenerator', () {
-    setUp(() {
-      // Reset before each test
-      NodeIdGenerator().reset();
-    });
-
-    test('generates unique IDs', () {
-      final gen = NodeIdGenerator();
-      final id1 = gen.next();
-      final id2 = gen.next();
-      final id3 = gen.next();
-
-      expect(id1, isNot(equals(id2)));
-      expect(id2, isNot(equals(id3)));
-      expect(id1, isNot(equals(id3)));
-    });
-
-    test('includes timestamp in ID', () {
-      final gen = NodeIdGenerator();
-      final id = gen.next();
-
-      expect(id, startsWith('node_'));
-      expect(id, contains('_'));
-
-      // Should have format: node_{timestamp}_{counter}
-      final parts = id.split('_');
-      expect(parts.length, equals(3));
-      expect(parts[0], equals('node'));
-      expect(int.tryParse(parts[1]), isNotNull); // timestamp
-      expect(int.tryParse(parts[2]), isNotNull); // counter
-    });
-
-    test('counter increments', () {
-      final gen = NodeIdGenerator();
-      gen.reset();
-
-      expect(gen.counter, equals(0));
-
-      gen.next();
-      expect(gen.counter, equals(1));
-
-      gen.next();
-      expect(gen.counter, equals(2));
-
-      gen.next();
-      expect(gen.counter, equals(3));
-    });
-
-    test('resets counter at 1M to prevent overflow', () {
-      final gen = NodeIdGenerator();
-      gen.reset();
-
-      // Simulate approaching overflow
-      for (var i = 0; i < 999999; i++) {
-        gen.next();
-      }
-
-      expect(gen.counter, equals(999999));
-
-      // Next call should reset
-      gen.next();
-      expect(gen.counter, equals(0));
-    });
-
-    test('reset() sets counter back to zero', () {
-      final gen = NodeIdGenerator();
-
-      gen.next();
-      gen.next();
-      gen.next();
-
-      expect(gen.counter, equals(3));
-
-      gen.reset();
-      expect(gen.counter, equals(0));
-    });
-
-    test('singleton pattern - same instance', () {
-      final gen1 = NodeIdGenerator();
-      final gen2 = NodeIdGenerator();
-
-      expect(identical(gen1, gen2), isTrue);
-
-      gen1.next();
-      expect(gen2.counter, equals(1)); // Same instance, same counter
-    });
-
-    test('UDTNode uses generator for IDs', () {
-      NodeIdGenerator().reset();
-
+  group('UDTNode ID generation', () {
+    test('generates unique IDs for distinct nodes', () {
       final node1 = TextNode('Hello');
       final node2 = TextNode('World');
+      final node3 = TextNode('!');
 
-      // IDs should be different
       expect(node1.id, isNot(equals(node2.id)));
-
-      // Should use new format
-      expect(node1.id, startsWith('node_'));
-      expect(node2.id, startsWith('node_'));
+      expect(node2.id, isNot(equals(node3.id)));
+      expect(node1.id, isNot(equals(node3.id)));
     });
 
-    test('custom IDs still work', () {
-      final node = TextNode('Test', id: 'custom-id-123');
-
-      expect(node.id, equals('custom-id-123'));
+    test('ID starts with node_ prefix', () {
+      final node = TextNode('Test');
+      expect(node.id, startsWith('node_'));
     });
 
-    test('stress test - generate 10K IDs', () {
-      NodeIdGenerator().reset();
+    test('auto-generated ID has node_ prefix', () {
+      // TextNode does not expose an `id` constructor parameter, but all
+      // auto-generated IDs start with "node_".
+      final node = TextNode('Test');
+      expect(node.id, startsWith('node_'));
+    });
 
+    test('auto-generated IDs are non-empty', () {
+      final node = BlockNode(tagName: 'div');
+      expect(node.id, isNotEmpty);
+    });
+
+    test('different node types get unique IDs', () {
+      final block = BlockNode(tagName: 'div');
+      final inline = InlineNode(tagName: 'span');
+      final text = TextNode('hello');
+
+      final ids = {block.id, inline.id, text.id};
+      // All three should be distinct
+      expect(ids.length, equals(3));
+    });
+
+    test('IDs are strings', () {
+      final node = TextNode('Test');
+      expect(node.id, isA<String>());
+    });
+
+    test('BlockNode gets a unique auto-generated ID', () {
+      final node1 = BlockNode(tagName: 'div');
+      final node2 = BlockNode(tagName: 'div');
+      expect(node1.id, isNot(equals(node2.id)));
+    });
+
+    test('stress test — 1000 nodes have unique IDs', () {
       final ids = <String>{};
-      for (var i = 0; i < 10000; i++) {
-        final node = TextNode('Node $i');
-        ids.add(node.id);
+      for (var i = 0; i < 1000; i++) {
+        ids.add(TextNode('Node $i').id);
       }
+      expect(ids.length, equals(1000));
+    });
 
-      // All IDs should be unique
-      expect(ids.length, equals(10000));
+    test('findById locates node by auto-generated ID', () {
+      final child = TextNode('child');
+      final root = DocumentNode(children: [child]);
+
+      final found = root.findById(child.id);
+      expect(found, equals(child));
+    });
+
+    test('findById returns null for non-existent ID', () {
+      final root = DocumentNode(children: [TextNode('hello')]);
+      expect(root.findById('nonexistent-id'), isNull);
     });
   });
 }

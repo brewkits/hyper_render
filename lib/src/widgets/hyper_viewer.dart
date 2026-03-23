@@ -536,6 +536,27 @@ class _HyperViewerState extends State<HyperViewer>
     super.dispose();
   }
 
+  static const _kAllowedSchemes = {'http', 'https', 'mailto', 'tel'};
+
+  /// Returns a wrapped [onLinkTap] callback that validates the URL scheme
+  /// before forwarding to the user-supplied handler.
+  /// Only [http], [https], [mailto], and [tel] schemes are allowed.
+  Function(String)? get _safeOnLinkTap {
+    final handler = widget.onLinkTap;
+    if (handler == null) return null;
+    return (String url) {
+      final scheme = Uri.tryParse(url)?.scheme.toLowerCase() ?? '';
+      if (_kAllowedSchemes.contains(scheme)) {
+        handler(url);
+      } else {
+        assert(() {
+          debugPrint('[HyperRender] Blocked link tap with disallowed scheme: $url');
+          return true;
+        }());
+      }
+    };
+  }
+
   /// Get the appropriate parser based on content type
   ContentParser _getDefaultParser() {
     if (widget.contentParser != null) {
@@ -786,7 +807,7 @@ class _HyperViewerState extends State<HyperViewer>
                 selectionColor: widget.selectionColor,
                 textDirection:
                     widget.textDirection ?? Directionality.of(context),
-                onLinkTap: widget.onLinkTap,
+                onLinkTap: _safeOnLinkTap,
                 widgetBuilder: widget.widgetBuilder,
                 debugShowBounds: widget.debugShowHyperRenderBounds,
                 enableComplexFilters: widget.enableComplexFilters,

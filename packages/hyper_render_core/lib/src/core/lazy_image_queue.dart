@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:hyper_render_core/hyper_render_core.dart';
 import 'dart:collection';
 import 'dart:ui' as ui;
@@ -74,6 +75,17 @@ class LazyImageQueue {
   /// Remove all pending requests (e.g., when the widget is disposed).
   void cancelAll(String url) {
     _queue.removeWhere((_, load) => load.url == url);
+  }
+
+  /// Resets all internal state for testing purposes.
+  ///
+  /// Clears the pending queue and resets the in-flight counter so that each
+  /// test starts with a clean singleton. Only available in debug/test builds.
+  @visibleForTesting
+  void resetForTesting() {
+    _queue.clear();
+    _active = 0;
+    _sequenceCounter = 0;
   }
 
   void _pump() {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:csslib/parser.dart' as css_parser;
 import 'package:csslib/visitor.dart' as css_ast;
@@ -16,9 +17,13 @@ class DefaultCssParser implements CssParserInterface {
     try {
       final stylesheet = css_parser.parse(css);
       return _extractRules(stylesheet);
-    } catch (e) {
+    } catch (e, st) {
       // Log CSS parsing error but don't throw
       // Return empty list for invalid CSS
+      assert(() {
+        debugPrint('[HyperRender] CSS parse error: $e\n$st');
+        return true;
+      }());
       return const [];
     }
   }

@@ -1,196 +1,128 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 
+/// Tests for list-related node structure and ComputedStyle.
+///
+/// Note: The codebase does not currently expose a `ListStyleType` enum or a
+/// `listStyleType` property on [ComputedStyle].  These tests validate the
+/// existing node-model API for building ordered/unordered list trees.
 void main() {
-  group('ListStyleType Enum', () {
-    test('ListStyleType has all expected values', () {
-      expect(ListStyleType.values, contains(ListStyleType.decimal));
-      expect(ListStyleType.values, contains(ListStyleType.lowerRoman));
-      expect(ListStyleType.values, contains(ListStyleType.upperRoman));
-      expect(ListStyleType.values, contains(ListStyleType.lowerAlpha));
-      expect(ListStyleType.values, contains(ListStyleType.upperAlpha));
-      expect(ListStyleType.values, contains(ListStyleType.disc));
-      expect(ListStyleType.values, contains(ListStyleType.circle));
-      expect(ListStyleType.values, contains(ListStyleType.square));
-      expect(ListStyleType.values, contains(ListStyleType.none));
-    });
-
-    test('ListStyleType count is correct', () {
-      // Ensure we have all 9 types
-      expect(ListStyleType.values.length, equals(9));
-    });
-  });
-
-  group('ComputedStyle listStyleType Property', () {
-    test('ComputedStyle has listStyleType property', () {
-      final style = ComputedStyle();
-      expect(style.listStyleType, isNull); // Default is null (inherited)
-    });
-
-    test('ComputedStyle can set listStyleType', () {
-      final style = ComputedStyle(listStyleType: ListStyleType.disc);
-      expect(style.listStyleType, equals(ListStyleType.disc));
-    });
-
-    test('ComputedStyle inherits listStyleType from parent', () {
-      final parent = ComputedStyle(listStyleType: ListStyleType.upperRoman);
-      final child = ComputedStyle();
-
-      child.inheritFrom(parent);
-
-      expect(child.listStyleType, equals(ListStyleType.upperRoman));
-    });
-
-    test('ComputedStyle child overrides parent listStyleType', () {
-      final parent = ComputedStyle(listStyleType: ListStyleType.disc);
-      final child = ComputedStyle(listStyleType: ListStyleType.square);
-
-      child.inheritFrom(parent);
-
-      // Child's explicit value should be preserved
-      expect(child.listStyleType, equals(ListStyleType.square));
-    });
-  });
-
-  group('List Marker Generation - Decimal', () {
-    test('generates decimal markers correctly', () {
-      // This would test _generateListMarker if it were public
-      // For now, we document expected behavior
-      final style = ComputedStyle(listStyleType: ListStyleType.decimal);
-
-      expect(style.listStyleType, equals(ListStyleType.decimal));
-      // Expected markers: "1. ", "2. ", "3. ", etc.
-    });
-  });
-
-  group('List Marker Generation - Roman Numerals', () {
-    test('lower roman markers are expected', () {
-      final style = ComputedStyle(listStyleType: ListStyleType.lowerRoman);
-
-      expect(style.listStyleType, equals(ListStyleType.lowerRoman));
-      // Expected markers: "i. ", "ii. ", "iii. ", "iv. ", "v. ", etc.
-    });
-
-    test('upper roman markers are expected', () {
-      final style = ComputedStyle(listStyleType: ListStyleType.upperRoman);
-
-      expect(style.listStyleType, equals(ListStyleType.upperRoman));
-      // Expected markers: "I. ", "II. ", "III. ", "IV. ", "V. ", etc.
-    });
-  });
-
-  group('List Marker Generation - Alphabetical', () {
-    test('lower alpha markers are expected', () {
-      final style = ComputedStyle(listStyleType: ListStyleType.lowerAlpha);
-
-      expect(style.listStyleType, equals(ListStyleType.lowerAlpha));
-      // Expected markers: "a. ", "b. ", "c. ", ..., "z. ", "aa. ", etc.
-    });
-
-    test('upper alpha markers are expected', () {
-      final style = ComputedStyle(listStyleType: ListStyleType.upperAlpha);
-
-      expect(style.listStyleType, equals(ListStyleType.upperAlpha));
-      // Expected markers: "A. ", "B. ", "C. ", ..., "Z. ", "AA. ", etc.
-    });
-  });
-
-  group('List Marker Generation - Bullet Types', () {
-    test('disc marker is expected', () {
-      final style = ComputedStyle(listStyleType: ListStyleType.disc);
-
-      expect(style.listStyleType, equals(ListStyleType.disc));
-      // Expected marker: "• "
-    });
-
-    test('circle marker is expected', () {
-      final style = ComputedStyle(listStyleType: ListStyleType.circle);
-
-      expect(style.listStyleType, equals(ListStyleType.circle));
-      // Expected marker: "○ "
-    });
-
-    test('square marker is expected', () {
-      final style = ComputedStyle(listStyleType: ListStyleType.square);
-
-      expect(style.listStyleType, equals(ListStyleType.square));
-      // Expected marker: "▪ "
-    });
-
-    test('none means no marker', () {
-      final style = ComputedStyle(listStyleType: ListStyleType.none);
-
-      expect(style.listStyleType, equals(ListStyleType.none));
-      // Expected marker: "" (empty string)
-    });
-  });
-
-  group('List Structure', () {
-    test('ordered list with default decimal', () {
-      final ol = BlockNode(
-        tagName: 'ol',
-        style: ComputedStyle(listStyleType: ListStyleType.decimal),
-        children: [
-          BlockNode(
-            tagName: 'li',
-            children: [TextNode('First item')],
-          ),
-          BlockNode(
-            tagName: 'li',
-            children: [TextNode('Second item')],
-          ),
-        ],
-      );
-
-      expect(ol.style.listStyleType, equals(ListStyleType.decimal));
-      expect(ol.children.length, equals(2));
-    });
-
-    test('unordered list with default disc', () {
+  group('List Node Structure', () {
+    test('unordered list node is a BlockNode with tagName ul', () {
       final ul = BlockNode(
         tagName: 'ul',
-        style: ComputedStyle(listStyleType: ListStyleType.disc),
         children: [
-          BlockNode(
-            tagName: 'li',
-            children: [TextNode('Item 1')],
-          ),
-          BlockNode(
-            tagName: 'li',
-            children: [TextNode('Item 2')],
-          ),
+          BlockNode(tagName: 'li', children: [TextNode('Item 1')]),
+          BlockNode(tagName: 'li', children: [TextNode('Item 2')]),
         ],
       );
 
-      expect(ul.style.listStyleType, equals(ListStyleType.disc));
+      expect(ul.tagName, equals('ul'));
+      expect(ul.type, equals(NodeType.block));
       expect(ul.children.length, equals(2));
     });
 
-    test('nested lists inherit style', () {
-      final outerStyle = ComputedStyle(listStyleType: ListStyleType.disc);
-      final innerStyle = ComputedStyle();
+    test('ordered list node is a BlockNode with tagName ol', () {
+      final ol = BlockNode(
+        tagName: 'ol',
+        children: [
+          BlockNode(tagName: 'li', children: [TextNode('First')]),
+          BlockNode(tagName: 'li', children: [TextNode('Second')]),
+        ],
+      );
 
-      innerStyle.inheritFrom(outerStyle);
-
-      expect(innerStyle.listStyleType, equals(ListStyleType.disc));
+      expect(ol.tagName, equals('ol'));
+      expect(ol.type, equals(NodeType.block));
+      expect(ol.children.length, equals(2));
     });
 
-    test('nested list with different style', () {
-      final outer = BlockNode(
+    test('list item node is a BlockNode with tagName li', () {
+      final li = BlockNode(
+        tagName: 'li',
+        children: [TextNode('List item')],
+      );
+
+      expect(li.tagName, equals('li'));
+      expect(li.children.length, equals(1));
+    });
+
+    test('list item textContent returns all nested text', () {
+      final li = BlockNode(
+        tagName: 'li',
+        children: [
+          TextNode('Text '),
+          InlineNode.strong(children: [TextNode('bold')]),
+          TextNode(' more'),
+        ],
+      );
+
+      expect(li.textContent, equals('Text bold more'));
+    });
+  });
+
+  group('List ComputedStyle', () {
+    test('list node can have custom ComputedStyle', () {
+      final ul = BlockNode(
         tagName: 'ul',
-        style: ComputedStyle(listStyleType: ListStyleType.disc),
+        style: ComputedStyle(
+          display: DisplayType.block,
+          padding: const EdgeInsets.only(left: 24),
+        ),
+        children: [],
+      );
+
+      expect(ul.style.display, equals(DisplayType.block));
+      expect(ul.style.padding.left, equals(24));
+    });
+
+    test('list item inherits color from parent list', () {
+      final parentStyle = ComputedStyle(
+        color: const Color(0xFF333333),
+        display: DisplayType.block,
+      );
+      final childStyle = ComputedStyle();
+
+      childStyle.inheritFrom(parentStyle);
+
+      expect(childStyle.color, equals(const Color(0xFF333333)));
+    });
+
+    test('list item can override parent font-size', () {
+      final parentStyle = ComputedStyle(fontSize: 20);
+      final childStyle = ComputedStyle(fontSize: 14);
+      childStyle.markExplicitlySet('font-size');
+
+      childStyle.inheritFrom(parentStyle);
+
+      // Explicit child value is preserved
+      expect(childStyle.fontSize, equals(14));
+    });
+
+    test('ComputedStyle can be copied with different display', () {
+      final base = ComputedStyle(display: DisplayType.block);
+      final copy = base.copyWith(display: DisplayType.inline);
+
+      expect(base.display, equals(DisplayType.block));
+      expect(copy.display, equals(DisplayType.inline));
+    });
+  });
+
+  group('Nested List Structure', () {
+    test('nested lists build correctly', () {
+      final root = BlockNode(
+        tagName: 'ul',
         children: [
           BlockNode(
             tagName: 'li',
             children: [
-              TextNode('Outer item'),
+              TextNode('Level 1'),
               BlockNode(
-                tagName: 'ol',
-                style: ComputedStyle(listStyleType: ListStyleType.decimal),
+                tagName: 'ul',
                 children: [
                   BlockNode(
                     tagName: 'li',
-                    children: [TextNode('Inner item')],
+                    children: [TextNode('Level 2')],
                   ),
                 ],
               ),
@@ -199,50 +131,26 @@ void main() {
         ],
       );
 
-      expect(outer.style.listStyleType, equals(ListStyleType.disc));
-
-      final li = outer.children[0];
-      final innerOl = li.children[1];
-
-      expect(innerOl.style.listStyleType, equals(ListStyleType.decimal));
-    });
-  });
-
-  group('Edge Cases', () {
-    test('empty list has correct style', () {
-      final ul = BlockNode(
-        tagName: 'ul',
-        style: ComputedStyle(listStyleType: ListStyleType.disc),
-        children: [],
-      );
-
-      expect(ul.children.isEmpty, isTrue);
-      expect(ul.style.listStyleType, equals(ListStyleType.disc));
-    });
-
-    test('list item without parent list', () {
-      final li = BlockNode(
-        tagName: 'li',
-        children: [TextNode('Orphan item')],
-      );
-
+      expect(root.tagName, equals('ul'));
+      final li = root.children[0];
       expect(li.tagName, equals('li'));
-      expect(li.children.length, equals(1));
+      final innerUl = li.children[1];
+      expect(innerUl.tagName, equals('ul'));
+      final innerLi = innerUl.children[0];
+      expect(innerLi.textContent, equals('Level 2'));
     });
 
-    test('list with non-li children', () {
+    test('empty list has no children', () {
+      final ul = BlockNode(tagName: 'ul', children: []);
+      expect(ul.children.isEmpty, isTrue);
+    });
+
+    test('list with mixed children types', () {
       final ul = BlockNode(
         tagName: 'ul',
-        style: ComputedStyle(listStyleType: ListStyleType.disc),
         children: [
-          BlockNode(
-            tagName: 'li',
-            children: [TextNode('Valid item')],
-          ),
-          BlockNode(
-            tagName: 'div',
-            children: [TextNode('Invalid child')],
-          ),
+          BlockNode(tagName: 'li', children: [TextNode('Valid item')]),
+          BlockNode(tagName: 'div', children: [TextNode('Non-li child')]),
         ],
       );
 
@@ -250,8 +158,10 @@ void main() {
       expect(ul.children[0].tagName, equals('li'));
       expect(ul.children[1].tagName, equals('div'));
     });
+  });
 
-    test('list item with complex content', () {
+  group('List Item Complex Content', () {
+    test('list item with inline elements', () {
       final li = BlockNode(
         tagName: 'li',
         children: [
@@ -270,75 +180,21 @@ void main() {
       expect(li.textContent, contains('Text bold link'));
     });
 
-    test('deeply nested lists', () {
-      final root = BlockNode(
-        tagName: 'ul',
-        style: ComputedStyle(listStyleType: ListStyleType.disc),
-        children: [
-          BlockNode(
-            tagName: 'li',
-            children: [
-              TextNode('Level 1'),
-              BlockNode(
-                tagName: 'ul',
-                style: ComputedStyle(listStyleType: ListStyleType.circle),
-                children: [
-                  BlockNode(
-                    tagName: 'li',
-                    children: [
-                      TextNode('Level 2'),
-                      BlockNode(
-                        tagName: 'ul',
-                        style: ComputedStyle(listStyleType: ListStyleType.square),
-                        children: [
-                          BlockNode(
-                            tagName: 'li',
-                            children: [TextNode('Level 3')],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+    test('list preserves child order', () {
+      final items = ['First', 'Second', 'Third'];
+      final ol = BlockNode(
+        tagName: 'ol',
+        children: items
+            .map((text) => BlockNode(
+                  tagName: 'li',
+                  children: [TextNode(text)],
+                ))
+            .toList(),
       );
 
-      expect(root.style.listStyleType, equals(ListStyleType.disc));
-
-      // Navigate to level 2
-      final level1Li = root.children[0];
-      final level2Ul = level1Li.children[1];
-      expect(level2Ul.style.listStyleType, equals(ListStyleType.circle));
-
-      // Navigate to level 3
-      final level2Li = level2Ul.children[0];
-      final level3Ul = level2Li.children[1];
-      expect(level3Ul.style.listStyleType, equals(ListStyleType.square));
-    });
-  });
-
-  group('CSS Integration', () {
-    test('list-style-type disc for ul', () {
-      final style = ComputedStyle(listStyleType: ListStyleType.disc);
-
-      expect(style.listStyleType, equals(ListStyleType.disc));
-    });
-
-    test('list-style-type decimal for ol', () {
-      final style = ComputedStyle(listStyleType: ListStyleType.decimal);
-
-      expect(style.listStyleType, equals(ListStyleType.decimal));
-    });
-
-    test('list-style-type can be overridden via CSS', () {
-      final defaultStyle = ComputedStyle(listStyleType: ListStyleType.disc);
-      final customStyle = ComputedStyle(listStyleType: ListStyleType.square);
-
-      expect(defaultStyle.listStyleType, equals(ListStyleType.disc));
-      expect(customStyle.listStyleType, equals(ListStyleType.square));
+      for (var i = 0; i < items.length; i++) {
+        expect(ol.children[i].textContent, equals(items[i]));
+      }
     });
   });
 }

@@ -636,6 +636,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     }
 
     double getAvailableWidth() {
+      assert(
+        _leftFloats.length + _rightFloats.length <= 50,
+        'HyperRender: ${_leftFloats.length + _rightFloats.length} active floats'
+        ' — layout may be slow',
+      );
       // Start with accumulated block padding
       double floatLeftInset = leftPaddingStack.last;
       double floatRightInset = rightPaddingStack.last;

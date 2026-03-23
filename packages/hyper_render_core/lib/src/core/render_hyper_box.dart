@@ -2,7 +2,7 @@ import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart' show debugPrint, defaultTargetPlatform, kDebugMode, TargetPlatform;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
@@ -989,7 +989,19 @@ class RenderHyperBox extends RenderBox
             if (node.tagName == 'a') {
               final href = node.attributes['href'];
               if (href != null) {
-                onLinkTap!(href);
+                // Scheme whitelist: only allow safe, well-known URL schemes.
+                // This prevents javascript:, data:, file: etc. from reaching
+                // the host app's link handler.
+                const allowedSchemes = {'http', 'https', 'mailto', 'tel'};
+                final scheme =
+                    Uri.tryParse(href)?.scheme.toLowerCase() ?? '';
+                if (allowedSchemes.contains(scheme)) {
+                  onLinkTap!(href);
+                } else if (kDebugMode) {
+                  debugPrint(
+                    '[HyperRender] Blocked link tap with disallowed scheme: $href',
+                  );
+                }
               }
               break;
             }
