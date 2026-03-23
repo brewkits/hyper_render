@@ -59,7 +59,7 @@ dependencies:
   csslib: ^1.0.0
   markdown: ^7.3.0
   html: ^0.15.6
-  vector_math: ^2.2.0
+  vector_math: ^2.1.4
 
 screenshots:
   - description: 'CSS float layout — text wraps around images like a real browser. No other Flutter HTML library supports this.'

@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:csslib/parser.dart' as css_parser;
 import 'package:csslib/visitor.dart' as css_ast;
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/painting.dart' hide BorderStyle, TextDirection;
 
 import '../model/computed_style.dart';
@@ -78,25 +79,38 @@ abstract final class _Re {
   static final nthExpr         = RegExp(r'^(-?\d*)?n(?:\+(\d+))?$');
 
   // ── CSS value functions ───────────────────────────────────────────────────
-  static final urlFunc         = _Re.urlFunc;
-  static final cssVar          = _Re.cssVar;
+  // url('/image.png') or url(image.png) — group(1) = URL
+  static final urlFunc         = RegExp(r'''url\(\s*['"]?([^'")\s]+)['"]?\s*\)''');
+  // var(--prop) or var(--prop, fallback) — group(1) = prop, group(2) = fallback
+  static final cssVar          = RegExp(r'var\(\s*(--[^,)]+?)(?:\s*,\s*([^)]*))?\s*\)');
   static final calcInner       = RegExp(r'calc\(([^()]+)\)');
   static final calcToken       = RegExp(r'(-?[\d.]+)(px|em|rem|%)?\s*|([+\-*/])');
 
   // ── Layout values ─────────────────────────────────────────────────────────
-  static final gridSpan        = _Re.gridSpan;
+  // "span 2" or "span 12" — group(1) = count
+  static final gridSpan        = RegExp(r'span\s+(\d+)', caseSensitive: false);
 
   // ── Color & gradient ─────────────────────────────────────────────────────
-  static final rgb             = _Re.rgb;
-  static final rgba            = _Re.rgba;
-  static final linearGrad      = _Re.linearGrad;
-  static final degAngle        = _Re.degAngle;
-  static final leadingDigit    = _Re.leadingDigit;
-  static final colorStopPart   = _Re.colorStopPart;
-  static final percentage      = _Re.percentage;
+  // rgb(r, g, b) — groups 1/2/3 = r/g/b (supports negative clamped values)
+  static final rgb             = RegExp(r'rgb\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)');
+  // rgba(r, g, b, a) — groups 1/2/3/4 = r/g/b/a
+  static final rgba            = RegExp(r'rgba\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?[\d.]+)\s*\)');
+  // linear-gradient(content) — group(1) = full content incl. nested parens
+  static final linearGrad      = RegExp(r'linear-gradient\((.*)\)', dotAll: true);
+  // angle like "90deg" or "-45deg"
+  static final degAngle        = RegExp(r'-?\d*\.?\d+deg');
+  // leading numeric value from a string (for angle extraction)
+  static final leadingDigit    = RegExp(r'^-?[\d.]+');
+  // color-stop: group(1) = color, group(2) = stop% (may be empty string)
+  static final colorStopPart   = RegExp(r'^(.*?)\s*([\d.]+%|)$');
+  // percentage value: group(1) = numeric part
+  static final percentage      = RegExp(r'^([\d.]+)%');
 
   // ── Filters ───────────────────────────────────────────────────────────────
-  static final filterFunc      = _Re.filterFunc;
+  // CSS filter functions: group(1) = name, group(2) = args
+  static final filterFunc      = RegExp(
+    r'(blur|brightness|contrast|grayscale|hue-rotate|invert|opacity|saturate|sepia)\(([^)]*)\)',
+  );
 }
 
 class StyleResolver {

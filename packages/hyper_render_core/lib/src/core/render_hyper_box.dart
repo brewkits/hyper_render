@@ -480,9 +480,10 @@ class RenderHyperBox extends RenderBox
     _disposeTextPainters();
     _disposeLinkRecognizers();
     _disposeImages();
-    for (final node in _cachedSemanticAnchorNodes) {
-      if (node.attached) node.detach(); // ignore: invalid_use_of_visible_for_testing_member
-    }
+    // Do NOT call detach() on cached semantic anchor nodes here.
+    // Flutter's semantics teardown already detaches them during widget
+    // unmounting — calling detach() again asserts inside SemanticsOwner
+    // that the node is still in _nodes, which it no longer is.
     _cachedSemanticAnchorNodes.clear();
     super.dispose();
   }
@@ -1253,10 +1254,10 @@ class RenderHyperBox extends RenderBox
         ..updateWith(config: cfg, childrenInInversePaintOrder: const []);
     }
 
-    // Detach any surplus cached nodes (document shrank or anchor count dropped).
-    for (final stale in pool) {
-      if (stale.attached) stale.detach(); // ignore: invalid_use_of_visible_for_testing_member
-    }
+    // Do NOT call detach() on surplus pool nodes: node.updateWith() below
+    // will call _replaceChildren, which calls _dropChild → detach() for any
+    // node not in the new childrenInInversePaintOrder list.  Calling detach()
+    // ourselves before updateWith() would leave them half-torn-down.
     _cachedSemanticAnchorNodes
       ..clear()
       ..addAll(newCache);

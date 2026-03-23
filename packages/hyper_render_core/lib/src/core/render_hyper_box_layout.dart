@@ -309,7 +309,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     double height;
 
     if (node.tagName == 'img' && node.src != null) {
-      final cached = _imageCache[node.src];
+      final cached = _imageCache.get(node.src!);
 
       if (cached?.state == ImageLoadState.loaded && cached?.image != null) {
         // Image loaded - use actual dimensions
@@ -1418,7 +1418,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     if (sourceNode is AtomicNode &&
         sourceNode.tagName == 'img' &&
         sourceNode.src != null) {
-      final cached = _imageCache[sourceNode.src];
+      final cached = _imageCache.get(sourceNode.src!);
       if (cached?.state == ImageLoadState.loaded && cached?.image != null) {
         final img = cached!.image!;
         final imgW = img.width.toDouble();

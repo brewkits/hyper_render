@@ -174,7 +174,7 @@ class HtmlHeuristics {
         _tagPresent(lower, 'textarea') ||
         // <button type="submit"> without a parent <form> still signals
         // interactive intent — flag it so the team can decide.
-        RegExp(r'<button[^>]+type\s*=\s*["\']?submit',
+        RegExp(r'<button[^>]+type\s*=\s*["\x27]?submit',
                 caseSensitive: false)
             .hasMatch(html);
   }
