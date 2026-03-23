@@ -161,7 +161,7 @@ class WhyHyperRenderDemo extends StatelessWidget {
   // ─── Feature matrix (rendered as HTML via HyperViewer) ─────────────────────
   static const _matrixHtml = '''
 <div style="font-family: sans-serif;">
-  <table style="border-collapse: collapse; width: 100%; font-size: 13px;">
+  <table style="border-collapse: collapse; font-size: 13px;">
     <thead>
       <tr style="background: #1a237e; color: white;">
         <th style="padding: 10px 12px; text-align: left; border-radius: 6px 0 0 0;">Feature</th>
