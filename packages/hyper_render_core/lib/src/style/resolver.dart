@@ -23,6 +23,82 @@ import '../model/node.dart';
 /// `!important` declarations are stored separately in [CssRule.importantDeclarations]
 /// and applied after inline styles in step 4 of the cascade, matching the CSS spec.
 /// Higher-specificity `!important` rules still win over lower-specificity ones.
+// ── Compiled CSS regex constants ──────────────────────────────────────────────
+//
+// ALL RegExp objects are kept here as `static final` to ensure they are
+// compiled exactly once per process lifetime (Dart compiles a regex to a DFA
+// on first instantiation).  Creating `RegExp(r'...')` inside a method or loop
+// allocates a new object and re-compiles every call.  With 5000+ styled nodes,
+// that produced tens of thousands of short-lived RegExp objects and measurable
+// GC pressure.
+//
+// Naming convention:
+//   _Re.whitespace      general `\s+` splitter
+//   _Re.idIndex         id selector in the rule-index builder
+//   _Re.idMatch         id selector in combined-selector matcher (wider charset)
+//   _Re.spec*           specificity calculation patterns
+//   _Re.combinator*     CSS combinator handling
+//   _Re.pseudo*         pseudo-class/element patterns
+//   _Re.*               all other value/color/layout patterns
+// ─────────────────────────────────────────────────────────────────────────────
+abstract final class _Re {
+  // ── General ───────────────────────────────────────────────────────────────
+  static final whitespace      = RegExp(r'\s+');
+  static final multiSpace      = RegExp(r' {2,}');
+
+  // ── Selectors — rule-index builder ───────────────────────────────────────
+  // These use [a-zA-Z_] as the first character (stricter, used when building
+  // the O(1) lookup index from parsed CSS rules).
+  static final idIndex         = RegExp(r'#([a-zA-Z_][a-zA-Z0-9_-]*)');
+  static final classIndex      = RegExp(r'\.([a-zA-Z_][a-zA-Z0-9_-]*)');
+  static final tagName         = RegExp(r'^([a-zA-Z][a-zA-Z0-9]*)');
+
+  // ── Selectors — combined selector matcher ─────────────────────────────────
+  // These use [a-zA-Z_-] as the first character (looser, handles edge cases
+  // like `-webkit-` prefixed custom selectors in authored CSS).
+  static final idMatch         = RegExp(r'#([a-zA-Z_-][a-zA-Z0-9_-]*)');
+  static final classMatch      = RegExp(r'\.([a-zA-Z_-][a-zA-Z0-9_-]*)');
+
+  // ── Specificity ───────────────────────────────────────────────────────────
+  static final specId          = RegExp(r'#[a-zA-Z_-]+');
+  static final specClass       = RegExp(r'\.[a-zA-Z_-]+');
+  static final specAttr        = RegExp(r'\[[^\]]+\]');
+  static final specPseudo      = RegExp(r':[a-zA-Z_-]+');
+  static final specParts       = RegExp(r'[\s>+~]+');
+  static final startsWithLetter= RegExp(r'^[a-zA-Z]');
+
+  // ── Combinators ───────────────────────────────────────────────────────────
+  static final combinatorSplit   = RegExp(r'\s*[>+~]\s*|\s+');
+  static final combinatorCapture = RegExp(r'\s*([>+~])\s*');
+
+  // ── Pseudo-classes / pseudo-elements ─────────────────────────────────────
+  static final pseudoExtract   = RegExp(r'::?[a-zA-Z-]+(?:\([^()]*\))?');
+  static final nthChild        = RegExp(r'^:nth-child\(([^)]+)\)$');
+  static final nthLastChild    = RegExp(r'^:nth-last-child\(([^)]+)\)$');
+  static final nthExpr         = RegExp(r'^(-?\d*)?n(?:\+(\d+))?$');
+
+  // ── CSS value functions ───────────────────────────────────────────────────
+  static final urlFunc         = _Re.urlFunc;
+  static final cssVar          = _Re.cssVar;
+  static final calcInner       = RegExp(r'calc\(([^()]+)\)');
+  static final calcToken       = RegExp(r'(-?[\d.]+)(px|em|rem|%)?\s*|([+\-*/])');
+
+  // ── Layout values ─────────────────────────────────────────────────────────
+  static final gridSpan        = _Re.gridSpan;
+
+  // ── Color & gradient ─────────────────────────────────────────────────────
+  static final rgb             = _Re.rgb;
+  static final rgba            = _Re.rgba;
+  static final linearGrad      = _Re.linearGrad;
+  static final degAngle        = _Re.degAngle;
+  static final leadingDigit    = _Re.leadingDigit;
+  static final colorStopPart   = _Re.colorStopPart;
+  static final percentage      = _Re.percentage;
+
+  // ── Filters ───────────────────────────────────────────────────────────────
+  static final filterFunc      = _Re.filterFunc;
+}
+
 class StyleResolver {
   /// Parsed CSS rules from <style> tags
   final List<CssRule> _cssRules = [];
@@ -267,20 +343,20 @@ class StyleResolver {
       bool indexed = false;
 
       // Index by id (#foo)
-      final idMatch = RegExp(r'#([a-zA-Z_][a-zA-Z0-9_-]*)').firstMatch(rightmost);
+      final idMatch = _Re.idIndex.firstMatch(rightmost);
       if (idMatch != null) {
         (_rulesById[idMatch.group(1)!] ??= []).add(rule);
         indexed = true;
       }
 
       // Index by class (.foo) — may be multiple classes
-      for (final m in RegExp(r'\.([a-zA-Z_][a-zA-Z0-9_-]*)').allMatches(rightmost)) {
+      for (final m in _Re.classIndex.allMatches(rightmost)) {
         (_rulesByClass[m.group(1)!] ??= []).add(rule);
         indexed = true;
       }
 
       // Index by tag (starts with letter, no # or .)
-      final tagMatch = RegExp(r'^([a-zA-Z][a-zA-Z0-9]*)').firstMatch(rightmost);
+      final tagMatch = _Re.tagName.firstMatch(rightmost);
       if (tagMatch != null) {
         (_rulesByTag[tagMatch.group(1)!.toLowerCase()] ??= []).add(rule);
         indexed = true;
@@ -297,7 +373,7 @@ class StyleResolver {
   /// For `div > p.lead` → `p.lead`; for `h1 + p` → `p`; for `*` → `*`.
   static String _rightmostSimplePart(String selector) {
     // Split on combinator tokens (space, >, +, ~) and take the last part.
-    final parts = selector.split(RegExp(r'\s*[>+~]\s*|\s+'));
+    final parts = selector.split(_Re.combinatorSplit);
     return parts.last.trim();
   }
 
@@ -324,7 +400,7 @@ class StyleResolver {
 
     final classAttr = node.attributes['class'];
     if (classAttr != null) {
-      for (final cls in classAttr.split(RegExp(r'\s+'))) {
+      for (final cls in classAttr.split(_Re.whitespace)) {
         if (cls.isNotEmpty) add(_rulesByClass[cls]);
       }
     }
@@ -413,18 +489,18 @@ class StyleResolver {
     int specificity = 0;
 
     // ID selectors (#id) = 100
-    specificity += RegExp(r'#[a-zA-Z_-]+').allMatches(selector).length * 100;
+    specificity += _Re.specId.allMatches(selector).length * 100;
 
     // Class selectors (.class), attribute selectors, pseudo-classes = 10
-    specificity += RegExp(r'\.[a-zA-Z_-]+').allMatches(selector).length * 10;
-    specificity += RegExp(r'\[[^\]]+\]').allMatches(selector).length * 10;
-    specificity += RegExp(r':[a-zA-Z_-]+').allMatches(selector).length * 10;
+    specificity += _Re.specClass.allMatches(selector).length * 10;
+    specificity += _Re.specAttr.allMatches(selector).length * 10;
+    specificity += _Re.specPseudo.allMatches(selector).length * 10;
 
     // Element selectors, pseudo-elements = 1
     // Split by combinator chars and count parts that start with a letter
-    final selectorParts = selector.split(RegExp(r'[\s>+~]+'));
+    final selectorParts = selector.split(_Re.specParts);
     specificity += selectorParts
-        .where((p) => p.isNotEmpty && RegExp(r'^[a-zA-Z]').hasMatch(p))
+        .where((p) => p.isNotEmpty && _Re.startsWithLetter.hasMatch(p))
         .length;
 
     return specificity;
@@ -543,8 +619,8 @@ class StyleResolver {
     // and `div > p` are treated identically.  We collapse any runs of spaces
     // back to a single space after insertion to avoid double-space issues.
     selector = selector
-        .replaceAllMapped(RegExp(r'\s*([>+~])\s*'), (m) => ' ${m.group(1)} ')
-        .replaceAll(RegExp(r' {2,}'), ' ')
+        .replaceAllMapped(_Re.combinatorCapture, (m) => ' ${m.group(1)} ')
+        .replaceAll(_Re.multiSpace, ' ')
         .trim();
 
     final parts = _tokenizeCombinators(selector);
@@ -730,7 +806,7 @@ class StyleResolver {
     // The character class [^()]+ prevents greedy match from swallowing nested
     // parens, but CSS pseudo-class args are never nested so this is sufficient.
     final result = selector.replaceAllMapped(
-      RegExp(r'::?[a-zA-Z-]+(?:\([^()]*\))?'),
+      _Re.pseudoExtract,
       (m) {
         pseudos.add(m.group(0)!.toLowerCase());
         return '';
@@ -788,7 +864,7 @@ class StyleResolver {
     }
 
     // ── :nth-child(…) ───────────────────────────────────────────────────────
-    final nthChild = RegExp(r'^:nth-child\(([^)]+)\)$').firstMatch(pseudo);
+    final nthChild = _Re.nthChild.firstMatch(pseudo);
     if (nthChild != null) {
       if (parent == null) return false;
       final idx = parent.children.indexOf(node) + 1; // 1-based
@@ -796,7 +872,7 @@ class StyleResolver {
     }
 
     // ── :nth-last-child(…) ──────────────────────────────────────────────────
-    final nthLast = RegExp(r'^:nth-last-child\(([^)]+)\)$').firstMatch(pseudo);
+    final nthLast = _Re.nthLastChild.firstMatch(pseudo);
     if (nthLast != null) {
       if (parent == null) return false;
       final idx = parent.children.length - parent.children.indexOf(node); // 1-based from end
@@ -847,8 +923,7 @@ class StyleResolver {
     if (plain != null) return index == plain;
 
     // Parse An+B  (e.g. "2n+1", "-n+3", "n", "3n")
-    final match =
-        RegExp(r'^(-?\d*)?n(?:\+(\d+))?$').firstMatch(expr);
+    final match = _Re.nthExpr.firstMatch(expr);
     if (match == null) return false;
 
     final aStr = match.group(1) ?? '1';
@@ -889,20 +964,18 @@ class StyleResolver {
     List<String> classParts = [];
 
     // Parse selector parts
-    final idMatch = RegExp(r'#([a-zA-Z_-][a-zA-Z0-9_-]*)').firstMatch(selector);
+    final idMatch = _Re.idMatch.firstMatch(selector);
     if (idMatch != null) {
       idPart = idMatch.group(1);
     }
 
-    final classMatches =
-        RegExp(r'\.([a-zA-Z_-][a-zA-Z0-9_-]*)').allMatches(selector);
+    final classMatches = _Re.classMatch.allMatches(selector);
     for (final match in classMatches) {
       classParts.add(match.group(1)!);
     }
 
     // Element is everything before first . or #
-    final elementMatch =
-        RegExp(r'^([a-zA-Z][a-zA-Z0-9]*)').firstMatch(selector);
+    final elementMatch = _Re.tagName.firstMatch(selector);
     if (elementMatch != null) {
       elementPart = elementMatch.group(1);
     }
@@ -1051,7 +1124,7 @@ class StyleResolver {
           }
         } else if (value.contains('url(')) {
           final match =
-              RegExp(r"""url\(["']?([^"')]+)["']?\)""").firstMatch(value);
+              _Re.urlFunc.firstMatch(value);
           if (match != null) {
             style.backgroundImage = match.group(1);
             style.markExplicitlySet('background-image');
@@ -1091,7 +1164,7 @@ class StyleResolver {
           }
         } else if (value.contains('url(')) {
           final match =
-              RegExp(r"""url\(["']?([^"')]+)["']?\)""").firstMatch(value);
+              _Re.urlFunc.firstMatch(value);
           if (match != null) {
             style.backgroundImage = match.group(1);
             style.markExplicitlySet('background-image');
@@ -1368,7 +1441,7 @@ class StyleResolver {
 
       case 'flex':
         // Parse flex shorthand: flex-grow flex-shrink flex-basis
-        final parts = value.trim().split(RegExp(r'\s+'));
+        final parts = value.trim().split(_Re.whitespace);
         if (parts.isNotEmpty) {
           style.flexGrow = double.tryParse(parts[0]) ?? 0;
           if (parts.length > 1) {
@@ -1644,7 +1717,7 @@ class StyleResolver {
     for (int i = 0; i < 10; i++) {
       // [^()]+ ensures we only match leaf var() calls (no nested parens inside)
       final resolved = value.replaceAllMapped(
-        RegExp(r'var\(\s*(--[\w-]+)\s*(?:,\s*([^()]+))?\s*\)'),
+        _Re.cssVar,
         (match) {
           final propName = match.group(1)!;
           final fallback = match.group(2)?.trim() ?? '';
@@ -1665,7 +1738,7 @@ class StyleResolver {
   String _evaluateCalcInValue(String value) {
     // [^()]+ matches only characters that are NOT parens, so it always finds
     // the *innermost* calc() — the one with no nested calls inside.
-    final innerCalc = RegExp(r'calc\(([^()]+)\)');
+    final innerCalc = _Re.calcInner;
     String current = value;
     // Iterate until stable (each pass resolves one nesting level).
     while (current.contains('calc(')) {
@@ -1690,9 +1763,7 @@ class StyleResolver {
     expr = expr.trim();
 
     // Tokenize the expression — leading minus handled as part of number token
-    final tokenPattern = RegExp(
-      r'(-?[\d.]+)(px|em|rem|%)?\s*|([+\-*/])',
-    );
+    final tokenPattern = _Re.calcToken;
     final tokens = tokenPattern.allMatches(expr).toList();
     if (tokens.isEmpty) return null;
 
@@ -1782,7 +1853,7 @@ class StyleResolver {
     if (value == 'auto') return (0, 0, 1);
 
     // "span N"
-    final spanMatch = RegExp(r'^span\s+(\d+)$').firstMatch(value);
+    final spanMatch = _Re.gridSpan.firstMatch(value);
     if (spanMatch != null) {
       final span = int.tryParse(spanMatch.group(1)!) ?? 1;
       return (0, 0, span);
@@ -1794,7 +1865,7 @@ class StyleResolver {
       if (parts.length == 2) {
         final start = int.tryParse(parts[0]) ?? 0;
         final endStr = parts[1];
-        final spanMatch2 = RegExp(r'^span\s+(\d+)$').firstMatch(endStr);
+        final spanMatch2 = _Re.gridSpan.firstMatch(endStr);
         if (spanMatch2 != null) {
           final span = int.tryParse(spanMatch2.group(1)!) ?? 1;
           return (start, 0, span);
@@ -1852,7 +1923,7 @@ class StyleResolver {
 
   /// Parse border shorthand (e.g., "1px solid red")
   (double, Color, HyperBorderStyle?)? _parseBorderShorthand(String value) {
-    final parts = value.trim().split(RegExp(r'\s+'));
+    final parts = value.trim().split(_Re.whitespace);
     double width = 1.0;
     Color color = const Color(0xFF000000);
     HyperBorderStyle? borderStyle;
@@ -1932,7 +2003,7 @@ class StyleResolver {
     final shadowDefinitions = value.split(',');
 
     for (final shadowDef in shadowDefinitions) {
-      final parts = shadowDef.trim().split(RegExp(r'\s+'));
+      final parts = shadowDef.trim().split(_Re.whitespace);
       if (parts.length < 3) continue; // Need at least x y blur
 
       double offsetX = 0;
@@ -1984,7 +2055,7 @@ class StyleResolver {
     final shadowDefinitions = value.split(',');
 
     for (final shadowDef in shadowDefinitions) {
-      final parts = shadowDef.trim().split(RegExp(r'\s+'));
+      final parts = shadowDef.trim().split(_Re.whitespace);
       if (parts.length < 2) continue; // Need at least x y
 
       double offsetX = 0;
@@ -2051,7 +2122,7 @@ class StyleResolver {
   /// Basic linear-gradient parser
   Gradient? _parseLinearGradient(String value) {
     // Format: linear-gradient([angle | to side]?, color-stop1, color-stop2, ...)
-    final contentMatch = RegExp(r'linear-gradient\((.*)\)').firstMatch(value);
+    final contentMatch = _Re.linearGrad.firstMatch(value);
     if (contentMatch == null) return null;
 
     final content = contentMatch.group(1)!;
@@ -2083,10 +2154,10 @@ class StyleResolver {
         end = Alignment.topCenter;
       }
       colorStartIndex = 1;
-    } else if (RegExp(r'^\d+deg').hasMatch(firstPart)) {
+    } else if (_Re.degAngle.hasMatch(firstPart)) {
       // Simplified angle handling: 0deg=top, 90deg=right, 180deg=bottom, 270deg=left
       final angle = double.tryParse(
-          RegExp(r'^\d+').firstMatch(firstPart)?.group(0) ?? '180');
+          _Re.leadingDigit.firstMatch(firstPart)?.group(0) ?? '180');
       if (angle != null) {
         if (angle >= 45 && angle < 135) {
           begin = Alignment.centerLeft;
@@ -2111,7 +2182,7 @@ class StyleResolver {
     for (int i = colorStartIndex; i < parts.length; i++) {
       final colorPart = parts[i].trim();
       final colorMatch =
-          RegExp(r'^([^(]+(?:\([^)]*\))?)\s*(.*)$').firstMatch(colorPart);
+          _Re.colorStopPart.firstMatch(colorPart);
       if (colorMatch == null) continue;
 
       final colorStr = colorMatch.group(1)!.trim();
@@ -2138,7 +2209,7 @@ class StyleResolver {
   }
 
   double? _parsePercent(String value) {
-    final match = RegExp(r'(\d+(?:\.\d+)?)%').firstMatch(value);
+    final match = _Re.percentage.firstMatch(value);
     if (match != null) {
       return double.parse(match.group(1)!) / 100.0;
     }
@@ -2168,7 +2239,7 @@ class StyleResolver {
     if (value.toLowerCase().trim() == 'none') return null;
 
     final filterFuncs =
-        RegExp(r'([a-z-]+)\(([^)]+)\)').allMatches(value.toLowerCase());
+        _Re.filterFunc.allMatches(value.toLowerCase());
     if (filterFuncs.isEmpty) return null;
 
     final filters = <ui.ImageFilter>[];
@@ -2463,7 +2534,7 @@ class StyleResolver {
 
     // rgb(r, g, b) — supports negative values (clamped to 0)
     final rgbMatch =
-        RegExp(r'rgb\((-?\d+),\s*(-?\d+),\s*(-?\d+)\)').firstMatch(value);
+        _Re.rgb.firstMatch(value);
     if (rgbMatch != null) {
       final r = int.parse(rgbMatch.group(1)!).clamp(0, 255);
       final g = int.parse(rgbMatch.group(2)!).clamp(0, 255);
@@ -2473,7 +2544,7 @@ class StyleResolver {
 
     // rgba(r, g, b, a) — supports negative alpha (clamped to 0)
     final rgbaMatch =
-        RegExp(r'rgba\((-?\d+),\s*(-?\d+),\s*(-?\d+),\s*(-?[\d.]+)\)')
+        _Re.rgba
             .firstMatch(value);
     if (rgbaMatch != null) {
       final r = int.parse(rgbaMatch.group(1)!).clamp(0, 255);
@@ -2649,7 +2720,7 @@ class StyleResolver {
 
   /// Parse CSS edge insets (margin, padding)
   EdgeInsets? _parseEdgeInsets(String value) {
-    final parts = value.trim().split(RegExp(r'\s+'));
+    final parts = value.trim().split(_Re.whitespace);
     final values = parts.map((p) => _parseLength(p) ?? 0.0).toList();
 
     switch (values.length) {

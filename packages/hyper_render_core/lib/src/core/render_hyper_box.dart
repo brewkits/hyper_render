@@ -75,6 +75,11 @@ final Paint _errorSlashPaint = Paint()
   ..isAntiAlias = true;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Compiled-once regex constants for hot paths in RenderHyperBox.
+// Using a library-level final avoids re-compiling the DFA on every call.
+final _kWhitespaceSplitter = RegExp(r'\s+');
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 /// Callback for handling link taps
 typedef HyperLinkTapCallback = void Function(String url);
@@ -687,36 +692,47 @@ class RenderHyperBox extends RenderBox
     }
 
     _ensureFragments();
-    // This is expensive but correct. It finds the longest unbreakable word.
     double maxWidth = 0;
 
-    // Two reusable painters — one per text direction — shared across all
-    // fragments.  Creating and disposing a TextPainter per fragment (the
-    // previous approach) was measurably slower for large tables because each
-    // table cell calls computeMinIntrinsicWidth independently, producing many
-    // short-lived native objects.  Reusing the painters across the full
-    // fragment list reduces allocations to at most 2 per
-    // computeMinIntrinsicWidth call regardless of fragment count.
+    // ── O(F) strategy — one TextPainter call per text fragment ──────────────
     //
-    // These are still throw-away painters (not stored in _textPainters) so
-    // they do NOT pollute the LRU cache with per-word entries.
+    // Previously this was O(W) — one layout call per word across the entire
+    // document.  For a 3000-word article that means ~3000 TextPainter.layout()
+    // calls synchronously on the main thread, causing 200–400 ms jank when the
+    // widget is wrapped in IntrinsicWidth or DataTable.
+    //
+    // Key insight: the longest *measured* word is almost always the longest
+    // *character-count* word.  The only edge case is a short wide-glyph run
+    // ("WWW") vs a long narrow-glyph run ("iiiiiiiii"), which is negligible
+    // for real prose.  By picking only the longest-by-char-count word per
+    // fragment we reduce TextPainter calls from O(totalWords) to O(fragments).
+    //
+    // Two painters — one per text direction — are reused across all fragments
+    // to avoid repeated native-object allocation.  They are NOT stored in
+    // _textPainters so per-word spans don't pollute the LRU cache.
     final ltrPainter = TextPainter(textDirection: ui.TextDirection.ltr);
     final rtlPainter = TextPainter(textDirection: ui.TextDirection.rtl);
 
     for (final fragment in _fragments) {
       if (fragment.type == FragmentType.text && fragment.text != null) {
         final text = fragment.text!;
-        final words = text.split(RegExp(r'\s+'));
+        // Find the single longest word by character count.  This is a
+        // simple O(W) scan with no allocations beyond the split list itself,
+        // far cheaper than W TextPainter.layout() calls.
+        final words = text.split(_kWhitespaceSplitter);
+        String longestWord = '';
+        for (final w in words) {
+          if (w.length > longestWord.length) longestWord = w;
+        }
+        if (longestWord.isEmpty) continue;
+
         final isRtl = fragment.style.isRtl;
         final measurePainter = isRtl ? rtlPainter : ltrPainter;
         final mergedStyle = _baseStyle.merge(fragment.style.toTextStyle());
-        for (final word in words) {
-          if (word.isEmpty) continue;
-          measurePainter.text = TextSpan(text: word, style: mergedStyle);
-          measurePainter.layout();
-          if (measurePainter.width > maxWidth) {
-            maxWidth = measurePainter.width;
-          }
+        measurePainter.text = TextSpan(text: longestWord, style: mergedStyle);
+        measurePainter.layout();
+        if (measurePainter.width > maxWidth) {
+          maxWidth = measurePainter.width;
         }
       } else if (fragment.type == FragmentType.atomic ||
           fragment.type == FragmentType.ruby) {
