@@ -5,7 +5,55 @@
 /// to be called before rendering to decide whether to use a fallback renderer
 /// (e.g., a WebView) for content that hyper_render may not handle correctly.
 ///
-/// ## Usage
+/// ---
+///
+/// ## ⚠️ BA / Product gap: HyperRender is read-only
+///
+/// HyperRender renders HTML as a **display-only** widget — it does not
+/// support interactive form elements (`<input>`, `<select>`, `<textarea>`,
+/// `<form>`).  When a requirement involves an HTML article with an embedded
+/// survey, checkout form, or any user-input field, one of three patterns must
+/// be chosen **before development starts**:
+///
+/// ### Pattern A — WebView fallback (easiest, least control)
+/// Use `HtmlHeuristics.hasForms()` or `HtmlHeuristics.isComplex()` to detect
+/// form HTML at runtime and render the entire page in a WebView instead.
+/// ```dart
+/// if (HtmlHeuristics.hasForms(html)) {
+///   return WebViewWidget(controller: ..webViewController..);
+/// }
+/// return HyperViewer(html: html);
+/// ```
+/// **Trade-off**: loses HyperRender's performance, text selection, and deep
+/// linking on those screens.
+///
+/// ### Pattern B — Native form below the article (recommended)
+/// Render the article text with HyperRender and place a native Flutter
+/// `Form` / `Column` of `TextFormField`s **below** or in a `Stack`.
+/// The backend delivers article HTML and form schema as **separate fields**
+/// (e.g., `{ "body": "<p>…</p>", "form": [...] }`).
+/// ```dart
+/// Column(children: [
+///   HyperViewer(html: article.body),
+///   NativeSurveyForm(schema: article.form),
+/// ])
+/// ```
+/// **Trade-off**: requires the backend to separate content from form
+/// definition.  Strongly preferred for new screens.
+///
+/// ### Pattern C — Strip form tags, keep read-only body
+/// If the form is purely cosmetic (e.g., a "vote" button that submits via
+/// a link rather than POST), strip interactive elements with
+/// `HtmlSanitizer` and render the cleaned HTML.
+/// ```dart
+/// final clean = HtmlSanitizer.sanitize(html);  // strips <input> etc.
+/// return HyperViewer(html: clean);
+/// ```
+/// **Trade-off**: any form functionality is silently removed.
+///
+/// ---
+///
+/// ## Usage (isComplex gate)
 /// ```dart
 /// HyperViewer(
 ///   html: content,
@@ -100,12 +148,43 @@ class HtmlHeuristics {
     return false;
   }
 
+  /// Returns `true` if the HTML contains form or user-input elements.
+  ///
+  /// HyperRender is a **read-only** renderer — it does not support
+  /// `<form>`, `<input>`, `<select>`, `<textarea>`, or `<button type="submit">`.
+  ///
+  /// Use this check when deciding between rendering strategies:
+  /// - `true`  → choose Pattern A (WebView), B (native form below), or C (strip)
+  /// - `false` → safe to render with HyperRender as-is
+  ///
+  /// See the library-level doc comment for a full description of each pattern.
+  ///
+  /// ```dart
+  /// if (HtmlHeuristics.hasForms(html)) {
+  ///   // Route to WebView or show native form widget
+  /// } else {
+  ///   return HyperViewer(html: html);
+  /// }
+  /// ```
+  static bool hasForms(String html) {
+    final lower = html.toLowerCase();
+    return _tagPresent(lower, 'form') ||
+        _tagPresent(lower, 'input') ||
+        _tagPresent(lower, 'select') ||
+        _tagPresent(lower, 'textarea') ||
+        // <button type="submit"> without a parent <form> still signals
+        // interactive intent — flag it so the team can decide.
+        RegExp(r'<button[^>]+type\s*=\s*["\']?submit',
+                caseSensitive: false)
+            .hasMatch(html);
+  }
+
   /// Returns `true` if the HTML contains interactive or scripted elements
   /// that hyper_render does not render:
   ///
   /// - `<canvas>` — requires JavaScript 2D/WebGL context
-  /// - `<form>` — hyper_render is read-only
-  /// - `<input>` / `<select>` / `<textarea>` — form controls
+  /// - `<form>` / `<input>` / `<select>` / `<textarea>` — hyper_render is
+  ///   read-only; use [hasForms] for a targeted form check
   /// - `<script>` — JavaScript execution not supported
   /// - `<video>` or `<audio>` with `src=` pointing to streaming sources
   ///   (HLS, RTSP, etc.) that the platform media player cannot open
@@ -115,11 +194,8 @@ class HtmlHeuristics {
     // Canvas
     if (_tagPresent(lower, 'canvas')) return true;
 
-    // Form elements
-    if (_tagPresent(lower, 'form')) return true;
-    if (_tagPresent(lower, 'input')) return true;
-    if (_tagPresent(lower, 'select')) return true;
-    if (_tagPresent(lower, 'textarea')) return true;
+    // Form elements (delegates to hasForms for single source of truth)
+    if (hasForms(html)) return true;
 
     // Script tags (should have been sanitised, but check anyway)
     if (_tagPresent(lower, 'script')) return true;
