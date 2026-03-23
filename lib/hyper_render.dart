@@ -140,6 +140,9 @@ export 'package:hyper_render_core/hyper_render_core.dart'
 export 'src/widgets/hyper_viewer.dart'
     show HyperViewer, HyperRenderMode, HyperContentType;
 
+export 'package:hyper_render_core/hyper_render_core.dart'
+    show HyperRenderConfig;
+
 export 'src/core/lazy_image_queue.dart' show LazyImageQueue;
 
 export 'src/core/capture_extension.dart' show HyperCaptureExtension;
