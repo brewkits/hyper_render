@@ -627,7 +627,15 @@ class RenderHyperBox extends RenderBox
       priority: priority,
       loader: loader,
       onLoad: (ui.Image image) {
-        if (!attached) return;
+        if (!attached) {
+          // Widget was removed from the tree while the image was loading.
+          // We MUST call dispose() here — Dart GC cannot release the native GPU
+          // texture backing ui.Image; only dispose() does that.  Skipping this
+          // causes an unbounded GPU memory leak: each back-navigation leaks the
+          // images that were still in flight.
+          image.dispose();
+          return;
+        }
         _imageCache[src] = CachedImage(
           image: image,
           state: ImageLoadState.loaded,
@@ -670,13 +678,24 @@ class RenderHyperBox extends RenderBox
       if (fragment.type == FragmentType.text && fragment.text != null) {
         final text = fragment.text!;
         final words = text.split(RegExp(r'\s+'));
+        // Use a throw-away TextPainter so measuring individual words does NOT
+        // evict real paragraph painters from the LRU cache.  A 3 000-word
+        // article would otherwise push ~3 000 single-word entries into the
+        // 5 000-slot cache, displacing the painters that paint() actually needs
+        // and forcing them to be rebuilt — causing paint-phase FPS drops.
+        final fragDir =
+            fragment.style.isRtl ? ui.TextDirection.rtl : _textDirection;
+        final mergedStyle = _baseStyle.merge(fragment.style.toTextStyle());
+        final measurePainter = TextPainter(textDirection: fragDir);
         for (final word in words) {
           if (word.isEmpty) continue;
-          final painter = _getTextPainter(word, fragment.style);
-          if (painter.width > maxWidth) {
-            maxWidth = painter.width;
+          measurePainter.text = TextSpan(text: word, style: mergedStyle);
+          measurePainter.layout();
+          if (measurePainter.width > maxWidth) {
+            maxWidth = measurePainter.width;
           }
         }
+        measurePainter.dispose();
       } else if (fragment.type == FragmentType.atomic ||
           fragment.type == FragmentType.ruby) {
         // Ensure fragment is measured if it hasn't been already
