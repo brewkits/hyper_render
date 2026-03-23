@@ -624,6 +624,26 @@ class _HyperViewerState extends State<HyperViewer>
     if (ro != null) clearBox(ro);
   }
 
+  /// Routes a parse/render error to [HyperViewer.onError] when provided,
+  /// or falls back to [FlutterError.reportError] so the problem is always
+  /// visible in the console and to Crashlytics/Sentry — even when the caller
+  /// forgot to supply an error handler.
+  void _reportError(Object error, StackTrace stack) {
+    if (widget.onError != null) {
+      widget.onError!.call(error, stack);
+    } else {
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'HyperRender',
+        context: ErrorDescription(
+          'parsing content in HyperViewer. '
+          'Add an onError callback to handle this gracefully.',
+        ),
+      ));
+    }
+  }
+
   static const _kAllowedSchemes = {'http', 'https', 'mailto', 'tel'};
 
   /// Returns a wrapped [onLinkTap] callback that validates the URL scheme
@@ -732,7 +752,7 @@ class _HyperViewerState extends State<HyperViewer>
         });
         _contentFadeController.forward();
       } catch (e, st) {
-        widget.onError?.call(e, st);
+        _reportError(e, st);
         setState(() => _isLoading = false);
       }
     } else {
@@ -778,13 +798,13 @@ class _HyperViewerState extends State<HyperViewer>
             final err = FormatException(
               message is String ? message : 'Content parsing failed',
             );
-            widget.onError?.call(err, StackTrace.empty);
+            _reportError(err, StackTrace.empty);
             setState(() => _isLoading = false);
           }
         }).catchError((Object e, StackTrace st) {
           _cancelParsing();
           if (mounted && _parseId == currentParseId) {
-            widget.onError?.call(e, st);
+            _reportError(e, st);
             setState(() => _isLoading = false);
           }
         });
@@ -803,7 +823,7 @@ class _HyperViewerState extends State<HyperViewer>
           });
           _contentFadeController.forward();
         } catch (e, st) {
-          widget.onError?.call(e, st);
+          _reportError(e, st);
           setState(() => _isLoading = false);
         }
       }
