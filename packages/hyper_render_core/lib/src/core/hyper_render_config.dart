@@ -26,6 +26,7 @@ class HyperRenderConfig {
     this.defaultImagePlaceholderWidth = 200.0,
     this.imageConcurrency = 3,
     this.virtualizationChunkSize = 6000,
+    this.extraLinkSchemes = const {},
   })  : assert(textPainterCacheSize > 0,
             'textPainterCacheSize must be positive'),
         assert(imageCacheSize > 0, 'imageCacheSize must be positive'),
@@ -89,6 +90,24 @@ class HyperRenderConfig {
   ///
   /// Default: 6000
   final int virtualizationChunkSize;
+
+  /// Additional URL schemes permitted to reach [onLinkTap].
+  ///
+  /// HyperRender always allows the built-in safe set (`http`, `https`,
+  /// `mailto`, `tel`) and always blocks dangerous schemes (`javascript:`,
+  /// `data:`, `file:`, etc.).  Add your app's custom deep-link schemes here so
+  /// tapping those links invokes [onLinkTap] instead of being silently dropped.
+  ///
+  /// ```dart
+  /// HyperRenderConfig(
+  ///   extraLinkSchemes: {'myapp', 'fb', 'shopee', 'momo'},
+  /// )
+  /// ```
+  ///
+  /// Schemes are compared case-insensitively.
+  ///
+  /// Default: `{}` (only the built-in safe set)
+  final Set<String> extraLinkSchemes;
 
   /// Production-ready defaults, tuned against real-world documents.
   static const HyperRenderConfig defaults = HyperRenderConfig();

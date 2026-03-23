@@ -1735,20 +1735,29 @@ class StyleResolver {
   /// Uses `[^()]+` (innermost-only) regex iterated until no more calc() remain,
   /// so nested expressions like `calc(100% - calc(20px * 2))` are resolved
   /// inside-out: inner `calc(20px * 2)` → `40px` first, then outer calc().
+  /// Maximum nesting depth allowed for calc() evaluation.
+  ///
+  /// Each pass resolves one nesting level (innermost-first).  Real CSS rarely
+  /// nests calc() deeper than 2–3 levels; capping at 8 prevents a maliciously
+  /// crafted stylesheet with 1000-deep nesting from looping indefinitely.
+  static const _kMaxCalcDepth = 8;
+
   String _evaluateCalcInValue(String value) {
     // [^()]+ matches only characters that are NOT parens, so it always finds
     // the *innermost* calc() — the one with no nested calls inside.
     final innerCalc = _Re.calcInner;
     String current = value;
-    // Iterate until stable (each pass resolves one nesting level).
-    while (current.contains('calc(')) {
+    // Iterate until stable, bounded by _kMaxCalcDepth to guard against
+    // adversarial input (e.g. calc(calc(calc(...))) with 1000 levels).
+    for (int depth = 0; depth < _kMaxCalcDepth; depth++) {
+      if (!current.contains('calc(')) break;
       final next = current.replaceAllMapped(innerCalc, (match) {
         final expr = match.group(1)!;
         final result = _evaluateCalcExpr(expr);
         if (result != null) return '${result}px';
         return match.group(0)!; // Keep original if can't evaluate
       });
-      if (next == current) break; // No progress — avoid infinite loop
+      if (next == current) break; // No progress — expression is unresolvable
       current = next;
     }
     return current;

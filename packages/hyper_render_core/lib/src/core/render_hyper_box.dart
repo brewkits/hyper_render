@@ -1100,11 +1100,20 @@ class RenderHyperBox extends RenderBox
       _selectionStartPosition = null;
 
       // Fire link tap on PointerUp only when the finger hasn't moved (tap, not drag).
-      // Threshold: 8 logical pixels — small enough to feel instant, large enough
-      // to ignore micro-jitter on touch screens.
-      const tapThreshold = 8.0;
+      //
+      // Use Flutter's computeHitSlop() instead of a hardcoded pixel constant so
+      // the threshold automatically matches platform gesture physics:
+      //   - Mouse/trackpad: kPrecisePointerHitSlop  (1.0 px — very precise)
+      //   - Touch:          DeviceGestureSettings.touchSlop ?? kTouchSlop (18.0)
+      //   - Stylus:         same as touch by default
+      // A hardcoded 8.0 was too tight for some touch screens (missed taps) and
+      // too loose for mouse clicks (stray drags triggered taps).
+      final tapSlop = computeHitSlop(
+        event.kind,
+        GestureBinding.instance.gestureSettings,
+      );
       final isTap = downPosition == null ||
-          (upPosition - downPosition).distance < tapThreshold;
+          (upPosition - downPosition).distance < tapSlop;
 
       if (isTap && onLinkTap != null) {
         final clickedFragment = _findFragmentAtPosition(upPosition);
@@ -1117,17 +1126,21 @@ class RenderHyperBox extends RenderBox
             if (node.tagName == 'a') {
               final href = node.attributes['href'];
               if (href != null) {
-                // Scheme whitelist: only allow safe, well-known URL schemes.
-                // This prevents javascript:, data:, file: etc. from reaching
-                // the host app's link handler.
-                const allowedSchemes = {'http', 'https', 'mailto', 'tel'};
+                // Scheme security: always block javascript:, data:, file: etc.
+                // The built-in safe set covers standard web links; apps can add
+                // their own deep-link schemes via HyperRenderConfig.extraLinkSchemes
+                // (e.g. 'myapp', 'shopee', 'fb', 'momo').
+                const _builtinSchemes = {'http', 'https', 'mailto', 'tel'};
                 final scheme =
                     Uri.tryParse(href)?.scheme.toLowerCase() ?? '';
-                if (allowedSchemes.contains(scheme)) {
+                final allowed = _builtinSchemes.contains(scheme) ||
+                    _config.extraLinkSchemes.contains(scheme);
+                if (allowed) {
                   onLinkTap!(href);
                 } else if (kDebugMode) {
                   debugPrint(
-                    '[HyperRender] Blocked link tap with disallowed scheme: $href',
+                    '[HyperRender] Blocked link tap — scheme "$scheme" not in '
+                    'built-in set or HyperRenderConfig.extraLinkSchemes: $href',
                   );
                 }
               }
