@@ -40,6 +40,13 @@ class GridContainerWidget extends StatelessWidget {
     final colGap = style.columnGap ?? style.gap ?? 0.0;
     final rowGap = style.rowGap ?? style.gap ?? 0.0;
 
+    // LayoutBuilder is intentional here: GridContainerWidget is built by a
+    // static helper (_buildGridContainerWidget) that has no access to layout
+    // constraints at widget-construction time. The parent RenderHyperBox
+    // measures grid children as child LayoutObjects, so the actual constraint
+    // is only known at build/layout time — making LayoutBuilder the correct
+    // approach. Passing maxWidth as a constructor parameter is not feasible
+    // because the caller site does not have constraint information.
     final layout = LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;

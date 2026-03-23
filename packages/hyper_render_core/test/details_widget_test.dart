@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
+import 'package:hyper_render_core/src/widgets/details_widget.dart';
+
+/// Helper to build a details node using the actual UDT node API.
+UDTNode _buildDetailsNode({
+  bool open = false,
+  List<UDTNode> children = const [],
+}) {
+  return BlockNode(
+    tagName: 'details',
+    attributes: open ? {'open': ''} : {},
+    children: children,
+  );
+}
 
 void main() {
   group('DetailsWidget', () {
     group('Basic Rendering', () {
       testWidgets('renders with default summary', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [
             TextNode('Content'),
@@ -27,7 +40,7 @@ void main() {
       });
 
       testWidgets('renders with custom summary', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [
             BlockNode(
@@ -50,7 +63,7 @@ void main() {
       });
 
       testWidgets('shows disclosure triangle', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [TextNode('Content')],
         );
@@ -71,7 +84,7 @@ void main() {
 
     group('Expand/Collapse Behavior', () {
       testWidgets('initially collapsed when open=false', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [
             BlockNode(
@@ -96,7 +109,7 @@ void main() {
       });
 
       testWidgets('initially expanded when open=true', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: true,
           children: [
             BlockNode(
@@ -121,7 +134,7 @@ void main() {
       });
 
       testWidgets('expands on tap', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [
             BlockNode(
@@ -152,7 +165,7 @@ void main() {
       });
 
       testWidgets('collapses on second tap', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: true,
           children: [
             BlockNode(
@@ -183,7 +196,7 @@ void main() {
       });
 
       testWidgets('toggles multiple times', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [TextNode('Content')],
         );
@@ -212,7 +225,7 @@ void main() {
 
     group('Smooth Animations', () {
       testWidgets('has AnimatedRotation for icon', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [TextNode('Content')],
         );
@@ -230,7 +243,7 @@ void main() {
       });
 
       testWidgets('has AnimatedSize for content', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [TextNode('Content')],
         );
@@ -248,7 +261,7 @@ void main() {
       });
 
       testWidgets('animates icon rotation on expand', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [TextNode('Content')],
         );
@@ -280,7 +293,7 @@ void main() {
       });
 
       testWidgets('animates content size on expand', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [
             BlockNode(
@@ -324,7 +337,7 @@ void main() {
       });
 
       testWidgets('uses correct animation duration', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [TextNode('Content')],
         );
@@ -346,7 +359,7 @@ void main() {
       });
 
       testWidgets('uses correct animation curve', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [TextNode('Content')],
         );
@@ -368,7 +381,7 @@ void main() {
       });
 
       testWidgets('animation completes smoothly', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [
             BlockNode(
@@ -408,7 +421,7 @@ void main() {
 
     group('Multiple Children', () {
       testWidgets('renders multiple content children', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: true,
           children: [
             BlockNode(
@@ -435,7 +448,7 @@ void main() {
       });
 
       testWidgets('hides/shows all content children', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [
             BlockNode(
@@ -474,7 +487,7 @@ void main() {
 
     group('Styling', () {
       testWidgets('applies base style to summary', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [
             BlockNode(
@@ -503,7 +516,7 @@ void main() {
       });
 
       testWidgets('applies base style to content', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: true,
           children: [
             BlockNode(
@@ -533,7 +546,7 @@ void main() {
       });
 
       testWidgets('summary is bold', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: false,
           children: [
             BlockNode(
@@ -561,7 +574,7 @@ void main() {
       });
 
       testWidgets('content has left padding', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: true,
           children: [TextNode('Content')],
         );
@@ -590,7 +603,7 @@ void main() {
       testWidgets('works in scrollable list', (tester) async {
         final detailsNodes = List.generate(
           5,
-          (i) => DetailsNode(
+          (i) => _buildDetailsNode(
             open: false,
             children: [
               BlockNode(
@@ -628,7 +641,7 @@ void main() {
       });
 
       testWidgets('nested text extraction works', (tester) async {
-        final detailsNode = DetailsNode(
+        final detailsNode = _buildDetailsNode(
           open: true,
           children: [
             BlockNode(
