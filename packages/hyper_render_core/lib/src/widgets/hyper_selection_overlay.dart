@@ -177,8 +177,13 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
   }
 
   void _releaseScrollHold() {
-    _scrollHold?.cancel();
+    // Null the field BEFORE calling cancel() to break the re-entrant callback
+    // cycle: cancel() → goBallistic → beginActivity → HoldScrollActivity.dispose()
+    // → onHoldCanceled() = _releaseScrollHold. Without this guard, _scrollHold is
+    // still non-null when dispose fires, causing infinite mutual recursion.
+    final hold = _scrollHold;
     _scrollHold = null;
+    hold?.cancel();
   }
 
   /// Called when selection changes in RenderHyperBox
