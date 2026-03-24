@@ -19,7 +19,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  vector_math: ^2.2.0
+  vector_math: ^2.1.4
   csslib: ^1.0.0
   flutter_highlight: ^0.7.0
   highlight: ^0.7.0

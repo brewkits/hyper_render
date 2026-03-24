@@ -6,6 +6,7 @@
 /// // Low-end Android (≤ 2 GB RAM)
 /// HyperRenderConfig(
 ///   textPainterCacheSize: 500,
+///   imageCacheSize: 10,
 ///   imageConcurrency: 2,
 ///   virtualizationChunkSize: 3000,
 /// )
@@ -13,6 +14,7 @@
 /// // High-end / tablet
 /// HyperRenderConfig(
 ///   textPainterCacheSize: 10000,
+///   imageCacheSize: 60,
 ///   imageConcurrency: 6,
 ///   virtualizationChunkSize: 12000,
 /// )
@@ -20,11 +22,14 @@
 class HyperRenderConfig {
   const HyperRenderConfig({
     this.textPainterCacheSize = 5000,
+    this.imageCacheSize = 30,
     this.defaultImagePlaceholderWidth = 200.0,
     this.imageConcurrency = 3,
     this.virtualizationChunkSize = 6000,
+    this.extraLinkSchemes = const {},
   })  : assert(textPainterCacheSize > 0,
             'textPainterCacheSize must be positive'),
+        assert(imageCacheSize > 0, 'imageCacheSize must be positive'),
         assert(defaultImagePlaceholderWidth > 0,
             'defaultImagePlaceholderWidth must be positive'),
         assert(imageConcurrency > 0, 'imageConcurrency must be positive'),
@@ -40,6 +45,25 @@ class HyperRenderConfig {
   ///
   /// Default: 5000
   final int textPainterCacheSize;
+
+  /// Maximum number of decoded [ui.Image] objects kept per [RenderHyperBox].
+  ///
+  /// Each decoded image occupies GPU texture memory proportional to its pixel
+  /// dimensions (width × height × 4 bytes RGBA).  A 1920×1080 image ~8 MB;
+  /// a typical article thumbnail at 800×600 ~2 MB.
+  ///
+  /// When the limit is exceeded the least-recently-used (LRU) image is
+  /// disposed (GPU texture freed) and re-fetched on demand if it becomes
+  /// visible again.  The re-fetch shows a shimmer placeholder until the
+  /// image is decoded.
+  ///
+  /// Tune per device tier:
+  /// - Low-end Android/iOS (≤ 2 GB RAM): 10–15
+  /// - Standard (default):               30
+  /// - High-end / tablet:                60+
+  ///
+  /// Default: 30
+  final int imageCacheSize;
 
   /// Placeholder width (px) for images whose dimensions are not yet known.
   ///
@@ -66,6 +90,24 @@ class HyperRenderConfig {
   ///
   /// Default: 6000
   final int virtualizationChunkSize;
+
+  /// Additional URL schemes permitted to reach [onLinkTap].
+  ///
+  /// HyperRender always allows the built-in safe set (`http`, `https`,
+  /// `mailto`, `tel`) and always blocks dangerous schemes (`javascript:`,
+  /// `data:`, `file:`, etc.).  Add your app's custom deep-link schemes here so
+  /// tapping those links invokes [onLinkTap] instead of being silently dropped.
+  ///
+  /// ```dart
+  /// HyperRenderConfig(
+  ///   extraLinkSchemes: {'myapp', 'fb', 'shopee', 'momo'},
+  /// )
+  /// ```
+  ///
+  /// Schemes are compared case-insensitively.
+  ///
+  /// Default: `{}` (only the built-in safe set)
+  final Set<String> extraLinkSchemes;
 
   /// Production-ready defaults, tuned against real-world documents.
   static const HyperRenderConfig defaults = HyperRenderConfig();

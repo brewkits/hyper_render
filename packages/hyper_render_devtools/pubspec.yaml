@@ -16,9 +16,9 @@ dependencies:
   hyper_render_core:
     path: ../hyper_render_core
 
-  # DevTools extension SDK
-  # Uncomment when devtools_extensions becomes stable:
-  # devtools_extensions: ^0.0.8
+  # Note: devtools_extensions is only needed in the devtools_ui sub-package
+  # (the Flutter Web panel). This library (service extensions) only uses
+  # dart:developer + hyper_render_core and needs no extra dependency.
 
 flutter:
   plugin:

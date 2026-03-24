@@ -9,7 +9,6 @@ const double _kDefaultDetailsFallbackHeight = 40.0;
 const double _kTableBottomMargin = 16.0;
 const double _kCodeBlockBottomMargin = 8.0;
 const double _kDetailsBottomMargin = 4.0;
-const int _kNodeRectCacheMaxDepth = 32; // max ancestor walk depth in _buildNodeRectCache
 
 extension _RenderHyperBoxLayout on RenderHyperBox {
   /// Step 1: Tokenization - Convert UDT tree to flat list of Fragments
@@ -310,7 +309,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     double height;
 
     if (node.tagName == 'img' && node.src != null) {
-      final cached = _imageCache[node.src];
+      final cached = _imageCache.get(node.src!);
 
       if (cached?.state == ImageLoadState.loaded && cached?.image != null) {
         // Image loaded - use actual dimensions
@@ -1436,7 +1435,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     if (sourceNode is AtomicNode &&
         sourceNode.tagName == 'img' &&
         sourceNode.src != null) {
-      final cached = _imageCache[sourceNode.src];
+      final cached = _imageCache.get(sourceNode.src!);
       if (cached?.state == ImageLoadState.loaded && cached?.image != null) {
         final img = cached!.image!;
         final imgW = img.width.toDouble();
@@ -2101,31 +2100,6 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
     }
     return null;
-  }
-
-  /// Builds [_nodeRectCache]: maps each [UDTNode] to its bounding [Rect]
-  /// by aggregating the rects of all fragments that belong to that node or
-  /// any of its descendants.  Called once per layout pass (Step 8), so that
-  /// [_getNodeRect] in the accessibility extension is O(1) instead of O(N).
-  void _buildNodeRectCache() {
-    _nodeRectCache.clear();
-    for (final fragment in _fragments) {
-      final rect = fragment.rect;
-      if (rect == null) continue;
-
-      // Walk up the ancestor chain so every ancestor's bounding box expands
-      // to include this fragment. Depth is capped to avoid O(N×depth) cost
-      // on deeply-nested HTML (e.g. 50-level div soup).
-      UDTNode? node = fragment.sourceNode;
-      int depth = 0;
-      while (node != null && depth < _kNodeRectCacheMaxDepth) {
-        final existing = _nodeRectCache[node];
-        _nodeRectCache[node] =
-            existing == null ? rect : existing.expandToInclude(rect);
-        node = node.parent;
-        depth++;
-      }
-    }
   }
 
   /// Find float fragment that matches the given source node
