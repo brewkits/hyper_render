@@ -561,6 +561,16 @@ class StyleResolver {
       }
     }
 
+    // HTML `valign` attribute on <td>/<th>/<tr> — lower priority than CSS.
+    final valign = node.attributes['valign'];
+    if (valign != null) {
+      final va = _parseVerticalAlign(valign);
+      if (va != null) {
+        style.verticalAlign = va;
+        style.markExplicitlySet('vertical-align');
+      }
+    }
+
     // 2. Apply CSS rules (sorted by specificity, normal declarations only)
     //    Use O(1) candidate lookup via _getCandidateRules to avoid iterating
     //    over every rule for every node (previously O(Rules × Nodes)).
@@ -1254,6 +1264,14 @@ class StyleResolver {
         }
         break;
 
+      case 'vertical-align':
+        final vAlign = _parseVerticalAlign(value);
+        if (vAlign != null) {
+          style.verticalAlign = vAlign;
+          style.markExplicitlySet('vertical-align');
+        }
+        break;
+
       case 'margin':
         final margin = _parseEdgeInsets(value);
         if (margin != null) {
@@ -1930,6 +1948,26 @@ class StyleResolver {
         return HyperTextAlign.right;
       case 'justify':
         return HyperTextAlign.justify;
+      default:
+        return null;
+    }
+  }
+
+  /// Parse vertical-align value (CSS `vertical-align` or HTML `valign`).
+  HyperVerticalAlign? _parseVerticalAlign(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'top':
+        return HyperVerticalAlign.top;
+      case 'middle':
+        return HyperVerticalAlign.middle;
+      case 'bottom':
+        return HyperVerticalAlign.bottom;
+      case 'baseline':
+        return HyperVerticalAlign.baseline;
+      case 'text-top':
+        return HyperVerticalAlign.textTop;
+      case 'text-bottom':
+        return HyperVerticalAlign.textBottom;
       default:
         return null;
     }

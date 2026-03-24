@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../model/computed_style.dart';
 import '../model/node.dart';
 
 /// Maximum colspan/rowspan value accepted from HTML attributes.
@@ -200,11 +201,24 @@ class HyperTable extends StatelessWidget {
           // where the row sets the background but individual cells do not.
           final cellBg = cell.cellNode.style.backgroundColor ??
               cell.rowNode.style.backgroundColor;
+          // Resolve vertical-align: cell > row > top (table-cell default).
+          // ComputedStyle.verticalAlign defaults to `baseline`; we use that
+          // as the sentinel for "not explicitly set".  An explicit `top`
+          // value (from valign="top" or vertical-align:top) is != baseline
+          // and therefore takes precedence correctly.
+          final cellVAlign = cell.cellNode.style.verticalAlign;
+          final rowVAlign = cell.rowNode.style.verticalAlign;
+          final effectiveVAlign = cellVAlign != HyperVerticalAlign.baseline
+              ? cellVAlign
+              : rowVAlign != HyperVerticalAlign.baseline
+                  ? rowVAlign
+                  : HyperVerticalAlign.top;
           children.add(_TableCellSlot(
             row: row,
             col: col,
             colspan: cell.colspan,
             rowspan: cell.rowspan,
+            verticalAlign: effectiveVAlign,
             child: Container(
               padding: cellPadding,
               color: cellBg,
@@ -420,21 +434,28 @@ class _TableCellParentData extends ContainerBoxParentData<RenderBox> {
   int col = 0;
   int colspan = 1;
   int rowspan = 1;
+  /// CSS `vertical-align` for this cell.  Defaults to [HyperVerticalAlign.top]
+  /// which is the CSS table-cell initial value (not `baseline`, which applies
+  /// to inline contexts).
+  HyperVerticalAlign verticalAlign = HyperVerticalAlign.top;
 }
 
-/// [ParentDataWidget] that injects row/col/colspan/rowspan into each cell's
-/// [_TableCellParentData] so [_RenderHyperTable] can read it during layout.
+/// [ParentDataWidget] that injects row/col/colspan/rowspan/verticalAlign into
+/// each cell's [_TableCellParentData] so [_RenderHyperTable] can read it
+/// during layout.
 class _TableCellSlot extends ParentDataWidget<_TableCellParentData> {
   final int row;
   final int col;
   final int colspan;
   final int rowspan;
+  final HyperVerticalAlign verticalAlign;
 
   const _TableCellSlot({
     required this.row,
     required this.col,
     required this.colspan,
     required this.rowspan,
+    this.verticalAlign = HyperVerticalAlign.top,
     required super.child,
   });
 
@@ -456,6 +477,10 @@ class _TableCellSlot extends ParentDataWidget<_TableCellParentData> {
     }
     if (pd.rowspan != rowspan) {
       pd.rowspan = rowspan;
+      changed = true;
+    }
+    if (pd.verticalAlign != verticalAlign) {
+      pd.verticalAlign = verticalAlign;
       changed = true;
     }
     if (changed) {
@@ -929,7 +954,29 @@ class _RenderHyperTable extends RenderBox
     }
 
     _forEach((child, pd) {
-      pd.offset = Offset(colX[pd.col], rowY[pd.row]);
+      // Compute the total height available to this cell (spanned rows + inner
+      // borders between them).  For rowspan=1 this equals rowHeights[row].
+      final endRow = math.min(pd.row + pd.rowspan, _rowCount);
+      double cellSlotH = _borderWidth * (endRow - pd.row - 1);
+      for (int r = pd.row; r < endRow; r++) {
+        cellSlotH += rowHeights[r];
+      }
+
+      // Vertical offset inside the slot (0 for top/baseline, centred for
+      // middle, pushed to bottom for bottom).
+      final cellH = child.size.height;
+      final slack = math.max(0.0, cellSlotH - cellH);
+      final double dy;
+      if (pd.verticalAlign == HyperVerticalAlign.middle) {
+        dy = slack / 2;
+      } else if (pd.verticalAlign == HyperVerticalAlign.bottom ||
+          pd.verticalAlign == HyperVerticalAlign.textBottom) {
+        dy = slack;
+      } else {
+        dy = 0; // top / baseline / text-top
+      }
+
+      pd.offset = Offset(colX[pd.col], rowY[pd.row] + dy);
     }, children);
   }
 
