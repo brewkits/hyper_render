@@ -213,17 +213,20 @@ class HyperTable extends StatelessWidget {
               : rowVAlign != HyperVerticalAlign.baseline
                   ? rowVAlign
                   : HyperVerticalAlign.top;
+          final cellContent = Container(
+            padding: cellPadding,
+            color: cellBg,
+            child: _buildCellContent(cell.cellNode),
+          );
           children.add(_TableCellSlot(
             row: row,
             col: col,
             colspan: cell.colspan,
             rowspan: cell.rowspan,
             verticalAlign: effectiveVAlign,
-            child: Container(
-              padding: cellPadding,
-              color: cellBg,
-              child: _buildCellContent(cell.cellNode),
-            ),
+            child: cell.cellNode.isHeader
+                ? Semantics(header: true, child: cellContent)
+                : cellContent,
           ));
         }
       }
@@ -242,7 +245,14 @@ class HyperTable extends StatelessWidget {
       depth: depth + 1,
       child: selectable ? SelectionArea(child: tableWidget) : tableWidget,
     );
-    return depthWrapped;
+
+    // Announce the table structure to screen readers: "Table, N rows, M columns".
+    // Each <th> cell is already marked with Semantics(header: true) above.
+    return Semantics(
+      container: true,
+      label: 'Table, ${grid.rowCount} rows, ${grid.columnCount} columns',
+      child: depthWrapped,
+    );
   }
 
   Widget _buildCellContent(TableCellNode cellNode) {
