@@ -61,6 +61,9 @@ dependencies:
   html: ^0.15.6
   vector_math: ^2.1.4
 
+  # SVG rendering for <svg> elements and <img src="*.svg">
+  flutter_svg: ^2.2.4
+
 screenshots:
   - description: 'CSS float layout — text wraps around images like a real browser. No other Flutter HTML library supports this.'
     path: assets/float_demo.gif

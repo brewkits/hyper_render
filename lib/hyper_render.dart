@@ -151,6 +151,8 @@ export 'src/utils/html_sanitizer.dart' show HtmlSanitizer;
 
 export 'src/utils/html_heuristics.dart' show HtmlHeuristics;
 
+export 'src/utils/svg_builder.dart' show buildSvgWidget;
+
 // ============================================
 // Parsers & adapters
 // ============================================

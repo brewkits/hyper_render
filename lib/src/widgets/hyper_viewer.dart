@@ -9,6 +9,7 @@ import '../plugins/default_html_parser.dart';
 import '../plugins/default_markdown_parser.dart';
 import '../utils/html_heuristics.dart';
 import '../utils/html_sanitizer.dart';
+import '../utils/svg_builder.dart';
 import 'virtualized_selection_controller.dart';
 import 'virtualized_selection_overlay.dart';
 
@@ -674,6 +675,16 @@ class _HyperViewerState extends State<HyperViewer>
     }
   }
 
+  /// Chains the built-in SVG builder before any user-supplied [widgetBuilder].
+  ///
+  /// SVG nodes are handled by [buildSvgWidget] using `flutter_svg`.
+  /// All other nodes are passed to [widget.widgetBuilder] (if any).
+  HyperWidgetBuilder get _effectiveWidgetBuilder {
+    final userBuilder = widget.widgetBuilder;
+    return (UDTNode node) =>
+        buildSvgWidget(node) ?? userBuilder?.call(node);
+  }
+
   static const _kAllowedSchemes = {'http', 'https', 'mailto', 'tel'};
 
   /// Returns a wrapped [onLinkTap] callback that validates the URL scheme
@@ -995,7 +1006,7 @@ class _HyperViewerState extends State<HyperViewer>
                     selectionColor: widget.selectionColor,
                     textDirection: dir,
                     onLinkTap: _safeOnLinkTap,
-                    widgetBuilder: widget.widgetBuilder,
+                    widgetBuilder: _effectiveWidgetBuilder,
                     debugShowBounds: widget.debugShowHyperRenderBounds,
                     enableComplexFilters: widget.enableComplexFilters,
                     config: widget.renderConfig,
@@ -1006,7 +1017,7 @@ class _HyperViewerState extends State<HyperViewer>
                     selectable: false,
                     textDirection: dir,
                     onLinkTap: _safeOnLinkTap,
-                    widgetBuilder: widget.widgetBuilder,
+                    widgetBuilder: _effectiveWidgetBuilder,
                     debugShowBounds: widget.debugShowHyperRenderBounds,
                     enableComplexFilters: widget.enableComplexFilters,
                     config: widget.renderConfig,
@@ -1054,7 +1065,7 @@ class _HyperViewerState extends State<HyperViewer>
           document: _syncDocument!,
           selectable: true,
           onLinkTap: widget.onLinkTap,
-          widgetBuilder: widget.widgetBuilder,
+          widgetBuilder: _effectiveWidgetBuilder,
           handleColor:
               widget.selectionHandleColor ?? Theme.of(context).primaryColor,
           menuActionsBuilder: widget.selectionMenuActionsBuilder,
@@ -1070,7 +1081,7 @@ class _HyperViewerState extends State<HyperViewer>
           document: _syncDocument!,
           selectable: widget.selectable,
           onLinkTap: widget.onLinkTap,
-          widgetBuilder: widget.widgetBuilder,
+          widgetBuilder: _effectiveWidgetBuilder,
           debugShowBounds: widget.debugShowHyperRenderBounds,
           onAnchorLayout: widget.controller?._onAnchorLayout,
           config: widget.renderConfig,
