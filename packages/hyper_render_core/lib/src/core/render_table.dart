@@ -12,6 +12,56 @@ import '../model/node.dart';
 /// malformed markup.
 const int _kMaxSpan = 1000;
 
+/// Maximum nesting depth for tables-within-tables.
+///
+/// The 2-pass layout algorithm in [_RenderHyperTable] has O(2^depth)
+/// complexity for deeply nested tables: measuring column widths triggers
+/// each child's layout, which for nested tables triggers another 2 passes,
+/// doubling per level.  At depth ≥ [_kMaxTableNestingDepth], [HyperTable]
+/// renders a lightweight placeholder instead, preventing ANR on adversarial
+/// or poorly-authored HTML.
+///
+/// Browsers themselves cap nested table rendering at ~6–10 levels.
+const int _kMaxTableNestingDepth = 6;
+
+// ── Nesting-depth tracker (InheritedWidget) ───────────────────────────────────
+//
+// Propagated through the widget tree so any descendant [HyperTable] can read
+// the current depth without requiring changes to constructor signatures.
+class _TableNestingDepth extends InheritedWidget {
+  const _TableNestingDepth({required this.depth, required super.child});
+
+  final int depth;
+
+  /// Returns the current table nesting depth, or 0 if outside any table.
+  static int of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_TableNestingDepth>()?.depth ??
+      0;
+
+  @override
+  bool updateShouldNotify(_TableNestingDepth old) => depth != old.depth;
+}
+
+/// Shown in place of a table that exceeds [_kMaxTableNestingDepth].
+class _TableDepthExceededPlaceholder extends StatelessWidget {
+  const _TableDepthExceededPlaceholder({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFBDBDBD)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: const Text(
+        '[table]',
+        style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 12),
+      ),
+    );
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // PUBLIC API
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -128,6 +178,12 @@ class HyperTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Guard against exponential 2-pass layout complexity in deeply nested tables.
+    final depth = _TableNestingDepth.of(context);
+    if (depth >= _kMaxTableNestingDepth) {
+      return const _TableDepthExceededPlaceholder();
+    }
+
     final grid = _TableGrid.fromTableNode(tableNode);
     if (grid.isEmpty) return const SizedBox.shrink();
 
@@ -167,10 +223,12 @@ class HyperTable extends StatelessWidget {
       children: children,
     );
 
-    if (selectable) {
-      return SelectionArea(child: tableWidget);
-    }
-    return tableWidget;
+    // Increment depth for any nested tables inside cells.
+    final depthWrapped = _TableNestingDepth(
+      depth: depth + 1,
+      child: selectable ? SelectionArea(child: tableWidget) : tableWidget,
+    );
+    return depthWrapped;
   }
 
   Widget _buildCellContent(TableCellNode cellNode) {

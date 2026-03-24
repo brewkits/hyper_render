@@ -243,6 +243,56 @@ class RenderHyperBox extends RenderBox
     markNeedsLayout();
   }
 
+  /// Floats inherited from the previous virtualized section.
+  ///
+  /// When set, [_performLineLayout] seeds [_leftFloats]/[_rightFloats] from
+  /// these carryovers before processing any fragments, so that text in this
+  /// section wraps around floats that began in the preceding section.
+  List<FloatCarryover> _initialFloats = const [];
+  List<FloatCarryover> get initialFloats => _initialFloats;
+  set initialFloats(List<FloatCarryover> value) {
+    // Avoid spurious re-layouts when carryover list is effectively the same.
+    if (value.length == _initialFloats.length && identical(value, _initialFloats)) {
+      return;
+    }
+    _initialFloats = value;
+    _invalidateLayout();
+    markNeedsLayout();
+  }
+
+  /// Returns floats from this section that extend below its natural text height.
+  ///
+  /// Pass the result to the next section's [initialFloats] so its text wraps
+  /// correctly alongside the continuation of tall float elements.
+  ///
+  /// Returns an empty list when no floats dangle past the section boundary.
+  /// Only valid to call after layout has completed.
+  List<FloatCarryover> get danglingFloats {
+    if (_lines.isEmpty) return const [];
+    // Natural height = bottom of last line (before float extension).
+    final naturalHeight = _lines.isEmpty ? 0.0 : (_lines.last.bounds?.bottom ?? 0.0);
+    final result = <FloatCarryover>[];
+    for (final float in _leftFloats) {
+      if (float.rect.bottom > naturalHeight) {
+        result.add(FloatCarryover(
+          direction: float.direction,
+          width: float.rect.width,
+          overhangHeight: float.rect.bottom - naturalHeight,
+        ));
+      }
+    }
+    for (final float in _rightFloats) {
+      if (float.rect.bottom > naturalHeight) {
+        result.add(FloatCarryover(
+          direction: float.direction,
+          width: float.rect.width,
+          overhangHeight: float.rect.bottom - naturalHeight,
+        ));
+      }
+    }
+    return result;
+  }
+
   /// Track list item indices for ordered lists
   final Map<UDTNode, int> _listItemIndices = {};
 
@@ -272,6 +322,13 @@ class RenderHyperBox extends RenderBox
     Map<String, double> offsets,
     List<({int level, String text, String? cssId, double yOffset})> headings,
   )? onAnchorLayout;
+
+  /// Called after each layout pass with the list of floats that overhang the
+  /// bottom of this section.  Pass the result to the next section's
+  /// [initialFloats] to enable cross-chunk float continuity.
+  ///
+  /// Receives an empty list when no floats dangle past the section boundary.
+  void Function(List<FloatCarryover> carryovers)? onFloatCarryover;
 
   /// Cached semantic nodes for headings and links.
   ///
@@ -985,6 +1042,13 @@ class RenderHyperBox extends RenderBox
           Map.unmodifiable(anchorOffsets),
           List.unmodifiable(headingAnchors),
         );
+      }
+
+      // Notify float-carryover consumer so the next virtualized section can
+      // seed its float insets and avoid text overflowing a dangling float.
+      final carryover = onFloatCarryover;
+      if (carryover != null) {
+        carryover(danglingFloats);
       }
 
       // Notify DevTools of layout completion (debug mode only, no-op if no

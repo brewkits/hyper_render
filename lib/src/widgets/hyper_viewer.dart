@@ -557,6 +557,11 @@ class _HyperViewerState extends State<HyperViewer>
   List<DocumentNode>? _sections;
   bool _isLoading = true;
 
+  /// Float carryovers indexed by section: _floatCarryovers[N] holds the
+  /// dangling floats produced by section N's layout, to be passed as
+  /// initialFloats to section N+1.
+  final List<List<FloatCarryover>> _floatCarryovers = [];
+
   /// Monotonically-increasing counter that prevents stale isolate results
   /// from overwriting a newer parse when the content changes rapidly.
   int _parseId = 0;
@@ -683,6 +688,22 @@ class _HyperViewerState extends State<HyperViewer>
     final userBuilder = widget.widgetBuilder;
     return (UDTNode node) =>
         buildSvgWidget(node) ?? userBuilder?.call(node);
+  }
+
+  /// Stores dangling floats from section [index] and triggers a rebuild of
+  /// section [index+1] so it receives the updated [initialFloats].
+  void _onFloatCarryover(int index, List<FloatCarryover> carryovers) {
+    if (!mounted) return;
+    // Grow the list if needed.
+    while (_floatCarryovers.length <= index) {
+      _floatCarryovers.add(const []);
+    }
+    // Only rebuild if the carryover actually changed.
+    final prev = _floatCarryovers[index];
+    if (prev.length == carryovers.length && carryovers.isEmpty) return;
+    setState(() {
+      _floatCarryovers[index] = carryovers;
+    });
   }
 
   static const _kAllowedSchemes = {'http', 'https', 'mailto', 'tel'};
@@ -832,6 +853,7 @@ class _HyperViewerState extends State<HyperViewer>
               _sections = List<DocumentNode>.from(message);
               _syncDocument = null;
               _isLoading = false;
+              _floatCarryovers.clear(); // reset carryovers for new content
             });
             _contentFadeController.forward();
           } else {
@@ -996,6 +1018,11 @@ class _HyperViewerState extends State<HyperViewer>
           // RepaintBoundary isolates each chunk into its own GPU layer.
           // Prevents a re-paint in one chunk from invalidating neighbours,
           // and keeps each composited layer well under GL_MAX_TEXTURE_SIZE.
+          // Retrieve carryover from previous section (if layout already ran).
+          final prevCarryover =
+              (index > 0 && _floatCarryovers.length >= index)
+                  ? _floatCarryovers[index - 1]
+                  : const <FloatCarryover>[];
           return RepaintBoundary(
             child: selCtrl != null
                 ? VirtualizedChunk(
@@ -1011,6 +1038,9 @@ class _HyperViewerState extends State<HyperViewer>
                     enableComplexFilters: widget.enableComplexFilters,
                     config: widget.renderConfig,
                     suppressFirstBlockMarginTop: index > 0,
+                    initialFloats: prevCarryover,
+                    onFloatCarryover: (carryovers) =>
+                        _onFloatCarryover(index, carryovers),
                   )
                 : HyperRenderWidget(
                     document: _sections![index],
@@ -1022,6 +1052,9 @@ class _HyperViewerState extends State<HyperViewer>
                     enableComplexFilters: widget.enableComplexFilters,
                     config: widget.renderConfig,
                     suppressFirstBlockMarginTop: index > 0,
+                    initialFloats: prevCarryover,
+                    onFloatCarryover: (carryovers) =>
+                        _onFloatCarryover(index, carryovers),
                   ),
           );
         },

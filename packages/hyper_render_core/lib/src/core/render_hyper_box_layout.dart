@@ -567,6 +567,22 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     _leftFloats.clear();
     _rightFloats.clear();
 
+    // Seed floats inherited from the previous virtualized section so that
+    // text in this section correctly wraps around a float that began in the
+    // preceding chunk (cross-chunk float continuity).
+    for (final carryover in _initialFloats) {
+      final floatRect = carryover.direction == HyperFloat.left
+          ? Rect.fromLTWH(0, 0, carryover.width, carryover.overhangHeight)
+          : Rect.fromLTWH(
+              _maxWidth - carryover.width, 0, carryover.width, carryover.overhangHeight);
+      final area = _FloatArea(rect: floatRect, direction: carryover.direction);
+      if (carryover.direction == HyperFloat.left) {
+        _leftFloats.add(area);
+      } else {
+        _rightFloats.add(area);
+      }
+    }
+
     if (_fragments.isEmpty) return;
 
     double currentY = 0;

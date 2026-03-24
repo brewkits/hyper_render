@@ -120,9 +120,24 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     List<({int level, String text, String? cssId, double yOffset})> headings,
   )? onAnchorLayout;
 
+  /// Called after each layout pass with floats that overhang the section bottom.
+  /// Pass the list to the next section's [initialFloats] for cross-chunk float
+  /// continuity.  Receives an empty list when no floats dangle.
+  final void Function(List<FloatCarryover> carryovers)? onFloatCarryover;
+
   /// Engine configuration — tunable cache sizes and concurrency.
   /// See [HyperRenderConfig] for all options and defaults.
   final HyperRenderConfig config;
+
+  /// Floats inherited from the previous virtualized section.
+  ///
+  /// When non-empty, the render object seeds its left/right float lists from
+  /// these carryovers before processing fragments, so text wraps correctly
+  /// alongside a float element that began in the preceding chunk.
+  ///
+  /// Obtain the value for section N from [RenderHyperBox.danglingFloats] after
+  /// section N-1 has completed layout, and pass it here for section N.
+  final List<FloatCarryover> initialFloats;
 
   /// Creates a HyperRenderWidget
   ///
@@ -143,7 +158,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.enableComplexFilters = true,
     this.suppressFirstBlockMarginTop = false,
     this.onAnchorLayout,
+    this.onFloatCarryover,
     this.config = HyperRenderConfig.defaults,
+    this.initialFloats = const [],
   }) : super(
             children: _buildChildren(document, widgetBuilder,
                 selectable: selectable));
@@ -644,7 +661,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     )..debugShowBounds = debugShowBounds
       ..enableComplexFilters = enableComplexFilters
       ..suppressFirstBlockMarginTop = suppressFirstBlockMarginTop
-      ..onAnchorLayout = onAnchorLayout;
+      ..onAnchorLayout = onAnchorLayout
+      ..initialFloats = initialFloats
+      ..onFloatCarryover = onFloatCarryover;
   }
 
   @override
@@ -689,6 +708,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (renderObject.config != config) {
       renderObject.config = config;
     }
+    renderObject.initialFloats = initialFloats;
+    renderObject.onFloatCarryover = onFloatCarryover;
   }
 }
 

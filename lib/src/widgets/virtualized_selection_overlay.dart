@@ -26,6 +26,8 @@ class VirtualizedChunk extends StatefulWidget {
     required this.config,
     this.suppressFirstBlockMarginTop = false,
     this.onAnchorLayout,
+    this.initialFloats = const [],
+    this.onFloatCarryover,
   });
 
   final int chunkIndex;
@@ -44,6 +46,8 @@ class VirtualizedChunk extends StatefulWidget {
     Map<String, double>,
     List<({int level, String text, String? cssId, double yOffset})>,
   )? onAnchorLayout;
+  final List<FloatCarryover> initialFloats;
+  final void Function(List<FloatCarryover>)? onFloatCarryover;
 
   @override
   State<VirtualizedChunk> createState() => _VirtualizedChunkState();
@@ -117,6 +121,8 @@ class _VirtualizedChunkState extends State<VirtualizedChunk> {
         suppressFirstBlockMarginTop: widget.suppressFirstBlockMarginTop,
         onSelectionChanged: widget.selectable ? _onSelectionChanged : null,
         onAnchorLayout: widget.onAnchorLayout,
+        initialFloats: widget.initialFloats,
+        onFloatCarryover: widget.onFloatCarryover,
       ),
     );
   }
