@@ -1,3 +1,6 @@
+import '../core/animation_controller.dart';
+import '../interfaces/code_highlighter.dart';
+
 /// Configuration for the HyperRender engine.
 ///
 /// All values have production-tested defaults. Tune per device tier:
@@ -27,6 +30,8 @@ class HyperRenderConfig {
     this.imageConcurrency = 3,
     this.virtualizationChunkSize = 6000,
     this.extraLinkSchemes = const {},
+    this.codeHighlighter,
+    this.keyframeRegistry = const {},
   })  : assert(textPainterCacheSize > 0,
             'textPainterCacheSize must be positive'),
         assert(imageCacheSize > 0, 'imageCacheSize must be positive'),
@@ -90,6 +95,51 @@ class HyperRenderConfig {
   ///
   /// Default: 6000
   final int virtualizationChunkSize;
+
+  /// Syntax-highlighting plugin for `<pre><code>` blocks.
+  ///
+  /// When `null` (default), code blocks are rendered as plain monospace text.
+  /// Plug in `HyperHighlighter` from `hyper_render_highlight` for full 180+
+  /// language support without adding that dependency to every build target.
+  ///
+  /// ```dart
+  /// HyperRenderConfig(
+  ///   codeHighlighter: HyperHighlighter(theme: HyperHighlightTheme.atomOneDark),
+  /// )
+  /// ```
+  final CodeHighlighter? codeHighlighter;
+
+  /// Registry of CSS keyframe animations available to the renderer.
+  ///
+  /// Maps `animation-name` values (as found in CSS or the `animation-name`
+  /// property) to their [HyperKeyframes] definition.  [RenderHyperBox] drives
+  /// each registered animation with its own `SchedulerBinding` frame callback,
+  /// so no external `AnimationController` or `TickerProvider` is required.
+  ///
+  /// Start with the built-in presets and add your own:
+  ///
+  /// ```dart
+  /// HyperRenderConfig(
+  ///   keyframeRegistry: {
+  ///     ...HyperAnimations.all,            // fadeIn, pulse, bounce, …
+  ///     'heroSlide': HyperKeyframes(
+  ///       name: 'heroSlide',
+  ///       keyframes: [
+  ///         HyperKeyframe(offset: 0.0, translateY: 40.0, opacity: 0.0),
+  ///         HyperKeyframe(offset: 1.0, translateY: 0.0,  opacity: 1.0),
+  ///       ],
+  ///     ),
+  ///   },
+  /// )
+  /// ```
+  ///
+  /// CSS `@keyframes` blocks parsed from `<style>` tags are merged into this
+  /// registry by the HTML adapter when a `CssParserInterface` that supports
+  /// [CssParserInterface.parseKeyframes] is provided.
+  ///
+  /// Default: `const {}` (no preset animations; add [HyperAnimations.all] to
+  /// enable the built-in library).
+  final Map<String, HyperKeyframes> keyframeRegistry;
 
   /// Additional URL schemes permitted to reach [onLinkTap].
   ///

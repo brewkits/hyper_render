@@ -162,6 +162,34 @@ class HyperAnimations {
         return null;
     }
   }
+
+  /// All predefined animations as a name → keyframes map.
+  ///
+  /// Use this as the base for [HyperRenderConfig.keyframeRegistry] when you
+  /// want all built-in CSS animation names to work out of the box:
+  ///
+  /// ```dart
+  /// HyperRenderConfig(
+  ///   keyframeRegistry: {
+  ///     ...HyperAnimations.all,
+  ///     'mySlide': HyperKeyframes(name: 'mySlide', keyframes: [...]),
+  ///   },
+  /// )
+  /// ```
+  static Map<String, HyperKeyframes> get all => const {
+    'fadeIn': fadeIn,
+    'fadeOut': fadeOut,
+    'slideInLeft': slideInLeft,
+    'slideInRight': slideInRight,
+    'slideInUp': slideInUp,
+    'slideInDown': slideInDown,
+    'bounce': bounce,
+    'pulse': pulse,
+    'shake': shake,
+    'spin': spin,
+    'zoomIn': zoomIn,
+    'zoomOut': zoomOut,
+  };
 }
 
 /// A single keyframe in an animation

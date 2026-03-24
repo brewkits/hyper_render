@@ -7,6 +7,7 @@ import '../core/render_formula.dart';
 import '../core/render_hyper_box.dart';
 import '../core/render_media.dart';
 import '../core/render_table.dart';
+import '../interfaces/code_highlighter.dart';
 import '../interfaces/image_clipboard.dart';
 import '../model/computed_style.dart';
 import '../model/node.dart';
@@ -163,17 +164,19 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.initialFloats = const [],
   }) : super(
             children: _buildChildren(document, widgetBuilder,
-                selectable: selectable));
+                selectable: selectable,
+                codeHighlighter: config.codeHighlighter));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
   static List<Widget> _buildChildren(
     DocumentNode document,
     HyperWidgetBuilder? widgetBuilder, {
     bool selectable = true,
+    CodeHighlighter? codeHighlighter,
   }) {
     final children = <Widget>[];
     _collectAtomicChildren(document, children, widgetBuilder,
-        selectable: selectable);
+        selectable: selectable, codeHighlighter: codeHighlighter);
     return children;
   }
 
@@ -182,6 +185,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     List<Widget> children,
     HyperWidgetBuilder? widgetBuilder, {
     bool selectable = true,
+    CodeHighlighter? codeHighlighter,
   }) {
     Widget? childWidget;
 
@@ -243,7 +247,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     // Is it a code block (<pre> with optional <code> child)?
     else if (_isCodeBlock(node)) {
       childWidget = widgetBuilder?.call(node);
-      childWidget ??= _buildCodeBlockWidget(node);
+      childWidget ??= _buildCodeBlockWidget(node, codeHighlighter);
       if (childWidget != null) {
         children.add(_HyperChildWidget(node: node, child: childWidget));
       }
@@ -271,7 +275,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (childWidget == null) {
       for (final child in node.children) {
         _collectAtomicChildren(child, children, widgetBuilder,
-            selectable: selectable);
+            selectable: selectable, codeHighlighter: codeHighlighter);
       }
     }
   }
@@ -283,7 +287,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   }
 
   /// Build CodeBlockWidget for <pre> elements with syntax highlighting
-  static Widget? _buildCodeBlockWidget(UDTNode node) {
+  static Widget? _buildCodeBlockWidget(UDTNode node, CodeHighlighter? highlighter) {
     // Extract code content and language
     String codeContent = '';
     String? language;
@@ -317,6 +321,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       theme: CodeTheme.vs2015,
       showCopyButton: true,
       showLineNumbers: false,
+      highlighter: highlighter,
     );
   }
 
