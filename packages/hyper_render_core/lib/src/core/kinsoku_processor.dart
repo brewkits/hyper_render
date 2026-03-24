@@ -83,51 +83,62 @@ class KinsokuProcessor {
     '｛': '｝',
   };
 
+  // ── O(1) lookup sets ──────────────────────────────────────────────────────
+  //
+  // String.contains() on a kinsoku string is O(N) (linear scan through N chars).
+  // Dart's text[i] operator also allocates a new single-character String on the
+  // heap every call — a silent allocation tax in tight layout loops.
+  //
+  // These Set<int> tables are built once at class-load time from the canonical
+  // kinsokuStart / kinsokuEnd strings.  Lookup via Set.contains(codeUnit) is:
+  //   • O(1) amortised hash lookup (vs O(N) string scan)
+  //   • Zero heap allocation (int is unboxed by the Dart VM in hot code)
+  //
+  // All kinsoku characters lie in the Basic Multilingual Plane (U+0000–U+FFFF),
+  // so String.codeUnitAt() returns the exact Unicode code point — no surrogate
+  // pair handling required.
+  static final Set<int> _startCodes = _buildCodeSet(kinsokuStart);
+  static final Set<int> _endCodes   = _buildCodeSet(kinsokuEnd);
+
+  static Set<int> _buildCodeSet(String chars) {
+    final set = <int>{};
+    for (int i = 0; i < chars.length; i++) {
+      set.add(chars.codeUnitAt(i));
+    }
+    return set;
+  }
+
   /// Check if a character cannot start a line
   static bool cannotStartLine(String char) {
     if (char.isEmpty) return false;
-    return kinsokuStart.contains(char[0]);
+    return _startCodes.contains(char.codeUnitAt(0));
   }
 
   /// Check if a character cannot end a line
   static bool cannotEndLine(String char) {
     if (char.isEmpty) return false;
-    return kinsokuEnd.contains(char[0]);
+    return _endCodes.contains(char.codeUnitAt(0));
   }
 
-  /// Check if a break is allowed between two characters
+  /// Check if a break is allowed between two characters.
   ///
-  /// Returns false if:
-  /// - The next character cannot start a line (kinsoku start)
-  /// - The current character cannot end a line (kinsoku end)
+  /// Returns false if the next character cannot start a line (kinsoku start)
+  /// or the current character cannot end a line (kinsoku end).
   static bool canBreakBetween(String current, String next) {
     if (current.isEmpty || next.isEmpty) return true;
-
-    final currentChar = current[current.length - 1];
-    final nextChar = next[0];
-
-    // Cannot break if next char cannot start a line
-    if (cannotStartLine(nextChar)) {
-      return false;
-    }
-
-    // Cannot break if current char cannot end a line
-    if (cannotEndLine(currentChar)) {
-      return false;
-    }
-
+    if (_startCodes.contains(next.codeUnitAt(0))) return false;
+    if (_endCodes.contains(current.codeUnitAt(current.length - 1))) return false;
     return true;
   }
 
   /// Returns true if a line break is allowed between [text[i-1]] and [text[i]].
   ///
-  /// O(1) — uses direct code-unit checks instead of substring allocation.
-  /// This is the hot-path version used inside the scan loops of [findBreakPoint].
+  /// Hot-path used inside the scan loops of [findBreakPoint].  Uses
+  /// [String.codeUnitAt] (no String allocation) and [Set.contains] (O(1))
+  /// instead of `text[i]` (String allocation) + `kinsokuStr.contains` (O(N)).
   static bool _canBreakAt(String text, int i) {
-    // text[i-1] cannot end a line
-    if (kinsokuEnd.contains(text[i - 1])) return false;
-    // text[i] cannot start a line
-    if (kinsokuStart.contains(text[i])) return false;
+    if (_endCodes.contains(text.codeUnitAt(i - 1))) return false;
+    if (_startCodes.contains(text.codeUnitAt(i))) return false;
     return true;
   }
 
