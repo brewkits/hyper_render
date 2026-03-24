@@ -25,8 +25,6 @@ class DefaultHtmlParser implements ContentParser {
     String? baseUrl,
     String? customCss,
   }) {
-    // Pass baseUrl to adapter for URL resolution
-    // customCss is not yet supported
     return _adapter.parse(content, baseUrl: baseUrl);
   }
 

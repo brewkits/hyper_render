@@ -1,7 +1,7 @@
 publish_to: none
 name: hyper_render_devtools
 description: "DevTools extension for HyperRender — inspect UDT trees, computed styles, fragments, and performance metrics."
-version: 1.1.0
+version: 1.1.2
 homepage: https://github.com/brewkits/hyper_render
 
 environment:

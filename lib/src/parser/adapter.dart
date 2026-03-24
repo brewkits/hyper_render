@@ -8,7 +8,7 @@ enum InputType {
   /// Quill Delta JSON
   delta,
 
-  /// Markdown string (future)
+  /// Markdown string
   markdown,
 }
 

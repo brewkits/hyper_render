@@ -61,7 +61,6 @@ typedef ImageActionCallback = Future<bool> Function(
 /// )
 /// ```
 ///
-/// Reference: doc3.md - "RenderObject-centric Architecture"
 class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// The parsed document tree to render
   final DocumentNode document;

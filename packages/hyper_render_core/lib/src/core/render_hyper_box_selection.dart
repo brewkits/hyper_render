@@ -25,7 +25,11 @@ extension RenderHyperBoxSelection on RenderHyperBox {
         final lineStartOffset = currentOffset;
 
         for (final fragment in line.fragments) {
-          if (fragment.type == FragmentType.text && fragment.text != null) {
+          if ((fragment.type == FragmentType.text && fragment.text != null) ||
+              fragment.type == FragmentType.ruby) {
+            final text = fragment.type == FragmentType.ruby
+                ? fragment.text!
+                : fragment.text!;
             final fragmentOffset = fragment.offset ?? Offset.zero;
             final fragmentRect = Rect.fromLTWH(
               fragmentOffset.dx,
@@ -39,14 +43,14 @@ extension RenderHyperBoxSelection on RenderHyperBox {
 
             if (position.dx <= fragmentRect.right) {
               // Click is within this fragment — find exact character position.
-              final painter = _getTextPainter(fragment.text!, fragment.style);
+              final painter = _getTextPainter(text, fragment.style);
               final localX = position.dx - fragmentRect.left;
               final textPosition =
                   painter.getPositionForOffset(Offset(localX, 0));
               return currentOffset + textPosition.offset;
             }
 
-            currentOffset += fragment.text!.length;
+            currentOffset += text.length;
           }
         }
         // Click was past all fragments (right margin) — return end of line.
@@ -55,7 +59,9 @@ extension RenderHyperBoxSelection on RenderHyperBox {
 
       // Add character count for this line
       for (final fragment in line.fragments) {
-        if (fragment.type == FragmentType.text && fragment.text != null) {
+        if ((fragment.type == FragmentType.text ||
+                fragment.type == FragmentType.ruby) &&
+            fragment.text != null) {
           currentOffset += fragment.text!.length;
         }
       }
@@ -79,20 +85,21 @@ extension RenderHyperBoxSelection on RenderHyperBox {
     bool pendingNewline = false;
 
     for (final fragment in _fragments) {
-      if (fragment.type != FragmentType.text || fragment.text == null) continue;
+      // Structural markers (block start/end) have no visible text.
+      if (fragment is _BlockStartFragment) continue;
+
+      if (fragment is _BlockEndFragment) {
+        if (buffer.isNotEmpty) pendingNewline = true;
+        continue;
+      }
+
+      final isText = fragment.type == FragmentType.text && fragment.text != null;
+      final isRuby = fragment.type == FragmentType.ruby && fragment.text != null;
+      if (!isText && !isRuby) continue;
 
       final fragmentStart = currentOffset;
       final fragmentEnd = currentOffset + fragment.text!.length;
       currentOffset = fragmentEnd;
-
-      // Structural markers have empty text — handle them without writing.
-      if (fragment is _BlockStartFragment) continue;
-
-      if (fragment is _BlockEndFragment) {
-        // Flag a newline to be inserted before the next visible text.
-        if (buffer.isNotEmpty) pendingNewline = true;
-        continue;
-      }
 
       // Outside selection range — skip.
       if (fragmentEnd <= _selection!.start ||
@@ -191,6 +198,23 @@ extension RenderHyperBoxSelection on RenderHyperBox {
                 fragmentOffset.dy + box.bottom,
               ));
             }
+          }
+
+          currentOffset = fragmentEnd;
+        } else if (fragment.type == FragmentType.ruby &&
+            fragment.text != null) {
+          final fragmentStart = currentOffset;
+          final fragmentEnd = currentOffset + fragment.text!.length;
+
+          if (fragmentEnd > _selection!.start &&
+              fragmentStart < _selection!.end) {
+            final fragmentOffset = fragment.offset ?? Offset.zero;
+            rects.add(Rect.fromLTWH(
+              fragmentOffset.dx,
+              fragmentOffset.dy,
+              fragment.width,
+              fragment.height,
+            ));
           }
 
           currentOffset = fragmentEnd;

@@ -477,6 +477,30 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           }
 
           currentOffset = fragmentEnd;
+        } else if (fragment.type == FragmentType.ruby &&
+            fragment.text != null) {
+          // Ruby fragments contribute to character offset and get a full-rect
+          // highlight covering both the annotation and the base text.
+          final fragmentStart = currentOffset;
+          final fragmentEnd = currentOffset + fragment.text!.length;
+
+          if (fragmentEnd > _selection!.start &&
+              fragmentStart < _selection!.end) {
+            final fragmentOffset = fragment.offset ?? Offset.zero;
+            final rect = Rect.fromLTWH(
+              offset.dx + fragmentOffset.dx,
+              offset.dy + fragmentOffset.dy,
+              fragment.width,
+              fragment.height,
+            );
+            final boxPath = Path()
+              ..addRRect(RRect.fromRectAndRadius(rect, selectionRadius));
+            linePath = linePath == null
+                ? boxPath
+                : Path.combine(PathOperation.union, linePath, boxPath);
+          }
+
+          currentOffset = fragmentEnd;
         }
       }
 

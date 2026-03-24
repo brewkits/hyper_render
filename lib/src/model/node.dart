@@ -4,7 +4,7 @@ import 'computed_style.dart';
 
 /// Node type in the Unified Document Tree (UDT)
 ///
-/// Reference: doc1.txt - "Mỗi Node trong UDT sẽ có: Type (Block/Inline), Attributes (Styles), và Children"
+/// Each node has a type, computed style, and optional children.
 enum NodeType {
   /// Document root
   document,
@@ -45,8 +45,6 @@ enum NodeType {
 /// The UDT is the "source of truth" - all input formats (HTML, Delta, Markdown)
 /// are converted to UDT before rendering.
 ///
-/// Reference: doc1.txt - "Unified Document Tree (UDT)"
-/// Reference: doc3.md - Section 2 "Core Architecture"
 abstract class UDTNode {
   /// Node type
   final NodeType type;
@@ -174,7 +172,6 @@ class DocumentNode extends UDTNode {
 
 /// Block-level element node (div, p, h1-h6, blockquote, etc.)
 ///
-/// Reference: doc1.txt - "Block Formatting Context (BFC)"
 class BlockNode extends UDTNode {
   BlockNode({
     required String super.tagName,
@@ -235,7 +232,6 @@ class BlockNode extends UDTNode {
 
 /// Inline element node (span, a, strong, em, etc.)
 ///
-/// Reference: doc1.txt - "Inline Formatting Context (IFC)"
 class InlineNode extends UDTNode {
   InlineNode({
     required String super.tagName,
@@ -332,7 +328,6 @@ class LineBreakNode extends UDTNode {
 /// These elements have intrinsic dimensions and are treated as
 /// single units during layout (like a large character)
 ///
-/// Reference: doc1.txt - "Atomic Fragment"
 class AtomicNode extends UDTNode {
   /// Source URL for media elements
   final String? src;
@@ -428,7 +423,6 @@ class AtomicNode extends UDTNode {
 
 /// Ruby annotation node (for Japanese Furigana)
 ///
-/// Reference: doc3.md - Section "Requirement 4: Japanese Ruby/Furigana Support"
 class RubyNode extends UDTNode {
   /// Base text (Kanji)
   final String baseText;
@@ -451,7 +445,6 @@ class RubyNode extends UDTNode {
 
 /// Table node
 ///
-/// Reference: doc3.md - Section "Requirement 2: Table Horizontal Scroll"
 class TableNode extends UDTNode {
   TableNode({
     super.attributes,

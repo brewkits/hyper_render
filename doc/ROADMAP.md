@@ -1,7 +1,7 @@
 # HyperRender — Product Roadmap
 
-**Last Updated**: 2026-03-22
-**Current Stable**: v1.1.0
+**Last Updated**: 2026-03-24
+**Current Stable**: v1.1.2
 **Repository**: [github.com/brewkits/hyper_render](https://github.com/brewkits/hyper_render)
 
 This document tracks the long-term direction of the HyperRender ecosystem.

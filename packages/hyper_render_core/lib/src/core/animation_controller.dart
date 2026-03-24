@@ -294,6 +294,14 @@ class HyperAnimatedWidget extends StatefulWidget {
   final bool reverse;
   final bool autoPlay;
 
+  /// Optional registry of custom [HyperKeyframes] keyed by animation name.
+  ///
+  /// When an [animationName] is set, [HyperAnimatedWidget] first looks it up
+  /// in this map, then falls back to the built-in [HyperAnimations] presets.
+  /// Typically sourced from [HyperRenderConfig.keyframeRegistry] so that
+  /// `@keyframes` declared in the HTML document's `<style>` tags are used.
+  final Map<String, HyperKeyframes>? keyframesLookup;
+
   const HyperAnimatedWidget({
     super.key,
     required this.child,
@@ -304,6 +312,7 @@ class HyperAnimatedWidget extends StatefulWidget {
     this.iterationCount,
     this.reverse = false,
     this.autoPlay = true,
+    this.keyframesLookup,
   });
 
   /// Create from ComputedStyle
@@ -311,6 +320,7 @@ class HyperAnimatedWidget extends StatefulWidget {
     Key? key,
     required Widget child,
     required ComputedStyle style,
+    Map<String, HyperKeyframes>? keyframesLookup,
   }) {
     return HyperAnimatedWidget(
       key: key,
@@ -321,6 +331,7 @@ class HyperAnimatedWidget extends StatefulWidget {
       iterationCount: style.animationIterationCount,
       reverse: style.animationDirection == HyperAnimationDirection.reverse ||
           style.animationDirection == HyperAnimationDirection.alternateReverse,
+      keyframesLookup: keyframesLookup,
       child: child,
     );
   }
@@ -368,9 +379,10 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
       curve: widget.curve,
     );
 
-    // Get keyframes
+    // Resolve keyframes: custom registry takes priority over built-ins.
     if (widget.animationName != null) {
-      _keyframes = HyperAnimations.byName(widget.animationName!);
+      _keyframes = widget.keyframesLookup?[widget.animationName!] ??
+          HyperAnimations.byName(widget.animationName!);
     }
 
     // Setup iteration listener
@@ -413,7 +425,8 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
 
     if (oldWidget.animationName != widget.animationName ||
         oldWidget.duration != widget.duration ||
-        oldWidget.curve != widget.curve) {
+        oldWidget.curve != widget.curve ||
+        oldWidget.keyframesLookup != widget.keyframesLookup) {
       _controller.dispose();
       _setupAnimation();
     }

@@ -110,4 +110,7 @@ class SimpleInlineStyleParser implements CssParserInterface {
     }
     return result;
   }
+
+  @override
+  Map<String, HyperKeyframes> parseKeyframes(String css) => const {};
 }

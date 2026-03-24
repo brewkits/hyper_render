@@ -13,6 +13,7 @@ const int _kMaxSpan = 1000;
 /// Table display strategy
 ///
 /// Determines how tables that are wider than screen are handled
+/// Strategy for table layout calculation.
 enum TableStrategy {
   /// Fit table to screen width (may truncate content)
   fitWidth,
@@ -35,7 +36,7 @@ enum TableStrategy {
 /// (columns narrower than [minColumnWidth]) and switches to horizontal scroll
 /// to prevent unreadable text.
 ///
-/// Reference: doc3.md - "Requirement 2: Table Horizontal Scroll & Auto Scale"
+/// Wrapper for smart table rendering.
 class SmartTableWrapper extends StatelessWidget {
   /// The table node to render
   final TableNode tableNode;
@@ -134,6 +135,7 @@ class SmartTableWrapper extends StatelessWidget {
 ///
 /// Note: Uses custom layout instead of Flutter's Table widget
 /// because Table doesn't support colspan/rowspan.
+/// Widget representing a table.
 class HyperTable extends StatelessWidget {
   final TableNode tableNode;
   final TextStyle? baseStyle;
@@ -575,7 +577,7 @@ class _TableLayout extends StatelessWidget {
 /// This is an optimized table layout that properly calculates
 /// minimum and maximum intrinsic widths for smart resizing.
 ///
-/// Reference: doc3.md - "RenderCustomHtmlTable"
+/// RenderObject for table layout.
 class RenderHyperTable extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, TableParentData>,
@@ -805,6 +807,7 @@ class RenderHyperTable extends RenderBox
 }
 
 /// Parent data for table cells
+/// Parent data for table children.
 class TableParentData extends ContainerBoxParentData<RenderBox> {
   /// Column index
   int column = 0;

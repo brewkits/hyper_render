@@ -1387,7 +1387,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
     // Build ranges instead of individual character mapping
     for (final fragment in _fragments) {
-      if (fragment.type == FragmentType.text && fragment.text != null) {
+      if ((fragment.type == FragmentType.text ||
+              fragment.type == FragmentType.ruby) &&
+          fragment.text != null) {
         final startIdx = _totalCharacterCount;
         final endIdx = startIdx + fragment.text!.length;
         _fragmentRanges.add((startIdx, endIdx, fragment));

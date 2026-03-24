@@ -9,9 +9,11 @@ import 'render_ruby.dart';
 import 'render_table.dart';
 
 /// Callback for handling link taps
+ /// Callback when a link is tapped.
 typedef LinkTapCallback = void Function(String url);
 
 /// Callback for handling image loading
+ /// Builder for custom images.
 typedef ImageBuilder = Widget Function(String src, String? alt, double? width, double? height);
 
 /// HtmlToSpanConverter - Core Engine
@@ -26,7 +28,7 @@ typedef ImageBuilder = Widget Function(String src, String? alt, double? width, d
 /// - Smooth text selection without interruption
 /// - Perfect compatibility with Flutter text engine
 ///
-/// Reference: doc3.md - "2.1 Paradigm Shift: Single InlineSpan Tree"
+ /// Converter that transforms HTML nodes to Flutter spans.
 class HtmlToSpanConverter {
   /// Base text style
   final TextStyle baseStyle;

@@ -4,6 +4,36 @@ All notable changes to HyperRender will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
+## [1.1.2] - 2026-03-25
+
+### ✨ New Features
+- **CSS @keyframes** (`DefaultCssParser.parseKeyframes`): `@keyframes` blocks are now parsed from `<style>` tags automatically. `HyperViewer` extracts keyframes on each `_parseContent()` call and wires them to `HyperAnimatedWidget` via `keyframesLookup` — no Dart code needed to animate HTML content.
+  - Supports `opacity`, `translateX/Y`, `translate`, `scale`, `rotate` transform functions
+  - Supports `from`/`to` and percentage selectors (`0%`, `50%`, `100%`)
+  - Supports comma-separated selectors (`75%, 100% { … }`)
+  - Supports vendor prefixes: `@-webkit-keyframes`, `@-moz-keyframes`, `@-ms-keyframes`
+  - `HyperAnimatedWidget` gains `keyframesLookup` param (custom registry checked before built-in presets)
+  - `HyperAnimations.all` static getter exposes all 12 built-in presets as a map
+
+### 🐛 Bug Fixes
+- **Ruby/furigana selection — 5 bugs fixed**: `FragmentType.ruby` was silently skipped in every selection pipeline step, causing character offset desynchronisation for all content after a ruby fragment.
+  - `_buildCharacterMapping()`: ruby fragments now counted in `_totalCharacterCount`
+  - `_paintSelection()`: selection highlight drawn over ruby; offset correctly advanced
+  - `getSelectedText()`: ruby base text now included in clipboard copy
+  - `getSelectionRects()`: ruby rects returned for correct handle positioning
+  - `_getCharacterPositionAtOffset()`: ruby chars counted when skipping past earlier lines
+- **`LineInfo.characterCount`**: now counts ruby base-text characters
+
+### 🏗️ Code Quality
+- Removed all internal `/// Reference: doc[0-9]` comments (referencing private design docs) from public source files
+- Removed Vietnamese-language text from dartdoc comments across `lib/src/model/`, `lib/src/core/`, `lib/src/style/`
+- Fixed stale dartdoc: `DisplayType.grid` and `InputType.markdown` no longer marked as "future"
+- Removed lone `TODO` in `test/integration_test.dart`
+
+### 🔬 Tests
+- **+17 tests** — `packages/hyper_render_core/test/ruby_layout_test.dart`: `LineInfo.characterCount` with ruby, selection offset accumulation, character position mapping
+- **+9 widget tests** — `test/ruby_selection_test.dart`: integration coverage for ruby selection (no exceptions, mixed content, multi-line, staggered ruby)
+
 ## [1.1.1] - 2026-03-23
 
 ### 🐛 Bug Fixes

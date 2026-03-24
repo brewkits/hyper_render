@@ -107,6 +107,20 @@ class HtmlAdapter {
     return buffer.toString();
   }
 
+  /// Parses `@keyframes` rules from all `<style>` elements in [html].
+  ///
+  /// Returns a map from animation name → [HyperKeyframes].  The result can be
+  /// merged into [HyperRenderConfig.keyframeRegistry] so that the renderer
+  /// can drive CSS animations declared in the document itself.
+  ///
+  /// Call this **before** sanitizing (same reason as [extractCss]).
+  Map<String, HyperKeyframes> extractKeyframes(
+      String html, CssParserInterface cssParser) {
+    final css = extractCss(html);
+    if (css.isEmpty) return const {};
+    return cssParser.parseKeyframes(css);
+  }
+
   List<DocumentNode> parseToSections(String html, {int chunkSize = 3000}) {
     final document = html_parser.parse(html);
     final body = document.body;

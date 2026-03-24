@@ -101,8 +101,6 @@ typedef ImageLoadCallback = void Function(String src, ImageLoadState state);
 /// - Inline background/border for wrapped text
 /// - Async image loading
 ///
-/// Reference: doc1.txt - "Quy trình 4 bước của thuật toán"
-/// Reference: doc3.md - "RenderObject-centric Architecture"
 class RenderHyperBox extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, HyperBoxParentData>,

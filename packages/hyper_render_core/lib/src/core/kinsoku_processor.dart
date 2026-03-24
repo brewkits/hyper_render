@@ -5,7 +5,6 @@
 /// - Kinsoku End (行末禁則): Characters that cannot end a line
 ///
 /// Reference: JIS X 4051 (日本語文書の組版方法)
-/// Reference: doc3.md - "Requirement 3: CJK/Japanese Line-breaking"
 library;
 
 import 'dart:typed_data';

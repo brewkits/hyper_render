@@ -23,7 +23,7 @@ Drop-in replacement for `flutter_html` and `flutter_widget_from_html`. Ships wit
 
 ```yaml
 dependencies:
-  hyper_render: ^1.1.0
+  hyper_render: ^1.1.2
 ```
 
 ```dart

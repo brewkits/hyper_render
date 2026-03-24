@@ -23,12 +23,15 @@ part 'render_hyper_box_selection.dart';
 part 'render_hyper_box_accessibility.dart';
 
 /// Callback for handling link taps
+/// Callback when a link is tapped.
 typedef HyperLinkTapCallback = void Function(String url);
 
 /// Callback for building custom widgets for embedded content
+/// Builder for custom widgets.
 typedef HyperWidgetBuilder = Widget? Function(UDTNode node);
 
 /// Callback when image loading state changes
+/// Callback for image loading events.
 typedef ImageLoadCallback = void Function(String src, ImageLoadState state);
 
 /// RenderHyperBox - The core custom rendering engine
@@ -42,8 +45,7 @@ typedef ImageLoadCallback = void Function(String src, ImageLoadState state);
 /// - Inline background/border for wrapped text
 /// - Async image loading
 ///
-/// Reference: doc1.txt - "Quy trình 4 bước của thuật toán"
-/// Reference: doc3.md - "RenderObject-centric Architecture"
+/// Main RenderObject for HyperRender.
 class RenderHyperBox extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, HyperBoxParentData>,

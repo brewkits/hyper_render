@@ -41,6 +41,23 @@ extension RenderHyperBoxSelection on RenderHyperBox {
             }
 
             currentOffset += fragment.text!.length;
+          } else if (fragment.type == FragmentType.ruby &&
+              fragment.text != null) {
+            final fragmentOffset = fragment.offset ?? Offset.zero;
+            final fragmentRect = Rect.fromLTWH(
+              fragmentOffset.dx,
+              fragmentOffset.dy,
+              fragment.width,
+              fragment.height,
+            );
+
+            if (position.dx >= fragmentRect.left &&
+                position.dx <= fragmentRect.right) {
+              // Place cursor at start of the ruby base text.
+              return currentOffset;
+            }
+
+            currentOffset += fragment.text!.length;
           }
         }
         // If we're on the line but past all fragments, return end of line
@@ -49,7 +66,9 @@ extension RenderHyperBoxSelection on RenderHyperBox {
 
       // Add character count for this line
       for (final fragment in line.fragments) {
-        if (fragment.type == FragmentType.text && fragment.text != null) {
+        if ((fragment.type == FragmentType.text ||
+                fragment.type == FragmentType.ruby) &&
+            fragment.text != null) {
           currentOffset += fragment.text!.length;
         }
       }
@@ -68,19 +87,19 @@ extension RenderHyperBoxSelection on RenderHyperBox {
     int currentOffset = 0;
 
     for (final fragment in _fragments) {
-      if (fragment.type == FragmentType.text && fragment.text != null) {
-        final fragmentStart = currentOffset;
-        final fragmentEnd = currentOffset + fragment.text!.length;
+      final isText = fragment.type == FragmentType.text && fragment.text != null;
+      final isRuby = fragment.type == FragmentType.ruby && fragment.text != null;
+      if (!isText && !isRuby) continue;
 
-        if (fragmentEnd > _selection!.start &&
-            fragmentStart < _selection!.end) {
-          final selectStart = math.max(0, _selection!.start - fragmentStart);
-          final selectEnd =
-              math.min(fragment.text!.length, _selection!.end - fragmentStart);
-          buffer.write(fragment.text!.substring(selectStart, selectEnd));
-        }
+      final fragmentStart = currentOffset;
+      final fragmentEnd = currentOffset + fragment.text!.length;
+      currentOffset = fragmentEnd;
 
-        currentOffset = fragmentEnd;
+      if (fragmentEnd > _selection!.start && fragmentStart < _selection!.end) {
+        final selectStart = math.max(0, _selection!.start - fragmentStart);
+        final selectEnd =
+            math.min(fragment.text!.length, _selection!.end - fragmentStart);
+        buffer.write(fragment.text!.substring(selectStart, selectEnd));
       }
     }
 
@@ -147,6 +166,23 @@ extension RenderHyperBoxSelection on RenderHyperBox {
               fragmentOffset.dx + startOffset,
               fragmentOffset.dy,
               endOffset - startOffset,
+              fragment.height,
+            ));
+          }
+
+          currentOffset = fragmentEnd;
+        } else if (fragment.type == FragmentType.ruby &&
+            fragment.text != null) {
+          final fragmentStart = currentOffset;
+          final fragmentEnd = currentOffset + fragment.text!.length;
+
+          if (fragmentEnd > _selection!.start &&
+              fragmentStart < _selection!.end) {
+            final fragmentOffset = fragment.offset ?? Offset.zero;
+            rects.add(Rect.fromLTWH(
+              fragmentOffset.dx,
+              fragmentOffset.dy,
+              fragment.width,
               fragment.height,
             ));
           }

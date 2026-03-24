@@ -4,6 +4,7 @@ import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../parser/html/html_adapter.dart';
+import '../plugins/default_css_parser.dart';
 import '../plugins/default_delta_parser.dart';
 import '../plugins/default_html_parser.dart';
 import '../plugins/default_markdown_parser.dart';
@@ -550,10 +551,10 @@ class _HyperViewerState extends State<HyperViewer>
   Isolate? _parseIsolate;
   ReceivePort? _parseReceivePort;
 
-  // Dùng cho chế độ Sync
+  // Used for Sync mode
   DocumentNode? _syncDocument;
 
-  // Dùng cho chế độ Virtualized
+  // Used for Virtualized mode
   List<DocumentNode>? _sections;
   bool _isLoading = true;
 
@@ -566,6 +567,13 @@ class _HyperViewerState extends State<HyperViewer>
   /// from overwriting a newer parse when the content changes rapidly.
   int _parseId = 0;
 
+  /// `@keyframes` rules extracted from the document's own `<style>` tags.
+  ///
+  /// Merged with [HyperViewer.renderConfig.keyframeRegistry] in
+  /// [_effectiveConfig] so CSS animations declared inline in the HTML
+  /// automatically work without any extra configuration.
+  Map<String, HyperKeyframes> _docKeyframes = const {};
+
   /// GlobalKey placed on the Stack that wraps the virtualized ListView.
   /// Used by [VirtualizedSelectionController] to convert chunk-local
   /// coordinates to Stack coordinates for handle and menu positioning.
@@ -573,6 +581,27 @@ class _HyperViewerState extends State<HyperViewer>
 
   /// Selection orchestrator for cross-chunk selection in virtualized mode.
   VirtualizedSelectionController? _virtualizedSelectionController;
+
+  /// Effective render config — merges [HyperViewer.renderConfig] with
+  /// `@keyframes` rules extracted from the document's own `<style>` tags.
+  HyperRenderConfig get _effectiveConfig {
+    if (_docKeyframes.isEmpty) return widget.renderConfig;
+    final merged = <String, HyperKeyframes>{
+      ...widget.renderConfig.keyframeRegistry,
+      ..._docKeyframes,
+    };
+    final rc = widget.renderConfig;
+    return HyperRenderConfig(
+      textPainterCacheSize: rc.textPainterCacheSize,
+      imageCacheSize: rc.imageCacheSize,
+      defaultImagePlaceholderWidth: rc.defaultImagePlaceholderWidth,
+      imageConcurrency: rc.imageConcurrency,
+      virtualizationChunkSize: rc.virtualizationChunkSize,
+      extraLinkSchemes: rc.extraLinkSchemes,
+      codeHighlighter: rc.codeHighlighter,
+      keyframeRegistry: merged,
+    );
+  }
 
   @override
   void initState() {
@@ -748,6 +777,9 @@ class _HyperViewerState extends State<HyperViewer>
     }
   }
 
+  /// Returns the CSS parser used for @keyframes extraction.
+  CssParserInterface _getDefaultCssParser() => const DefaultCssParser();
+
   void _parseContent() {
     // Fast path: pre-parsed AST — skip all parsing.
     if (widget._prebuiltDocument != null) {
@@ -759,6 +791,10 @@ class _HyperViewerState extends State<HyperViewer>
       _contentFadeController.forward();
       return;
     }
+
+    // Reset extracted keyframes so stale animations don't persist across
+    // content changes.
+    _docKeyframes = const {};
 
     String contentToRender = widget.content;
     // CSS collected from <style> tags + customCss (applied to resolver directly,
@@ -776,6 +812,16 @@ class _HyperViewerState extends State<HyperViewer>
         cssToApply = '${widget.customCss!}\n$docCss';
       } else {
         cssToApply = docCss;
+      }
+
+      // Extract @keyframes rules so CSS animations declared inside <style>
+      // tags work automatically (merged into _effectiveConfig.keyframeRegistry).
+      if (docCss.isNotEmpty) {
+        final cssParser = _getDefaultCssParser();
+        final extracted = cssParser.parseKeyframes(docCss);
+        if (extracted.isNotEmpty) {
+          _docKeyframes = extracted;
+        }
       }
 
       // 2. Resolve relative URLs against baseUrl
@@ -1000,7 +1046,7 @@ class _HyperViewerState extends State<HyperViewer>
       );
     }
 
-    // Case 1: Virtualized List (cho văn bản dài)
+    // Case 1: Virtualized List (for long text)
     if (_sections != null) {
       final selCtrl = _virtualizedSelectionController;
       final dir = widget.textDirection ?? Directionality.of(context);
@@ -1036,7 +1082,7 @@ class _HyperViewerState extends State<HyperViewer>
                     widgetBuilder: _effectiveWidgetBuilder,
                     debugShowBounds: widget.debugShowHyperRenderBounds,
                     enableComplexFilters: widget.enableComplexFilters,
-                    config: widget.renderConfig,
+                    config: _effectiveConfig,
                     suppressFirstBlockMarginTop: index > 0,
                     initialFloats: prevCarryover,
                     onFloatCarryover: (carryovers) =>
@@ -1050,7 +1096,7 @@ class _HyperViewerState extends State<HyperViewer>
                     widgetBuilder: _effectiveWidgetBuilder,
                     debugShowBounds: widget.debugShowHyperRenderBounds,
                     enableComplexFilters: widget.enableComplexFilters,
-                    config: widget.renderConfig,
+                    config: _effectiveConfig,
                     suppressFirstBlockMarginTop: index > 0,
                     initialFloats: prevCarryover,
                     onFloatCarryover: (carryovers) =>
@@ -1088,7 +1134,7 @@ class _HyperViewerState extends State<HyperViewer>
       );
     }
 
-    // Case 2: Single Widget (cho văn bản ngắn)
+    // Case 2: Single Widget (for short text)
     if (_syncDocument != null) {
       Widget content;
 
@@ -1117,7 +1163,7 @@ class _HyperViewerState extends State<HyperViewer>
           widgetBuilder: _effectiveWidgetBuilder,
           debugShowBounds: widget.debugShowHyperRenderBounds,
           onAnchorLayout: widget.controller?._onAnchorLayout,
-          config: widget.renderConfig,
+          config: _effectiveConfig,
         );
       }
 
