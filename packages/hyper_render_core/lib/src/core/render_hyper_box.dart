@@ -960,6 +960,16 @@ class RenderHyperBox extends RenderBox
         }
       }
 
+      // Extend height to include the full float so it is never visually clipped.
+      // NOTE — "wasted space" trade-off: when a float is taller than the text
+      // that flows alongside it, this produces empty whitespace to the side of
+      // the float's lower portion.  In a true browser (no chunking) subsequent
+      // paragraphs would fill that space.  Here they can't because they live in
+      // a different RenderHyperBox chunk.  The HtmlAdapter._containsFloatChild
+      // heuristic reduces the occurrence by keeping float-bearing blocks and
+      // their immediate successors in the same chunk.  A full cross-chunk
+      // FloatCarryover (image-split across ListView items) is tracked as a
+      // future improvement in ROADMAP.md.
       for (final float in [..._leftFloats, ..._rightFloats]) {
         if (float.rect.bottom > height) {
           height = float.rect.bottom;

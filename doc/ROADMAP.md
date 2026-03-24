@@ -31,6 +31,57 @@ For detailed CSS property tracking, see [`internal/CSS_SUPPORT_ROADMAP.md`](inte
 
 ---
 
+## v1.2 — Stability & CSS Polish (updated 2026-03-24)
+
+### Cross-Chunk Float Carryover
+
+**Source**: Reviewer feedback — float layout correctness in virtualized mode
+**Priority**: Medium — affects layout density for tall floated images in long documents
+
+**Current behaviour**: When `parseToSections()` splits a document into chunks, each
+chunk gets its own `RenderHyperBox` with an independent float list. If a block in
+Chunk N contains a tall floated image (taller than the accompanying text), the engine
+correctly renders the full image by extending Chunk N's height to `float.rect.bottom`
+(see `render_hyper_box.dart` lines 963-967). The image is never visually truncated.
+
+However, the empty space to the right of the float's lower portion is wasted: text
+from Chunk N+1 starts below the float at full width instead of filling that space.
+
+**Mitigation shipped (v1.1)**: `HtmlAdapter._containsFloatChild` parse-time guard —
+sections are never split immediately after a float-bearing block, keeping the float
+and its immediately following text in the same chunk.  This eliminates the wasted-space
+problem for the most common case (short paragraphs after a float).
+
+**Remaining gap**: If accumulated text before the float exceeds the chunk threshold,
+or the document has a float very close to the chunk boundary, the guard can be
+insufficient and wasted space still occurs.
+
+**Full fix** requires:
+1. Computing `naturalTextHeight` (height without float extension) in `performLayout`.
+2. If `float.rect.bottom > naturalTextHeight`, emit a `FloatCarryover` record
+   (`direction`, `width`, `remainingHeight`, `imagePixelOffset`).
+3. Reduce Chunk N's `size.height` to `naturalTextHeight` (float is clipped at the
+   chunk boundary — this is the trade-off).
+4. Chunk N+1 receives the `FloatCarryover` via `HyperRenderWidget.initialFloats`
+   and seeds `_leftFloats`/`_rightFloats` in `_performLineLayout` so text wraps.
+5. The float image in Chunk N+1 must be painted from `imagePixelOffset` to render
+   only the "remaining" portion without repeating the already-visible top.
+
+**Trade-off**: Step 3 clips the float image at the chunk boundary, which may look
+jarring for large images. A workaround is to increase `chunkSize` so fewer splits
+occur near floats.
+
+Scope:
+- [ ] Add `FloatCarryover` data class to `render_hyper_box_types.dart`
+- [ ] Add `danglingFloats` getter to `RenderHyperBox`
+- [ ] Add `initialFloats` parameter to `RenderHyperBox` / `HyperRenderWidget`
+- [ ] Seed initial floats in `_performLineLayout`
+- [ ] Wire `FloatCarryover` callbacks through `VirtualizedChunk` → `HyperViewer`
+- [ ] Add offset rendering support in `_paintFloatImages` for image floats
+- [ ] Integration test: tall float at chunk boundary shows no wasted space
+
+---
+
 ## v1.2 — Stability & CSS Polish
 
 **Theme**: Close remaining CSS gaps; improve runtime safety on low-memory devices.
