@@ -9,6 +9,8 @@ import '../plugins/default_html_parser.dart';
 import '../plugins/default_markdown_parser.dart';
 import '../utils/html_heuristics.dart';
 import '../utils/html_sanitizer.dart';
+import 'virtualized_selection_controller.dart';
+import 'virtualized_selection_overlay.dart';
 
 /// Rendering mode for [HyperViewer].
 ///
@@ -558,6 +560,14 @@ class _HyperViewerState extends State<HyperViewer>
   /// from overwriting a newer parse when the content changes rapidly.
   int _parseId = 0;
 
+  /// GlobalKey placed on the Stack that wraps the virtualized ListView.
+  /// Used by [VirtualizedSelectionController] to convert chunk-local
+  /// coordinates to Stack coordinates for handle and menu positioning.
+  final GlobalKey _virtualizedStackKey = GlobalKey();
+
+  /// Selection orchestrator for cross-chunk selection in virtualized mode.
+  VirtualizedSelectionController? _virtualizedSelectionController;
+
   @override
   void initState() {
     super.initState();
@@ -570,6 +580,12 @@ class _HyperViewerState extends State<HyperViewer>
       parent: _contentFadeController,
       curve: Curves.easeOut,
     );
+    if (widget.selectable) {
+      _virtualizedSelectionController = VirtualizedSelectionController(
+        sectionsGetter: () => _sections ?? const [],
+        listViewKey: _virtualizedStackKey,
+      );
+    }
     _parseContent();
   }
 
@@ -594,6 +610,7 @@ class _HyperViewerState extends State<HyperViewer>
     WidgetsBinding.instance.removeObserver(this);
     _cancelParsing();
     _contentFadeController.dispose();
+    _virtualizedSelectionController?.dispose();
     super.dispose();
   }
 
@@ -952,6 +969,9 @@ class _HyperViewerState extends State<HyperViewer>
 
     // Case 1: Virtualized List (cho văn bản dài)
     if (_sections != null) {
+      final selCtrl = _virtualizedSelectionController;
+      final dir = widget.textDirection ?? Directionality.of(context);
+
       // cacheExtent 800: pre-renders ~1 screen ahead/behind. Smaller than
       // the old 1500 because chunks are now 6000 chars (was 25000), so
       // each item is cheaper — we need fewer pixels of pre-render buffer.
@@ -966,27 +986,47 @@ class _HyperViewerState extends State<HyperViewer>
           // Prevents a re-paint in one chunk from invalidating neighbours,
           // and keeps each composited layer well under GL_MAX_TEXTURE_SIZE.
           return RepaintBoundary(
-            child: HyperRenderWidget(
-              document: _sections![index],
-              selectable: widget.selectable,
-              selectionColor: widget.selectionColor,
-              textDirection:
-                  widget.textDirection ?? Directionality.of(context),
-              onLinkTap: _safeOnLinkTap,
-              widgetBuilder: widget.widgetBuilder,
-              debugShowBounds: widget.debugShowHyperRenderBounds,
-              enableComplexFilters: widget.enableComplexFilters,
-              config: widget.renderConfig,
-              // Suppress the first block's top margin on all sections after
-              // the first. This prevents double-spacing at section
-              // boundaries in virtualized mode: without suppression, section
-              // N's last marginBottom and section N+1's first marginTop both
-              // render fully instead of collapsing as CSS specifies.
-              suppressFirstBlockMarginTop: index > 0,
-            ),
+            child: selCtrl != null
+                ? VirtualizedChunk(
+                    chunkIndex: index,
+                    document: _sections![index],
+                    selectionController: selCtrl,
+                    selectable: widget.selectable,
+                    selectionColor: widget.selectionColor,
+                    textDirection: dir,
+                    onLinkTap: _safeOnLinkTap,
+                    widgetBuilder: widget.widgetBuilder,
+                    debugShowBounds: widget.debugShowHyperRenderBounds,
+                    enableComplexFilters: widget.enableComplexFilters,
+                    config: widget.renderConfig,
+                    suppressFirstBlockMarginTop: index > 0,
+                  )
+                : HyperRenderWidget(
+                    document: _sections![index],
+                    selectable: false,
+                    textDirection: dir,
+                    onLinkTap: _safeOnLinkTap,
+                    widgetBuilder: widget.widgetBuilder,
+                    debugShowBounds: widget.debugShowHyperRenderBounds,
+                    enableComplexFilters: widget.enableComplexFilters,
+                    config: widget.renderConfig,
+                    suppressFirstBlockMarginTop: index > 0,
+                  ),
           );
         },
       );
+
+      // Wrap with cross-chunk selection overlay when selectable.
+      final Widget content = (selCtrl != null && widget.showSelectionMenu)
+          ? VirtualizedSelectionOverlay(
+              key: _virtualizedStackKey,
+              controller: selCtrl,
+              handleColor:
+                  widget.selectionHandleColor ?? Theme.of(context).primaryColor,
+              menuBackgroundColor: null,
+              child: listView,
+            )
+          : KeyedSubtree(key: _virtualizedStackKey, child: listView);
 
       return KeyedSubtree(
         key: const ValueKey('virtualized'),
@@ -998,9 +1038,9 @@ class _HyperViewerState extends State<HyperViewer>
                 scaleEnabled: true,
                 minScale: widget.minScale,
                 maxScale: widget.maxScale,
-                child: listView,
+                child: content,
               )
-            : listView,
+            : content,
       );
     }
 

@@ -416,6 +416,16 @@ class RenderHyperBox extends RenderBox
     markNeedsPaint();
   }
 
+  /// Total character count in this render box (available after first layout).
+  /// Used by VirtualizedSelectionController to register chunk sizes.
+  int get totalCharacterCount => _totalCharacterCount;
+
+  /// Public wrapper for the private _getCharacterPositionAtOffset.
+  /// Used by VirtualizedSelectionController to map a pointer position to a
+  /// char offset within this chunk.
+  int getCharacterPositionAtOffset(Offset localPosition) =>
+      _getCharacterPositionAtOffset(localPosition);
+
   HyperTextSelection? get selection => _selection;
   set selection(HyperTextSelection? value) {
     if (_selection == value) return;
