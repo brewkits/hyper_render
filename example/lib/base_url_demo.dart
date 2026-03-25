@@ -190,12 +190,9 @@ class _BaseUrlDemoState extends State<BaseUrlDemo> {
                           fontSize: 12,
                           color: Colors.purple)),
                   const SizedBox(height: 4),
-                  _buildResolvedUrl(
-                      baseImgUrl, '150/150?random=10'),
-                  _buildResolvedUrl(
-                      baseImgUrl, '150/150?random=20'),
-                  _buildResolvedUrl(
-                      baseImgUrl, '150/150?random=30'),
+                  _buildResolvedUrl(baseImgUrl, '150/150?random=10'),
+                  _buildResolvedUrl(baseImgUrl, '150/150?random=20'),
+                  _buildResolvedUrl(baseImgUrl, '150/150?random=30'),
                 ],
               ),
             ),
@@ -224,9 +221,7 @@ class _BaseUrlDemoState extends State<BaseUrlDemo> {
       child: Text(
         '"$relative" → $resolved',
         style: const TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 11,
-            color: Colors.deepPurple),
+            fontFamily: 'monospace', fontSize: 11, color: Colors.deepPurple),
         overflow: TextOverflow.ellipsis,
       ),
     );

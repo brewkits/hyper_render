@@ -8,7 +8,7 @@
 library;
 
 /// Kinsoku processor for CJK line-breaking rules
- /// Processor that applies CJK line-breaking rules.
+/// Processor that applies CJK line-breaking rules.
 class KinsokuProcessor {
   /// Characters that cannot start a line (行頭禁則文字)
   ///

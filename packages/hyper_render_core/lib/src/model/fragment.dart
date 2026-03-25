@@ -229,8 +229,7 @@ class LineInfo {
   int get characterCount {
     int count = 0;
     for (final frag in fragments) {
-      if ((frag.type == FragmentType.text ||
-              frag.type == FragmentType.ruby) &&
+      if ((frag.type == FragmentType.text || frag.type == FragmentType.ruby) &&
           frag.text != null) {
         count += frag.text!.length;
       } else if (frag.type == FragmentType.lineBreak) {

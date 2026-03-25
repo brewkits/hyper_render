@@ -67,10 +67,15 @@ class _EmailDemoState extends State<EmailDemo>
         controller: _tabController,
         children: [
           _EmailTab(html: _welcomeEmail, bgColor: const Color(0xFFF4F6F9)),
-          _EmailTab(html: _wallpaperNewsletter, bgColor: const Color(0xFFF7F5F0)),
-          _EmailTab(html: _japaneseNewsletter, bgColor: const Color(0xFFF0F4FF)),
+          _EmailTab(
+              html: _wallpaperNewsletter, bgColor: const Color(0xFFF7F5F0)),
+          _EmailTab(
+              html: _japaneseNewsletter, bgColor: const Color(0xFFF0F4FF)),
           _EmailTab(html: _orderEmail, bgColor: const Color(0xFFF5F5F5)),
-          _EmailTab(html: _podcastEmail, bgColor: const Color(0xFF0F0F1A), darkBg: true),
+          _EmailTab(
+              html: _podcastEmail,
+              bgColor: const Color(0xFF0F0F1A),
+              darkBg: true),
           const _WhyTab(),
         ],
       ),
@@ -1052,7 +1057,8 @@ HyperViewer(
             icon: Icons.help_outline,
             color: DemoColors.primary,
             title: 'Why not just use WebView?',
-            body: 'Flutter apps commonly display HTML emails (transactional, newsletters, '
+            body:
+                'Flutter apps commonly display HTML emails (transactional, newsletters, '
                 'receipts). The default approach is webview_flutter — but that adds ~20MB '
                 'to your app, requires a platform-specific WebViewController per email, '
                 'breaks native scroll physics, and makes text selection janky.',
@@ -1062,7 +1068,8 @@ HyperViewer(
             icon: Icons.bolt,
             color: Colors.green,
             title: 'HyperRender handles real-world email HTML',
-            body: 'HTML emails use inline CSS and table-based layouts — legacy patterns that '
+            body:
+                'HTML emails use inline CSS and table-based layouts — legacy patterns that '
                 'most Flutter renderers choke on. HyperRender\'s CSS cascade supports '
                 'inline styles, and its table renderer handles the nested <table> layouts '
                 'that every marketing platform generates.',
@@ -1257,9 +1264,7 @@ class _FeatureGrid extends StatelessWidget {
               const SizedBox(width: 5),
               Text(label,
                   style: TextStyle(
-                      fontSize: 12,
-                      color: color,
-                      fontWeight: FontWeight.w500)),
+                      fontSize: 12, color: color, fontWeight: FontWeight.w500)),
             ],
           ),
         );

@@ -48,7 +48,8 @@ void main() {
 
   // Increase image cache size for better performance with multiple images
   // Default: maximumSize = 1000 images, maximumSizeBytes = 50 MB
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 150 << 20; // 150 MB for demo images
+  PaintingBinding.instance.imageCache.maximumSizeBytes =
+      150 << 20; // 150 MB for demo images
 
   runApp(const HyperRenderDemoApp());
 }
@@ -101,17 +102,21 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.view_quilt,
             title: 'Float Layout',
-            subtitle: 'Text wraps around floated images — the feature no other Flutter HTML library has',
+            subtitle:
+                'Text wraps around floated images — the feature no other Flutter HTML library has',
             color: DemoColors.primary,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FloatLayoutDemo())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const FloatLayoutDemo())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.email,
             title: 'HTML Email',
-            subtitle: 'Render real HTML emails natively — no WebView, no heavy dependencies',
+            subtitle:
+                'Render real HTML emails natively — no WebView, no heavy dependencies',
             color: DemoColors.primary,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmailDemo())),
+            onTap: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const EmailDemo())),
           ),
           // ── Layout ────────────────────────────────────────────────────────
           _buildSectionHeader(context, 'Layout'),
@@ -119,25 +124,31 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.table_chart,
             title: 'Tables',
-            subtitle: 'Simple, wide, nested tables — plus strategies for tables wider than the screen',
+            subtitle:
+                'Simple, wide, nested tables — plus strategies for tables wider than the screen',
             color: DemoColors.secondary,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _TablesHubPage())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const _TablesHubPage())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.view_column,
             title: 'Flexbox',
-            subtitle: 'CSS flexbox in pure Flutter — row/column, wrapping, alignment, gap',
+            subtitle:
+                'CSS flexbox in pure Flutter — row/column, wrapping, alignment, gap',
             color: DemoColors.secondary,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FlexboxDemo())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const FlexboxDemo())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.rocket_launch,
             title: 'CSS Grid & Advanced Layout',
-            subtitle: 'CSS variables, grid, calc(), SVG, RTL/BiDi text, screenshot export',
+            subtitle:
+                'CSS variables, grid, calc(), SVG, RTL/BiDi text, screenshot export',
             color: DemoColors.secondary,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Sprint3Demo())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const Sprint3Demo())),
           ),
           // ── Text & Typography ─────────────────────────────────────────────
           _buildSectionHeader(context, 'Text & Typography'),
@@ -145,33 +156,43 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.select_all,
             title: 'Text Selection',
-            subtitle: 'Long-press to select, drag handles to resize, Copy/Share/Search menu',
+            subtitle:
+                'Long-press to select, drag handles to resize, Copy/Share/Search menu',
             color: DemoColors.accent,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EnhancedSelectionDemo())),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const EnhancedSelectionDemo())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.menu_book,
             title: 'Japanese & Manga Typography',
-            subtitle: 'Furigana (ruby), vertical text, manga panel grid — Japanese content',
+            subtitle:
+                'Furigana (ruby), vertical text, manga panel grid — Japanese content',
             color: const Color(0xFFB71C1C),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MangaDemo())),
+            onTap: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const MangaDemo())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.language,
             title: '中文 · 繁體 · 한국어',
-            subtitle: 'Simplified Chinese, Traditional Chinese poetry, Korean tech article — CJK rendering',
+            subtitle:
+                'Simplified Chinese, Traditional Chinese poetry, Korean tech article — CJK rendering',
             color: const Color(0xFF1565C0),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CjkLanguagesDemo())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const CjkLanguagesDemo())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.style,
             title: 'CSS Properties',
-            subtitle: 'text-shadow, text-overflow, border styles, writing direction, 60+ properties',
+            subtitle:
+                'text-shadow, text-overflow, border styles, writing direction, 60+ properties',
             color: DemoColors.accent,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CssPropertiesDemo())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const CssPropertiesDemo())),
           ),
           // ── Media & Integration ───────────────────────────────────────────
           _buildSectionHeader(context, 'Media & Integration'),
@@ -179,33 +200,45 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.perm_media,
             title: 'Images & Video',
-            subtitle: 'Image loading/fallback, pinch-to-zoom and pan, video thumbnail player',
+            subtitle:
+                'Image loading/fallback, pinch-to-zoom and pan, video thumbnail player',
             color: DemoColors.warning,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _MediaHubPage())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const _MediaHubPage())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.widgets,
             title: 'Widget Injection & Animation',
-            subtitle: 'Embed live Flutter widgets and animated components inside HTML content',
+            subtitle:
+                'Embed live Flutter widgets and animated components inside HTML content',
             color: DemoColors.warning,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _WidgetIntegrationHubPage())),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const _WidgetIntegrationHubPage())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.data_object,
             title: 'Input Formats',
-            subtitle: 'Render Markdown and Quill Delta (rich-text editor JSON output)',
+            subtitle:
+                'Render Markdown and Quill Delta (rich-text editor JSON output)',
             color: DemoColors.warning,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _InputFormatsHubPage())),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const _InputFormatsHubPage())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.calculate,
             title: 'Math Formulas',
-            subtitle: 'Greek letters, fractions, physics equations via custom widget builder',
+            subtitle:
+                'Greek letters, fractions, physics equations via custom widget builder',
             color: DemoColors.warning,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FormulaDemo())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const FormulaDemo())),
           ),
           // ── Advanced & Quality ────────────────────────────────────────────
           _buildSectionHeader(context, 'Advanced & Quality'),
@@ -213,33 +246,45 @@ class DemoHomePage extends StatelessWidget {
             context,
             icon: Icons.compare,
             title: 'Comparison & Performance',
-            subtitle: 'Side-by-side vs other libraries, unique features, stress test, render pipeline',
+            subtitle:
+                'Side-by-side vs other libraries, unique features, stress test, render pipeline',
             color: DemoColors.success,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _ComparisonPerfHubPage())),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const _ComparisonPerfHubPage())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.dark_mode,
             title: 'Dark Mode, Skeletons & Visual Quality',
-            subtitle: 'Theme switching, skeleton loading, error boundaries, crisp rendering',
+            subtitle:
+                'Theme switching, skeleton loading, error boundaries, crisp rendering',
             color: DemoColors.success,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const V21Showcase())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const V21Showcase())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.security,
             title: 'Security & Accessibility',
-            subtitle: 'XSS protection, screen reader support, WebView fallback detection',
+            subtitle:
+                'XSS protection, screen reader support, WebView fallback detection',
             color: DemoColors.success,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _QualityHubPage())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const _QualityHubPage())),
           ),
           _buildDemoCard(
             context,
             icon: Icons.business_center,
             title: 'Enterprise Features',
-            subtitle: 'GPU resource safety, error routing, device tuning, deeplink security, zoom modes',
+            subtitle:
+                'GPU resource safety, error routing, device tuning, deeplink security, zoom modes',
             color: const Color(0xFF1A237E),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EnterpriseFeaturesDemo())),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const EnterpriseFeaturesDemo())),
           ),
         ],
       ),
@@ -267,13 +312,15 @@ class DemoHomePage extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WhyHyperRenderDemo())),
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const WhyHyperRenderDemo())),
           borderRadius: BorderRadius.circular(14),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             child: Row(
               children: [
-                const Icon(Icons.emoji_events, color: Color(0xFF4E2600), size: 32),
+                const Icon(Icons.emoji_events,
+                    color: Color(0xFF4E2600), size: 32),
                 const SizedBox(width: 14),
                 const Expanded(
                   child: Column(
@@ -291,21 +338,28 @@ class DemoHomePage extends StatelessWidget {
                       SizedBox(height: 2),
                       Text(
                         'Live demos · Feature matrix · 16/16 score vs other libraries',
-                        style: TextStyle(color: Color(0xFF7A3E00), fontSize: 12, height: 1.4),
+                        style: TextStyle(
+                            color: Color(0xFF7A3E00),
+                            fontSize: 12,
+                            height: 1.4),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
                     '16/16',
-                    style: TextStyle(color: Color(0xFF4E2600), fontWeight: FontWeight.w800, fontSize: 13),
+                    style: TextStyle(
+                        color: Color(0xFF4E2600),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13),
                   ),
                 ),
               ],
@@ -348,7 +402,8 @@ class DemoHomePage extends StatelessWidget {
                   color: Colors.black.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.rocket_launch, color: Colors.white, size: 30),
+                child: const Icon(Icons.rocket_launch,
+                    color: Colors.white, size: 30),
               ),
               const SizedBox(width: 16),
               const Expanded(
@@ -401,14 +456,19 @@ class DemoHomePage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: Colors.white, size: 13),
           const SizedBox(width: 5),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
+          Text(label,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -510,7 +570,8 @@ class DemoHomePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 22),
+                Icon(Icons.chevron_right_rounded,
+                    color: Colors.grey.shade400, size: 22),
               ],
             ),
           ),
@@ -605,7 +666,8 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
         setState(() => isSubscribed ? _subscribeCount-- : _subscribeCount++);
         _showSnackBar(isSubscribed ? '🔕 Unsubscribed' : '🔔 Subscribed!');
       },
-      icon: Icon(isSubscribed ? Icons.notifications_off : Icons.notifications_active),
+      icon: Icon(
+          isSubscribed ? Icons.notifications_off : Icons.notifications_active),
       label: Text(isSubscribed ? 'Subscribed' : 'Subscribe'),
       style: ElevatedButton.styleFrom(
         backgroundColor: isSubscribed ? Colors.grey : Colors.redAccent,
@@ -616,7 +678,10 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
 
   void _showSnackBar(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 1)),
+      SnackBar(
+          content: Text(msg),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 1)),
     );
   }
 
@@ -639,7 +704,8 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
       if (canLaunch) {
         print('[KitchenSinkDemo] Launching URL...');
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-        _showSnackBar('🚀 Opening: ${uri.toString().length > 40 ? '${uri.toString().substring(0, 40)}...' : uri.toString()}');
+        _showSnackBar(
+            '🚀 Opening: ${uri.toString().length > 40 ? '${uri.toString().substring(0, 40)}...' : uri.toString()}');
       } else {
         _showSnackBar('❌ Cannot open URL: $url');
       }
@@ -933,7 +999,8 @@ class _WidgetInjectionDemoState extends State<WidgetInjectionDemo> {
   Widget _buildSubscribeButton() {
     return ElevatedButton.icon(
       onPressed: () => setState(() => _isSubscribed = !_isSubscribed),
-      icon: Icon(_isSubscribed ? Icons.notifications_off : Icons.notifications_active),
+      icon: Icon(
+          _isSubscribed ? Icons.notifications_off : Icons.notifications_active),
       label: Text(_isSubscribed ? 'Subscribed ✓' : 'Subscribe'),
       style: ElevatedButton.styleFrom(
         backgroundColor: _isSubscribed ? Colors.grey : Colors.red,
@@ -952,7 +1019,8 @@ class _WidgetInjectionDemoState extends State<WidgetInjectionDemo> {
           icon: const Icon(Icons.favorite, color: Colors.pink),
           iconSize: 32,
         ),
-        Text('$_likeCount', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text('$_likeCount',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -1779,7 +1847,8 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   static const List<Map<String, String>> testCases = [
     {
       'name': 'Float Layout',
-      'description': 'Text wrapping around floated images (HyperRender exclusive)',
+      'description':
+          'Text wrapping around floated images (HyperRender exclusive)',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
   <img src="https://picsum.photos/100/100?random=50" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px;" />
@@ -1822,7 +1891,8 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
     },
     {
       'name': 'Ruby Annotation',
-      'description': 'Furigana for Japanese — HyperRender exclusive (fwfh & flutter_html show raw text)',
+      'description':
+          'Furigana for Japanese — HyperRender exclusive (fwfh & flutter_html show raw text)',
       'html': '''
 <div style="font-family: sans-serif; line-height: 2;">
   <p style="font-size: 22px;">
@@ -1849,7 +1919,8 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
     },
     {
       'name': '4-Corner Floats',
-      'description': '4 images pinned to each corner with text filling the middle',
+      'description':
+          '4 images pinned to each corner with text filling the middle',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
   <img src="https://picsum.photos/90/90?random=41" style="float: left; width: 90px; height: 90px; margin: 0 14px 10px 0; border-radius: 8px;" />
@@ -1958,7 +2029,8 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
     },
     {
       'name': '<details>/<summary>',
-      'description': 'Collapsible sections — HyperRender exclusive (fwfh & flutter_html show flat text)',
+      'description':
+          'Collapsible sections — HyperRender exclusive (fwfh & flutter_html show flat text)',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
   <details>
@@ -2059,10 +2131,12 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
                         items: testCases.asMap().entries.map((e) {
                           return DropdownMenuItem(
                             value: e.key,
-                            child: Text('${e.key + 1}/${testCases.length}: ${e.value['name']!}'),
+                            child: Text(
+                                '${e.key + 1}/${testCases.length}: ${e.value['name']!}'),
                           );
                         }).toList(),
-                        onChanged: (v) => setState(() => _currentTestIndex = v!),
+                        onChanged: (v) =>
+                            setState(() => _currentTestIndex = v!),
                       ),
                     ),
                   ],
@@ -2082,12 +2156,14 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                      Icon(Icons.info_outline,
+                          size: 16, color: Colors.blue.shade700),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _getExpectedBehavior(_currentTestIndex),
-                          style: TextStyle(fontSize: 11, color: Colors.blue.shade900),
+                          style: TextStyle(
+                              fontSize: 11, color: Colors.blue.shade900),
                         ),
                       ),
                     ],
@@ -2123,7 +2199,8 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
                 InkWell(
                   onTap: () => setState(() => _showInfoPanel = !_showInfoPanel),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Row(
                       children: [
                         Icon(
@@ -2142,7 +2219,9 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
                         ),
                         const Spacer(),
                         Icon(
-                          _showInfoPanel ? Icons.expand_less : Icons.expand_more,
+                          _showInfoPanel
+                              ? Icons.expand_less
+                              : Icons.expand_more,
                           color: Colors.grey.shade600,
                         ),
                       ],
@@ -2254,13 +2333,43 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
     const features = [
       ('Float layout', true, false, false, false),
       ('Table colspan/rowspan', true, false, true, true),
-      ('Ruby / furigana', true, false, false, false),   // fwfh #1449 — not supported
+      (
+        'Ruby / furigana',
+        true,
+        false,
+        false,
+        false
+      ), // fwfh #1449 — not supported
       ('Multiple floats', true, false, false, false),
       ('Inline bg wrap', true, false, false, false),
-      ('<style> tag CSS', true, false, true, true),     // flutter_html ignores; fwfh partial
-      ('CSS specificity', true, false, true, true),     // fwfh partial; flutter_html minimal
-      ('<details>/<summary>', true, false, false, false), // HyperRender exclusive
-      ('Selection (no crash)', true, true, false, false), // fwfh crashes; flutter_html OK
+      (
+        '<style> tag CSS',
+        true,
+        false,
+        true,
+        true
+      ), // flutter_html ignores; fwfh partial
+      (
+        'CSS specificity',
+        true,
+        false,
+        true,
+        true
+      ), // fwfh partial; flutter_html minimal
+      (
+        '<details>/<summary>',
+        true,
+        false,
+        false,
+        false
+      ), // HyperRender exclusive
+      (
+        'Selection (no crash)',
+        true,
+        true,
+        false,
+        false
+      ), // fwfh crashes; flutter_html OK
       ('Custom widgets', true, true, true, true),
     ];
 
@@ -2278,12 +2387,25 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
           children: const [
             Padding(
               padding: EdgeInsets.all(4),
-              child: Text('Feature', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+              child: Text('Feature',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
             ),
-            Center(child: Text('HR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-            Center(child: Text('f_h', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-            Center(child: Text('fwfh', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-            Center(child: Text('core', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+            Center(
+                child: Text('HR',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+            Center(
+                child: Text('f_h',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+            Center(
+                child: Text('fwfh',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+            Center(
+                child: Text('core',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
           ],
         ),
         ...features.map((f) => TableRow(
@@ -2389,7 +2511,6 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
     );
   }
 }
-
 
 // =============================================================================
 // QUILL DELTA DEMO
@@ -2572,7 +2693,8 @@ class QuillDeltaDemo extends StatelessWidget {
                     child: SingleChildScrollView(
                       child: SelectableText(
                         deltaJson,
-                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                        style: const TextStyle(
+                            fontFamily: 'monospace', fontSize: 12),
                       ),
                     ),
                   ),
@@ -2881,7 +3003,8 @@ class FeedScreen extends ConsumerWidget {
                     child: SingleChildScrollView(
                       child: SelectableText(
                         markdown,
-                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                        style: const TextStyle(
+                            fontFamily: 'monospace', fontSize: 12),
                       ),
                     ),
                   ),
@@ -2936,9 +3059,10 @@ class VideoDemo extends StatelessWidget {
             style: TextStyle(color: Colors.grey),
           ),
           const SizedBox(height: 24),
-          
+
           // Video with poster
-          const Text('Video with Poster Image:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Video with Poster Image:',
+              style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           HyperViewer(
             html: '''
@@ -2959,9 +3083,10 @@ class VideoDemo extends StatelessWidget {
             },
           ),
           const SizedBox(height: 24),
-          
+
           // Video without poster
-          const Text('Video without Poster:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Video without Poster:',
+              style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           HyperViewer(
             html: '''
@@ -2981,9 +3106,10 @@ class VideoDemo extends StatelessWidget {
             },
           ),
           const SizedBox(height: 24),
-          
+
           // Multiple videos in grid
-          const Text('Video Grid Layout:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Video Grid Layout:',
+              style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           HyperViewer(
             html: '''
@@ -3022,9 +3148,10 @@ class VideoDemo extends StatelessWidget {
             },
           ),
           const SizedBox(height: 24),
-          
+
           // Floated video with text wrapping
-          const Text('Float Layout with Video (Unique Feature!):', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Float Layout with Video (Unique Feature!):',
+              style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           HyperViewer(
             html: '''
@@ -3064,7 +3191,7 @@ class VideoDemo extends StatelessWidget {
             },
           ),
           const SizedBox(height: 24),
-          
+
           // Info card
           Card(
             color: Colors.blue.shade50,
@@ -3101,7 +3228,7 @@ class VideoDemo extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Video URLs used
           Card(
             child: Padding(
@@ -3151,7 +3278,10 @@ Widget _hubCard(
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
       boxShadow: [
-        BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2)),
+        BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2)),
       ],
     ),
     child: Material(
@@ -3178,14 +3308,24 @@ Widget _hubCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1A1A2E), letterSpacing: -0.1)),
+                    Text(title,
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1A1A2E),
+                            letterSpacing: -0.1)),
                     const SizedBox(height: 3),
-                    Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey.shade500, height: 1.3)),
+                    Text(subtitle,
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade500,
+                            height: 1.3)),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300, size: 22),
+              Icon(Icons.chevron_right_rounded,
+                  color: Colors.grey.shade300, size: 22),
             ],
           ),
         ),
@@ -3215,15 +3355,19 @@ class _TablesHubPage extends StatelessWidget {
           _hubCard(context,
               icon: Icons.table_chart,
               title: 'Basic Tables',
-              subtitle: 'Simple, wide, nested, and complex tables with auto column sizing',
+              subtitle:
+                  'Simple, wide, nested, and complex tables with auto column sizing',
               color: DemoColors.primary,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TableDemo()))),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const TableDemo()))),
           _hubCard(context,
               icon: Icons.table_chart_outlined,
               title: 'Wide Table Strategies',
-              subtitle: 'Tables wider than the screen — scroll, shrink-to-fit, or auto scale',
+              subtitle:
+                  'Tables wider than the screen — scroll, shrink-to-fit, or auto scale',
               color: Colors.teal,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SmartTableDemo()))),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const SmartTableDemo()))),
         ],
       ),
     );
@@ -3244,21 +3388,31 @@ class _MediaHubPage extends StatelessWidget {
           _hubCard(context,
               icon: Icons.broken_image,
               title: 'Images',
-              subtitle: 'Loading placeholders, error fallback, network and asset images',
+              subtitle:
+                  'Loading placeholders, error fallback, network and asset images',
               color: DemoColors.warning,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ImageHandlingDemo()))),
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ImageHandlingDemo()))),
           _hubCard(context,
               icon: Icons.zoom_in,
               title: 'Zoom & Pan',
-              subtitle: 'Pinch to zoom and pan images — works with float and inline images',
+              subtitle:
+                  'Pinch to zoom and pan images — works with float and inline images',
               color: DemoColors.warning,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZoomDemo()))),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ZoomDemo()))),
           _hubCard(context,
               icon: Icons.play_circle_filled,
               title: 'Video',
-              subtitle: 'Video thumbnail with play button — tap to open in external player',
+              subtitle:
+                  'Video thumbnail with play button — tap to open in external player',
               color: DemoColors.warning,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ImprovedVideoDemo()))),
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ImprovedVideoDemo()))),
         ],
       ),
     );
@@ -3279,15 +3433,21 @@ class _WidgetIntegrationHubPage extends StatelessWidget {
           _hubCard(context,
               icon: Icons.widgets,
               title: 'Widget Injection',
-              subtitle: 'Embed live Flutter widgets (charts, buttons, sliders) inside HTML content',
+              subtitle:
+                  'Embed live Flutter widgets (charts, buttons, sliders) inside HTML content',
               color: DemoColors.secondary,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WidgetInjectionDemo()))),
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const WidgetInjectionDemo()))),
           _hubCard(context,
               icon: Icons.animation,
               title: 'Animated Widgets',
-              subtitle: 'Injected widgets can animate — fade, slide, bounce inside HTML',
+              subtitle:
+                  'Injected widgets can animate — fade, slide, bounce inside HTML',
               color: DemoColors.accent,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnimationDemo()))),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const AnimationDemo()))),
         ],
       ),
     );
@@ -3308,15 +3468,18 @@ class _InputFormatsHubPage extends StatelessWidget {
           _hubCard(context,
               icon: Icons.text_snippet,
               title: 'Markdown',
-              subtitle: 'Render .md content — headings, lists, bold, code, links',
+              subtitle:
+                  'Render .md content — headings, lists, bold, code, links',
               color: DemoColors.accent,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarkdownDemo()))),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const MarkdownDemo()))),
           _hubCard(context,
               icon: Icons.data_object,
               title: 'Quill Delta',
               subtitle: 'Render JSON output from the Quill.js rich text editor',
               color: DemoColors.accent,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuillDeltaDemo()))),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const QuillDeltaDemo()))),
         ],
       ),
     );
@@ -3337,27 +3500,41 @@ class _ComparisonPerfHubPage extends StatelessWidget {
           _hubCard(context,
               icon: Icons.compare,
               title: 'vs flutter_html & fwfh',
-              subtitle: 'Side-by-side rendering of the same HTML in 3 libraries',
+              subtitle:
+                  'Side-by-side rendering of the same HTML in 3 libraries',
               color: DemoColors.success,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LibraryComparisonDemo()))),
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const LibraryComparisonDemo()))),
           _hubCard(context,
               icon: Icons.bug_report,
               title: 'Features Other Libraries Miss',
-              subtitle: 'Float layout, ruby, details/summary, inline decoration — all unsupported elsewhere',
+              subtitle:
+                  'Float layout, ruby, details/summary, inline decoration — all unsupported elsewhere',
               color: DemoColors.success,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FWFHIssuesTestDemo()))),
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const FWFHIssuesTestDemo()))),
           _hubCard(context,
               icon: Icons.speed,
               title: 'Stress Test — 1000-Page Book',
-              subtitle: 'Render and scroll a very long document — measure frame time and DOM node count',
+              subtitle:
+                  'Render and scroll a very long document — measure frame time and DOM node count',
               color: DemoColors.error,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StressTestDemo()))),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const StressTestDemo()))),
           _hubCard(context,
               icon: Icons.insights,
               title: 'Performance Deep Dive',
-              subtitle: 'Step-by-step render pipeline breakdown — parse, tokenize, layout, paint',
+              subtitle:
+                  'Step-by-step render pipeline breakdown — parse, tokenize, layout, paint',
               color: DemoColors.success,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceDeepDiveDemo()))),
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const PerformanceDeepDiveDemo()))),
         ],
       ),
     );
@@ -3378,21 +3555,31 @@ class _QualityHubPage extends StatelessWidget {
           _hubCard(context,
               icon: Icons.security,
               title: 'XSS Protection',
-              subtitle: 'Malicious <script> and event handlers are stripped before rendering',
+              subtitle:
+                  'Malicious <script> and event handlers are stripped before rendering',
               color: DemoColors.error,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SecurityDemo()))),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const SecurityDemo()))),
           _hubCard(context,
               icon: Icons.accessibility,
               title: 'Accessibility',
-              subtitle: 'Semantic labels for screen readers — VoiceOver and TalkBack',
+              subtitle:
+                  'Semantic labels for screen readers — VoiceOver and TalkBack',
               color: DemoColors.success,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccessibilityDemo()))),
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const AccessibilityDemo()))),
           _hubCard(context,
               icon: Icons.auto_fix_high,
               title: 'WebView Fallback',
-              subtitle: 'Detect HTML that is too complex and fall back to a WebView automatically',
+              subtitle:
+                  'Detect HTML that is too complex and fall back to a WebView automatically',
               color: DemoColors.warning,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HtmlHeuristicsDemo()))),
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const HtmlHeuristicsDemo()))),
         ],
       ),
     );

@@ -9,7 +9,8 @@ import 'package:url_launcher/url_launcher.dart';
 class HtmlPreviewHelper {
   /// Opens HTML content in the system browser
   /// Creates a temporary file and launches it
-  static Future<void> openInBrowser(String html, {String title = 'Preview'}) async {
+  static Future<void> openInBrowser(String html,
+      {String title = 'Preview'}) async {
     try {
       // Wrap HTML with proper document structure and styling
       final fullHtml = '''
@@ -81,7 +82,8 @@ class HtmlPreviewHelper {
         // On desktop: create temp file and open
         final tempDir = await getTemporaryDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final file = File('${tempDir.path}/hyper_render_preview_$timestamp.html');
+        final file =
+            File('${tempDir.path}/hyper_render_preview_$timestamp.html');
         await file.writeAsString(fullHtml);
 
         final uri = Uri.file(file.path);
@@ -99,7 +101,8 @@ class HtmlPreviewHelper {
 
   /// Show HTML in a dialog with WebView-like display
   /// Use this as fallback when browser launch fails
-  static void showInDialog(BuildContext context, String html, {String title = 'Preview'}) {
+  static void showInDialog(BuildContext context, String html,
+      {String title = 'Preview'}) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

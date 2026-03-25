@@ -13,17 +13,20 @@ void main() {
     });
 
     test('text with space can break', () {
-      final frag = Fragment.text(text: 'hello world', sourceNode: node, style: style);
+      final frag =
+          Fragment.text(text: 'hello world', sourceNode: node, style: style);
       expect(frag.canBreak, isTrue);
     });
 
     test('text with multiple spaces can break', () {
-      final frag = Fragment.text(text: 'one two three', sourceNode: node, style: style);
+      final frag =
+          Fragment.text(text: 'one two three', sourceNode: node, style: style);
       expect(frag.canBreak, isTrue);
     });
 
     test('single word without space cannot break', () {
-      final frag = Fragment.text(text: 'superlongword', sourceNode: node, style: style);
+      final frag =
+          Fragment.text(text: 'superlongword', sourceNode: node, style: style);
       expect(frag.canBreak, isFalse);
     });
 
@@ -40,7 +43,8 @@ void main() {
 
     test('CJK text without space cannot break via canBreak', () {
       // CJK breaking is handled by kinsoku, not canBreak
-      final frag = Fragment.text(text: '日本語テスト', sourceNode: node, style: style);
+      final frag =
+          Fragment.text(text: '日本語テスト', sourceNode: node, style: style);
       expect(frag.canBreak, isFalse);
     });
 
@@ -80,7 +84,8 @@ void main() {
     });
 
     test('mixed spaces and newlines is whitespace', () {
-      final frag = Fragment.text(text: '  \n  ', sourceNode: node, style: style);
+      final frag =
+          Fragment.text(text: '  \n  ', sourceNode: node, style: style);
       expect(frag.isWhitespace, isTrue);
     });
 
@@ -90,7 +95,8 @@ void main() {
     });
 
     test('text with leading space is not purely whitespace', () {
-      final frag = Fragment.text(text: ' hello', sourceNode: node, style: style);
+      final frag =
+          Fragment.text(text: ' hello', sourceNode: node, style: style);
       expect(frag.isWhitespace, isFalse);
     });
 
@@ -190,11 +196,13 @@ void main() {
       final style = ComputedStyle(fontSize: 14);
       final node = TextNode('test');
 
-      final frag1 = Fragment.text(text: 'Hello', sourceNode: node, style: style);
+      final frag1 =
+          Fragment.text(text: 'Hello', sourceNode: node, style: style);
       frag1.measuredSize = const Size(40, 20);
       final frag2 = Fragment.text(text: ' ', sourceNode: node, style: style);
       frag2.measuredSize = const Size(5, 20);
-      final frag3 = Fragment.text(text: 'World', sourceNode: node, style: style);
+      final frag3 =
+          Fragment.text(text: 'World', sourceNode: node, style: style);
       frag3.measuredSize = const Size(45, 20);
 
       final line = LineInfo();
@@ -213,7 +221,8 @@ void main() {
       final node = TextNode('text');
       final imgNode = AtomicNode.img(src: 'x.png');
 
-      final textFrag = Fragment.text(text: 'text', sourceNode: node, style: style);
+      final textFrag =
+          Fragment.text(text: 'text', sourceNode: node, style: style);
       textFrag.measuredSize = const Size(40, 20);
       final imgFrag = Fragment.atomic(
         sourceNode: imgNode,
@@ -233,7 +242,8 @@ void main() {
       final node = TextNode('text');
       final imgNode = AtomicNode.img(src: 'x.png');
 
-      final textFrag = Fragment.text(text: 'hello', sourceNode: node, style: style);
+      final textFrag =
+          Fragment.text(text: 'hello', sourceNode: node, style: style);
       textFrag.measuredSize = const Size(40, 20);
       final imgFrag = Fragment.atomic(
         sourceNode: imgNode,

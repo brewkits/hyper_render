@@ -126,7 +126,8 @@ class SuperClipboardHandler implements ImageClipboardHandler {
       final dir = await _fileSystem.getStorageDirectory();
 
       // Generate unique filename if not provided
-      final name = filename ?? 'image_${DateTime.now().millisecondsSinceEpoch}.png';
+      final name =
+          filename ?? 'image_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File('${dir.path}/$name');
 
       await file.writeAsBytes(bytes);
@@ -145,7 +146,8 @@ class SuperClipboardHandler implements ImageClipboardHandler {
       if (response.statusCode != 200) return false;
 
       final filename = _getFilenameFromUrl(imageUrl);
-      return shareImageBytes(response.bodyBytes, text: text, filename: filename);
+      return shareImageBytes(response.bodyBytes,
+          text: text, filename: filename);
     } catch (e) {
       debugPrint('SuperClipboardHandler.shareImageFromUrl error: $e');
       return false;
@@ -161,7 +163,8 @@ class SuperClipboardHandler implements ImageClipboardHandler {
     try {
       // Save to temp file for sharing
       final tempDir = await _fileSystem.getCacheDirectory();
-      final name = filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png';
+      final name =
+          filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File('${tempDir.path}/$name');
       await file.writeAsBytes(bytes);
 
@@ -188,7 +191,8 @@ class SuperClipboardHandler implements ImageClipboardHandler {
   bool get isSaveSupported => !kIsWeb;
 
   @override
-  bool get isShareSupported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  bool get isShareSupported =>
+      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   @override
   List<String> get supportedFormats => const [

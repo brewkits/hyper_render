@@ -403,8 +403,7 @@ void main() {
         }
       });
 
-      testWidgets('Handle positions are correct',
-          (WidgetTester tester) async {
+      testWidgets('Handle positions are correct', (WidgetTester tester) async {
         final doc = DocumentNode(children: [
           BlockNode.p(children: [TextNode('Drag handles test')]),
         ]);
@@ -614,7 +613,8 @@ void main() {
 
       test('inline styles take precedence over class styles', () {
         final adapter = HtmlAdapter();
-        final document = adapter.parse('<p class="styled" style="color: blue;">Text</p>');
+        final document =
+            adapter.parse('<p class="styled" style="color: blue;">Text</p>');
 
         final resolver = StyleResolver();
         resolver.parseCss('.styled { color: red; }');
@@ -627,8 +627,7 @@ void main() {
     });
 
     group('Float Layout Integration', () {
-      testWidgets('float left affects text flow',
-          (WidgetTester tester) async {
+      testWidgets('float left affects text flow', (WidgetTester tester) async {
         final doc = DocumentNode(children: [
           BlockNode(
             tagName: 'div',
@@ -663,8 +662,7 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('clear property clears floats',
-          (WidgetTester tester) async {
+      testWidgets('clear property clears floats', (WidgetTester tester) async {
         final doc = DocumentNode(children: [
           BlockNode(
             tagName: 'div',
@@ -746,7 +744,8 @@ void main() {
           ]),
         ]);
 
-        final firstCell = tableNode.children.first.children.first as TableCellNode;
+        final firstCell =
+            tableNode.children.first.children.first as TableCellNode;
         expect(firstCell.colspan, equals(2));
 
         await tester.pumpWidget(

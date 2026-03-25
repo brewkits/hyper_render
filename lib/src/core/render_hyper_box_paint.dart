@@ -17,14 +17,16 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
 
       // 2. Filter (blur, etc.)
       if (decoration.filter != null) {
-        canvas.saveLayer(adjustedRect, Paint()..imageFilter = decoration.filter);
+        canvas.saveLayer(
+            adjustedRect, Paint()..imageFilter = decoration.filter);
       }
 
       // 3. Box shadows
       if (decoration.boxShadow != null) {
         for (final shadow in decoration.boxShadow!) {
           final shadowPaint = shadow.toPaint();
-          final shadowRect = adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
+          final shadowRect =
+              adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
 
           if (decoration.borderRadius != null) {
             canvas.drawRRect(
@@ -44,11 +46,13 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       }
 
       // Paint background or gradient if specified
-      if (decoration.backgroundColor != null || decoration.backgroundGradient != null) {
+      if (decoration.backgroundColor != null ||
+          decoration.backgroundGradient != null) {
         final bgPaint = Paint()..isAntiAlias = true;
 
         if (decoration.backgroundGradient != null) {
-          bgPaint.shader = decoration.backgroundGradient!.createShader(adjustedRect);
+          bgPaint.shader =
+              decoration.backgroundGradient!.createShader(adjustedRect);
         } else {
           bgPaint.color = decoration.backgroundColor!;
         }
@@ -71,7 +75,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       }
 
       // Paint border-left (for blockquote style)
-      if (decoration.borderLeftColor != null && decoration.borderLeftWidth > 0) {
+      if (decoration.borderLeftColor != null &&
+          decoration.borderLeftWidth > 0) {
         final borderPaint = Paint()
           ..color = decoration.borderLeftColor!
           ..style = PaintingStyle.stroke
@@ -80,8 +85,10 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           ..strokeCap = StrokeCap.square; // Crisp square ends for border lines
 
         canvas.drawLine(
-          Offset(adjustedRect.left + decoration.borderLeftWidth / 2, adjustedRect.top),
-          Offset(adjustedRect.left + decoration.borderLeftWidth / 2, adjustedRect.bottom),
+          Offset(adjustedRect.left + decoration.borderLeftWidth / 2,
+              adjustedRect.top),
+          Offset(adjustedRect.left + decoration.borderLeftWidth / 2,
+              adjustedRect.bottom),
           borderPaint,
         );
       }
@@ -101,20 +108,23 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         // 1. Backdrop Filter
         if (decoration.backdropFilter != null) {
           canvas.saveLayer(adjustedRect, Paint());
-          canvas.drawRect(adjustedRect, Paint()..imageFilter = decoration.backdropFilter);
+          canvas.drawRect(
+              adjustedRect, Paint()..imageFilter = decoration.backdropFilter);
           canvas.restore();
         }
 
         // 2. Filter (blur, etc.) - Apply to all subsequent painting for this rect
         if (decoration.filter != null) {
-          canvas.saveLayer(adjustedRect, Paint()..imageFilter = decoration.filter);
+          canvas.saveLayer(
+              adjustedRect, Paint()..imageFilter = decoration.filter);
         }
 
         // 3. Box shadows
         if (decoration.boxShadow != null) {
           for (final shadow in decoration.boxShadow!) {
             final shadowPaint = shadow.toPaint();
-            final shadowRect = adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
+            final shadowRect =
+                adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
 
             if (decoration.borderRadius != null) {
               canvas.drawRRect(
@@ -134,11 +144,13 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         }
 
         // Paint background or gradient
-        if (decoration.backgroundColor != null || decoration.backgroundGradient != null) {
+        if (decoration.backgroundColor != null ||
+            decoration.backgroundGradient != null) {
           final paint = Paint()..isAntiAlias = true;
 
           if (decoration.backgroundGradient != null) {
-            paint.shader = decoration.backgroundGradient!.createShader(adjustedRect);
+            paint.shader =
+                decoration.backgroundGradient!.createShader(adjustedRect);
           } else {
             paint.color = decoration.backgroundColor!;
           }
@@ -215,16 +227,14 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           // Check if this fragment overlaps with selection
           if (fragmentEnd > _selection!.start &&
               fragmentStart < _selection!.end) {
-            final selectStart =
-                math.max(0, _selection!.start - fragmentStart);
+            final selectStart = math.max(0, _selection!.start - fragmentStart);
             final selectEnd = math.min(
                 fragment.text!.length, _selection!.end - fragmentStart);
 
             // Get selection rect within this fragment
             final painter = _getTextPainter(fragment.text!, fragment.style);
             final startOffset = painter
-                .getOffsetForCaret(TextPosition(offset: selectStart),
-                    Rect.zero)
+                .getOffsetForCaret(TextPosition(offset: selectStart), Rect.zero)
                 .dx;
             final endOffset = painter
                 .getOffsetForCaret(TextPosition(offset: selectEnd), Rect.zero)
@@ -287,7 +297,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     }
   }
 
-  void _paintListMarker(Canvas canvas, Offset offset, _ListMarkerFragment fragment) {
+  void _paintListMarker(
+      Canvas canvas, Offset offset, _ListMarkerFragment fragment) {
     final painter = _getTextPainter(fragment.marker, fragment.style);
     painter.paint(canvas, offset + fragment.offset!);
   }
@@ -301,7 +312,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
   void _paintRubyFragment(Canvas canvas, Offset offset, Fragment fragment) {
     final fragmentOffset = fragment.offset ?? Offset.zero;
 
-    final rubyFontSize = fragment.style.fontSize * RenderHyperBox.rubyFontSizeRatio;
+    final rubyFontSize =
+        fragment.style.fontSize * RenderHyperBox.rubyFontSizeRatio;
     final rubyStyle = fragment.style.copyWith(fontSize: rubyFontSize);
     final rubyPainter = _getTextPainter(fragment.rubyText!, rubyStyle);
     final basePainter = _getTextPainter(fragment.text!, fragment.style);
@@ -313,7 +325,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
 
     // Ruby text is at the top, base text below
     const rubyY = 0.0;
-    final baseY = (fragment.rubyHeight ?? rubyPainter.height) + RenderHyperBox.rubyGap;
+    final baseY =
+        (fragment.rubyHeight ?? rubyPainter.height) + RenderHyperBox.rubyGap;
 
     rubyPainter.paint(
       canvas,
@@ -363,7 +376,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     RenderBox? child = firstChild;
     while (child != null) {
       final parentData = child.parentData as HyperBoxParentData;
-      if (parentData.fragment == fragment || parentData.sourceNode == fragment.sourceNode) {
+      if (parentData.fragment == fragment ||
+          parentData.sourceNode == fragment.sourceNode) {
         return true;
       }
       child = parentData.nextSibling;
@@ -405,7 +419,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         rect: rect,
         image: cached!.image!,
         fit: _getBoxFit(fragment.style.backgroundSize),
-        filterQuality: FilterQuality.medium, // Crisp rendering on retina displays
+        filterQuality:
+            FilterQuality.medium, // Crisp rendering on retina displays
       );
 
       if (borderRadius != null) {
@@ -465,7 +480,11 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       height: iconSize,
     ));
 
-    canvas.drawPath(iconPath, iconPaint..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    canvas.drawPath(
+        iconPath,
+        iconPaint
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5);
 
     // Mountains
     final mountainPath = Path();
@@ -475,7 +494,11 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     mountainPath.lineTo(center.dx + iconSize * 0.3, center.dy - iconSize * 0.1);
     mountainPath.lineTo(center.dx + iconSize * 0.6, center.dy + iconSize * 0.3);
 
-    canvas.drawPath(mountainPath, iconPaint..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    canvas.drawPath(
+        mountainPath,
+        iconPaint
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5);
   }
 
   /// Paint an error placeholder with broken image icon

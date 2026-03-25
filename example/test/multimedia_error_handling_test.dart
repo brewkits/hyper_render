@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// Validates if a URL is safe and well-formed
 bool _isValidUrl(String? url) {
   if (url == null || url.isEmpty) return false;
-  
+
   // Basic validation: reject whitespace and common invalid chars
   if (url.contains(RegExp(r'[\s<>]'))) return false;
 

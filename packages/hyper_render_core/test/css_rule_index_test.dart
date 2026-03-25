@@ -212,7 +212,8 @@ void main() {
         );
       });
 
-      test('returns multiple matching rules for node with tag, class, and ID', () {
+      test('returns multiple matching rules for node with tag, class, and ID',
+          () {
         final node = BlockNode(
           tagName: 'div',
           attributes: {
@@ -249,7 +250,8 @@ void main() {
 
         // Should only get universal rules
         expect(
-          candidates.every((r) => r.selector == '*' || r.selector.contains(' ')),
+          candidates
+              .every((r) => r.selector == '*' || r.selector.contains(' ')),
           isTrue,
         );
       });
@@ -386,7 +388,8 @@ void main() {
         final candidates = index.getCandidates(node);
 
         // Should have both div rules
-        final divRules = candidates.where((r) => r.selector.trim() == 'div').toList();
+        final divRules =
+            candidates.where((r) => r.selector.trim() == 'div').toList();
         expect(divRules.length, equals(2));
       });
 

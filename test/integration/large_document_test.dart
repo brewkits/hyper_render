@@ -11,7 +11,8 @@ import 'package:hyper_render/hyper_render.dart';
 void main() {
   group('Large Document Integration Tests', () {
     testWidgets('renders 50KB HTML document smoothly', (tester) async {
-      final largeHtml = _generateLargeHtml(paragraphs: 100, wordsPerParagraph: 50);
+      final largeHtml =
+          _generateLargeHtml(paragraphs: 100, wordsPerParagraph: 50);
 
       final stopwatch = Stopwatch()..start();
 
@@ -78,7 +79,8 @@ void main() {
     testWidgets('scrolls smoothly through large document', (tester) async {
       // Use sync mode so the viewer renders immediately (no isolate/spinner).
       // This allows pumpAndSettle to work and scroll finders to locate widgets.
-      final largeHtml = _generateLargeHtml(paragraphs: 100, wordsPerParagraph: 50);
+      final largeHtml =
+          _generateLargeHtml(paragraphs: 100, wordsPerParagraph: 50);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -268,10 +270,34 @@ String _generateLargeHtml({
   required int wordsPerParagraph,
 }) {
   const words = [
-    'lorem', 'ipsum', 'dolor', 'sit', 'amet', 'consectetur', 'adipiscing',
-    'elit', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore',
-    'et', 'dolore', 'magna', 'aliqua', 'enim', 'ad', 'minim', 'veniam',
-    'quis', 'nostrud', 'exercitation', 'ullamco', 'laboris',
+    'lorem',
+    'ipsum',
+    'dolor',
+    'sit',
+    'amet',
+    'consectetur',
+    'adipiscing',
+    'elit',
+    'sed',
+    'do',
+    'eiusmod',
+    'tempor',
+    'incididunt',
+    'ut',
+    'labore',
+    'et',
+    'dolore',
+    'magna',
+    'aliqua',
+    'enim',
+    'ad',
+    'minim',
+    'veniam',
+    'quis',
+    'nostrud',
+    'exercitation',
+    'ullamco',
+    'laboris',
   ];
 
   final buffer = StringBuffer('<article><h1>Large Document Test</h1>');

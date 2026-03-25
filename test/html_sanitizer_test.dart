@@ -95,7 +95,8 @@ void main() {
       });
 
       test('removes data: URLs except images', () {
-        const html = '<a href="data:text/html,<script>alert(1)</script>">Bad</a>';
+        const html =
+            '<a href="data:text/html,<script>alert(1)</script>">Bad</a>';
         final result = HtmlSanitizer.sanitize(html);
 
         expect(result, isNot(contains('data:text/html')));
@@ -150,7 +151,8 @@ void main() {
 
     group('Attribute Sanitization', () {
       test('keeps safe attributes', () {
-        const html = '<a href="https://example.com" title="Link" class="btn">Link</a>';
+        const html =
+            '<a href="https://example.com" title="Link" class="btn">Link</a>';
         final result = HtmlSanitizer.sanitize(html);
 
         expect(result, contains('href'));
@@ -159,7 +161,8 @@ void main() {
       });
 
       test('removes dangerous attributes', () {
-        const html = '<div onclick="bad()" formaction="/evil" data="evil">Content</div>';
+        const html =
+            '<div onclick="bad()" formaction="/evil" data="evil">Content</div>';
         final result = HtmlSanitizer.sanitize(html);
 
         expect(result, isNot(contains('onclick')));
@@ -236,7 +239,8 @@ void main() {
 
     group('Media Support (video/audio)', () {
       test('keeps video tag with src and controls', () {
-        const html = '<video src="v.mp4" controls width="320" height="180"></video>';
+        const html =
+            '<video src="v.mp4" controls width="320" height="180"></video>';
         final result = HtmlSanitizer.sanitize(html);
 
         expect(result, contains('video'));
@@ -277,7 +281,8 @@ void main() {
       });
 
       test('strips event handlers from video', () {
-        const html = '<video src="v.mp4" onclick="evil()" onerror="bad()"></video>';
+        const html =
+            '<video src="v.mp4" onclick="evil()" onerror="bad()"></video>';
         final result = HtmlSanitizer.sanitize(html);
 
         expect(result, isNot(contains('onclick')));
@@ -293,7 +298,8 @@ void main() {
       });
 
       test('keeps figure and figcaption', () {
-        const html = '<figure><img src="i.jpg"><figcaption>Caption</figcaption></figure>';
+        const html =
+            '<figure><img src="i.jpg"><figcaption>Caption</figcaption></figure>';
         final result = HtmlSanitizer.sanitize(html);
 
         expect(result, contains('figure'));
@@ -363,7 +369,8 @@ void main() {
       });
 
       test('sanitizes DOM-based XSS', () {
-        const html = '<a href="javascript:void(document.body.innerHTML=\'Hacked\')">Click</a>';
+        const html =
+            '<a href="javascript:void(document.body.innerHTML=\'Hacked\')">Click</a>';
         final result = HtmlSanitizer.sanitize(html);
 
         expect(result, isNot(contains('javascript:')));

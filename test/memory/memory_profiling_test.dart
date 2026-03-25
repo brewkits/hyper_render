@@ -315,7 +315,8 @@ void main() {
       final after = _rssMiB();
       final deltaMiB = after - before;
 
-      print('[Memory] 50-image document (all failing) — RSS delta: ${deltaMiB}MiB');
+      print(
+          '[Memory] 50-image document (all failing) — RSS delta: ${deltaMiB}MiB');
 
       if (deltaMiB > 60) {
         fail('RSS grew by ${deltaMiB}MiB for 50-image document '

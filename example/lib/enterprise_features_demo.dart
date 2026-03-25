@@ -114,8 +114,7 @@ class _ResourceSafetyTabState extends State<_ResourceSafetyTab> {
           color: const Color(0xFF1A237E),
           icon: Icons.shield,
           title: 'GPU Resource Safety',
-          subtitle:
-              'image.dispose() + Isolate.kill() prevent VRAM & CPU leaks',
+          subtitle: 'image.dispose() + Isolate.kill() prevent VRAM & CPU leaks',
         ),
         const SizedBox(height: 12),
         Row(
@@ -326,7 +325,8 @@ class _ErrorHandlingTabState extends State<_ErrorHandlingTab> {
             ),
             child: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green.shade700, size: 18),
+                Icon(Icons.check_circle,
+                    color: Colors.green.shade700, size: 18),
                 const SizedBox(width: 8),
                 Text(
                   'No errors — rendered successfully',
@@ -437,9 +437,12 @@ class _DeviceTuningTabState extends State<_DeviceTuningTab> {
         const SizedBox(height: 12),
         SegmentedButton<int>(
           segments: const [
-            ButtonSegment(value: 0, label: Text('Low'), icon: Icon(Icons.battery_alert)),
-            ButtonSegment(value: 1, label: Text('Mid'), icon: Icon(Icons.battery_std)),
-            ButtonSegment(value: 2, label: Text('High'), icon: Icon(Icons.battery_full)),
+            ButtonSegment(
+                value: 0, label: Text('Low'), icon: Icon(Icons.battery_alert)),
+            ButtonSegment(
+                value: 1, label: Text('Mid'), icon: Icon(Icons.battery_std)),
+            ButtonSegment(
+                value: 2, label: Text('High'), icon: Icon(Icons.battery_full)),
           ],
           selected: {_tier},
           onSelectionChanged: (s) => setState(() => _tier = s.first),
@@ -478,10 +481,16 @@ class _ConfigTable extends StatelessWidget {
     final rows = [
       ('textPainterCacheSize', '${config.textPainterCacheSize}', 'Dart heap'),
       ('imageConcurrency', '${config.imageConcurrency}', 'Network threads'),
-      ('virtualizationChunkSize', '${config.virtualizationChunkSize}', 'Chars/chunk'),
-      ('imagePlaceholderWidth',
-          '${config.defaultImagePlaceholderWidth.toStringAsFixed(0)} px',
-          'Placeholder'),
+      (
+        'virtualizationChunkSize',
+        '${config.virtualizationChunkSize}',
+        'Chars/chunk'
+      ),
+      (
+        'imagePlaceholderWidth',
+        '${config.defaultImagePlaceholderWidth.toStringAsFixed(0)} px',
+        'Placeholder'
+      ),
     ];
 
     return Container(
@@ -621,8 +630,7 @@ class _DeeplinkSecurityTabState extends State<_DeeplinkSecurityTab> {
                     (s) => Chip(
                       label: Text(s),
                       deleteIcon: const Icon(Icons.close, size: 14),
-                      onDeleted: () =>
-                          setState(() => _customSchemes.remove(s)),
+                      onDeleted: () => setState(() => _customSchemes.remove(s)),
                     ),
                   ),
                   ActionChip(
@@ -747,7 +755,8 @@ class _ZoomModesTabState extends State<_ZoomModesTab> {
         ),
         SwitchListTile(
           title: const Text('Virtualized mode'),
-          subtitle: const Text('Force async chunked rendering for long content'),
+          subtitle:
+              const Text('Force async chunked rendering for long content'),
           value: _virtualized,
           onChanged: (v) => setState(() => _virtualized = v),
           activeThumbColor: Colors.purple,

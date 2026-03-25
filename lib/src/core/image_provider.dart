@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/widgets.dart';
 
 /// Image load state
- /// State of image loading.
+/// State of image loading.
 enum ImageLoadState {
   loading,
   loaded,
@@ -11,7 +11,7 @@ enum ImageLoadState {
 }
 
 /// Cached image data
- /// Cache entry for images.
+/// Cache entry for images.
 class CachedImage {
   final ui.Image? image;
   final ImageLoadState state;
@@ -25,15 +25,15 @@ class CachedImage {
 }
 
 /// Callback for loading images
-/// 
+///
 /// This allows users to provide custom image loading implementations
 /// (e.g., using cached_network_image, custom caching, etc.)
-/// 
+///
 /// Parameters:
 /// - src: The image URL
 /// - onLoad: Callback when image loads successfully
 /// - onError: Callback when image fails to load
- /// Loader for fetching images.
+/// Loader for fetching images.
 typedef HyperImageLoader = void Function(
   String src,
   void Function(ui.Image image) onLoad,

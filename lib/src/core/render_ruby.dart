@@ -202,8 +202,7 @@ class RenderRubyText extends RenderBox {
     _basePainter.layout();
     _rubyPainter.layout();
 
-    final baseBaseline =
-        _basePainter.computeDistanceToActualBaseline(baseline);
+    final baseBaseline = _basePainter.computeDistanceToActualBaseline(baseline);
     return _rubyPainter.height + rubySpacing + baseBaseline;
   }
 

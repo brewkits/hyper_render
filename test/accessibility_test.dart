@@ -32,7 +32,8 @@ void main() {
         ),
       );
 
-      final semanticsFinder = find.bySemanticsLabel('Breaking news: Flutter 4.0 released');
+      final semanticsFinder =
+          find.bySemanticsLabel('Breaking news: Flutter 4.0 released');
       expect(semanticsFinder, findsOneWidget);
     });
 
@@ -120,7 +121,8 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<p>${'Long content ' * 500}</p>', // Reduced from 2000 to avoid timeout
+              html:
+                  '<p>${'Long content ' * 500}</p>', // Reduced from 2000 to avoid timeout
               mode: HyperRenderMode.virtualized,
               semanticLabel: 'Large article',
             ),

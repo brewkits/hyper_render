@@ -44,7 +44,12 @@ class _StressTestDemoState extends State<StressTestDemo> {
   static const _mangaPageCounts = [5, 10, 20, 50, 100];
   static const _fairyTalePageCounts = [1, 3, 5, 10, 20];
   static const _novelPageCounts = [10, 50, 100, 500, 1000];
-  static const _libraries = ['HyperRender', 'flutter_html', 'fwfh', 'fwfh_core'];
+  static const _libraries = [
+    'HyperRender',
+    'flutter_html',
+    'fwfh',
+    'fwfh_core'
+  ];
 
   List<int> get _pageCounts => switch (_contentType) {
         _ContentType.manga => _mangaPageCounts,
@@ -81,22 +86,41 @@ class _StressTestDemoState extends State<StressTestDemo> {
 ''');
 
     final dialogues = [
-      ('RYŪ', '#e53935', '#ff8a80',
-          '"You cannot escape your destiny, Shadow Blade!"'),
-      ('KIRA', '#42a5f5', '#90caf9',
-          '"This ends here... I will protect everyone!"'),
-      ('ELDER', '#ab47bc', '#ce93d8',
-          '"The ancient seal has been broken. Darkness awakens."'),
-      ('SHADOW', '#78909c', '#b0bec5',
-          '"Hmph. Is that all the power you have, old man?"'),
-      ('MASTER', '#66bb6a', '#a5d6a7',
-          '"Remember your training. Fear is the enemy within."'),
+      (
+        'RYŪ',
+        '#e53935',
+        '#ff8a80',
+        '"You cannot escape your destiny, Shadow Blade!"'
+      ),
+      (
+        'KIRA',
+        '#42a5f5',
+        '#90caf9',
+        '"This ends here... I will protect everyone!"'
+      ),
+      (
+        'ELDER',
+        '#ab47bc',
+        '#ce93d8',
+        '"The ancient seal has been broken. Darkness awakens."'
+      ),
+      (
+        'SHADOW',
+        '#78909c',
+        '#b0bec5',
+        '"Hmph. Is that all the power you have, old man?"'
+      ),
+      (
+        'MASTER',
+        '#66bb6a',
+        '#a5d6a7',
+        '"Remember your training. Fear is the enemy within."'
+      ),
     ];
 
     for (int p = 1; p <= pages; p++) {
       buf.write('<div class="manga-page">');
-      buf.write(
-          '<p class="manga-label">— PAGE $p / $pages —</p>');
+      buf.write('<p class="manga-label">— PAGE $p / $pages —</p>');
 
       final layout = (p - 1) % 5;
       // Use seed-based picsum (no 302 redirect, consistent images per seed)
@@ -165,8 +189,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
             '<div class="manga-dialogue" style="background:#111;border-left-color:${d.$2};">');
         buf.write(
             '<p class="manga-speaker" style="color:${d.$2};">${d.$1}</p>');
-        buf.write(
-            '<p class="manga-line" style="color:${d.$3};">${d.$4}</p>');
+        buf.write('<p class="manga-line" style="color:${d.$3};">${d.$4}</p>');
         buf.write('</div>');
       }
 
@@ -265,8 +288,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
       // Block-centered image with HTML width/height attrs → HyperImage widget
       buf.write(
           '<img src="https://picsum.photos/seed/$imgSeed/$imgW/$imgH" width="$imgW" height="$imgH" class="tale-img" alt="${scene.$1}"/>');
-      buf.write(
-          '<p class="tale-caption">Illustration: ${scene.$1}</p>');
+      buf.write('<p class="tale-caption">Illustration: ${scene.$1}</p>');
 
       buf.write('<p class="tale-para">${scene.$3}</p>');
       buf.write('<p class="tale-para">${scene.$4}</p>');
@@ -348,8 +370,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
       buf.write(
           '<p class="novel-para"><span class="novel-drop">${firstPara[0]}</span>${firstPara.substring(1)}</p>');
       for (int j = 1; j < 3; j++) {
-        buf.write(
-            '<p class="novel-para">${paras[(i + j) % paras.length]}</p>');
+        buf.write('<p class="novel-para">${paras[(i + j) % paras.length]}</p>');
       }
 
       // Highlight note every 4 chapters
@@ -361,7 +382,12 @@ class _StressTestDemoState extends State<StressTestDemo> {
       // Tags every 3 chapters
       if (i % 3 == 0) {
         buf.write('<p>');
-        for (final tag in ['literary', 'archive', 'mystery', 'Chapter ${i + 1}']) {
+        for (final tag in [
+          'literary',
+          'archive',
+          'mystery',
+          'Chapter ${i + 1}'
+        ]) {
           buf.write('<span class="novel-tag">$tag</span>');
         }
         buf.write('</p>');
@@ -432,7 +458,8 @@ class _StressTestDemoState extends State<StressTestDemo> {
 
     final uri = Uri.tryParse(rawUrl);
     if (uri == null || !uri.hasScheme) {
-      setState(() => _errorMessage = 'Invalid URL. Include http:// or https://');
+      setState(
+          () => _errorMessage = 'Invalid URL. Include http:// or https://');
       return;
     }
 
@@ -448,8 +475,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
         headers: {
           'User-Agent':
               'Mozilla/5.0 (compatible; HyperRender-Demo/1.0; +https://pub.dev/packages/hyper_render)',
-          'Accept':
-              'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+          'Accept': 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.5',
         },
       ).timeout(const Duration(seconds: 20));
@@ -473,7 +499,8 @@ class _StressTestDemoState extends State<StressTestDemo> {
       } else {
         if (mounted) {
           setState(() {
-            _errorMessage = 'HTTP ${response.statusCode}: ${response.reasonPhrase}';
+            _errorMessage =
+                'HTTP ${response.statusCode}: ${response.reasonPhrase}';
             _isLoading = false;
           });
         }
@@ -623,8 +650,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
                         color: Colors.white)),
                 const SizedBox(height: 4),
                 Text(subtitle,
-                    style: const TextStyle(
-                        fontSize: 13, color: Colors.white)),
+                    style: const TextStyle(fontSize: 13, color: Colors.white)),
               ],
             ),
           ),
@@ -638,8 +664,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Content Type',
-            style:
-                TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
@@ -672,8 +697,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
       }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: selected ? color : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(24),
@@ -694,8 +718,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
           label,
           style: TextStyle(
             fontSize: 14,
-            fontWeight:
-                selected ? FontWeight.w600 : FontWeight.normal,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
             color: selected ? Colors.white : Colors.grey.shade700,
           ),
         ),
@@ -715,8 +738,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w600)),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
@@ -725,13 +747,10 @@ class _StressTestDemoState extends State<StressTestDemo> {
             return ChoiceChip(
               label: Text('$count'),
               selected: isSelected,
-              selectedColor:
-                  Theme.of(context).colorScheme.primary,
+              selectedColor: Theme.of(context).colorScheme.primary,
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : null,
-                fontWeight: isSelected
-                    ? FontWeight.w600
-                    : FontWeight.normal,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
               onSelected: (selected) {
                 if (selected) setState(() => _pageCount = count);
@@ -748,8 +767,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Page URL',
-            style:
-                TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         const Text(
           'Tip: try Project Gutenberg or Wikipedia articles for realistic HTML',
@@ -770,8 +788,8 @@ class _StressTestDemoState extends State<StressTestDemo> {
               icon: const Icon(Icons.clear, size: 18),
               onPressed: () => _urlController.clear(),
             ),
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 14),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           ),
         ),
         const SizedBox(height: 10),
@@ -779,11 +797,9 @@ class _StressTestDemoState extends State<StressTestDemo> {
           spacing: 8,
           runSpacing: 6,
           children: [
-            _quickUrl(
-                'Alice in Wonderland',
+            _quickUrl('Alice in Wonderland',
                 'https://www.gutenberg.org/files/11/11-h/11-h.htm'),
-            _quickUrl(
-                'Grimm\'s Fairy Tales',
+            _quickUrl('Grimm\'s Fairy Tales',
                 'https://www.gutenberg.org/files/2591/2591-h/2591-h.htm'),
             _quickUrl('Moby Dick',
                 'https://www.gutenberg.org/files/2701/2701-h/2701-h.htm'),
@@ -798,16 +814,14 @@ class _StressTestDemoState extends State<StressTestDemo> {
       onTap: () => setState(() => _urlController.text = url),
       borderRadius: BorderRadius.circular(4),
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.teal.shade200),
           borderRadius: BorderRadius.circular(4),
           color: Colors.teal.shade50,
         ),
         child: Text(label,
-            style: TextStyle(
-                fontSize: 12, color: Colors.teal.shade800)),
+            style: TextStyle(fontSize: 12, color: Colors.teal.shade800)),
       ),
     );
   }
@@ -817,8 +831,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Render Library',
-            style:
-                TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
@@ -830,9 +843,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
               selectedColor: DemoColors.success,
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : null,
-                fontWeight: isSelected
-                    ? FontWeight.w600
-                    : FontWeight.normal,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
               onSelected: (selected) {
                 if (selected) {
@@ -860,8 +871,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(message,
-                style: TextStyle(
-                    color: Colors.red.shade800, fontSize: 13)),
+                style: TextStyle(color: Colors.red.shade800, fontSize: 13)),
           ),
         ],
       ),
@@ -886,14 +896,12 @@ class _StressTestDemoState extends State<StressTestDemo> {
                     strokeWidth: 2, color: Colors.white),
               )
             : Icon(icon),
-        label:
-            Text(_isLoading ? 'Loading…' : label),
+        label: Text(_isLoading ? 'Loading…' : label),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.all(16),
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: Colors.white,
-          textStyle: const TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -920,8 +928,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
     };
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       color: Colors.grey.shade100,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -949,8 +956,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
                 fontSize: small ? 12 : 15,
                 color: Theme.of(context).colorScheme.primary)),
         Text(label,
-            style:
-                TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
       ],
     );
   }
@@ -976,7 +982,8 @@ class _StressTestDemoState extends State<StressTestDemo> {
           html: content,
           mode: HyperRenderMode.auto,
           selectable: true,
-          placeholderBuilder: (context) => _buildLoadingPlaceholder(content.length),
+          placeholderBuilder: (context) =>
+              _buildLoadingPlaceholder(content.length),
         );
       case 'flutter_html':
         return ClipRect(

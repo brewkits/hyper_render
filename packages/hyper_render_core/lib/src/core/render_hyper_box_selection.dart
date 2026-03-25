@@ -67,8 +67,7 @@ extension RenderHyperBoxSelection on RenderHyperBox {
           // Click is within this fragment — find exact character position.
           final painter = _getTextPainter(text, fragment.style);
           final localX = position.dx - fragmentRect.left;
-          final textPosition =
-              painter.getPositionForOffset(Offset(localX, 0));
+          final textPosition = painter.getPositionForOffset(Offset(localX, 0));
           return currentOffset + textPosition.offset;
         }
 
@@ -102,8 +101,10 @@ extension RenderHyperBoxSelection on RenderHyperBox {
         continue;
       }
 
-      final isText = fragment.type == FragmentType.text && fragment.text != null;
-      final isRuby = fragment.type == FragmentType.ruby && fragment.text != null;
+      final isText =
+          fragment.type == FragmentType.text && fragment.text != null;
+      final isRuby =
+          fragment.type == FragmentType.ruby && fragment.text != null;
       if (!isText && !isRuby) continue;
 
       final fragmentStart = currentOffset;

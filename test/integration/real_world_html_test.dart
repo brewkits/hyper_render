@@ -196,7 +196,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SingleChildScrollView(child: HyperViewer(html: _documentation)),
+            body:
+                SingleChildScrollView(child: HyperViewer(html: _documentation)),
           ),
         ),
       );
@@ -226,7 +227,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SingleChildScrollView(child: HyperViewer(html: _htmlEntities)),
+            body:
+                SingleChildScrollView(child: HyperViewer(html: _htmlEntities)),
           ),
         ),
       );
@@ -348,6 +350,7 @@ void main() {
           walk(c);
         }
       }
+
       walk(doc);
       expect(foundImg, isTrue);
     });
@@ -361,6 +364,7 @@ void main() {
           walk(c);
         }
       }
+
       walk(doc);
       expect(foundTable, isTrue);
     });

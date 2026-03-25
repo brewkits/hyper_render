@@ -121,7 +121,8 @@ void main() {
     test('fragment sourceNode reference is preserved after construction', () {
       final style = ComputedStyle();
       final node = TextNode('source');
-      final frag = Fragment.text(text: 'source', sourceNode: node, style: style);
+      final frag =
+          Fragment.text(text: 'source', sourceNode: node, style: style);
       expect(frag.sourceNode, same(node));
     });
 

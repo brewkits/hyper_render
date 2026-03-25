@@ -34,7 +34,8 @@ void main() {
         expect(find.byType(HyperViewer), findsOneWidget);
       });
 
-      testWidgets('renders HTML with all inline formatting', (WidgetTester tester) async {
+      testWidgets('renders HTML with all inline formatting',
+          (WidgetTester tester) async {
         const html = '''
           <p>
             <strong>Bold</strong>,
@@ -63,7 +64,8 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('renders HTML with headings h1-h6', (WidgetTester tester) async {
+      testWidgets('renders HTML with headings h1-h6',
+          (WidgetTester tester) async {
         const html = '''
           <h1>Heading 1</h1>
           <h2>Heading 2</h2>
@@ -125,7 +127,8 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('renders HTML with nested lists', (WidgetTester tester) async {
+      testWidgets('renders HTML with nested lists',
+          (WidgetTester tester) async {
         const html = '''
           <ul>
             <li>Item 1
@@ -178,7 +181,8 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('renders HTML with pre/code blocks', (WidgetTester tester) async {
+      testWidgets('renders HTML with pre/code blocks',
+          (WidgetTester tester) async {
         const html = '''
           <pre><code class="language-dart">
 void main() {
@@ -202,7 +206,8 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('renders HTML with horizontal rule', (WidgetTester tester) async {
+      testWidgets('renders HTML with horizontal rule',
+          (WidgetTester tester) async {
         const html = '''
           <p>Before</p>
           <hr>
@@ -224,7 +229,8 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('renders HTML with definition lists', (WidgetTester tester) async {
+      testWidgets('renders HTML with definition lists',
+          (WidgetTester tester) async {
         const html = '''
           <dl>
             <dt>Term 1</dt>
@@ -251,7 +257,8 @@ void main() {
     });
 
     group('CSS Styling Pipeline', () {
-      testWidgets('applies inline styles correctly', (WidgetTester tester) async {
+      testWidgets('applies inline styles correctly',
+          (WidgetTester tester) async {
         const html = '''
           <p style="color: #FF0000; font-size: 24px; font-weight: bold;">
             Red bold 24px text
@@ -274,14 +281,16 @@ void main() {
         final document = adapter.parse('<p class="highlight">Text</p>');
 
         final resolver = StyleResolver();
-        resolver.parseCss('.highlight { background-color: #FFFF00; padding: 8px; }');
+        resolver.parseCss(
+            '.highlight { background-color: #FFFF00; padding: 8px; }');
         resolver.resolveStyles(document);
 
         final p = document.children.first;
         expect(p.style.backgroundColor, equals(const Color(0xFFFFFF00)));
       });
 
-      testWidgets('applies CSS specificity correctly', (WidgetTester tester) async {
+      testWidgets('applies CSS specificity correctly',
+          (WidgetTester tester) async {
         final adapter = HtmlAdapter();
         final document = adapter.parse('<p id="main" class="text">Text</p>');
 
@@ -318,7 +327,8 @@ void main() {
         expect(div.style.padding, isNotNull);
       });
 
-      testWidgets('applies text decoration properties', (WidgetTester tester) async {
+      testWidgets('applies text decoration properties',
+          (WidgetTester tester) async {
         final adapter = HtmlAdapter();
         final document = adapter.parse('<span class="decorated">Text</span>');
 
@@ -543,7 +553,8 @@ void main() {
         expect(hasTable, isTrue);
       });
 
-      testWidgets('renders Markdown task lists (GFM)', (WidgetTester tester) async {
+      testWidgets('renders Markdown task lists (GFM)',
+          (WidgetTester tester) async {
         const markdown = '''
 - [x] Completed task
 - [ ] Pending task
@@ -785,7 +796,8 @@ void main() {
         expect(spanningCell!.rowspan, equals(2));
       });
 
-      testWidgets('SmartTableWrapper with horizontal scroll strategy', (WidgetTester tester) async {
+      testWidgets('SmartTableWrapper with horizontal scroll strategy',
+          (WidgetTester tester) async {
         final tableNode = TableNode(children: [
           TableRowNode(children: [
             TableCellNode(isHeader: true, children: [TextNode('Header 1')]),
@@ -814,7 +826,8 @@ void main() {
     });
 
     group('CJK and Ruby Annotations', () {
-      testWidgets('renders Japanese text with ruby annotations', (WidgetTester tester) async {
+      testWidgets('renders Japanese text with ruby annotations',
+          (WidgetTester tester) async {
         const html = '''
           <p>
             <ruby>日本語<rt>にほんご</rt></ruby>を勉強しています。
@@ -845,7 +858,8 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('renders Chinese text correctly', (WidgetTester tester) async {
+      testWidgets('renders Chinese text correctly',
+          (WidgetTester tester) async {
         final doc = DocumentNode(children: [
           BlockNode.p(children: [
             TextNode('这是中文测试文本。中文排版应该正确处理。'),
@@ -889,7 +903,8 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('Kinsoku processing prevents bad line breaks', (WidgetTester tester) async {
+      testWidgets('Kinsoku processing prevents bad line breaks',
+          (WidgetTester tester) async {
         // Test that punctuation doesn't start a line
         expect(KinsokuProcessor.cannotStartLine('。'), isTrue);
         expect(KinsokuProcessor.cannotStartLine('、'), isTrue);
@@ -905,7 +920,8 @@ void main() {
 
     group('Image Rendering', () {
       testWidgets('renders image with dimensions', (WidgetTester tester) async {
-        const html = '<img src="https://example.com/image.png" width="200" height="100" alt="Test">';
+        const html =
+            '<img src="https://example.com/image.png" width="200" height="100" alt="Test">';
 
         final adapter = HtmlAdapter();
         final document = adapter.parse(html);
@@ -942,7 +958,8 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('custom widget builder for images', (WidgetTester tester) async {
+      testWidgets('custom widget builder for images',
+          (WidgetTester tester) async {
         var builderCalled = false;
 
         final doc = DocumentNode(children: [
@@ -1017,7 +1034,8 @@ void main() {
         // Note: Actual tap testing would need precise positioning
       });
 
-      testWidgets('mailto links are parsed correctly', (WidgetTester tester) async {
+      testWidgets('mailto links are parsed correctly',
+          (WidgetTester tester) async {
         const html = '<a href="mailto:test@example.com">Email</a>';
 
         final adapter = HtmlAdapter();
@@ -1027,7 +1045,8 @@ void main() {
         expect(link.attributes['href'], equals('mailto:test@example.com'));
       });
 
-      testWidgets('tel links are parsed correctly', (WidgetTester tester) async {
+      testWidgets('tel links are parsed correctly',
+          (WidgetTester tester) async {
         const html = '<a href="tel:+1234567890">Call</a>';
 
         final adapter = HtmlAdapter();
@@ -1143,11 +1162,13 @@ void main() {
     });
 
     group('Performance - Large Documents', () {
-      testWidgets('renders document with 100 paragraphs', (WidgetTester tester) async {
+      testWidgets('renders document with 100 paragraphs',
+          (WidgetTester tester) async {
         final children = List.generate(
           100,
           (i) => BlockNode.p(children: [
-            TextNode('Paragraph $i: This is a test paragraph with some content.'),
+            TextNode(
+                'Paragraph $i: This is a test paragraph with some content.'),
           ]),
         );
 
@@ -1167,7 +1188,8 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('renders document with deeply nested structure', (WidgetTester tester) async {
+      testWidgets('renders document with deeply nested structure',
+          (WidgetTester tester) async {
         UDTNode createNestedDiv(int depth, String text) {
           if (depth == 0) {
             return TextNode(text);
@@ -1194,7 +1216,8 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('renders long paragraph with word wrap', (WidgetTester tester) async {
+      testWidgets('renders long paragraph with word wrap',
+          (WidgetTester tester) async {
         final longText = List.generate(50, (i) => 'word$i').join(' ');
         final doc = DocumentNode(children: [
           BlockNode.p(children: [TextNode(longText)]),
@@ -1239,7 +1262,8 @@ void main() {
         expect(find.byType(HyperViewer), findsOneWidget);
       });
 
-      testWidgets('auto mode selects appropriate strategy', (WidgetTester tester) async {
+      testWidgets('auto mode selects appropriate strategy',
+          (WidgetTester tester) async {
         await tester.pumpWidget(
           const MaterialApp(
             home: Scaffold(
@@ -1255,7 +1279,8 @@ void main() {
         expect(find.byType(HyperViewer), findsOneWidget);
       });
 
-      testWidgets('HyperViewer with selectable option', (WidgetTester tester) async {
+      testWidgets('HyperViewer with selectable option',
+          (WidgetTester tester) async {
         await tester.pumpWidget(
           const MaterialApp(
             home: Scaffold(
@@ -1289,9 +1314,11 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('handles malformed HTML gracefully', (WidgetTester tester) async {
+      testWidgets('handles malformed HTML gracefully',
+          (WidgetTester tester) async {
         final adapter = HtmlAdapter();
-        final document = adapter.parse('<p>Unclosed paragraph<div>Mixed nesting</p></div>');
+        final document =
+            adapter.parse('<p>Unclosed paragraph<div>Mixed nesting</p></div>');
 
         await tester.pumpWidget(
           MaterialApp(
@@ -1320,7 +1347,8 @@ void main() {
         expect(find.byType(HyperRenderWidget), findsOneWidget);
       });
 
-      testWidgets('handles invalid Delta JSON gracefully', (WidgetTester tester) async {
+      testWidgets('handles invalid Delta JSON gracefully',
+          (WidgetTester tester) async {
         final adapter = DeltaAdapter();
         // This should not throw, but handle gracefully
         try {

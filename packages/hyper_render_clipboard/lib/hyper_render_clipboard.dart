@@ -60,4 +60,7 @@ export 'src/super_clipboard_handler.dart' show SuperClipboardHandler;
 
 // Re-export interface from hyper_render_core for convenience
 export 'package:hyper_render_core/hyper_render_core.dart'
-    show ImageClipboardHandler, DefaultImageClipboardHandler, ImageOperationResult;
+    show
+        ImageClipboardHandler,
+        DefaultImageClipboardHandler,
+        ImageOperationResult;

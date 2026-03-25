@@ -372,7 +372,8 @@ class WhyHyperRenderDemo extends StatelessWidget {
                   color: Colors.black.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.emoji_events, color: Colors.white, size: 28),
+                child: const Icon(Icons.emoji_events,
+                    color: Colors.white, size: 28),
               ),
               const SizedBox(width: 14),
               const Expanded(
@@ -472,7 +473,8 @@ class WhyHyperRenderDemo extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Row(
               children: [
@@ -515,18 +517,27 @@ class WhyHyperRenderDemo extends StatelessWidget {
   Widget _buildStatsRow() {
     return Row(
       children: [
-        Expanded(child: _buildStatCard('16 / 16', 'Features', Icons.check_circle, Colors.green)),
+        Expanded(
+            child: _buildStatCard(
+                '16 / 16', 'Features', Icons.check_circle, Colors.green)),
         const SizedBox(width: 10),
-        Expanded(child: _buildStatCard('60+', 'CSS Props', Icons.style, Colors.indigo)),
+        Expanded(
+            child:
+                _buildStatCard('60+', 'CSS Props', Icons.style, Colors.indigo)),
         const SizedBox(width: 10),
-        Expanded(child: _buildStatCard('Zero', 'WebViews', Icons.no_encryption, Colors.red)),
+        Expanded(
+            child: _buildStatCard(
+                'Zero', 'WebViews', Icons.no_encryption, Colors.red)),
         const SizedBox(width: 10),
-        Expanded(child: _buildStatCard('3+', 'Formats', Icons.data_object, Colors.teal)),
+        Expanded(
+            child: _buildStatCard(
+                '3+', 'Formats', Icons.data_object, Colors.teal)),
       ],
     );
   }
 
-  Widget _buildStatCard(String value, String label, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String value, String label, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
       decoration: BoxDecoration(
@@ -592,7 +603,8 @@ class WhyHyperRenderDemo extends StatelessWidget {
                   color: Colors.indigo.shade50,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.architecture, color: Colors.indigo.shade700, size: 20),
+                child: Icon(Icons.architecture,
+                    color: Colors.indigo.shade700, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
@@ -657,11 +669,13 @@ class WhyHyperRenderDemo extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 13),
                 ),
                 Text(
                   desc,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500, height: 1.4),
+                  style: TextStyle(
+                      fontSize: 12, color: Colors.grey.shade500, height: 1.4),
                 ),
               ],
             ),

@@ -18,7 +18,7 @@ void main() {
           home: Scaffold(
             body: HyperViewer(
               html: xssHtml,
-              sanitize: true,  // Security on
+              sanitize: true, // Security on
             ),
           ),
         ),
@@ -197,7 +197,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('sanitize: handles mixed safe and unsafe content', (tester) async {
+    testWidgets('sanitize: handles mixed safe and unsafe content',
+        (tester) async {
       const mixedHtml = '''
 <div>
   <h1>Title</h1>
@@ -270,7 +271,7 @@ void main() {
             body: HyperViewer(
               html: restrictedHtml,
               sanitize: true,
-              allowedTags: ['p', 'strong', 'em'],  // No img, table
+              allowedTags: ['p', 'strong', 'em'], // No img, table
             ),
           ),
         ),
@@ -300,11 +301,12 @@ void main() {
       await tester.pumpAndSettle();
 
       final hyperViewer = tester.widget<HyperViewer>(find.byType(HyperViewer));
-      expect(hyperViewer.sanitize, isTrue);  // Verify default is true
+      expect(hyperViewer.sanitize, isTrue); // Verify default is true
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('sanitize: can be explicitly disabled (trusted content)', (tester) async {
+    testWidgets('sanitize: can be explicitly disabled (trusted content)',
+        (tester) async {
       const trustedHtml = '''
 <div>
   <p>Trusted content</p>
@@ -317,7 +319,7 @@ void main() {
           home: Scaffold(
             body: HyperViewer(
               html: trustedHtml,
-              sanitize: false,  // Explicitly disable for trusted content
+              sanitize: false, // Explicitly disable for trusted content
             ),
           ),
         ),

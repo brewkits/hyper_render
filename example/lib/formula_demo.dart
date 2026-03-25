@@ -134,13 +134,17 @@ class _FormulasTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          _SectionHeader(title: 'Fractions & Roots', color: DemoColors.secondary),
+          _SectionHeader(
+              title: 'Fractions & Roots', color: DemoColors.secondary),
           _FormulaRow(label: 'Simple fraction:', latex: r'\frac{a}{b}'),
           _FormulaRow(label: 'Square root:', latex: r'\sqrt{x^2 + y^2}'),
-          _FormulaRow(label: 'Nested fraction:', latex: r'\frac{\alpha + \beta}{\gamma}'),
+          _FormulaRow(
+              label: 'Nested fraction:',
+              latex: r'\frac{\alpha + \beta}{\gamma}'),
           _FormulaRow(label: 'Euler\'s identity:', latex: r'e^{i\pi} + 1 = 0'),
           const SizedBox(height: 20),
-          _SectionHeader(title: 'Superscripts & Subscripts', color: DemoColors.secondary),
+          _SectionHeader(
+              title: 'Superscripts & Subscripts', color: DemoColors.secondary),
           _FormulaRow(label: 'Area:', latex: r'A = \pi r^2'),
           _FormulaRow(label: 'Series:', latex: r'x_1 + x_2 + ... + x_n'),
           _FormulaRow(label: 'CO₂:', latex: r'CO_2'),
@@ -248,8 +252,8 @@ class _PhysicsTab extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       f.desc,
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade600),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -308,8 +312,7 @@ class _DeltaTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SectionHeader(
-              title: 'Quill Delta with Formula Embeds',
-              color: Colors.indigo),
+              title: 'Quill Delta with Formula Embeds', color: Colors.indigo),
           const Text(
             'HyperViewer renders Quill Delta JSON with inline formula embeds. '
             'Each {"formula": "..."} embed is rendered via FormulaWidget.',
@@ -413,8 +416,7 @@ class _CustomBuilderTabState extends State<_CustomBuilderTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SectionHeader(
-              title: 'Custom FormulaBuilder',
-              color: DemoColors.warning),
+              title: 'Custom FormulaBuilder', color: DemoColors.warning),
           const Text(
             'Swap the built-in Unicode renderer for a full LaTeX engine '
             '(e.g. flutter_math_fork) by providing a customBuilder. '
@@ -428,19 +430,17 @@ class _CustomBuilderTabState extends State<_CustomBuilderTab> {
             decoration: BoxDecoration(
               color: DemoColors.warning.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                  color: DemoColors.warning.withValues(alpha: 0.3)),
+              border:
+                  Border.all(color: DemoColors.warning.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
-                Icon(Icons.swap_horiz,
-                    color: DemoColors.warning, size: 18),
+                Icon(Icons.swap_horiz, color: DemoColors.warning, size: 18),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
                     'Renderer:',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 13),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                 ),
                 Text(
@@ -479,9 +479,8 @@ class _CustomBuilderTabState extends State<_CustomBuilderTab> {
                     FormulaWidget(
                       formula: latex,
                       style: const TextStyle(fontSize: 16),
-                      customBuilder: _useCustomBuilder
-                          ? _mockFlutterMathBuilder
-                          : null,
+                      customBuilder:
+                          _useCustomBuilder ? _mockFlutterMathBuilder : null,
                     ),
                   ],
                 ),
@@ -513,7 +512,8 @@ FormulaWidget(
           _SectionHeader(
               title: 'Global customBuilder via HyperViewer',
               color: DemoColors.warning),
-          _CodeSnippet(code: r'''// Apply flutter_math_fork to ALL formulas in a document
+          _CodeSnippet(
+              code: r'''// Apply flutter_math_fork to ALL formulas in a document
 HyperViewer(
   html: myDeltaJson,
   format: HyperRenderFormat.delta,
@@ -550,7 +550,9 @@ class _FormulaChip extends StatelessWidget {
         Text(
           latex,
           style: TextStyle(
-              fontSize: 9, color: Colors.grey.shade500, fontFamily: 'monospace'),
+              fontSize: 9,
+              color: Colors.grey.shade500,
+              fontFamily: 'monospace'),
         ),
       ],
     );
@@ -600,9 +602,7 @@ class _SectionHeader extends StatelessWidget {
             child: Text(
               title,
               style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: color),
+                  fontSize: 15, fontWeight: FontWeight.w700, color: color),
             ),
           ),
         ],

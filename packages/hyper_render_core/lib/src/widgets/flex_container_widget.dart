@@ -80,11 +80,10 @@ class FlexContainerWidget extends StatelessWidget {
         final hasFlexGrow = axisAwareChildren
             .any((c) => c is FlexItemWidget && (c.style.flexGrow ?? 0) > 0);
 
-        final effectiveCrossAxis = (crossAxisAlignment ==
-                    CrossAxisAlignment.stretch &&
-                hasFlexGrow)
-            ? CrossAxisAlignment.start
-            : crossAxisAlignment;
+        final effectiveCrossAxis =
+            (crossAxisAlignment == CrossAxisAlignment.stretch && hasFlexGrow)
+                ? CrossAxisAlignment.start
+                : crossAxisAlignment;
 
         // Also need IntrinsicHeight when any child uses align-self:stretch,
         // so that SizedBox(height:infinity) in _wrapWithAlignSelf is bounded.
@@ -343,14 +342,14 @@ class FlexItemWidget extends StatelessWidget {
     switch (alignSelf) {
       case AlignItems.flexStart:
         final alignment = parentAxis == Axis.horizontal
-            ? Alignment.topCenter    // row: align to top
-            : Alignment.centerLeft;  // column: align to left
+            ? Alignment.topCenter // row: align to top
+            : Alignment.centerLeft; // column: align to left
         return Align(alignment: alignment, child: child);
 
       case AlignItems.flexEnd:
         final alignment = parentAxis == Axis.horizontal
-            ? Alignment.bottomCenter  // row: align to bottom
-            : Alignment.centerRight;  // column: align to right
+            ? Alignment.bottomCenter // row: align to bottom
+            : Alignment.centerRight; // column: align to right
         return Align(alignment: alignment, child: child);
 
       case AlignItems.center:

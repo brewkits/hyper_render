@@ -87,8 +87,10 @@ extension RenderHyperBoxSelection on RenderHyperBox {
     int currentOffset = 0;
 
     for (final fragment in _fragments) {
-      final isText = fragment.type == FragmentType.text && fragment.text != null;
-      final isRuby = fragment.type == FragmentType.ruby && fragment.text != null;
+      final isText =
+          fragment.type == FragmentType.text && fragment.text != null;
+      final isRuby =
+          fragment.type == FragmentType.ruby && fragment.text != null;
       if (!isText && !isRuby) continue;
 
       final fragmentStart = currentOffset;
@@ -124,8 +126,7 @@ extension RenderHyperBoxSelection on RenderHyperBox {
   /// Select all text
   void selectAll() {
     if (_totalCharacterCount > 0) {
-      _selection =
-          HyperTextSelection(start: 0, end: _totalCharacterCount);
+      _selection = HyperTextSelection(start: 0, end: _totalCharacterCount);
       markNeedsPaint();
       _notifySelectionChanged();
     }
@@ -148,8 +149,7 @@ extension RenderHyperBoxSelection on RenderHyperBox {
 
           if (fragmentEnd > _selection!.start &&
               fragmentStart < _selection!.end) {
-            final selectStart =
-                math.max(0, _selection!.start - fragmentStart);
+            final selectStart = math.max(0, _selection!.start - fragmentStart);
             final selectEnd = math.min(
                 fragment.text!.length, _selection!.end - fragmentStart);
 

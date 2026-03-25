@@ -589,13 +589,16 @@ void main() {
 
         // Content should be wrapped in Padding
         final padding = tester.widget<Padding>(
-          find.descendant(
-            of: find.byType(AnimatedSize),
-            matching: find.byType(Padding),
-          ).first,
+          find
+              .descendant(
+                of: find.byType(AnimatedSize),
+                matching: find.byType(Padding),
+              )
+              .first,
         );
 
-        expect(padding.padding, equals(const EdgeInsets.only(left: 24.0, top: 4.0, bottom: 4.0)));
+        expect(padding.padding,
+            equals(const EdgeInsets.only(left: 24.0, top: 4.0, bottom: 4.0)));
       });
     });
 

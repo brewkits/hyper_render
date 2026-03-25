@@ -15,7 +15,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<div style="box-shadow: 0 4px 8px rgba(0,0,0,0.5)">Content with shadow</div>',
+              html:
+                  '<div style="box-shadow: 0 4px 8px rgba(0,0,0,0.5)">Content with shadow</div>',
             ),
           ),
         ),
@@ -29,7 +30,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<div style="background: linear-gradient(to right, #ff0000, #0000ff)">Gradient</div>',
+              html:
+                  '<div style="background: linear-gradient(to right, #ff0000, #0000ff)">Gradient</div>',
             ),
           ),
         ),
@@ -57,7 +59,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<div style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.5)">Glassmorphism</div>',
+              html:
+                  '<div style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.5)">Glassmorphism</div>',
             ),
           ),
         ),
@@ -71,7 +74,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<p style="word-break: break-all; overflow-wrap: break-word">LongURLThatNeedsBreaking...</p>',
+              html:
+                  '<p style="word-break: break-all; overflow-wrap: break-word">LongURLThatNeedsBreaking...</p>',
             ),
           ),
         ),
@@ -85,7 +89,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<h1 style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5)">Heading with shadow</h1>',
+              html:
+                  '<h1 style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5)">Heading with shadow</h1>',
             ),
           ),
         ),
@@ -99,7 +104,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<div style="width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Truncated text that is very long</div>',
+              html:
+                  '<div style="width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Truncated text that is very long</div>',
             ),
           ),
         ),
@@ -108,7 +114,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('Parses advanced border styles (dashed, dotted, double)', (tester) async {
+    testWidgets('Parses advanced border styles (dashed, dotted, double)',
+        (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(

@@ -15,9 +15,12 @@ void main() {
       });
 
       test('display sizes are larger than headings', () {
-        expect(DesignTokens.displayLargeFontSize, greaterThan(DesignTokens.h1FontSize));
-        expect(DesignTokens.displayMediumFontSize, greaterThan(DesignTokens.h1FontSize));
-        expect(DesignTokens.displaySmallFontSize, greaterThan(DesignTokens.h1FontSize));
+        expect(DesignTokens.displayLargeFontSize,
+            greaterThan(DesignTokens.h1FontSize));
+        expect(DesignTokens.displayMediumFontSize,
+            greaterThan(DesignTokens.h1FontSize));
+        expect(DesignTokens.displaySmallFontSize,
+            greaterThan(DesignTokens.h1FontSize));
       });
 
       test('body text sizes are reasonable', () {
@@ -47,7 +50,8 @@ void main() {
       test('line heights are proportional to font size', () {
         expect(DesignTokens.h1LineHeight, greaterThan(DesignTokens.h1FontSize));
         expect(DesignTokens.h2LineHeight, greaterThan(DesignTokens.h2FontSize));
-        expect(DesignTokens.bodyLargeLineHeight, greaterThan(DesignTokens.bodyLargeFontSize));
+        expect(DesignTokens.bodyLargeLineHeight,
+            greaterThan(DesignTokens.bodyLargeFontSize));
       });
 
       test('heading margins follow 0.67-0.83em rhythm', () {
@@ -107,8 +111,10 @@ void main() {
 
       test('radius increases progressively', () {
         expect(DesignTokens.radiusSmall, greaterThan(DesignTokens.radiusXs));
-        expect(DesignTokens.radiusMedium, greaterThan(DesignTokens.radiusSmall));
-        expect(DesignTokens.radiusLarge, greaterThan(DesignTokens.radiusMedium));
+        expect(
+            DesignTokens.radiusMedium, greaterThan(DesignTokens.radiusSmall));
+        expect(
+            DesignTokens.radiusLarge, greaterThan(DesignTokens.radiusMedium));
       });
     });
 
@@ -249,17 +255,25 @@ void main() {
 
     group('Animation Durations', () {
       test('durations are defined', () {
-        expect(DesignTokens.durationXs, equals(const Duration(milliseconds: 100)));
-        expect(DesignTokens.durationShort, equals(const Duration(milliseconds: 200)));
-        expect(DesignTokens.durationMedium, equals(const Duration(milliseconds: 300)));
-        expect(DesignTokens.durationLong, equals(const Duration(milliseconds: 500)));
-        expect(DesignTokens.durationXl, equals(const Duration(milliseconds: 800)));
+        expect(
+            DesignTokens.durationXs, equals(const Duration(milliseconds: 100)));
+        expect(DesignTokens.durationShort,
+            equals(const Duration(milliseconds: 200)));
+        expect(DesignTokens.durationMedium,
+            equals(const Duration(milliseconds: 300)));
+        expect(DesignTokens.durationLong,
+            equals(const Duration(milliseconds: 500)));
+        expect(
+            DesignTokens.durationXl, equals(const Duration(milliseconds: 800)));
       });
 
       test('durations increase progressively', () {
-        expect(DesignTokens.durationShort, greaterThan(DesignTokens.durationXs));
-        expect(DesignTokens.durationMedium, greaterThan(DesignTokens.durationShort));
-        expect(DesignTokens.durationLong, greaterThan(DesignTokens.durationMedium));
+        expect(
+            DesignTokens.durationShort, greaterThan(DesignTokens.durationXs));
+        expect(DesignTokens.durationMedium,
+            greaterThan(DesignTokens.durationShort));
+        expect(DesignTokens.durationLong,
+            greaterThan(DesignTokens.durationMedium));
       });
     });
 
@@ -371,14 +385,16 @@ void main() {
         final shadows1 = DesignTokens.shadow(DesignTokens.elevation1);
         final shadows3 = DesignTokens.shadow(DesignTokens.elevation3);
 
-        expect(shadows3.first.blurRadius, greaterThan(shadows1.first.blurRadius));
+        expect(
+            shadows3.first.blurRadius, greaterThan(shadows1.first.blurRadius));
       });
     });
 
     group('Consistency', () {
       test('small values are always smaller than large values', () {
         expect(DesignTokens.radiusSmall, lessThan(DesignTokens.radiusLarge));
-        expect(DesignTokens.bodySmallFontSize, lessThan(DesignTokens.bodyLargeFontSize));
+        expect(DesignTokens.bodySmallFontSize,
+            lessThan(DesignTokens.bodyLargeFontSize));
         expect(DesignTokens.space1, lessThan(DesignTokens.space4));
       });
 
@@ -409,7 +425,8 @@ void main() {
         ];
 
         for (final value in spacingValues) {
-          expect(value % 8, equals(0), reason: '$value should be multiple of 8');
+          expect(value % 8, equals(0),
+              reason: '$value should be multiple of 8');
         }
       });
 

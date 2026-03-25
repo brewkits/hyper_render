@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 
 /// Demo showcase for CSS Keyframes and Animations in HyperRender.
-/// 
+///
 /// Demonstrates:
 /// - CSS @keyframes definition
 /// - Animation shorthand property

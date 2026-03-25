@@ -150,7 +150,8 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
   }
 
   Widget _buildVideoContainer(BoxConstraints constraints) {
-    final maxW = constraints.maxWidth == double.infinity ? 320.0 : constraints.maxWidth;
+    final maxW =
+        constraints.maxWidth == double.infinity ? 320.0 : constraints.maxWidth;
     final intrinsicW = widget.mediaInfo.width;
     final intrinsicH = widget.mediaInfo.height;
 
@@ -268,7 +269,9 @@ class _DefaultMediaWidgetState extends State<DefaultMediaWidget> {
 
   Widget _buildAudioPlaceholder() {
     return LayoutBuilder(builder: (ctx, constraints) {
-      final maxW = constraints.maxWidth == double.infinity ? 300.0 : constraints.maxWidth;
+      final maxW = constraints.maxWidth == double.infinity
+          ? 300.0
+          : constraints.maxWidth;
       final width = widget.mediaInfo.width != null
           ? math.min(widget.mediaInfo.width!, maxW)
           : maxW;

@@ -36,26 +36,26 @@ class FlexContainerWidget extends StatelessWidget {
 
     // Handle gap spacing
     final double mainAxisSpacing = (axis == Axis.horizontal
-            ? (style.columnGap ?? style.gap ?? 0)
-            : (style.rowGap ?? style.gap ?? 0));
+        ? (style.columnGap ?? style.gap ?? 0)
+        : (style.rowGap ?? style.gap ?? 0));
     final double crossAxisSpacing = (axis == Axis.horizontal
-            ? (style.rowGap ?? style.gap ?? 0)
-            : (style.columnGap ?? style.gap ?? 0));
+        ? (style.rowGap ?? style.gap ?? 0)
+        : (style.columnGap ?? style.gap ?? 0));
 
     Widget flexWidget;
 
     if (style.flexWrap == FlexWrap.nowrap) {
       // Use Row/Column for no-wrap flex
       // Wrap children that are NOT FlexItemWidget to prevent overflow
-      final processedChildren = _buildChildrenWithGap(children, mainAxisSpacing, axis)
-          .map((child) {
-            // FlexItemWidget handles its own Flexible wrapping
-            if (child is FlexItemWidget) {
-              return child;
-            }
-            // Wrap other widgets in Flexible to prevent overflow
-            return Flexible(fit: FlexFit.loose, child: child);
-          }).toList();
+      final processedChildren =
+          _buildChildrenWithGap(children, mainAxisSpacing, axis).map((child) {
+        // FlexItemWidget handles its own Flexible wrapping
+        if (child is FlexItemWidget) {
+          return child;
+        }
+        // Wrap other widgets in Flexible to prevent overflow
+        return Flexible(fit: FlexFit.loose, child: child);
+      }).toList();
 
       if (axis == Axis.horizontal) {
         flexWidget = Row(
@@ -140,8 +140,7 @@ class FlexContainerWidget extends StatelessWidget {
         direction == FlexDirection.columnReverse;
   }
 
-  MainAxisAlignment _mapJustifyContent(
-      JustifyContent justify, bool isReverse) {
+  MainAxisAlignment _mapJustifyContent(JustifyContent justify, bool isReverse) {
     // Note: Reverse is handled via textDirection/verticalDirection
     switch (justify) {
       case JustifyContent.flexStart:

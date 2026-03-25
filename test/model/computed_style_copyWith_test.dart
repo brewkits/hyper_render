@@ -268,11 +268,15 @@ void main() {
 
       UDTNode? p;
       void walk(UDTNode n) {
-        if (n.tagName == 'p') { p = n; return; }
+        if (n.tagName == 'p') {
+          p = n;
+          return;
+        }
         for (final c in n.children) {
           walk(c);
         }
       }
+
       walk(doc);
 
       expect(p, isNotNull);

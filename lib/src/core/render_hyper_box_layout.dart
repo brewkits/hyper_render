@@ -392,7 +392,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // Width is the maximum of base and ruby text
     final width = math.max(basePainter.width, rubyPainter.width);
     // Height includes base text + gap + ruby text
-    final height = basePainter.height + RenderHyperBox.rubyGap + rubyPainter.height;
+    final height =
+        basePainter.height + RenderHyperBox.rubyGap + rubyPainter.height;
 
     fragment.measuredSize = Size(width, height);
     // Store ruby height for painting
@@ -401,7 +402,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
   TextPainter _getTextPainter(String text, ComputedStyle style) {
     // Per-fragment text direction (supports RTL via CSS direction: rtl)
-    final fragmentDirection = style.isRtl ? ui.TextDirection.rtl : textDirection;
+    final fragmentDirection =
+        style.isRtl ? ui.TextDirection.rtl : textDirection;
 
     // Composite key using Object.hash to avoid XOR collision (a^b == b^a)
     final key = Object.hash(
@@ -506,7 +508,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       // line to paint at the same Y, producing overlapping content.
       final safeLineHeight = lineHeight > 0 ? lineHeight : 1.0;
       // Set bounds after adding fragments
-      lineInfo.bounds = Rect.fromLTWH(leftInset, currentY, lineInfo.width, safeLineHeight);
+      lineInfo.bounds =
+          Rect.fromLTWH(leftInset, currentY, lineInfo.width, safeLineHeight);
       _lines.add(lineInfo);
 
       currentY += safeLineHeight;
@@ -529,7 +532,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
       for (final float in _rightFloats) {
         if (currentY >= float.rect.top && currentY < float.rect.bottom) {
-          floatRightInset = math.max(floatRightInset, _maxWidth - float.rect.left);
+          floatRightInset =
+              math.max(floatRightInset, _maxWidth - float.rect.left);
         }
       }
 
@@ -592,8 +596,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
         // Track this block for decoration (background, border-left, border-radius)
         final style = fragment.style;
-        final hasBackground = style.backgroundColor != null || style.backgroundGradient != null;
-        final hasBorderLeft = style.borderColor != null && style.borderWidth.left > 0;
+        final hasBackground =
+            style.backgroundColor != null || style.backgroundGradient != null;
+        final hasBorderLeft =
+            style.borderColor != null && style.borderWidth.left > 0;
         if (hasBackground || hasBorderLeft) {
           // Calculate the edge positions (account for parent padding but not this block's)
           final blockLeftX = leftPaddingStack.length > 1
@@ -624,7 +630,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
         // Check if this block has a decoration pending
         if (activeBlocks.isNotEmpty) {
-          final (startFragment, startY, blockLeftX, blockRightX) = activeBlocks.last;
+          final (startFragment, startY, blockLeftX, blockRightX) =
+              activeBlocks.last;
           if (startFragment.sourceNode == fragment.sourceNode) {
             activeBlocks.removeLast();
             // Create block decoration
@@ -729,8 +736,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
 
       // Skip inline markers
-      if (fragment is _InlineStartFragment ||
-          fragment is _InlineEndFragment) {
+      if (fragment is _InlineStartFragment || fragment is _InlineEndFragment) {
         return;
       }
 
@@ -854,7 +860,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     if (fragment.type == FragmentType.text && fragment.text != null) {
       final painter = _getTextPainter(fragment.text!, fragment.style);
       // Use actual font baseline from TextPainter metrics
-      baseline = painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
+      baseline =
+          painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
     } else if (fragment.type == FragmentType.ruby) {
       // Ruby has base text at bottom, so baseline is near bottom
       baseline = fragment.height * 0.85;
@@ -897,7 +904,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     if (breakIndex > 0 && breakIndex < text.length) {
       final style = fragment.style;
       final bool breakAll = style.wordBreak == 'break-all';
-      final bool overflowWrap = style.overflowWrap == 'break-word' || style.overflowWrap == 'anywhere';
+      final bool overflowWrap = style.overflowWrap == 'break-word' ||
+          style.overflowWrap == 'anywhere';
 
       if (breakAll) {
         // word-break: break-all -> Break at any character
@@ -971,8 +979,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // For pre/pre-wrap/break-spaces, preserve all whitespace
     final whiteSpace = fragment.style.whiteSpace;
     final shouldTrim = (whiteSpace != 'pre' &&
-                        whiteSpace != 'pre-wrap' &&
-                        whiteSpace != 'break-spaces');
+        whiteSpace != 'pre-wrap' &&
+        whiteSpace != 'break-spaces');
 
     final firstPart = shouldTrim
         ? text.substring(0, breakIndex).trimRight()
@@ -1017,7 +1025,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   /// Force split text fragment when entire text is wider than the available line
   /// This tries to respect word boundaries for Latin text, only breaking mid-word
   /// when a single word is wider than the entire line width
-  (Fragment, Fragment)? _forceSplitTextFragment(Fragment fragment, double maxWidth) {
+  (Fragment, Fragment)? _forceSplitTextFragment(
+      Fragment fragment, double maxWidth) {
     final text = fragment.text!;
     if (text.length <= 1) return null;
 
@@ -1048,9 +1057,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // then force split at character level
     final style = fragment.style;
     final bool breakAll = style.wordBreak == 'break-all';
-    final bool overflowWrap = style.overflowWrap == 'break-word' || style.overflowWrap == 'anywhere';
+    final bool overflowWrap =
+        style.overflowWrap == 'break-word' || style.overflowWrap == 'anywhere';
 
-    if (breakIndex == -1 && (breakAll || overflowWrap || KinsokuProcessor.containsCjk(text))) {
+    if (breakIndex == -1 &&
+        (breakAll || overflowWrap || KinsokuProcessor.containsCjk(text))) {
       final painter = _getTextPainter(text, fragment.style);
       final position = painter.getPositionForOffset(Offset(maxWidth, 0));
       breakIndex = position.offset;
@@ -1105,7 +1116,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     final bottomMargin = margin.bottom > 0 ? margin.bottom : defaultFloatMargin;
 
     // Reserve horizontal margin space so totalWidth always fits in _maxWidth.
-    final hMargin = fragment.floatDirection == HyperFloat.left ? rightMargin : leftMargin;
+    final hMargin =
+        fragment.floatDirection == HyperFloat.left ? rightMargin : leftMargin;
     final availableWidth = math.max(0.0, _maxWidth - hMargin);
 
     double width;
@@ -1115,7 +1127,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     final child = _findChildForFragment(fragment);
     if (child != null) {
       // Layout the child with the margin-reduced width so width + hMargin ≤ _maxWidth.
-      child.layout(BoxConstraints(maxWidth: availableWidth), parentUsesSize: true);
+      child.layout(BoxConstraints(maxWidth: availableWidth),
+          parentUsesSize: true);
       width = child.size.width;
       height = child.size.height;
     } else {
@@ -1249,7 +1262,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         width + leftMargin,
         height + bottomMargin,
       );
-      _rightFloats.add(_FloatArea(rect: floatRect, direction: HyperFloat.right));
+      _rightFloats
+          .add(_FloatArea(rect: floatRect, direction: HyperFloat.right));
     }
 
     fragment.measuredSize = Size(width, height);
@@ -1268,9 +1282,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     for (final line in _lines) {
       // For RTL, start from the right side and move left
       // For LTR, start from the left side and move right
-      double x = isRTL
-          ? (_maxWidth - line.rightInset - line.width)
-          : line.leftInset;
+      double x =
+          isRTL ? (_maxWidth - line.rightInset - line.width) : line.leftInset;
 
       for (final fragment in line.fragments) {
         double fragmentBaseline;
@@ -1278,7 +1291,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         // Calculate baseline for each fragment type
         if (fragment.type == FragmentType.text && fragment.text != null) {
           final painter = _getTextPainter(fragment.text!, fragment.style);
-          fragmentBaseline = painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
+          fragmentBaseline =
+              painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
         } else if (fragment.type == FragmentType.ruby) {
           // Ruby text baseline is at the bottom of base text
           fragmentBaseline = fragment.height * 0.85;
@@ -1299,7 +1313,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     _inlineDecorations.clear();
 
     // Fast path: scan fragments once to find decorated inlines and their ranges
-    final decoratedRanges = <UDTNode, (ComputedStyle, int, int)>{}; // node -> (style, startIdx, endIdx)
+    final decoratedRanges = <UDTNode,
+        (ComputedStyle, int, int)>{}; // node -> (style, startIdx, endIdx)
 
     for (int i = 0; i < _fragments.length; i++) {
       final fragment = _fragments[i];
@@ -1436,7 +1451,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         if (fragment is _DetailsFragment) {
           // Use unconstrained height so HyperDetailsWidget is NOT a relayout boundary
           // This ensures setState toggle propagates markNeedsLayout to parent RenderHyperBox
-          child.layout(BoxConstraints(maxWidth: _maxWidth), parentUsesSize: true);
+          child.layout(BoxConstraints(maxWidth: _maxWidth),
+              parentUsesSize: true);
         } else {
           child.layout(
             BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
@@ -1451,7 +1467,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         if (fragment != null) {
           parentData.fragment = fragment;
           if (fragment is _DetailsFragment) {
-            child.layout(BoxConstraints(maxWidth: _maxWidth), parentUsesSize: true);
+            child.layout(BoxConstraints(maxWidth: _maxWidth),
+                parentUsesSize: true);
           } else {
             child.layout(
               BoxConstraints.tight(fragment.measuredSize ?? Size.zero),
@@ -1490,7 +1507,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       final isDetailsFragment = fragment is _DetailsFragment;
       final isFloatFragment = fragment is _FloatFragment;
 
-      if (isAtomicFragment || isTableFragment || isCodeBlockFragment || isDetailsFragment || isFloatFragment) {
+      if (isAtomicFragment ||
+          isTableFragment ||
+          isCodeBlockFragment ||
+          isDetailsFragment ||
+          isFloatFragment) {
         fragmentMap[fragment.sourceNode] = fragment;
       }
     }
@@ -1526,7 +1547,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       final isDetailsFragment = f is _DetailsFragment;
       final isFloatFragment = f is _FloatFragment;
 
-      if (!(isAtomicFragment || isTableFragment || isCodeBlockFragment || isDetailsFragment || isFloatFragment)) {
+      if (!(isAtomicFragment ||
+          isTableFragment ||
+          isCodeBlockFragment ||
+          isDetailsFragment ||
+          isFloatFragment)) {
         return false;
       }
 

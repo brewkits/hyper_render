@@ -44,7 +44,8 @@ class CssPropertiesDemo extends StatelessWidget {
           ),
           _buildPropertyCard(
             title: 'text-overflow',
-            description: 'Truncate text with ellipsis (requires width + nowrap + hidden)',
+            description:
+                'Truncate text with ellipsis (requires width + nowrap + hidden)',
             html: '''
               <div style="width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid #ddd; padding: 8px;">
                 This is a very long text that will be truncated with ellipsis
@@ -56,7 +57,8 @@ class CssPropertiesDemo extends StatelessWidget {
           ),
           _buildPropertyCard(
             title: 'border-style',
-            description: 'Different border styles: solid, dashed, dotted, double',
+            description:
+                'Different border styles: solid, dashed, dotted, double',
             html: '''
               <div style="border: 2px solid red; padding: 8px; margin: 4px 0;">
                 Solid border (default)
@@ -358,7 +360,8 @@ class CssPropertiesDemo extends StatelessWidget {
           _buildSection('🌟 Additional Properties'),
           _buildPropertyCard(
             title: 'opacity (4 levels)',
-            description: 'Transparency at 100%, 75%, 50%, and 25% — clearly visible difference',
+            description:
+                'Transparency at 100%, 75%, 50%, and 25% — clearly visible difference',
             html: '''
               <div style="background: #3F51B5; color: white; padding: 12px; margin: 4px 0; opacity: 1.0;">
                 Fully opaque — opacity: 1.0 (100%)
@@ -376,7 +379,8 @@ class CssPropertiesDemo extends StatelessWidget {
           ),
           _buildPropertyCard(
             title: 'position: relative (top / left offset)',
-            description: 'Relative positioning shifts element from its normal flow position',
+            description:
+                'Relative positioning shifts element from its normal flow position',
             html: '''
               <div style="background: #f5f5f5; padding: 20px; border: 1px solid #ddd;">
                 <div style="background: #E8F5E9; padding: 8px; border: 1px solid #4CAF50;">
@@ -535,14 +539,21 @@ class CssPropertiesDemo extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildCoverageBullet('✅ Box Model: margin, padding, border, width, height', '100%'),
-          _buildCoverageBullet('✅ Typography: fonts, text-decoration, alignment, spacing', '95%'),
+          _buildCoverageBullet(
+              '✅ Box Model: margin, padding, border, width, height', '100%'),
+          _buildCoverageBullet(
+              '✅ Typography: fonts, text-decoration, alignment, spacing',
+              '95%'),
           _buildCoverageBullet('✅ NEW: text-shadow, text-overflow', '100%'),
-          _buildCoverageBullet('✅ NEW: border-style (solid, dashed, dotted, double)', '100%'),
+          _buildCoverageBullet(
+              '✅ NEW: border-style (solid, dashed, dotted, double)', '100%'),
           _buildCoverageBullet('✅ NEW: direction (RTL/LTR) for i18n', '100%'),
-          _buildCoverageBullet('✅ Colors: hex, rgb, rgba, named colors', '100%'),
-          _buildCoverageBullet('✅ Layout: display, float ⭐, clear, opacity', '100%'),
-          _buildCoverageBullet('✅ Advanced: Flexbox, Grid, box-shadow, filters', '95%'),
+          _buildCoverageBullet(
+              '✅ Colors: hex, rgb, rgba, named colors', '100%'),
+          _buildCoverageBullet(
+              '✅ Layout: display, float ⭐, clear, opacity', '100%'),
+          _buildCoverageBullet(
+              '✅ Advanced: Flexbox, Grid, box-shadow, filters', '95%'),
           const SizedBox(height: 12),
           Text(
             'HyperRender now supports 70+ CSS properties!',

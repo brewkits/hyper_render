@@ -137,13 +137,14 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
     // Handle <input type="button"> / <input type="submit"> / <input type="reset">
     if (node.tagName == 'input') {
       final inputType = node.attributes['type']?.toLowerCase() ?? '';
-      if (inputType == 'button' || inputType == 'submit' || inputType == 'reset') {
+      if (inputType == 'button' ||
+          inputType == 'submit' ||
+          inputType == 'reset') {
         final rect = _getNodeRect(node);
         if (rect != null && rect.width > 0 && rect.height > 0) {
           final btnNode = SemanticsNode();
-          final label = _ariaLabel(node) ??
-              node.attributes['value'] ??
-              inputType;
+          final label =
+              _ariaLabel(node) ?? node.attributes['value'] ?? inputType;
           btnNode.updateWith(
             config: SemanticsConfiguration()
               ..isButton = true
@@ -182,7 +183,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
     }
 
     // Handle <li> — handled in leafBlocks section below to ensure recursion
-    
+
     // Handle ARIA role attribute
     final role = node.attributes['role']?.toLowerCase();
     if (role != null) {
@@ -252,10 +253,17 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
     // are treated as terminal — their full text goes into the label.
     const leafBlocks = {'p', 'blockquote', 'pre', 'div', 'li'};
     const landmarkBlocks = {
-      'section', 'article', 'main', 'header', 'footer', 'nav', 'aside'
+      'section',
+      'article',
+      'main',
+      'header',
+      'footer',
+      'nav',
+      'aside'
     };
     final tag = node.tagName;
-    if (tag != null && (leafBlocks.contains(tag) || landmarkBlocks.contains(tag))) {
+    if (tag != null &&
+        (leafBlocks.contains(tag) || landmarkBlocks.contains(tag))) {
       final rect = _getNodeRect(node);
       if (rect != null && rect.width > 0 && rect.height > 0) {
         final text = _ariaLabel(node) ?? node.textContent;
@@ -280,7 +288,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
           blockNode.rect = rect;
           semanticNodes.add(blockNode);
         }
-        
+
         // Recurse into blocks to find nested links/interactive elements.
         // We always recurse because even a <p> might contain an <a>.
         for (final child in node.children) {
@@ -399,7 +407,8 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
     double? minX, minY, maxX, maxY;
 
     for (final fragment in _fragments) {
-      if (fragment.sourceNode == node || _isDescendantOf(fragment.sourceNode, node)) {
+      if (fragment.sourceNode == node ||
+          _isDescendantOf(fragment.sourceNode, node)) {
         final rect = fragment.rect;
         if (rect != null) {
           minX = minX == null ? rect.left : math.min(minX, rect.left);

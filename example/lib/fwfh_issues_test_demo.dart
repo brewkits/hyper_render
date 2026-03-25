@@ -455,8 +455,8 @@ Bánh Mì</em> — is worth the journey.</p>
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(12)),
               border: Border(
-                  bottom: BorderSide(
-                      color: badgeColor.withValues(alpha: 0.15))),
+                  bottom:
+                      BorderSide(color: badgeColor.withValues(alpha: 0.15))),
             ),
             child: Row(
               children: [
@@ -475,12 +475,10 @@ Bánh Mì</em> — is worth the journey.</p>
                     children: [
                       Text(title,
                           style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold)),
+                              fontSize: 14, fontWeight: FontWeight.bold)),
                       Text(subtitle,
                           style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600)),
+                              fontSize: 12, color: Colors.grey.shade600)),
                     ],
                   ),
                 ),
@@ -490,8 +488,7 @@ Bánh Mì</em> — is worth the journey.</p>
 
           // FWFH comparison note
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Row(
               children: [
                 const Icon(Icons.compare_arrows,
@@ -507,8 +504,8 @@ Bánh Mì</em> — is worth the journey.</p>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.green.shade50,
                     border: Border.all(color: Colors.green.shade200),
@@ -616,8 +613,7 @@ Bánh Mì</em> — is worth the journey.</p>
                         fontWeight: FontWeight.bold,
                         color: Colors.white)),
                 Text(desc,
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.white)),
+                    style: const TextStyle(fontSize: 12, color: Colors.white)),
               ],
             ),
           ),

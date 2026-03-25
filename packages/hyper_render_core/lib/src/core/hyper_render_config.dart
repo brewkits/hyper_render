@@ -32,8 +32,8 @@ class HyperRenderConfig {
     this.extraLinkSchemes = const {},
     this.codeHighlighter,
     this.keyframeRegistry = const {},
-  })  : assert(textPainterCacheSize > 0,
-            'textPainterCacheSize must be positive'),
+  })  : assert(
+            textPainterCacheSize > 0, 'textPainterCacheSize must be positive'),
         assert(imageCacheSize > 0, 'imageCacheSize must be positive'),
         assert(defaultImagePlaceholderWidth > 0,
             'defaultImagePlaceholderWidth must be positive'),

@@ -268,7 +268,8 @@ void main() {
     // -----------------------------------------------------------------------
     // HyperViewer integration — table inside full rendering pipeline
     // -----------------------------------------------------------------------
-    testWidgets('table inside HyperViewer renders without crash', (tester) async {
+    testWidgets('table inside HyperViewer renders without crash',
+        (tester) async {
       const html = '''
 <table>
   <thead>

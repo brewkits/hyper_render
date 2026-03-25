@@ -87,8 +87,8 @@ class VirtualizedSelectionController extends ChangeNotifier {
     if (existing != null) {
       existing.charCount = charCount;
     } else {
-      _chunks[chunkIndex] =
-          _ChunkRegistration(chunkIndex: chunkIndex, renderKey: renderKey, charCount: charCount);
+      _chunks[chunkIndex] = _ChunkRegistration(
+          chunkIndex: chunkIndex, renderKey: renderKey, charCount: charCount);
     }
     // Apply any pending selection to the newly-visible chunk.
     if (_selection != null) {
@@ -103,8 +103,7 @@ class VirtualizedSelectionController extends ChangeNotifier {
 
   // ── Selection manipulation ───────────────────────────────────────────────────
 
-  bool get hasSelection =>
-      _selection != null && !_selection!.isCollapsed;
+  bool get hasSelection => _selection != null && !_selection!.isCollapsed;
 
   CrossChunkSelection? get selection => _selection;
 
@@ -130,8 +129,9 @@ class VirtualizedSelectionController extends ChangeNotifier {
     final (targetChunkIndex, box) = target;
 
     final localPos = box.globalToLocal(globalPosition);
-    final localOffset =
-        box.getCharacterPositionAtOffset(localPos).clamp(0, box.totalCharacterCount);
+    final localOffset = box
+        .getCharacterPositionAtOffset(localPos)
+        .clamp(0, box.totalCharacterCount);
 
     final newAnchor = ChunkAnchor(targetChunkIndex, localOffset);
 
@@ -310,7 +310,8 @@ class VirtualizedSelectionController extends ChangeNotifier {
     if (localRect == null) return null;
     final box = _getRenderBox(chunkIndex);
     if (box == null || !box.attached) return null;
-    final stackBox = listViewKey.currentContext?.findRenderObject() as RenderBox?;
+    final stackBox =
+        listViewKey.currentContext?.findRenderObject() as RenderBox?;
     if (stackBox == null || !stackBox.attached) return null;
     final topLeft = box.localToGlobal(localRect.topLeft, ancestor: stackBox);
     final bottomRight =
@@ -332,15 +333,15 @@ class VirtualizedSelectionController extends ChangeNotifier {
       final i = reg.chunkIndex;
       if (i < sel.start.chunkIndex || i > sel.end.chunkIndex) {
         box.clearSelection();
-      } else if (sel.start.chunkIndex == sel.end.chunkIndex && i == sel.start.chunkIndex) {
+      } else if (sel.start.chunkIndex == sel.end.chunkIndex &&
+          i == sel.start.chunkIndex) {
         box.selection = HyperTextSelection(
             start: sel.start.localOffset, end: sel.end.localOffset);
       } else if (i == sel.start.chunkIndex) {
-        box.selection =
-            HyperTextSelection(start: sel.start.localOffset, end: box.totalCharacterCount);
+        box.selection = HyperTextSelection(
+            start: sel.start.localOffset, end: box.totalCharacterCount);
       } else if (i == sel.end.chunkIndex) {
-        box.selection =
-            HyperTextSelection(start: 0, end: sel.end.localOffset);
+        box.selection = HyperTextSelection(start: 0, end: sel.end.localOffset);
       } else {
         box.selection =
             HyperTextSelection(start: 0, end: box.totalCharacterCount);

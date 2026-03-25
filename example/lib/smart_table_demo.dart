@@ -53,7 +53,9 @@ class _SmartTableDemoState extends State<SmartTableDemo>
           tabs: const [
             Tab(icon: Icon(Icons.grid_on, size: 16), text: 'HyperTable'),
             Tab(icon: Icon(Icons.fit_screen, size: 16), text: 'fitWidth'),
-            Tab(icon: Icon(Icons.swap_horiz, size: 16), text: 'horizontalScroll'),
+            Tab(
+                icon: Icon(Icons.swap_horiz, size: 16),
+                text: 'horizontalScroll'),
             Tab(icon: Icon(Icons.zoom_out, size: 16), text: 'autoScale'),
           ],
         ),
@@ -177,7 +179,8 @@ class _HyperTableTab extends StatelessWidget {
           const SizedBox(height: 12),
           HyperTable(tableNode: _buildTable()),
           const SizedBox(height: 24),
-          _SectionHeader(title: 'colspan / rowspan Support', color: Colors.teal),
+          _SectionHeader(
+              title: 'colspan / rowspan Support', color: Colors.teal),
           const Text(
             'Cells can span multiple columns (colspan) or rows (rowspan).',
             style: TextStyle(fontSize: 13, color: Colors.black54),
@@ -222,7 +225,13 @@ class _StrategyTab extends StatelessWidget {
 
     // 7 columns — deliberately wide to trigger overflow
     const headers = [
-      'ID', 'Name', 'Email', 'Phone', 'City', 'Country', 'Status'
+      'ID',
+      'Name',
+      'Email',
+      'Phone',
+      'City',
+      'Country',
+      'Status'
     ];
     final headerRow = TableRowNode();
     for (final h in headers) {
@@ -233,12 +242,33 @@ class _StrategyTab extends StatelessWidget {
     table.appendChild(headerRow);
 
     final data = [
-      ['001', 'Alice Nguyen', 'alice@example.com', '+84 909 123 456',
-        'Ho Chi Minh', 'Vietnam', 'Active'],
-      ['002', 'Bob Smith', 'bob.smith@company.org', '+1 415 555 0100',
-        'San Francisco', 'USA', 'Inactive'],
-      ['003', 'Clara Rossi', 'c.rossi@mail.it', '+39 06 1234567',
-        'Rome', 'Italy', 'Active'],
+      [
+        '001',
+        'Alice Nguyen',
+        'alice@example.com',
+        '+84 909 123 456',
+        'Ho Chi Minh',
+        'Vietnam',
+        'Active'
+      ],
+      [
+        '002',
+        'Bob Smith',
+        'bob.smith@company.org',
+        '+1 415 555 0100',
+        'San Francisco',
+        'USA',
+        'Inactive'
+      ],
+      [
+        '003',
+        'Clara Rossi',
+        'c.rossi@mail.it',
+        '+39 06 1234567',
+        'Rome',
+        'Italy',
+        'Active'
+      ],
     ];
 
     for (final row in data) {
@@ -308,16 +338,15 @@ class _StrategyTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     '← 320px container →',
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -349,7 +378,12 @@ HyperViewer(html: htmlWithTable)
   Widget _strategyComparisonTable() {
     const rows = [
       ['fitWidth', 'Shrinks columns', 'Short labels', 'May crush text'],
-      ['horizontalScroll', 'Preserves widths', 'Many columns', 'Requires scroll'],
+      [
+        'horizontalScroll',
+        'Preserves widths',
+        'Many columns',
+        'Requires scroll'
+      ],
       ['autoScale', 'Scale whole table', 'Dense data', 'Small text'],
     ];
     return Table(
@@ -384,10 +418,9 @@ HyperViewer(html: htmlWithTable)
                         child: Text(cell,
                             style: TextStyle(
                               fontSize: 12,
-                              fontWeight:
-                                  r[0] == _strategyName.split('.').last
-                                      ? FontWeight.w600
-                                      : FontWeight.normal,
+                              fontWeight: r[0] == _strategyName.split('.').last
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             )),
                       ))
                   .toList(),

@@ -47,7 +47,8 @@ void main() {
           reason: 'Small HTML must render in < 3s (debug mode)');
     });
 
-    testWidgets('parse time: 10KB HTML completes without error', (tester) async {
+    testWidgets('parse time: 10KB HTML completes without error',
+        (tester) async {
       final mediumHtml = _generateHtml(size: 10000);
 
       final stopwatch = Stopwatch()..start();
@@ -77,7 +78,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: HyperViewer(html: largeHtml, mode: HyperRenderMode.virtualized),
+            body:
+                HyperViewer(html: largeHtml, mode: HyperRenderMode.virtualized),
           ),
         ),
       );
@@ -119,7 +121,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SingleChildScrollView(child: HyperViewer(html: buffer.toString())),
+            body: SingleChildScrollView(
+                child: HyperViewer(html: buffer.toString())),
           ),
         ),
       );
@@ -132,7 +135,8 @@ void main() {
           reason: '100 CSS-styled elements must render in < 5s (debug mode)');
     });
 
-    testWidgets('float layout: 10 floats renders without crash', (tester) async {
+    testWidgets('float layout: 10 floats renders without crash',
+        (tester) async {
       final floatHtml = '''
 <div>
   ${List.generate(10, (i) => '''
@@ -161,7 +165,8 @@ void main() {
           reason: '10 floats must render in < 5s (debug mode)');
     });
 
-    testWidgets('table rendering: 100 rows renders without crash', (tester) async {
+    testWidgets('table rendering: 100 rows renders without crash',
+        (tester) async {
       final buffer = StringBuffer('''
 <table border="1" style="width:100%;border-collapse:collapse;">
   <thead>
@@ -186,7 +191,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SingleChildScrollView(child: HyperViewer(html: buffer.toString())),
+            body: SingleChildScrollView(
+                child: HyperViewer(html: buffer.toString())),
           ),
         ),
       );
@@ -199,7 +205,8 @@ void main() {
           reason: '100-row table must render in < 5s (debug mode)');
     });
 
-    testWidgets('selection hit test: responds to tap without error', (tester) async {
+    testWidgets('selection hit test: responds to tap without error',
+        (tester) async {
       const html = '''
 <p>This is a test paragraph for selection performance testing.
 It has multiple lines and should respond quickly to tap events.</p>

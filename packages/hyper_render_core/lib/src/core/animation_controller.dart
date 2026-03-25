@@ -177,19 +177,19 @@ class HyperAnimations {
   /// )
   /// ```
   static Map<String, HyperKeyframes> get all => const {
-    'fadeIn': fadeIn,
-    'fadeOut': fadeOut,
-    'slideInLeft': slideInLeft,
-    'slideInRight': slideInRight,
-    'slideInUp': slideInUp,
-    'slideInDown': slideInDown,
-    'bounce': bounce,
-    'pulse': pulse,
-    'shake': shake,
-    'spin': spin,
-    'zoomIn': zoomIn,
-    'zoomOut': zoomOut,
-  };
+        'fadeIn': fadeIn,
+        'fadeOut': fadeOut,
+        'slideInLeft': slideInLeft,
+        'slideInRight': slideInRight,
+        'slideInUp': slideInUp,
+        'slideInDown': slideInDown,
+        'bounce': bounce,
+        'pulse': pulse,
+        'shake': shake,
+        'spin': spin,
+        'zoomIn': zoomIn,
+        'zoomOut': zoomOut,
+      };
 }
 
 /// A single keyframe in an animation

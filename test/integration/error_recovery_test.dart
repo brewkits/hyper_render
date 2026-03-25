@@ -225,11 +225,11 @@ void main() {
 
     testWidgets('handles invalid JSON in Delta mode', (tester) async {
       const invalidDeltas = [
-        '',                    // Empty
-        '{',                   // Incomplete JSON
-        '{"ops":',            // Incomplete
-        '{"ops": [}',         // Malformed array
-        'not json at all',    // Not JSON
+        '', // Empty
+        '{', // Incomplete JSON
+        '{"ops":', // Incomplete
+        '{"ops": [}', // Malformed array
+        'not json at all', // Not JSON
       ];
 
       for (final delta in invalidDeltas) {
@@ -275,7 +275,8 @@ void main() {
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
-    testWidgets('handles many floats without performance degradation', (tester) async {
+    testWidgets('handles many floats without performance degradation',
+        (tester) async {
       // 50 floats (stress test)
       final manyFloats = StringBuffer('<div style="width: 600px;">');
 
@@ -308,7 +309,8 @@ void main() {
           reason: '50 floats should lay out in < 1s');
     });
 
-    testWidgets('recovers from layout errors with error boundaries', (tester) async {
+    testWidgets('recovers from layout errors with error boundaries',
+        (tester) async {
       // This HTML might cause layout issues but should be caught by error boundaries
       const problematicHtml = '''
 <div style="width: -100px;">Negative width</div>

@@ -96,7 +96,8 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
           // Demo 2: Full-Featured Menu
           _buildSection(
             title: '2. Full-Featured Menu (7 Actions)',
-            description: 'Copy, All, Share, Search, Translate, Define, Highlight',
+            description:
+                'Copy, All, Share, Search, Translate, Define, Highlight',
             child: HyperViewer(
               html: '''
                 <article>
@@ -284,7 +285,8 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
             const Divider(height: 16),
             _buildStatusRow('Action:', _lastAction),
             if (_selectedText.isNotEmpty)
-              _buildStatusRow('Text:', '"${_selectedText.length > 50 ? '${_selectedText.substring(0, 50)}...' : _selectedText}"'),
+              _buildStatusRow('Text:',
+                  '"${_selectedText.length > 50 ? '${_selectedText.substring(0, 50)}...' : _selectedText}"'),
           ],
         ),
       ),
@@ -496,14 +498,17 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
       try {
         print('Attempting to launch: $url');
         if (await canLaunchUrl(url)) {
-          final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+          final launched =
+              await launchUrl(url, mode: LaunchMode.externalApplication);
           if (launched) {
             _showSnackBar('🔍 Opened Google search', Colors.green);
           } else {
-            _showSnackBar('⚠️ Browser opened but URL may not load', Colors.orange);
+            _showSnackBar(
+                '⚠️ Browser opened but URL may not load', Colors.orange);
           }
         } else {
-          _showSnackBar('❌ Cannot open browser - URL not supported', Colors.red);
+          _showSnackBar(
+              '❌ Cannot open browser - URL not supported', Colors.red);
         }
       } catch (e) {
         print('Search error: $e');
@@ -524,7 +529,8 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
 
       // Open Google Translate
       final query = Uri.encodeComponent(text);
-      final url = Uri.parse('https://translate.google.com/?text=$query&sl=auto&tl=en');
+      final url =
+          Uri.parse('https://translate.google.com/?text=$query&sl=auto&tl=en');
 
       try {
         if (await canLaunchUrl(url)) {

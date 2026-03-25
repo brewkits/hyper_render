@@ -6,7 +6,8 @@ import 'package:hyper_render/hyper_render.dart';
 /// These tests go beyond "does it render" and verify actual behavior
 void main() {
   group('Line Breaking Logic', () {
-    testWidgets('long text wraps into multiple lines', (WidgetTester tester) async {
+    testWidgets('long text wraps into multiple lines',
+        (WidgetTester tester) async {
       // Create a document with text that's too long to fit in one line
       final doc = DocumentNode(children: [
         BlockNode.p(children: [
@@ -74,7 +75,8 @@ void main() {
       expect(renderBox.size.height, lessThan(50));
     });
 
-    testWidgets('explicit line breaks create new lines', (WidgetTester tester) async {
+    testWidgets('explicit line breaks create new lines',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode.p(children: [
           TextNode('Line 1'),
@@ -111,7 +113,8 @@ void main() {
   });
 
   group('Float Layout Logic', () {
-    testWidgets('float left creates space on left side', (WidgetTester tester) async {
+    testWidgets('float left creates space on left side',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode(
           tagName: 'div',
@@ -125,7 +128,8 @@ void main() {
                 height: 100,
               ),
             BlockNode.p(children: [
-              TextNode('This text should wrap around the float element on the left side.'),
+              TextNode(
+                  'This text should wrap around the float element on the left side.'),
             ]),
           ],
         ),
@@ -157,7 +161,8 @@ void main() {
       expect(renderBox.size.height, greaterThanOrEqualTo(100));
     });
 
-    testWidgets('float right creates space on right side', (WidgetTester tester) async {
+    testWidgets('float right creates space on right side',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode(
           tagName: 'div',
@@ -298,7 +303,8 @@ void main() {
   });
 
   group('Selection Logic', () {
-    testWidgets('selection updates handle positions correctly', (WidgetTester tester) async {
+    testWidgets('selection updates handle positions correctly',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode.p(children: [
           TextNode('Select some of this text to test selection handles.'),
@@ -341,7 +347,8 @@ void main() {
       expect(endRect, isNotNull);
     });
 
-    testWidgets('updateSelectionFromHandle works correctly', (WidgetTester tester) async {
+    testWidgets('updateSelectionFromHandle works correctly',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode.p(children: [
           TextNode('Text for testing handle updates.'),
@@ -421,7 +428,8 @@ void main() {
   });
 
   group('Fragment-Child Linking', () {
-    testWidgets('atomic fragment is linked to child widget', (WidgetTester tester) async {
+    testWidgets('atomic fragment is linked to child widget',
+        (WidgetTester tester) async {
       // Create a document with an image (atomic element)
       final doc = DocumentNode(children: [
         BlockNode.p(children: [
@@ -463,7 +471,8 @@ void main() {
       expect(renderBox.size.height, greaterThan(0));
     });
 
-    testWidgets('table fragment is linked to table widget', (WidgetTester tester) async {
+    testWidgets('table fragment is linked to table widget',
+        (WidgetTester tester) async {
       final adapter = HtmlAdapter();
       final document = adapter.parse('''
         <table>
@@ -483,13 +492,15 @@ void main() {
           findTable(child);
         }
       }
+
       findTable(document);
       expect(hasTable, isTrue);
     });
   });
 
   group('Intrinsic Size Calculations', () {
-    testWidgets('minIntrinsicWidth returns reasonable value', (WidgetTester tester) async {
+    testWidgets('minIntrinsicWidth returns reasonable value',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode.p(children: [
           TextNode('LongestWord short'),
@@ -514,7 +525,8 @@ void main() {
       expect(find.byType(HyperRenderWidget), findsOneWidget);
     });
 
-    testWidgets('maxIntrinsicWidth returns reasonable value', (WidgetTester tester) async {
+    testWidgets('maxIntrinsicWidth returns reasonable value',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode.p(children: [
           TextNode('This is a line of text'),
@@ -541,7 +553,8 @@ void main() {
   });
 
   group('Ruby Annotation Layout', () {
-    testWidgets('ruby annotation takes extra height', (WidgetTester tester) async {
+    testWidgets('ruby annotation takes extra height',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode.p(children: [
           RubyNode(baseText: '漢字', rubyText: 'かんじ'),
@@ -575,13 +588,15 @@ void main() {
   });
 
   group('Inline Decoration', () {
-    testWidgets('inline background renders across line breaks', (WidgetTester tester) async {
+    testWidgets('inline background renders across line breaks',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode.p(children: [
           InlineNode(
             tagName: 'span',
             children: [
-              TextNode('This is highlighted text that spans multiple lines when the container is narrow'),
+              TextNode(
+                  'This is highlighted text that spans multiple lines when the container is narrow'),
             ],
           )..style = ComputedStyle(backgroundColor: const Color(0xFFFFFF00)),
         ]),
@@ -639,7 +654,8 @@ void main() {
       expect(renderBox.size.height, greaterThan(30));
     });
 
-    testWidgets('mixed CJK and Latin text breaks correctly', (WidgetTester tester) async {
+    testWidgets('mixed CJK and Latin text breaks correctly',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode.p(children: [
           TextNode('English text mixed with 日本語 and more English.'),

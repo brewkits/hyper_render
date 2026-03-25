@@ -25,11 +25,13 @@ class DemoColors {
 
   /// Warning - Media & Performance (Amber/Orange family)
   /// Used for: Video, Zoom, Stress Test
-  static const warning = Color(0xFFBF360C); // Deep Orange 900 — contrast 5.6:1 on white
+  static const warning =
+      Color(0xFFBF360C); // Deep Orange 900 — contrast 5.6:1 on white
 
   /// Success - Quality & Accessibility (Green family)
   /// Used for: Accessibility, Library Comparison, FWFH Tests
-  static const success = Color(0xFF2E7D32); // Green 800 — contrast 5.0:1 on white
+  static const success =
+      Color(0xFF2E7D32); // Green 800 — contrast 5.0:1 on white
 
   /// Error - Security & Critical (Red family)
   /// Used for: Security Demo, Critical warnings
@@ -40,7 +42,8 @@ class DemoColors {
   // ============================================
 
   /// Neutral for less important items
-  static const neutral = Color(0xFF546E7A); // Blue Grey 600 — contrast 5.1:1 on white
+  static const neutral =
+      Color(0xFF546E7A); // Blue Grey 600 — contrast 5.1:1 on white
 
   // ============================================
   // COLOR SEMANTICS
@@ -69,11 +72,11 @@ class DemoColors {
 
 /// Semantic categories for demo cards
 enum DemoCategory {
-  coreRendering,      // Float, Flexbox, CSS, Tables
-  advancedFeatures,   // Widget Injection, Selection, Ruby
-  contentFormats,     // Quill, Markdown, Code
-  media,              // Video, Images, Zoom
-  quality,            // A11y, Comparison, Tests
-  security,           // Security, XSS Prevention
-  other,              // Miscellaneous
+  coreRendering, // Float, Flexbox, CSS, Tables
+  advancedFeatures, // Widget Injection, Selection, Ruby
+  contentFormats, // Quill, Markdown, Code
+  media, // Video, Images, Zoom
+  quality, // A11y, Comparison, Tests
+  security, // Security, XSS Prevention
+  other, // Miscellaneous
 }

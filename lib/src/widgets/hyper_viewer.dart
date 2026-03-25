@@ -714,8 +714,7 @@ class _HyperViewerState extends State<HyperViewer>
   /// All other nodes are passed to [widget.widgetBuilder] (if any).
   HyperWidgetBuilder get _effectiveWidgetBuilder {
     final userBuilder = widget.widgetBuilder;
-    return (UDTNode node) =>
-        buildSvgWidget(node) ?? userBuilder?.call(node);
+    return (UDTNode node) => buildSvgWidget(node) ?? userBuilder?.call(node);
   }
 
   /// Stores dangling floats from section [index] and triggers a rebuild of
@@ -753,7 +752,8 @@ class _HyperViewerState extends State<HyperViewer>
         handler(url);
       } else {
         assert(() {
-          debugPrint('[HyperRender] Blocked link tap with disallowed scheme: $url');
+          debugPrint(
+              '[HyperRender] Blocked link tap with disallowed scheme: $url');
           return true;
         }());
       }
@@ -968,8 +968,7 @@ class _HyperViewerState extends State<HyperViewer>
   /// message protocol cannot transfer.
   static void _isolateEntry(_ParseArgs args) {
     try {
-      final sections =
-          _parseAndChunk((args.content, args.css, args.chunkSize));
+      final sections = _parseAndChunk((args.content, args.css, args.chunkSize));
       args.port.send(sections);
     } catch (e) {
       args.port.send('$e');
@@ -1064,10 +1063,9 @@ class _HyperViewerState extends State<HyperViewer>
           // Prevents a re-paint in one chunk from invalidating neighbours,
           // and keeps each composited layer well under GL_MAX_TEXTURE_SIZE.
           // Retrieve carryover from previous section (if layout already ran).
-          final prevCarryover =
-              (index > 0 && _floatCarryovers.length >= index)
-                  ? _floatCarryovers[index - 1]
-                  : const <FloatCarryover>[];
+          final prevCarryover = (index > 0 && _floatCarryovers.length >= index)
+              ? _floatCarryovers[index - 1]
+              : const <FloatCarryover>[];
           return RepaintBoundary(
             child: selCtrl != null
                 ? VirtualizedChunk(
@@ -1178,7 +1176,8 @@ class _HyperViewerState extends State<HyperViewer>
                 ? content
                 : SingleChildScrollView(
                     controller: widget.controller?.scrollController,
-                    physics: widget.physics ?? const AlwaysScrollableScrollPhysics(),
+                    physics:
+                        widget.physics ?? const AlwaysScrollableScrollPhysics(),
                     child: content,
                   ),
           ),

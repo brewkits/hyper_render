@@ -33,7 +33,8 @@ void main() {
     });
 
     test('parses images', () {
-      const html = '<img src="test.png" alt="Test Image" width="100" height="50">';
+      const html =
+          '<img src="test.png" alt="Test Image" width="100" height="50">';
       final document = adapter.parse(html);
       expect(document.children, isNotEmpty);
       final img = document.children.first;
@@ -473,7 +474,8 @@ void main() {
         }
       }
       expect(foundFloatAndNext, isTrue,
-          reason: 'Float-containing block and its successor must be in the same section');
+          reason:
+              'Float-containing block and its successor must be in the same section');
     });
 
     test('does not split immediately after float:right img block', () {
