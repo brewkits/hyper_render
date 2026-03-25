@@ -111,7 +111,8 @@ String _generateCss(int count) {
   final buffer = StringBuffer();
   for (int i = 0; i < count; i++) {
     if (i % 3 == 0) {
-      buffer.writeln('tag$i { color: #${i.toRadixString(16).padLeft(6, '0')}; }');
+      buffer
+          .writeln('tag$i { color: #${i.toRadixString(16).padLeft(6, '0')}; }');
     } else if (i % 3 == 1) {
       buffer.writeln('.class$i { font-size: ${14 + (i % 10)}px; }');
     } else {

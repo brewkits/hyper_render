@@ -125,10 +125,12 @@ void main() {
       );
 
       final container = tester.widget<Container>(
-        find.descendant(
-          of: find.byType(HyperErrorWidget),
-          matching: find.byType(Container),
-        ).first,
+        find
+            .descendant(
+              of: find.byType(HyperErrorWidget),
+              matching: find.byType(Container),
+            )
+            .first,
       );
 
       expect(container.constraints?.maxWidth, equals(200.0));
@@ -150,7 +152,8 @@ void main() {
         expect(find.byIcon(Icons.error_outline), findsOneWidget);
       });
 
-      testWidgets('HyperErrorWidget.warning uses warning styling', (tester) async {
+      testWidgets('HyperErrorWidget.warning uses warning styling',
+          (tester) async {
         await tester.pumpWidget(
           const MaterialApp(
             home: Scaffold(
@@ -180,7 +183,8 @@ void main() {
         expect(find.byIcon(Icons.info_outline), findsOneWidget);
       });
 
-      testWidgets('HyperErrorWidget.network uses network styling', (tester) async {
+      testWidgets('HyperErrorWidget.network uses network styling',
+          (tester) async {
         await tester.pumpWidget(
           const MaterialApp(
             home: Scaffold(
@@ -282,10 +286,12 @@ void main() {
         );
 
         final container = tester.widget<Container>(
-          find.descendant(
-            of: find.byType(HyperErrorWidget),
-            matching: find.byType(Container),
-          ).first,
+          find
+              .descendant(
+                of: find.byType(HyperErrorWidget),
+                matching: find.byType(Container),
+              )
+              .first,
         );
 
         final decoration = container.decoration as BoxDecoration;
@@ -306,10 +312,12 @@ void main() {
         );
 
         final container = tester.widget<Container>(
-          find.descendant(
-            of: find.byType(HyperErrorWidget),
-            matching: find.byType(Container),
-          ).first,
+          find
+              .descendant(
+                of: find.byType(HyperErrorWidget),
+                matching: find.byType(Container),
+              )
+              .first,
         );
 
         final decoration = container.decoration as BoxDecoration;
@@ -319,7 +327,8 @@ void main() {
 
     group('Text overflow', () {
       testWidgets('truncates long messages', (tester) async {
-        const longMessage = 'This is a very long error message that should be truncated when it exceeds the maximum number of lines allowed for display in the error widget';
+        const longMessage =
+            'This is a very long error message that should be truncated when it exceeds the maximum number of lines allowed for display in the error widget';
 
         await tester.pumpWidget(
           const MaterialApp(

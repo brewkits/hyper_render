@@ -152,8 +152,7 @@ class _CssKeyframesSection extends StatelessWidget {
   <p>This card is animated purely via CSS @keyframes — no Dart code.</p>
 </div>
 ''',
-          codeSnippet:
-              '@keyframes fadeSlideUp {\n'
+          codeSnippet: '@keyframes fadeSlideUp {\n'
               '  from { opacity: 0; transform: translateY(24px); }\n'
               '  to   { opacity: 1; transform: translateY(0px);  }\n'
               '}\n'
@@ -191,8 +190,7 @@ class _CssKeyframesSection extends StatelessWidget {
   <span class="badge">🎉 Pop-in animation!</span>
 </div>
 ''',
-          codeSnippet:
-              '@keyframes popIn {\n'
+          codeSnippet: '@keyframes popIn {\n'
               '  0%   { opacity: 0; transform: scale(0.6); }\n'
               '  70%  { transform: scale(1.08); }\n'
               '  100% { opacity: 1; transform: scale(1); }\n'
@@ -230,8 +228,7 @@ class _CssKeyframesSection extends StatelessWidget {
   <div class="item c">Item 3 — 800 ms</div>
 </div>
 ''',
-          codeSnippet:
-              '/* Stagger via animation-duration */\n'
+          codeSnippet: '/* Stagger via animation-duration */\n'
               '.a { animation-duration: 400ms; }\n'
               '.b { animation-duration: 600ms; }\n'
               '.c { animation-duration: 800ms; }',
@@ -349,17 +346,17 @@ class _WidgetAnimationsSection extends StatelessWidget {
           style: TextStyle(fontSize: 14, color: Colors.black87),
         ),
         const SizedBox(height: 16),
-        _buildAnimationCard('fadeIn', 'Fade In',
-            Colors.blue.shade50, Colors.blue.shade700),
+        _buildAnimationCard(
+            'fadeIn', 'Fade In', Colors.blue.shade50, Colors.blue.shade700),
         const SizedBox(height: 12),
         _buildAnimationCard('slideInLeft', 'Slide In from Left',
             Colors.purple.shade50, Colors.purple.shade700),
         const SizedBox(height: 12),
-        _buildAnimationCard('bounce', 'Bounce',
-            Colors.green.shade50, Colors.green.shade700),
+        _buildAnimationCard(
+            'bounce', 'Bounce', Colors.green.shade50, Colors.green.shade700),
         const SizedBox(height: 12),
-        _buildAnimationCard('pulse', 'Pulse',
-            Colors.orange.shade50, Colors.orange.shade700),
+        _buildAnimationCard(
+            'pulse', 'Pulse', Colors.orange.shade50, Colors.orange.shade700),
       ],
     );
   }
@@ -396,8 +393,7 @@ class _WidgetAnimationsSection extends StatelessWidget {
                       fontSize: 14)),
               const Spacer(),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: textColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
@@ -405,9 +401,7 @@ class _WidgetAnimationsSection extends StatelessWidget {
                 child: Text(
                   'animationName: "$name"',
                   style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 11,
-                      color: textColor),
+                      fontFamily: 'monospace', fontSize: 11, color: textColor),
                 ),
               ),
             ],
@@ -420,8 +414,7 @@ class _WidgetAnimationsSection extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
-                border:
-                    Border.all(color: textColor.withValues(alpha: 0.2)),
+                border: Border.all(color: textColor.withValues(alpha: 0.2)),
               ),
               padding: const EdgeInsets.all(8),
               child: HyperViewer(html: html, mode: HyperRenderMode.sync),
@@ -438,8 +431,7 @@ class _WidgetAnimationsSection extends StatelessWidget {
         Icon(icon, color: DemoColors.accent, size: 24),
         const SizedBox(width: 8),
         Text(title,
-            style:
-                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -457,8 +449,7 @@ class _ExtensionMethodsSection extends StatefulWidget {
       _ExtensionMethodsSectionState();
 }
 
-class _ExtensionMethodsSectionState
-    extends State<_ExtensionMethodsSection> {
+class _ExtensionMethodsSectionState extends State<_ExtensionMethodsSection> {
   bool _visible = true;
 
   @override
@@ -471,8 +462,7 @@ class _ExtensionMethodsSectionState
             Icon(Icons.extension, color: DemoColors.accent, size: 24),
             SizedBox(width: 8),
             Text('Extension Methods',
-                style:
-                    TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 8),
@@ -565,8 +555,7 @@ class _CapabilityTable extends StatelessWidget {
             Icon(Icons.table_chart, color: DemoColors.accent, size: 24),
             SizedBox(width: 8),
             Text('CSS Animation Coverage',
-                style:
-                    TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 12),
@@ -590,8 +579,7 @@ class _CapabilityTable extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       child: Row(
         children: [
-          Text(done ? '✅' : '🚧',
-              style: const TextStyle(fontSize: 15)),
+          Text(done ? '✅' : '🚧', style: const TextStyle(fontSize: 15)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -606,8 +594,8 @@ class _CapabilityTable extends StatelessWidget {
                             ? Colors.green.shade800
                             : Colors.grey.shade700)),
                 Text(desc,
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade600)),
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey.shade600)),
               ],
             ),
           ),

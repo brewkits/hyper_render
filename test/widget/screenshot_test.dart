@@ -17,7 +17,8 @@ void main() {
   // ──────────────────────────────────────────────────────────────────────────
 
   group('HyperViewer captureKey — API surface', () {
-    testWidgets('HyperViewer renders normally without captureKey', (tester) async {
+    testWidgets('HyperViewer renders normally without captureKey',
+        (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -30,7 +31,8 @@ void main() {
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
-    testWidgets('HyperViewer(html:) accepts captureKey without error', (tester) async {
+    testWidgets('HyperViewer(html:) accepts captureKey without error',
+        (tester) async {
       final key = GlobalKey();
       await tester.pumpWidget(
         MaterialApp(
@@ -119,7 +121,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('HyperCaptureExtension methods exist on GlobalKey', (tester) async {
+    testWidgets('HyperCaptureExtension methods exist on GlobalKey',
+        (tester) async {
       // Verify the extension methods are accessible (compile-time check)
       final key = GlobalKey();
       await tester.pumpWidget(
@@ -168,7 +171,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // tester.runAsync lets platform async tasks (GPU encode) complete.
-      final bytes = await tester.runAsync(() => key.toPngBytes(pixelRatio: 1.0));
+      final bytes =
+          await tester.runAsync(() => key.toPngBytes(pixelRatio: 1.0));
 
       if (bytes == null) {
         // Some headless environments return null — acceptable, not a failure.
@@ -182,7 +186,8 @@ void main() {
       expect(bytes[3], equals(0x47)); // 'G'
     });
 
-    testWidgets('toImage returns image with positive dimensions', (tester) async {
+    testWidgets('toImage returns image with positive dimensions',
+        (tester) async {
       final key = GlobalKey();
       await tester.pumpWidget(
         MaterialApp(
@@ -261,7 +266,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final bytes = await tester.runAsync(() => key.toPngBytes(pixelRatio: 1.0));
+      final bytes =
+          await tester.runAsync(() => key.toPngBytes(pixelRatio: 1.0));
       if (bytes == null) return;
       expect(bytes.length, greaterThan(0));
     });
@@ -283,7 +289,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final bytes = await tester.runAsync(() => key.toPngBytes(pixelRatio: 1.0));
+      final bytes =
+          await tester.runAsync(() => key.toPngBytes(pixelRatio: 1.0));
       if (bytes == null) return;
       expect(bytes.length, greaterThan(0));
     });

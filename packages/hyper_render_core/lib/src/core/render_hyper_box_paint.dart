@@ -52,7 +52,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         if (decoration.backgroundGradient != null) {
           _fillPaint.shader =
               decoration.backgroundGradient!.createShader(adjustedRect);
-          _fillPaint.color = const Color(0x00000000); // reset color (unused when shader set)
+          _fillPaint.color =
+              const Color(0x00000000); // reset color (unused when shader set)
         } else {
           _fillPaint.shader = null;
           _fillPaint.color = decoration.backgroundColor!;
@@ -271,9 +272,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
   }
 
   /// Draw a dashed border around a rect.
-  void _paintDashedBoxBorder(
-      Canvas canvas, Rect rect, Color color, double width,
-      BorderRadius? borderRadius) {
+  void _paintDashedBoxBorder(Canvas canvas, Rect rect, Color color,
+      double width, BorderRadius? borderRadius) {
     _strokePaint
       ..color = color
       ..strokeWidth = width
@@ -300,9 +300,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
   }
 
   /// Draw a dotted border around a rect.
-  void _paintDottedBoxBorder(
-      Canvas canvas, Rect rect, Color color, double width,
-      BorderRadius? borderRadius) {
+  void _paintDottedBoxBorder(Canvas canvas, Rect rect, Color color,
+      double width, BorderRadius? borderRadius) {
     _strokePaint
       ..color = color
       ..strokeWidth = width
@@ -329,9 +328,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
   }
 
   /// Draw a double border — two concentric lines with a gap between them.
-  void _paintDoubleBoxBorder(
-      Canvas canvas, Rect rect, Color color, double width,
-      BorderRadius? borderRadius) {
+  void _paintDoubleBoxBorder(Canvas canvas, Rect rect, Color color,
+      double width, BorderRadius? borderRadius) {
     final lineWidth = (width / 3).clamp(1.0, double.infinity);
     _strokePaint
       ..color = color
@@ -343,7 +341,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     final outerInset = lineWidth / 2;
     final outerRect = rect.deflate(outerInset);
     // Inner line: center inset by (lineWidth + gap + lineWidth/2)
-    final innerInset = lineWidth * 2.5; // lineWidth + gap(lineWidth) + lineWidth/2
+    final innerInset =
+        lineWidth * 2.5; // lineWidth + gap(lineWidth) + lineWidth/2
     final innerRect = rect.deflate(innerInset);
 
     if (borderRadius != null) {

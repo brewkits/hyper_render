@@ -33,7 +33,8 @@ class ImprovedVideoDemo extends StatelessWidget {
           // Video with poster
           _buildSection(
             title: '1. Video with Poster Image',
-            description: 'Tap video to open in external player (browser/video player)',
+            description:
+                'Tap video to open in external player (browser/video player)',
             child: HyperViewer(
               html: '''
                 <video
@@ -45,7 +46,8 @@ class ImprovedVideoDemo extends StatelessWidget {
                 </video>
               ''',
               widgetBuilder: (node) {
-                if (node is AtomicNode && (node.tagName == 'video' || node.tagName == 'audio')) {
+                if (node is AtomicNode &&
+                    (node.tagName == 'video' || node.tagName == 'audio')) {
                   final mediaInfo = MediaInfo.fromNode(node);
                   return _buildInteractiveMedia(context, mediaInfo);
                 }
@@ -70,7 +72,8 @@ class ImprovedVideoDemo extends StatelessWidget {
                 </video>
               ''',
               widgetBuilder: (node) {
-                if (node is AtomicNode && (node.tagName == 'video' || node.tagName == 'audio')) {
+                if (node is AtomicNode &&
+                    (node.tagName == 'video' || node.tagName == 'audio')) {
                   final mediaInfo = MediaInfo.fromNode(node);
                   return _buildInteractiveMedia(context, mediaInfo);
                 }
@@ -110,7 +113,8 @@ class ImprovedVideoDemo extends StatelessWidget {
                 </p>
               ''',
               widgetBuilder: (node) {
-                if (node is AtomicNode && (node.tagName == 'video' || node.tagName == 'audio')) {
+                if (node is AtomicNode &&
+                    (node.tagName == 'video' || node.tagName == 'audio')) {
                   final mediaInfo = MediaInfo.fromNode(node);
                   return _buildInteractiveMedia(context, mediaInfo);
                 }
@@ -124,7 +128,8 @@ class ImprovedVideoDemo extends StatelessWidget {
           // Floated video with text wrapping
           _buildSection(
             title: '4. Float Layout with Video (Unique Feature!)',
-            description: 'Video float left with text wrapping - unique feature of HyperRender',
+            description:
+                'Video float left with text wrapping - unique feature of HyperRender',
             child: HyperViewer(
               html: '''
                 <h2>Article with Floated Video</h2>
@@ -149,7 +154,8 @@ class ImprovedVideoDemo extends StatelessWidget {
                 cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat.</p>
               ''',
               widgetBuilder: (node) {
-                if (node is AtomicNode && (node.tagName == 'video' || node.tagName == 'audio')) {
+                if (node is AtomicNode &&
+                    (node.tagName == 'video' || node.tagName == 'audio')) {
                   final mediaInfo = MediaInfo.fromNode(node);
                   return _buildInteractiveMedia(context, mediaInfo);
                 }
@@ -177,7 +183,8 @@ class ImprovedVideoDemo extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.play_circle_filled, color: Colors.red.shade700, size: 32),
+                Icon(Icons.play_circle_filled,
+                    color: Colors.red.shade700, size: 32),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Column(
@@ -200,7 +207,8 @@ class ImprovedVideoDemo extends StatelessWidget {
               ],
             ),
             const Divider(height: 24),
-            _buildFeatureItem('✅ Beautiful video placeholders with poster images'),
+            _buildFeatureItem(
+                '✅ Beautiful video placeholders with poster images'),
             _buildFeatureItem('✅ Hover effects and animations'),
             _buildFeatureItem('✅ Tap to open in external player'),
             _buildFeatureItem('✅ Float layout support (unique feature)'),
@@ -272,7 +280,8 @@ class ImprovedVideoDemo extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Video will be opened in external player (browser or video player app).'),
+                const Text(
+                    'Video will be opened in external player (browser or video player app).'),
                 const SizedBox(height: 12),
                 Text(
                   'URL: ${mediaInfo.src}',
@@ -349,10 +358,13 @@ class ImprovedVideoDemo extends StatelessWidget {
               ],
             ),
             const Divider(height: 24),
-            _buildInstruction('1. Video placeholders show poster images when available'),
-            _buildInstruction('2. Hover over video to see animation effects (desktop)'),
+            _buildInstruction(
+                '1. Video placeholders show poster images when available'),
+            _buildInstruction(
+                '2. Hover over video to see animation effects (desktop)'),
             _buildInstruction('3. Tap/click video to open in external player'),
-            _buildInstruction('4. For embedded video playback, use video_player package with mediaBuilder'),
+            _buildInstruction(
+                '4. For embedded video playback, use video_player package with mediaBuilder'),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -370,7 +382,8 @@ class ImprovedVideoDemo extends StatelessWidget {
                       SizedBox(width: 4),
                       Text(
                         'Pro Tip:',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 12),
                       ),
                     ],
                   ),

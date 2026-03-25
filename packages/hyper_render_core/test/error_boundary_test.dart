@@ -78,8 +78,7 @@ void main() {
 
     test('shortStackTrace does not truncate short stack traces', () {
       final shortStackTrace = StackTrace.fromString(
-        List.generate(3, (i) => '#$i someFunction (file.dart:$i:1)')
-            .join('\n'),
+        List.generate(3, (i) => '#$i someFunction (file.dart:$i:1)').join('\n'),
       );
 
       final node = ErrorBoundaryNode(
@@ -212,8 +211,7 @@ void main() {
       expect(find.text('Stack Trace:'), findsOneWidget);
     });
 
-    testWidgets('shows retry button when onRetry is provided',
-        (tester) async {
+    testWidgets('shows retry button when onRetry is provided', (tester) async {
       bool retryPressed = false;
 
       final node = ErrorBoundaryNode(
@@ -325,8 +323,7 @@ void main() {
   });
 
   group('Integration with HyperRenderWidget', () {
-    testWidgets('HyperRenderWidget renders ErrorBoundaryNode',
-        (tester) async {
+    testWidgets('HyperRenderWidget renders ErrorBoundaryNode', (tester) async {
       final document = DocumentNode(children: [
         ErrorBoundaryNode(
           error: Exception('Parse error'),
@@ -373,8 +370,7 @@ void main() {
       expect(find.byType(ErrorBoundaryWidget), findsOneWidget);
     });
 
-    testWidgets('widgetBuilder can customize error boundary',
-        (tester) async {
+    testWidgets('widgetBuilder can customize error boundary', (tester) async {
       final document = DocumentNode(children: [
         ErrorBoundaryNode(
           error: Exception('Custom error'),

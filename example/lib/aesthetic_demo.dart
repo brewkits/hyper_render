@@ -58,7 +58,8 @@ class AestheticDemo extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.auto_awesome, color: Colors.deepPurple.shade700, size: 32),
+                Icon(Icons.auto_awesome,
+                    color: Colors.deepPurple.shade700, size: 32),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
@@ -76,19 +77,22 @@ class AestheticDemo extends StatelessWidget {
             _buildFeature('✨ Beautiful gradients and shadows'),
             _buildFeature('✨ CSS box-shadow and linear-gradients'),
             _buildFeature('✨ CSS filters and backdrop-filter (blur)'),
-            _buildFeature('✨ NEW: word-break and background-size (cover/contain)'),
+            _buildFeature(
+                '✨ NEW: word-break and background-size (cover/contain)'),
             _buildFeature('✨ NEW: Advanced borders (dashed, dotted, double)'),
-            _buildFeature('✨ NEW: Professional truncation (text-overflow: ellipsis)'),
-            ],
-            ),
-            ),
-            );
-            }
+            _buildFeature(
+                '✨ NEW: Professional truncation (text-overflow: ellipsis)'),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildFeature(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Text(text, style: const TextStyle(fontSize: 12, color: Colors.deepPurple)),
+      child: Text(text,
+          style: const TextStyle(fontSize: 12, color: Colors.deepPurple)),
     );
   }
 
@@ -108,7 +112,8 @@ class AestheticDemo extends StatelessWidget {
         const SizedBox(height: 12),
         Card(
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: HyperViewer(
@@ -153,7 +158,8 @@ class AestheticDemo extends StatelessWidget {
         const SizedBox(height: 12),
         Card(
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: HyperViewer(
@@ -203,7 +209,8 @@ class AestheticDemo extends StatelessWidget {
         const SizedBox(height: 12),
         Card(
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: HyperViewer(

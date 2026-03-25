@@ -172,8 +172,9 @@ void main() {
       for (var i = 0; i < 5; i++) {
         leaf = InlineNode.span(children: [leaf]);
       }
-      final doc =
-          DocumentNode(children: [BlockNode.p(children: [leaf])]);
+      final doc = DocumentNode(children: [
+        BlockNode.p(children: [leaf])
+      ]);
 
       int count = 0;
       doc.traverse((_) => count++);
@@ -271,8 +272,7 @@ void main() {
       expect(frag.width > 0, isTrue);
     });
 
-    test('fragment with zero measuredSize width satisfies guard (not > 0)',
-        () {
+    test('fragment with zero measuredSize width satisfies guard (not > 0)', () {
       final source = TextNode('');
       final frag = Fragment.text(
         text: '',

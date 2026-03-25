@@ -132,7 +132,8 @@ void main() {
         ],
       );
 
-      final cell = (table.children[0] as TableRowNode).children[0] as TableCellNode;
+      final cell =
+          (table.children[0] as TableRowNode).children[0] as TableCellNode;
 
       expect(cell.colspan, equals(2));
       expect(cell.rowspan, equals(2));
@@ -140,11 +141,7 @@ void main() {
 
     test('TableNode preserves attributes', () {
       final table = TableNode(
-        attributes: {
-          'border': '1',
-          'cellspacing': '0',
-          'class': 'data-table'
-        },
+        attributes: {'border': '1', 'cellspacing': '0', 'class': 'data-table'},
         children: [],
       );
 
@@ -250,8 +247,10 @@ void main() {
       final cells = row.children.cast<TableCellNode>();
 
       // Cell 2 has longer content
-      expect(cells[1].textContent.length, greaterThan(cells[0].textContent.length));
-      expect(cells[1].textContent.length, greaterThan(cells[2].textContent.length));
+      expect(cells[1].textContent.length,
+          greaterThan(cells[0].textContent.length));
+      expect(cells[1].textContent.length,
+          greaterThan(cells[2].textContent.length));
     });
 
     test('Table with colspan should distribute width across columns', () {

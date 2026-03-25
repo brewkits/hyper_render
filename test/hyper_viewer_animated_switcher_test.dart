@@ -1,13 +1,15 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';
 
 void main() {
   group('HyperViewer AnimatedSwitcher Layout Issue', () {
-    testWidgets('should not throw RenderBox was not laid out during content switch', (WidgetTester tester) async {
+    testWidgets(
+        'should not throw RenderBox was not laid out during content switch',
+        (WidgetTester tester) async {
       final String initialHtml = '<h1>Loading...</h1>';
-      final String loadedHtml = '<h1>Loaded Content</h1><p>This is some content that is a bit longer to simulate a real document.</p>';
+      final String loadedHtml =
+          '<h1>Loaded Content</h1><p>This is some content that is a bit longer to simulate a real document.</p>';
 
       // A simple StatefulWidget to hold and change the HyperViewer's content
       await tester.pumpWidget(
@@ -51,7 +53,8 @@ class _TestHyperViewerContainer extends StatefulWidget {
   });
 
   @override
-  State<_TestHyperViewerContainer> createState() => _TestHyperViewerContainerState();
+  State<_TestHyperViewerContainer> createState() =>
+      _TestHyperViewerContainerState();
 }
 
 class _TestHyperViewerContainerState extends State<_TestHyperViewerContainer> {

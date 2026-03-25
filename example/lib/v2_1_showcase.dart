@@ -35,7 +35,7 @@ class _V21ShowcaseState extends State<V21Showcase>
       data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
       child: Scaffold(
         appBar: AppBar(
-            title: const Text('Advanced Features Showcase'),
+          title: const Text('Advanced Features Showcase'),
           centerTitle: false,
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: Colors.white,
@@ -170,7 +170,8 @@ class _ErrorBoundariesDemoState extends State<_ErrorBoundariesDemo> {
     },
     'network_error': {
       'name': 'Network Error (Image)',
-      'html': '<img src="https://invalid-domain-xyz123.com/image.jpg" alt="Broken">',
+      'html':
+          '<img src="https://invalid-domain-xyz123.com/image.jpg" alt="Broken">',
       'description': 'Images that fail to load',
     },
     'valid_content': {
@@ -220,7 +221,8 @@ class _ErrorBoundariesDemoState extends State<_ErrorBoundariesDemo> {
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('ErrorBoundaryNode - catches parsing errors'),
                 _buildFeatureItem('HyperErrorWidget - beautiful error UI'),
@@ -261,7 +263,8 @@ class _ErrorBoundariesDemoState extends State<_ErrorBoundariesDemo> {
                 const SizedBox(height: 8),
                 Text(
                   scenario['description']!,
-                  style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                  style: const TextStyle(
+                      fontSize: 12, fontStyle: FontStyle.italic),
                 ),
               ],
             ),
@@ -417,7 +420,8 @@ class _PerformanceMonitoringDemoState
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('PerformanceMonitor class'),
                 _buildFeatureItem('P95/P99 percentile tracking'),
@@ -448,7 +452,8 @@ class _PerformanceMonitoringDemoState
                   items: _sizes.entries.map((entry) {
                     return DropdownMenuItem(
                       value: entry.key,
-                      child: Text('${entry.value['name']} - Target: ${entry.value['target']}'),
+                      child: Text(
+                          '${entry.value['name']} - Target: ${entry.value['target']}'),
                     );
                   }).toList(),
                   onChanged: (value) {
@@ -664,7 +669,8 @@ if (darkMode) {
                   children: [
                     Icon(
                       isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                      color: isDarkMode ? Colors.yellow : Colors.indigo.shade700,
+                      color:
+                          isDarkMode ? Colors.yellow : Colors.indigo.shade700,
                       size: 32,
                     ),
                     const SizedBox(width: 12),
@@ -673,7 +679,9 @@ if (darkMode) {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isDarkMode ? '🌙 Dark Mode Active' : '☀️ Light Mode Active',
+                            isDarkMode
+                                ? '🌙 Dark Mode Active'
+                                : '☀️ Light Mode Active',
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -689,7 +697,8 @@ if (darkMode) {
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('27 context-aware color methods'),
                 _buildFeatureItem('Automatic theme detection'),
@@ -726,11 +735,16 @@ if (darkMode) {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 12),
-                _buildColorSwatch(context, 'Text Primary', DesignTokens.getTextPrimary(context)),
-                _buildColorSwatch(context, 'Text Secondary', DesignTokens.getTextSecondary(context)),
-                _buildColorSwatch(context, 'Link Color', DesignTokens.getLinkColor(context)),
-                _buildColorSwatch(context, 'Background', DesignTokens.getBackgroundColor(context)),
-                _buildColorSwatch(context, 'Code Background', DesignTokens.getCodeBackground(context)),
+                _buildColorSwatch(context, 'Text Primary',
+                    DesignTokens.getTextPrimary(context)),
+                _buildColorSwatch(context, 'Text Secondary',
+                    DesignTokens.getTextSecondary(context)),
+                _buildColorSwatch(
+                    context, 'Link Color', DesignTokens.getLinkColor(context)),
+                _buildColorSwatch(context, 'Background',
+                    DesignTokens.getBackgroundColor(context)),
+                _buildColorSwatch(context, 'Code Background',
+                    DesignTokens.getCodeBackground(context)),
               ],
             ),
           ),
@@ -813,7 +827,8 @@ Container(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(label,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
                 Text(
                   '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
                   style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
@@ -856,7 +871,8 @@ class _LoadingSkeletonsDemoState extends State<_LoadingSkeletonsDemo> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.hourglass_empty, color: Colors.teal.shade700, size: 32),
+                    Icon(Icons.hourglass_empty,
+                        color: Colors.teal.shade700, size: 32),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Column(
@@ -879,7 +895,8 @@ class _LoadingSkeletonsDemoState extends State<_LoadingSkeletonsDemo> {
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('LoadingSkeleton widget'),
                 _buildFeatureItem('Pre-built patterns (Card, List, Grid)'),
@@ -930,7 +947,8 @@ class _LoadingSkeletonsDemoState extends State<_LoadingSkeletonsDemo> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const Text('Lorem ipsum dolor sit amet, consectetur adipiscing elit.'),
+                const Text(
+                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit.'),
                 const SizedBox(height: 16),
                 Image.network(
                   'https://picsum.photos/400/200',
@@ -1057,7 +1075,8 @@ class _DesignTokensDemo extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.palette, color: Colors.purple.shade700, size: 32),
+                    Icon(Icons.palette,
+                        color: Colors.purple.shade700, size: 32),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Column(
@@ -1080,7 +1099,8 @@ class _DesignTokensDemo extends StatelessWidget {
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('Typography scale (Display to Label)'),
                 _buildFeatureItem('8pt grid spacing system'),
@@ -1099,7 +1119,8 @@ class _DesignTokensDemo extends StatelessWidget {
           _buildTypoExample('Display', DesignTokens.headingStyle(1)),
           _buildTypoExample('Heading 1', DesignTokens.headingStyle(1)),
           _buildTypoExample('Heading 2', DesignTokens.headingStyle(2)),
-          _buildTypoExample('Body', const TextStyle(fontSize: DesignTokens.bodyLargeFontSize)),
+          _buildTypoExample('Body',
+              const TextStyle(fontSize: DesignTokens.bodyLargeFontSize)),
         ]),
 
         // Spacing
@@ -1119,9 +1140,12 @@ class _DesignTokensDemo extends StatelessWidget {
 
         // Elevation
         _buildSection('Elevation', [
-          _buildElevationExample('Level 1', DesignTokens.shadow(DesignTokens.elevation1)),
-          _buildElevationExample('Level 2', DesignTokens.shadow(DesignTokens.elevation2)),
-          _buildElevationExample('Level 3', DesignTokens.shadow(DesignTokens.elevation3)),
+          _buildElevationExample(
+              'Level 1', DesignTokens.shadow(DesignTokens.elevation1)),
+          _buildElevationExample(
+              'Level 2', DesignTokens.shadow(DesignTokens.elevation2)),
+          _buildElevationExample(
+              'Level 3', DesignTokens.shadow(DesignTokens.elevation3)),
         ]),
       ],
     );
@@ -1309,7 +1333,8 @@ class _AnimationsDemo extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.animation, color: Colors.pink.shade700, size: 32),
+                    Icon(Icons.animation,
+                        color: Colors.pink.shade700, size: 32),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Column(
@@ -1332,7 +1357,8 @@ class _AnimationsDemo extends StatelessWidget {
                   ],
                 ),
                 const Divider(height: 24),
-                const Text('Supported in v1.0.0:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Supported in v1.0.0:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 _buildFeatureItem('AnimatedSize for expand/collapse'),
                 _buildFeatureItem('AnimatedRotation for icons'),
@@ -1376,7 +1402,8 @@ class _AnimationsDemo extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text('Click on the <summary> elements above to see smooth animations.'),
+                const Text(
+                    'Click on the <summary> elements above to see smooth animations.'),
                 const SizedBox(height: 12),
                 _buildInfoItem('Height', 'AnimatedSize widget (300ms)'),
                 _buildInfoItem('Icon', 'AnimatedRotation (90°)'),

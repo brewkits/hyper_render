@@ -178,7 +178,8 @@ void main() {
         expect(find.byType(LoadingSkeleton), findsOneWidget);
       });
 
-      testWidgets('LoadingSkeleton.circle creates circle skeleton', (tester) async {
+      testWidgets('LoadingSkeleton.circle creates circle skeleton',
+          (tester) async {
         await tester.pumpWidget(
           const MaterialApp(
             home: Scaffold(
@@ -190,7 +191,8 @@ void main() {
         expect(find.byType(LoadingSkeleton), findsOneWidget);
       });
 
-      testWidgets('LoadingSkeleton.rectangle creates rectangle', (tester) async {
+      testWidgets('LoadingSkeleton.rectangle creates rectangle',
+          (tester) async {
         await tester.pumpWidget(
           const MaterialApp(
             home: Scaffold(

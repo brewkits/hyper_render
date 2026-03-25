@@ -148,16 +148,15 @@ void main() {
     test('text fragment with spaces can break', () {
       final style = ComputedStyle();
       final node = TextNode('hello world');
-      final frag = Fragment.text(
-          text: 'hello world', sourceNode: node, style: style);
+      final frag =
+          Fragment.text(text: 'hello world', sourceNode: node, style: style);
       expect(frag.canBreak, isTrue);
     });
 
     test('single word fragment cannot break', () {
       final style = ComputedStyle();
       final node = TextNode('hello');
-      final frag =
-          Fragment.text(text: 'hello', sourceNode: node, style: style);
+      final frag = Fragment.text(text: 'hello', sourceNode: node, style: style);
       expect(frag.canBreak, isFalse);
     });
 
@@ -184,7 +183,8 @@ void main() {
       expect(line.rightInset, equals(80));
     });
 
-    test('LineInfo width excludes insets (available width = total - insets)', () {
+    test('LineInfo width excludes insets (available width = total - insets)',
+        () {
       // LineInfo.width sums fragment widths, not available width.
       // We test that fragments placed after inset still report correct width.
       final style = ComputedStyle();

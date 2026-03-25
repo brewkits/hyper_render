@@ -121,7 +121,8 @@ void main() {
 
       // Should produce multiple sections for virtualization
       expect(sections.length, greaterThan(1),
-          reason: 'Blog post should be split into multiple sections for virtualization');
+          reason:
+              'Blog post should be split into multiple sections for virtualization');
 
       // Verify total content is preserved
       int totalChildren = 0;

@@ -103,8 +103,8 @@ class _PipelineBreakdownTabState extends State<_PipelineBreakdownTab> {
           '<p style="margin: 12px 0;">Paragraph ${i + 1}: The quick brown fox jumps over the lazy dog. '
           'HyperRender efficiently parses and renders HTML content with CSS cascade support.</p>');
       if (i % 5 == 4) {
-        buffer.write(
-            '<h2 style="color: #388E3C;">Section ${(i ~/ 5) + 1}</h2>');
+        buffer
+            .write('<h2 style="color: #388E3C;">Section ${(i ~/ 5) + 1}</h2>');
       }
     }
     buffer.write('</article>');
@@ -283,8 +283,7 @@ class _PipelineBreakdownTabState extends State<_PipelineBreakdownTab> {
     );
   }
 
-  Widget _buildPhaseBar(
-      String label, double ms, double maxMs, Color color) {
+  Widget _buildPhaseBar(String label, double ms, double maxMs, Color color) {
     final ratio = maxMs > 0 ? ms / maxMs : 0.0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -434,7 +433,8 @@ class _IsolateParsingTabState extends State<_IsolateParsingTab> {
   Duration? _syncTime;
   Duration? _asyncTime;
 
-  static final String _largeHtml = '<article style="font-family: sans-serif; line-height: 1.6;">'
+  static final String _largeHtml =
+      '<article style="font-family: sans-serif; line-height: 1.6;">'
       '<h1 style="color: #1976D2;">Large Document (25KB)</h1>'
       '<p>HyperRender automatically offloads parsing to an Isolate for documents '
       'larger than ~10KB, keeping the main thread smooth.</p>'
@@ -502,11 +502,13 @@ class _IsolateParsingTabState extends State<_IsolateParsingTab> {
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _buildModeCard('Sync Mode', HyperRenderMode.sync,
-                _syncTime, Colors.orange, _measureSync)),
+            Expanded(
+                child: _buildModeCard('Sync Mode', HyperRenderMode.sync,
+                    _syncTime, Colors.orange, _measureSync)),
             const SizedBox(width: 12),
-            Expanded(child: _buildModeCard('Auto (Isolate)', HyperRenderMode.auto,
-                _asyncTime, Colors.green, _measureAsync)),
+            Expanded(
+                child: _buildModeCard('Auto (Isolate)', HyperRenderMode.auto,
+                    _asyncTime, Colors.green, _measureAsync)),
           ],
         ),
         const SizedBox(height: 16),
@@ -532,14 +534,13 @@ class _IsolateParsingTabState extends State<_IsolateParsingTab> {
             children: [
               Text(title,
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                      fontSize: 15)),
+                      fontWeight: FontWeight.bold, color: color, fontSize: 15)),
               if (time != null) ...[
                 const SizedBox(height: 4),
                 Text(
                   'Build time: ${time.inMicroseconds}µs',
-                  style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.8)),
+                  style: TextStyle(
+                      fontSize: 12, color: color.withValues(alpha: 0.8)),
                 ),
               ],
             ],
@@ -644,8 +645,10 @@ class _CssIndexingTabState extends State<_CssIndexingTab> {
   int _selectedScenario = 1;
 
   static const _scenarios = [
-    _CssScenario(name: '10 rules', ruleCount: 10, description: 'Small stylesheet'),
-    _CssScenario(name: '100 rules', ruleCount: 100, description: 'Typical website'),
+    _CssScenario(
+        name: '10 rules', ruleCount: 10, description: 'Small stylesheet'),
+    _CssScenario(
+        name: '100 rules', ruleCount: 100, description: 'Typical website'),
     _CssScenario(
         name: '500 rules', ruleCount: 500, description: 'Large design system'),
   ];
@@ -653,12 +656,14 @@ class _CssIndexingTabState extends State<_CssIndexingTab> {
   static String _generateHtml(int ruleCount) {
     final buffer = StringBuffer('<style>');
     for (int i = 0; i < ruleCount; i++) {
-      buffer.write('.class-$i { color: #${(i * 100 % 0xFFFFFF).toRadixString(16).padLeft(6, '0')}; }');
+      buffer.write(
+          '.class-$i { color: #${(i * 100 % 0xFFFFFF).toRadixString(16).padLeft(6, '0')}; }');
     }
     buffer.write('</style>');
     buffer.write('<div>');
     for (int i = 0; i < 20; i++) {
-      buffer.write('<p class="class-${i % ruleCount}">CSS rule ${i % ruleCount} applied</p>');
+      buffer.write(
+          '<p class="class-${i % ruleCount}">CSS rule ${i % ruleCount} applied</p>');
     }
     buffer.write('</div>');
     return buffer.toString();
@@ -668,7 +673,8 @@ class _CssIndexingTabState extends State<_CssIndexingTab> {
   Widget build(BuildContext context) {
     final scenario = _scenarios[_selectedScenario];
     // Estimate matched rules (about 10% match rate for large stylesheets)
-    final matched = (scenario.ruleCount * 0.1).round().clamp(5, scenario.ruleCount);
+    final matched =
+        (scenario.ruleCount * 0.1).round().clamp(5, scenario.ruleCount);
     final efficiency = (matched / scenario.ruleCount * 100).round();
 
     return ListView(
@@ -715,14 +721,11 @@ class _CssIndexingTabState extends State<_CssIndexingTab> {
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: selected
-                        ? DemoColors.success
-                        : Colors.grey.shade100,
+                    color: selected ? DemoColors.success : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: selected
-                          ? DemoColors.success
-                          : Colors.grey.shade300,
+                      color:
+                          selected ? DemoColors.success : Colors.grey.shade300,
                     ),
                   ),
                   child: Column(
@@ -758,13 +761,12 @@ class _CssIndexingTabState extends State<_CssIndexingTab> {
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 18)),
                 const SizedBox(height: 16),
-                _buildMetricRow(
-                    'Rules processed', scenario.ruleCount, Colors.blue.shade600),
+                _buildMetricRow('Rules processed', scenario.ruleCount,
+                    Colors.blue.shade600),
                 _buildMetricRow(
                     'Rules matched', matched, Colors.green.shade600),
-                _buildMetricRow(
-                    'Unmatched (skipped)', scenario.ruleCount - matched,
-                    Colors.grey.shade400),
+                _buildMetricRow('Unmatched (skipped)',
+                    scenario.ruleCount - matched, Colors.grey.shade400),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -788,7 +790,8 @@ class _CssIndexingTabState extends State<_CssIndexingTab> {
                 Text(
                   'CSS index reduces matching from O(n²) to O(n log n)',
                   style: TextStyle(
-                      fontSize: 12, color: Colors.grey.shade600,
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
                       fontStyle: FontStyle.italic),
                 ),
               ],
@@ -836,8 +839,7 @@ class _CssIndexingTabState extends State<_CssIndexingTab> {
             ),
             child: Text(
               value.toString(),
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: color),
+              style: TextStyle(fontWeight: FontWeight.bold, color: color),
             ),
           ),
         ],
@@ -1007,17 +1009,17 @@ class _MemoryTabState extends State<_MemoryTab> {
           children: [
             Expanded(
                 child: _buildMetricCard(
-                    'DOM Nodes', metrics.nodeCount.toString(),
-                    Icons.account_tree, Colors.blue)),
+                    'DOM Nodes',
+                    metrics.nodeCount.toString(),
+                    Icons.account_tree,
+                    Colors.blue)),
             const SizedBox(width: 8),
             Expanded(
-                child: _buildMetricCard(
-                    'Memory', '${metrics.memoryKb}KB',
+                child: _buildMetricCard('Memory', '${metrics.memoryKb}KB',
                     Icons.memory, Colors.purple)),
             const SizedBox(width: 8),
             Expanded(
-                child: _buildMetricCard(
-                    'Build time', '${metrics.buildMs}ms',
+                child: _buildMetricCard('Build time', '${metrics.buildMs}ms',
                     Icons.timer, Colors.orange)),
           ],
         ),
@@ -1057,20 +1059,16 @@ class _MemoryTabState extends State<_MemoryTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Virtualization Strategy',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 12),
-                _buildVirtPoint(
-                    Icons.view_list, 'ListView.builder',
+                _buildVirtPoint(Icons.view_list, 'ListView.builder',
                     'Only renders items visible on screen + cacheExtent buffer'),
-                _buildVirtPoint(
-                    Icons.zoom_out_map, 'cacheExtent: 1500',
+                _buildVirtPoint(Icons.zoom_out_map, 'cacheExtent: 1500',
                     '1500px buffer for smooth scrolling without pop-in'),
-                _buildVirtPoint(
-                    Icons.memory, 'Lazy GC',
+                _buildVirtPoint(Icons.memory, 'Lazy GC',
                     'Off-screen widgets are garbage collected automatically'),
-                _buildVirtPoint(
-                    Icons.speed, 'O(1) scroll',
+                _buildVirtPoint(Icons.speed, 'O(1) scroll',
                     'Scroll performance independent of document length'),
               ],
             ),
@@ -1080,7 +1078,8 @@ class _MemoryTabState extends State<_MemoryTab> {
     );
   }
 
-  Widget _buildMetricCard(String label, String value, IconData icon, Color color) {
+  Widget _buildMetricCard(
+      String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1164,8 +1163,8 @@ class _MemoryTabState extends State<_MemoryTab> {
                 Text(title,
                     style: const TextStyle(fontWeight: FontWeight.w600)),
                 Text(desc,
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade600)),
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey.shade600)),
               ],
             ),
           ),
@@ -1180,9 +1179,7 @@ class _DocMetrics {
   final int memoryKb;
   final int buildMs;
   const _DocMetrics(
-      {required this.nodeCount,
-      required this.memoryKb,
-      required this.buildMs});
+      {required this.nodeCount, required this.memoryKb, required this.buildMs});
 }
 
 // =============================================================================
@@ -1331,7 +1328,8 @@ class _LibraryComparisonTabState extends State<_LibraryComparisonTab> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(7)),
             ),
             child: Row(
               children: [
@@ -1343,15 +1341,14 @@ class _LibraryComparisonTabState extends State<_LibraryComparisonTab> {
                 const Spacer(),
                 if (time != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text('$timeµs',
-                        style:
-                            TextStyle(fontSize: 12, color: color)),
+                        style: TextStyle(fontSize: 12, color: color)),
                   ),
               ],
             ),
@@ -1396,8 +1393,7 @@ class _LibraryComparisonTabState extends State<_LibraryComparisonTab> {
                 ),
                 Text(
                   'than flutter_html in widget build time',
-                  style: TextStyle(
-                      fontSize: 13, color: Colors.green.shade700),
+                  style: TextStyle(fontSize: 13, color: Colors.green.shade700),
                 ),
               ],
             ),

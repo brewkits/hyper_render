@@ -43,6 +43,7 @@ ComputedStyle? _resolvedStyle(String html, bool Function(UDTNode) predicate) {
       walk(c);
     }
   }
+
   walk(doc);
   return found;
 }
@@ -72,7 +73,8 @@ void main() {
       expect((c.a * 255).round(), equals(0xFF));
     });
 
-    test('8-digit hex with partial alpha: #00FF0080 is semi-transparent green', () {
+    test('8-digit hex with partial alpha: #00FF0080 is semi-transparent green',
+        () {
       final style = _styleOfTag(
         '<p style="color:#00FF0080">text</p>',
         'p',
@@ -131,13 +133,15 @@ void main() {
     });
 
     test('rgba() clamps alpha above 1.0 to 1.0', () {
-      final style = _styleOfTag('<p style="color:rgba(255,0,0,2.5)">x</p>', 'p');
+      final style =
+          _styleOfTag('<p style="color:rgba(255,0,0,2.5)">x</p>', 'p');
       expect(style, isNotNull);
       expect((style!.color.a * 255).round(), equals(255));
     });
 
     test('rgba() clamps alpha below 0 to 0', () {
-      final style = _styleOfTag('<p style="color:rgba(255,0,0,-0.5)">x</p>', 'p');
+      final style =
+          _styleOfTag('<p style="color:rgba(255,0,0,-0.5)">x</p>', 'p');
       expect(style, isNotNull);
       expect((style!.color.a * 255).round(), equals(0));
     });
@@ -186,7 +190,8 @@ void main() {
     });
 
     test('two-level child selector still works', () {
-      const html = '<style>div > p { color: #1565C0; }</style><div><p>Text</p></div>';
+      const html =
+          '<style>div > p { color: #1565C0; }</style><div><p>Text</p></div>';
       final style = _styleOfTag(html, 'p');
       expect(style, isNotNull);
     });
@@ -219,7 +224,8 @@ void main() {
       final style = _styleOfTag(html, 'span');
       expect(style, isNotNull);
       // Blue wins because div p span (specificity 3) > p (specificity 1)
-      expect((style!.color.b * 255).round(), greaterThan((style.color.r * 255).round()));
+      expect((style!.color.b * 255).round(),
+          greaterThan((style.color.r * 255).round()));
     });
 
     test('class selector beats single element selector', () {
@@ -232,7 +238,8 @@ void main() {
 ''';
       final style = _styleOfTag(html, 'p');
       expect(style, isNotNull);
-      expect((style!.color.r * 255).round(), greaterThan((style.color.b * 255).round()));
+      expect((style!.color.r * 255).round(),
+          greaterThan((style.color.b * 255).round()));
     });
   });
 
@@ -252,7 +259,8 @@ void main() {
       final style = _styleOfTag(html, 'div');
       expect(style, isNotNull);
       // Blue (second rule) should win
-      expect((style!.color.b * 255).round(), greaterThan((style.color.r * 255).round()));
+      expect((style!.color.b * 255).round(),
+          greaterThan((style.color.r * 255).round()));
     });
   });
 
@@ -282,13 +290,12 @@ void main() {
     });
 
     testWidgets('multiple large floats do not crash', (tester) async {
-      final html =
-          '${List.generate(
-            5,
-            (i) =>
-                '<img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" '
-                'style="float:${i.isEven ? 'left' : 'right'};width:400px;height:150px;">',
-          ).join()}<p>Body text.</p>';
+      final html = '${List.generate(
+        5,
+        (i) =>
+            '<img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" '
+            'style="float:${i.isEven ? 'left' : 'right'};width:400px;height:150px;">',
+      ).join()}<p>Body text.</p>';
 
       await tester.pumpWidget(
         MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
@@ -345,7 +352,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<p style="color: var(--a, var(--b, #333333))">Fallback text</p>',
+              html:
+                  '<p style="color: var(--a, var(--b, #333333))">Fallback text</p>',
             ),
           ),
         ),
@@ -354,8 +362,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('nested var() resolves inner var when defined',
-        (tester) async {
+    testWidgets('nested var() resolves inner var when defined', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -398,7 +405,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<p style="margin-top:calc(4px - 20px)">Negative margin</p>',
+              html:
+                  '<p style="margin-top:calc(4px - 20px)">Negative margin</p>',
             ),
           ),
         ),
@@ -413,7 +421,8 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('BUG-11 — Custom property inheritance', () {
-    testWidgets('grandchild reads custom property from ancestor', (tester) async {
+    testWidgets('grandchild reads custom property from ancestor',
+        (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -460,7 +469,8 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('CSS bug fixes — full pipeline no-crash', () {
-    testWidgets('complex HTML exercising all fixed CSS features', (tester) async {
+    testWidgets('complex HTML exercising all fixed CSS features',
+        (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(

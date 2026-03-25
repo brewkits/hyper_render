@@ -300,7 +300,7 @@ void main() {
           home: Scaffold(
             body: HyperViewer(
               html: html,
-              selectable: false,  // Disable selection
+              selectable: false, // Disable selection
             ),
           ),
         ),
@@ -320,7 +320,8 @@ void main() {
       final buffer = StringBuffer('<article>');
       for (int i = 1; i <= 50; i++) {
         buffer.write('<p>Paragraph $i with selectable content. ');
-        buffer.write('This paragraph has enough text to make selection meaningful.</p>');
+        buffer.write(
+            'This paragraph has enough text to make selection meaningful.</p>');
       }
       buffer.write('</article>');
 

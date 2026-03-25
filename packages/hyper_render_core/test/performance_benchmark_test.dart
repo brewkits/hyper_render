@@ -109,7 +109,8 @@ void main() {
         // Add 100 CSS rules via parseCss
         final cssBuffer = StringBuffer();
         for (int i = 0; i < 100; i++) {
-          cssBuffer.writeln('.class-$i { color: red; font-size: ${14 + i}px; }');
+          cssBuffer
+              .writeln('.class-$i { color: red; font-size: ${14 + i}px; }');
         }
         resolver.parseCss(cssBuffer.toString());
 
@@ -132,7 +133,8 @@ void main() {
         stopwatch.stop();
 
         expect(stopwatch.elapsedMilliseconds, lessThan(200),
-            reason: 'CSS matching with 100 rules and 100 nodes should take less than 200ms');
+            reason:
+                'CSS matching with 100 rules and 100 nodes should take less than 200ms');
       });
     });
 
@@ -283,7 +285,8 @@ void main() {
         stopwatch.stop();
 
         expect(stopwatch.elapsedMilliseconds, lessThan(100),
-            reason: 'Monitoring 1000 operations should add less than 100ms overhead');
+            reason:
+                'Monitoring 1000 operations should add less than 100ms overhead');
       });
 
       test('performance report generation is fast', () {
@@ -413,7 +416,8 @@ void main() {
 
         expect(doc.children.length, equals(10000));
         expect(stopwatch.elapsedMilliseconds, lessThan(2000),
-            reason: 'Creating 10000 sibling nodes should take less than 2 seconds');
+            reason:
+                'Creating 10000 sibling nodes should take less than 2 seconds');
       });
 
       test('mixed content document performs well', () {

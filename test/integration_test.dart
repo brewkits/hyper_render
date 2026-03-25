@@ -99,7 +99,8 @@ void main() {
       });
 
       testWidgets('renders HTML with images', (WidgetTester tester) async {
-        const html = '<img src="https://example.com/image.png" width="100" height="100">';
+        const html =
+            '<img src="https://example.com/image.png" width="100" height="100">';
         final adapter = HtmlAdapter();
         final document = adapter.parse(html);
 
@@ -253,8 +254,7 @@ void main() {
         expect(find.byType(HyperViewer), findsOneWidget);
       });
 
-      testWidgets('renders with virtualized mode',
-          (WidgetTester tester) async {
+      testWidgets('renders with virtualized mode', (WidgetTester tester) async {
         final longContent = List.generate(
           50,
           (i) => '<p>Paragraph $i with enough text to be meaningful.</p>',

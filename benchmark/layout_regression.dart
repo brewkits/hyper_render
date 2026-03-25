@@ -24,12 +24,12 @@ import 'package:hyper_render/hyper_render.dart';
 /// Hard layout-time budgets per fixture (milliseconds, median over N runs).
 /// Raise a budget only with a documented justification in the PR description.
 const _kThresholds = {
-  'simple_paragraph': 8,    // trivial — must stay well under budget
-  'mixed_inline': 10,       // bold/italic/code/links inline mix
-  'float_layout': 12,       // float + text-wrap — the heaviest inline case
-  'table_20_rows': 14,      // 3-column table, 20 rows with col/row spans
-  'cjk_ruby': 14,           // CJK kinsoku + ruby annotation measurement
-  'large_article': 16,      // 100-paragraph realistic article — worst case
+  'simple_paragraph': 8, // trivial — must stay well under budget
+  'mixed_inline': 10, // bold/italic/code/links inline mix
+  'float_layout': 12, // float + text-wrap — the heaviest inline case
+  'table_20_rows': 14, // 3-column table, 20 rows with col/row spans
+  'cjk_ruby': 14, // CJK kinsoku + ruby annotation measurement
+  'large_article': 16, // 100-paragraph realistic article — worst case
 };
 
 const _kWarmupRuns = 3;
@@ -135,7 +135,7 @@ Future<int> _measureOne(WidgetTester tester, String html) async {
       ),
     ),
   );
-  await tester.pump();       // layout pass
+  await tester.pump(); // layout pass
   sw.stop();
   await tester.pumpWidget(const SizedBox()); // reset between runs
   return sw.elapsedMilliseconds;

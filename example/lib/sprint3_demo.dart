@@ -61,7 +61,9 @@ class _Sprint3DemoState extends State<Sprint3Demo>
             Tab(icon: Icon(Icons.grid_view, size: 16), text: 'Grid'),
             Tab(icon: Icon(Icons.calculate, size: 16), text: 'calc()'),
             Tab(icon: Icon(Icons.image, size: 16), text: 'SVG'),
-            Tab(icon: Icon(Icons.format_textdirection_r_to_l, size: 16), text: 'RTL'),
+            Tab(
+                icon: Icon(Icons.format_textdirection_r_to_l, size: 16),
+                text: 'RTL'),
             Tab(icon: Icon(Icons.camera_alt, size: 16), text: 'Screenshot'),
           ],
         ),
@@ -111,7 +113,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         const SizedBox(height: 12),
         _htmlCard(
           label: 'Inheritance — child reads parent\'s variable',
-          html: '''<div style="--brand:#e53935;border:1px solid #eee;border-radius:8px;padding:12px">
+          html:
+              '''<div style="--brand:#e53935;border:1px solid #eee;border-radius:8px;padding:12px">
   <strong>Parent:</strong> <code>--brand: #e53935</code>
   <div style="margin-top:8px;padding:8px;background:#fce4ec;border-radius:6px">
     <span style="color:var(--brand)">✓ Child reads var(--brand)</span>
@@ -188,7 +191,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         const SizedBox(height: 16),
         _htmlCard(
           label: 'Equal columns: 1fr 1fr 1fr',
-          html: '''<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          html:
+              '''<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
   <div style="background:#bbdefb;padding:10px;text-align:center;border-radius:4px">Col 1</div>
   <div style="background:#c8e6c9;padding:10px;text-align:center;border-radius:4px">Col 2</div>
   <div style="background:#ffe0b2;padding:10px;text-align:center;border-radius:4px">Col 3</div>
@@ -200,7 +204,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         const SizedBox(height: 12),
         _htmlCard(
           label: 'Mixed units: 120px sidebar | 2fr main | 1fr aside',
-          html: '''<div style="display:grid;grid-template-columns:120px 2fr 1fr;gap:6px">
+          html:
+              '''<div style="display:grid;grid-template-columns:120px 2fr 1fr;gap:6px">
   <div style="background:#e3f2fd;padding:10px;border-radius:4px">
     <strong>Fixed 120px</strong><br><small>Sidebar</small>
   </div>
@@ -215,7 +220,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         const SizedBox(height: 12),
         _htmlCard(
           label: 'repeat(4, 1fr) — calendar-style grid',
-          html: '''<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
+          html:
+              '''<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
   <div style="background:#b3e5fc;padding:8px;text-align:center;border-radius:4px;font-size:13px">Jan</div>
   <div style="background:#b3e5fc;padding:8px;text-align:center;border-radius:4px;font-size:13px">Feb</div>
   <div style="background:#b3e5fc;padding:8px;text-align:center;border-radius:4px;font-size:13px">Mar</div>
@@ -229,7 +235,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         const SizedBox(height: 12),
         _htmlCard(
           label: 'grid-column: span N — spanning layout',
-          html: '''<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          html:
+              '''<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
   <div style="grid-column:span 3;background:#1565c0;color:white;padding:10px;
               text-align:center;border-radius:4px;font-weight:bold">
     Header (span 3 — full width)
@@ -252,7 +259,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         const SizedBox(height: 12),
         _htmlCard(
           label: 'Photo gallery — repeat(3, 1fr) with wide feature',
-          html: '''<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          html:
+              '''<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
   <div style="background:#ef9a9a;height:70px;border-radius:6px;
               display:flex;align-items:center;justify-content:center;font-size:24px">🖼</div>
   <div style="background:#80cbc4;height:70px;border-radius:6px;
@@ -298,7 +306,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         const SizedBox(height: 12),
         _htmlCard(
           label: 'Operator precedence — * before +',
-          html: '''<div style="background:#e3f2fd;padding:8px;border-radius:6px;margin-bottom:8px">
+          html:
+              '''<div style="background:#e3f2fd;padding:8px;border-radius:6px;margin-bottom:8px">
   <p style="margin:0;font-size:calc(2 * 6px + 4px)">
     <code>calc(2 * 6px + 4px)</code> = 16px
     <small>(multiply first: 12px, then add 4px)</small>
@@ -439,7 +448,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
                   'SVG is rendered natively via flutter_svg (built-in). '
                   'Inline <svg>, <img src="*.svg">, and data:image/svg+xml URIs '
                   'are all handled automatically — no extra setup needed.',
-                  style: TextStyle(fontSize: 12, color: Colors.black87, height: 1.4),
+                  style: TextStyle(
+                      fontSize: 12, color: Colors.black87, height: 1.4),
                 ),
               ),
             ],
@@ -464,7 +474,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         const SizedBox(height: 16),
         _htmlCard(
           label: 'Arabic — direction: rtl',
-          html: '''<div style="direction:rtl;border:1px solid #1565c0;border-radius:8px;padding:12px">
+          html:
+              '''<div style="direction:rtl;border:1px solid #1565c0;border-radius:8px;padding:12px">
   <h3 style="margin:0 0 8px;color:#1565c0">مرحبا بالعالم</h3>
   <p style="margin:0">
     هذا نص عربي يُكتب من اليمين إلى اليسار.
@@ -475,7 +486,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         const SizedBox(height: 12),
         _htmlCard(
           label: 'Hebrew — dir attribute',
-          html: '''<p dir="rtl" style="border-right:3px solid #e53935;padding-right:12px;color:#333">
+          html:
+              '''<p dir="rtl" style="border-right:3px solid #e53935;padding-right:12px;color:#333">
   שלום עולם — dir="rtl" on the paragraph element
 </p>''',
         ),
@@ -514,7 +526,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         const SizedBox(height: 12),
         _htmlCard(
           label: 'RTL in grid layout',
-          html: '''<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;direction:rtl">
+          html:
+              '''<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;direction:rtl">
   <div style="background:#e3f2fd;padding:10px;border-radius:4px;text-align:right">خلية 1</div>
   <div style="background:#e8f5e9;padding:10px;border-radius:4px;text-align:right">خلية 2</div>
   <div style="background:#fff3e0;padding:10px;border-radius:4px;text-align:right">خلية 3</div>
@@ -551,7 +564,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 color: Colors.blue.shade50,
                 child: const Row(
                   children: [
@@ -566,7 +580,8 @@ class _Sprint3DemoState extends State<Sprint3Demo>
               ),
               HyperViewer(
                 captureKey: _captureKey,
-                html: '''<div style="padding:20px;font-family:sans-serif;background:#fff">
+                html:
+                    '''<div style="padding:20px;font-family:sans-serif;background:#fff">
   <div style="--primary:#1565c0;--accent:#00897b">
     <h2 style="color:var(--primary);margin:0 0 8px">HyperRender v1.0.0</h2>
     <p style="margin:0 0 12px;color:#555">Screenshot captured via captureKey.toPngBytes()</p>
@@ -630,15 +645,18 @@ class _Sprint3DemoState extends State<Sprint3Demo>
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   color: Colors.green.shade50,
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle, size: 14, color: Colors.green),
+                      const Icon(Icons.check_circle,
+                          size: 14, color: Colors.green),
                       const SizedBox(width: 6),
                       Text(
                         'Captured ${(_capturedBytes!.length / 1024).toStringAsFixed(1)} KB PNG',
-                        style: const TextStyle(fontSize: 12, color: Colors.green),
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.green),
                       ),
                     ],
                   ),

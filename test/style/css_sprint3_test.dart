@@ -38,7 +38,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<p style="font-size: var(--undefined-size, 20px)">Fallback 20px</p>',
+              html:
+                  '<p style="font-size: var(--undefined-size, 20px)">Fallback 20px</p>',
             ),
           ),
         ),
@@ -231,7 +232,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<p style="font-size: calc(2 * 6px + 4px)">Should be 16px</p>',
+              html:
+                  '<p style="font-size: calc(2 * 6px + 4px)">Should be 16px</p>',
             ),
           ),
         ),

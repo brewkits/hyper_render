@@ -24,7 +24,8 @@ void main() {
     // ── <img src="*.svg"> ───────────────────────────────────────────────────
 
     test('returns SvgPicture for img with .svg src', () {
-      final node = AtomicNode(tagName: 'img', src: 'https://example.com/icon.svg');
+      final node =
+          AtomicNode(tagName: 'img', src: 'https://example.com/icon.svg');
       final widget = buildSvgWidget(node);
       expect(widget, isA<SvgPicture>());
     });
@@ -37,13 +38,15 @@ void main() {
     });
 
     test('returns null for img with non-svg src', () {
-      final node = AtomicNode(tagName: 'img', src: 'https://example.com/photo.png');
+      final node =
+          AtomicNode(tagName: 'img', src: 'https://example.com/photo.png');
       final widget = buildSvgWidget(node);
       expect(widget, isNull);
     });
 
     test('returns null for non-svg, non-img node', () {
-      final node = AtomicNode(tagName: 'video', src: 'https://example.com/v.mp4');
+      final node =
+          AtomicNode(tagName: 'video', src: 'https://example.com/v.mp4');
       final widget = buildSvgWidget(node);
       expect(widget, isNull);
     });
@@ -63,8 +66,7 @@ void main() {
 
     test('returns SvgPicture.string for base64 SVG data URI', () {
       // <svg><rect width="10" height="10"/></svg> base64-encoded
-      const b64 =
-          'PHN2Zz48cmVjdCB3aWR0aD0iMTAiIGhlaWdodD0iMTAiLz48L3N2Zz4=';
+      const b64 = 'PHN2Zz48cmVjdCB3aWR0aD0iMTAiIGhlaWdodD0iMTAiLz48L3N2Zz4=';
       final node = AtomicNode(
         tagName: 'img',
         src: 'data:image/svg+xml;base64,$b64',

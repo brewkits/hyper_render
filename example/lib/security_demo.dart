@@ -115,8 +115,7 @@ class _SecurityDemoState extends State<SecurityDemo> {
   @override
   Widget build(BuildContext context) {
     final preset = _presets[_selectedPreset]!;
-    final isDangerous =
-        HtmlSanitizer.containsDangerousContent(preset['html']!);
+    final isDangerous = HtmlSanitizer.containsDangerousContent(preset['html']!);
 
     return Scaffold(
       appBar: AppBar(
@@ -267,9 +266,7 @@ class _SecurityDemoState extends State<SecurityDemo> {
                             _sanitizeEnabled
                                 ? Icons.shield
                                 : Icons.shield_outlined,
-                            color: _sanitizeEnabled
-                                ? Colors.green
-                                : Colors.red,
+                            color: _sanitizeEnabled ? Colors.green : Colors.red,
                             size: 32,
                           ),
                           const SizedBox(width: 12),
@@ -322,8 +319,7 @@ class _SecurityDemoState extends State<SecurityDemo> {
                       html: preset['html']!,
                       sanitize: _sanitizeEnabled,
                       allowDataAttributes: _allowDataAttributes,
-                      semanticLabel:
-                          'Security demo: ${preset['name']}',
+                      semanticLabel: 'Security demo: ${preset['name']}',
                     ),
                   ),
 

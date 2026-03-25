@@ -8,7 +8,8 @@ import 'package:hyper_render/hyper_render.dart';
 ///   HTML `display:grid` → StyleResolver → GridContainerWidget → layout
 void main() {
   group('CSS Grid — basic rendering', () {
-    testWidgets('renders 3-column equal-width grid (1fr 1fr 1fr)', (tester) async {
+    testWidgets('renders 3-column equal-width grid (1fr 1fr 1fr)',
+        (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -279,7 +280,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<div style="display:grid;grid-template-columns:1fr 1fr"></div>',
+              html:
+                  '<div style="display:grid;grid-template-columns:1fr 1fr"></div>',
             ),
           ),
         ),
@@ -349,15 +351,22 @@ void main() {
 
     testWidgets('grid with many items wraps to multiple rows', (tester) async {
       const items = [
-        '<div>1</div>', '<div>2</div>', '<div>3</div>',
-        '<div>4</div>', '<div>5</div>', '<div>6</div>',
-        '<div>7</div>', '<div>8</div>', '<div>9</div>',
+        '<div>1</div>',
+        '<div>2</div>',
+        '<div>3</div>',
+        '<div>4</div>',
+        '<div>5</div>',
+        '<div>6</div>',
+        '<div>7</div>',
+        '<div>8</div>',
+        '<div>9</div>',
       ];
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">'
+              html:
+                  '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">'
                   '${items.join()}</div>',
             ),
           ),

@@ -44,8 +44,7 @@ class _HyperRenderRegistry {
   List<Map<String, dynamic>>? getFragments(String id) =>
       _renderers[id]?.lastFragments;
 
-  List<Map<String, dynamic>>? getLines(String id) =>
-      _renderers[id]?.lastLines;
+  List<Map<String, dynamic>>? getLines(String id) => _renderers[id]?.lastLines;
 }
 
 class _RendererInfo {
@@ -144,8 +143,7 @@ class HyperRenderDevtools {
       (method, parameters) async {
         final rendererId = parameters['rendererId'] ?? '';
         final nodeId = parameters['nodeId'] ?? '';
-        final document =
-            _HyperRenderRegistry.instance.getDocument(rendererId);
+        final document = _HyperRenderRegistry.instance.getDocument(rendererId);
         if (document == null) {
           return developer.ServiceExtensionResponse.error(
             developer.ServiceExtensionResponse.extensionError,

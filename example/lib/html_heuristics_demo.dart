@@ -128,12 +128,14 @@ class _SimpleHtmlTab extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green.shade700, size: 18),
+                Icon(Icons.check_circle,
+                    color: Colors.green.shade700, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'HyperViewer rendered natively — fallbackBuilder was NOT called.',
-                    style: TextStyle(color: Colors.green.shade800, fontSize: 13),
+                    style:
+                        TextStyle(color: Colors.green.shade800, fontSize: 13),
                   ),
                 ),
               ],
@@ -242,13 +244,15 @@ class _ComplexExample extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
-                Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 18),
+                Icon(Icons.warning_amber,
+                    color: Colors.orange.shade700, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'HtmlHeuristics.isComplex() = true → fallbackBuilder was called '
                     '(mock WebView shown above).',
-                    style: TextStyle(color: Colors.orange.shade900, fontSize: 13),
+                    style:
+                        TextStyle(color: Colors.orange.shade900, fontSize: 13),
                   ),
                 ),
               ],
@@ -260,12 +264,14 @@ class _ComplexExample extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green.shade700, size: 18),
+                Icon(Icons.check_circle,
+                    color: Colors.green.shade700, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'HyperViewer rendered natively — fallbackBuilder was NOT called.',
-                    style: TextStyle(color: Colors.green.shade800, fontSize: 13),
+                    style:
+                        TextStyle(color: Colors.green.shade800, fontSize: 13),
                   ),
                 ),
               ],
@@ -423,8 +429,8 @@ class _LiveCheckerTabState extends State<_LiveCheckerTab> {
                   if (hint != null)
                     TextSpan(
                       text: '  ($hint)',
-                      style: TextStyle(
-                          fontSize: 11, color: Colors.grey.shade600),
+                      style:
+                          TextStyle(fontSize: 11, color: Colors.grey.shade600),
                     ),
                 ],
               ),
@@ -487,8 +493,7 @@ class _HeuristicsResultBanner extends StatelessWidget {
         '$label: ${value ? 'true' : 'false'}',
         style: const TextStyle(fontSize: 11),
       ),
-      backgroundColor:
-          value ? Colors.orange.shade100 : Colors.green.shade100,
+      backgroundColor: value ? Colors.orange.shade100 : Colors.green.shade100,
       labelStyle: TextStyle(
         color: value ? Colors.orange.shade900 : Colors.green.shade900,
         fontFamily: 'monospace',
@@ -537,8 +542,8 @@ class _MockWebViewFallback extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade700,
                     borderRadius: BorderRadius.circular(4),
@@ -571,8 +576,8 @@ class _MockWebViewFallback extends StatelessWidget {
                   'In production: replace with WebView(controller: ...) '
                   'from package:webview_flutter',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 12, color: Colors.blueGrey.shade400),
+                  style:
+                      TextStyle(fontSize: 12, color: Colors.blueGrey.shade400),
                 ),
               ],
             ),

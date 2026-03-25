@@ -520,14 +520,17 @@ void main() {
       final child = ComputedStyle();
       child.inheritFrom(parent);
 
-      expect(child.margin, equals(EdgeInsets.zero)); // not inherited, stays at default
-      expect(child.padding, equals(EdgeInsets.zero)); // not inherited, stays at default
+      expect(child.margin,
+          equals(EdgeInsets.zero)); // not inherited, stays at default
+      expect(child.padding,
+          equals(EdgeInsets.zero)); // not inherited, stays at default
       expect(child.borderColor, isNull);
       expect(child.borderWidth, equals(EdgeInsets.zero)); // default value
       expect(child.backgroundColor, isNull);
       expect(child.width, isNull);
       expect(child.height, isNull);
-      expect(child.display, equals(DisplayType.inline)); // default, not inherited
+      expect(
+          child.display, equals(DisplayType.inline)); // default, not inherited
       expect(child.float, equals(HyperFloat.none)); // default, not inherited
     });
 

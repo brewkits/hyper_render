@@ -238,7 +238,8 @@ class DefaultPlaceholderExample extends StatelessWidget {
         children: [
           const _ExampleHeader(
             title: 'Default Placeholder',
-            description: 'No custom implementation needed. HyperRender shows beautiful placeholders with hover effects.',
+            description:
+                'No custom implementation needed. HyperRender shows beautiful placeholders with hover effects.',
           ),
           const SizedBox(height: 24),
           HyperViewer(
@@ -286,7 +287,8 @@ class VideoPlayerExample extends StatelessWidget {
         children: [
           const _ExampleHeader(
             title: 'Video Player Integration',
-            description: 'Use mediaBuilder to plug in video_player package for real video playback.',
+            description:
+                'Use mediaBuilder to plug in video_player package for real video playback.',
           ),
           const SizedBox(height: 24),
           HyperViewer(
@@ -373,7 +375,8 @@ class WebViewExample extends StatelessWidget {
         children: [
           const _ExampleHeader(
             title: 'WebView/IFrame Integration',
-            description: 'Use widgetBuilder to detect iframe tags and render them using webview_flutter.',
+            description:
+                'Use widgetBuilder to detect iframe tags and render them using webview_flutter.',
           ),
           const SizedBox(height: 24),
           HyperViewer(
@@ -507,7 +510,8 @@ class FloatLayoutExample extends StatelessWidget {
         children: [
           const _ExampleHeader(
             title: 'Float Layout with Video',
-            description: 'HyperRender\'s unique advantage: CSS float works perfectly with video and iframe!',
+            description:
+                'HyperRender\'s unique advantage: CSS float works perfectly with video and iframe!',
             highlight: true,
           ),
           const SizedBox(height: 24),
@@ -571,7 +575,8 @@ class CustomWidgetExample extends StatelessWidget {
         children: [
           const _ExampleHeader(
             title: 'Custom Widget Integration',
-            description: 'Extend HTML with your own custom interactive widgets using widgetBuilder.',
+            description:
+                'Extend HTML with your own custom interactive widgets using widgetBuilder.',
           ),
           const SizedBox(height: 24),
           HyperViewer(
@@ -818,8 +823,10 @@ class _VoteWidgetState extends State<VoteWidget> {
   @override
   Widget build(BuildContext context) {
     final total = _votes1 + _votes2;
-    final percent1 = (total > 0 ? (_votes1 / total * 100) : 0).toStringAsFixed(0);
-    final percent2 = (total > 0 ? (_votes2 / total * 100) : 0).toStringAsFixed(0);
+    final percent1 =
+        (total > 0 ? (_votes1 / total * 100) : 0).toStringAsFixed(0);
+    final percent2 =
+        (total > 0 ? (_votes2 / total * 100) : 0).toStringAsFixed(0);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -912,7 +919,8 @@ class ChartWidget extends StatelessWidget {
             children: [
               Text(
                 value.toStringAsFixed(0),
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               Container(
@@ -920,7 +928,8 @@ class ChartWidget extends StatelessWidget {
                 height: barHeight,
                 decoration: BoxDecoration(
                   color: Colors.blue.shade400,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(4)),
                 ),
               ),
             ],

@@ -157,7 +157,8 @@ abstract class UDTNode {
   String? get cssId => attributes['id'];
 
   @override
-  String toString() => 'UDTNode($type, tag=$tagName, children=${children.length})';
+  String toString() =>
+      'UDTNode($type, tag=$tagName, children=${children.length})';
 }
 
 /// Document root node
@@ -311,7 +312,8 @@ class TextNode extends UDTNode {
   String get textContent => text;
 
   @override
-  String toString() => 'TextNode("${text.length > 20 ? '${text.substring(0, 20)}...' : text}")';
+  String toString() =>
+      'TextNode("${text.length > 20 ? '${text.substring(0, 20)}...' : text}")';
 }
 
 /// Line break node (br)

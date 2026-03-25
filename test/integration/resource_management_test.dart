@@ -174,7 +174,8 @@ void main() {
                   ElevatedButton(
                     onPressed: () {
                       for (var i = 1; i <= 5; i++) {
-                        setState(() => html = '<p>Page $i — ${'word ' * 50}</p>');
+                        setState(
+                            () => html = '<p>Page $i — ${'word ' * 50}</p>');
                       }
                     },
                     child: const Text('Rapid'),
@@ -253,7 +254,8 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<h1>Low-end device</h1><p>Small cache, low concurrency</p>',
+              html:
+                  '<h1>Low-end device</h1><p>Small cache, low concurrency</p>',
               renderConfig: lowEndConfig,
             ),
           ),
@@ -262,8 +264,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      final viewer =
-          tester.widget<HyperViewer>(find.byType(HyperViewer).first);
+      final viewer = tester.widget<HyperViewer>(find.byType(HyperViewer).first);
       expect(viewer.renderConfig.textPainterCacheSize, 200);
       expect(viewer.renderConfig.imageConcurrency, 1);
     });
@@ -280,7 +281,8 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<h1>Flagship device</h1><p>Large cache, high concurrency</p>',
+              html:
+                  '<h1>Flagship device</h1><p>Large cache, high concurrency</p>',
               renderConfig: highEndConfig,
             ),
           ),
@@ -291,7 +293,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('config survives hot-restart (didUpdateWidget)', (tester) async {
+    testWidgets('config survives hot-restart (didUpdateWidget)',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -362,7 +365,8 @@ void main() {
       expect(tappedUrl, isNull);
     });
 
-    testWidgets('HyperViewer accepts allowedCustomSchemes list', (tester) async {
+    testWidgets('HyperViewer accepts allowedCustomSchemes list',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -403,7 +407,8 @@ void main() {
 
   // ───────────────────────────────────────────────────────────────────────────
   group('Resource Management — Semantics Threshold', () {
-    testWidgets('large document renders without semantics crash', (tester) async {
+    testWidgets('large document renders without semantics crash',
+        (tester) async {
       // Generate doc with > 500 fragments to exercise the threshold path.
       final sb = StringBuffer('<html><body>');
       for (var i = 0; i < 200; i++) {
@@ -555,8 +560,7 @@ void main() {
 
       expect(tester.takeException(), isNull);
 
-      final viewer =
-          tester.widget<HyperViewer>(find.byType(HyperViewer).first);
+      final viewer = tester.widget<HyperViewer>(find.byType(HyperViewer).first);
       expect(viewer.minScale, 0.25);
       expect(viewer.maxScale, 6.0);
 
@@ -606,7 +610,8 @@ void main() {
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
-    testWidgets('virtualized mode shows loader for large content', (tester) async {
+    testWidgets('virtualized mode shows loader for large content',
+        (tester) async {
       final html = '<p>${'word ' * 3000}</p>';
 
       await tester.pumpWidget(

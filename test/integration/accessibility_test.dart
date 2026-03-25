@@ -280,9 +280,9 @@ void main() {
   // ARIA attributes
   // ---------------------------------------------------------------------------
   group('ARIA attributes', () {
-    testWidgets('renders aria-label on paragraph without crash', (tester) async {
-      const html =
-          '<p aria-label="Important notice">Read this carefully.</p>';
+    testWidgets('renders aria-label on paragraph without crash',
+        (tester) async {
+      const html = '<p aria-label="Important notice">Read this carefully.</p>';
 
       await tester.pumpWidget(
         MaterialApp(
@@ -306,8 +306,7 @@ void main() {
     });
 
     testWidgets('renders role="button" without crash', (tester) async {
-      const html =
-          '<span role="button" aria-label="Submit form">Submit</span>';
+      const html = '<span role="button" aria-label="Submit form">Submit</span>';
 
       await tester.pumpWidget(
         MaterialApp(
@@ -427,7 +426,8 @@ void main() {
   // Outer semantics label (Semantics wrapper)
   // ---------------------------------------------------------------------------
   group('Outer semantics label', () {
-    testWidgets('excludeSemantics hides content from a11y tree', (tester) async {
+    testWidgets('excludeSemantics hides content from a11y tree',
+        (tester) async {
       const html = '<p>Decorative content</p>';
 
       await tester.pumpWidget(

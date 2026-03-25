@@ -157,6 +157,7 @@ void main() {
           walk(c);
         }
       }
+
       walk(doc);
 
       expect(video, isNotNull);
@@ -178,6 +179,7 @@ void main() {
           walk(c);
         }
       }
+
       walk(doc);
 
       expect(audio, isNotNull);
@@ -196,6 +198,7 @@ void main() {
           walk(c);
         }
       }
+
       walk(doc);
 
       expect(video, isNotNull);
@@ -207,7 +210,8 @@ void main() {
 
   group('HtmlSanitizer — video/audio allowed', () {
     test('video tag survives sanitization', () {
-      const html = '<video src="v.mp4" controls width="320" height="180"></video>';
+      const html =
+          '<video src="v.mp4" controls width="320" height="180"></video>';
       final result = HtmlSanitizer.sanitize(html);
 
       expect(result, contains('video'));
@@ -250,7 +254,8 @@ void main() {
     });
 
     test('dangerous attributes stripped from video', () {
-      const html = '<video src="v.mp4" onclick="evil()" onerror="bad()"></video>';
+      const html =
+          '<video src="v.mp4" onclick="evil()" onerror="bad()"></video>';
       final result = HtmlSanitizer.sanitize(html);
 
       expect(result, isNot(contains('onclick')));
@@ -302,7 +307,8 @@ void main() {
       expect(find.byType(DefaultMediaWidget), findsOneWidget);
     });
 
-    testWidgets('video with large width is capped to container', (tester) async {
+    testWidgets('video with large width is capped to container',
+        (tester) async {
       // Container is 400px wide; video requests 1920px → must not overflow
       await tester.pumpWidget(
         MaterialApp(
@@ -359,7 +365,8 @@ void main() {
       expect(renderBox.size.height, greaterThan(0));
     });
 
-    testWidgets('onTap callback is called when video is tapped', (tester) async {
+    testWidgets('onTap callback is called when video is tapped',
+        (tester) async {
       bool tapped = false;
 
       await tester.pumpWidget(
@@ -396,7 +403,8 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<video src="v.mp4" width="320" height="180" controls></video>',
+              html:
+                  '<video src="v.mp4" width="320" height="180" controls></video>',
               widgetBuilder: (node) {
                 if (node is AtomicNode && node.tagName == 'video') {
                   builderCalled = true;
@@ -449,7 +457,8 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<video src="v.mp4" controls width="320" height="180"></video>',
+              html:
+                  '<video src="v.mp4" controls width="320" height="180"></video>',
             ),
           ),
         ),

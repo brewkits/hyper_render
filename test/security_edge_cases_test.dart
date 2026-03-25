@@ -14,7 +14,8 @@ void main() {
       });
 
       test('blocks URL encoded javascript', () {
-        const html = '<a href="%6a%61%76%61%73%63%72%69%70%74:alert(1)">Link</a>';
+        const html =
+            '<a href="%6a%61%76%61%73%63%72%69%70%74:alert(1)">Link</a>';
         final result = HtmlSanitizer.sanitize(html);
 
         expect(result, isNot(contains('javascript')));
@@ -120,7 +121,8 @@ void main() {
       });
 
       test('blocks data URLs in href (non-image)', () {
-        const html = '<a href="data:text/html,<script>alert(1)</script>">Link</a>';
+        const html =
+            '<a href="data:text/html,<script>alert(1)</script>">Link</a>';
         final result = HtmlSanitizer.sanitize(html);
 
         expect(result, isNot(contains('data:text/html')));

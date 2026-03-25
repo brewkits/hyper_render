@@ -70,7 +70,8 @@ Widget _buildFromSrc(String src, double? width, double? height) {
     src,
     width: width,
     height: height,
-    placeholderBuilder: (_) => SizedBox(width: width ?? 40, height: height ?? 40),
+    placeholderBuilder: (_) =>
+        SizedBox(width: width ?? 40, height: height ?? 40),
   );
 }
 

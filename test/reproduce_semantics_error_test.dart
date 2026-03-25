@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';
 
 void main() {
-  testWidgets('Reproduce semantics.parentDataDirty assertion error with nested tables', (tester) async {
+  testWidgets(
+      'Reproduce semantics.parentDataDirty assertion error with nested tables',
+      (tester) async {
     // Create a deeply nested table structure to trigger deep semantics recursion
     String nestedTableHtml = '<table>';
     for (int i = 0; i < 5; i++) {
@@ -31,7 +33,7 @@ void main() {
 
     // Trigger a semantics update by enabling semantics
     final SemanticsHandle handle = tester.ensureSemantics();
-    
+
     // Change something to trigger a rebuild and semantics update
     await tester.pumpWidget(
       MaterialApp(
@@ -44,9 +46,9 @@ void main() {
         ),
       ),
     );
-    
+
     await tester.pumpAndSettle();
-    
+
     handle.dispose();
   });
 }

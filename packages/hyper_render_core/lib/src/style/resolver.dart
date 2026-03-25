@@ -43,71 +43,73 @@ import '../model/node.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 abstract final class _Re {
   // ── General ───────────────────────────────────────────────────────────────
-  static final whitespace      = RegExp(r'\s+');
-  static final multiSpace      = RegExp(r' {2,}');
+  static final whitespace = RegExp(r'\s+');
+  static final multiSpace = RegExp(r' {2,}');
 
   // ── Selectors — rule-index builder ───────────────────────────────────────
   // These use [a-zA-Z_] as the first character (stricter, used when building
   // the O(1) lookup index from parsed CSS rules).
-  static final idIndex         = RegExp(r'#([a-zA-Z_][a-zA-Z0-9_-]*)');
-  static final classIndex      = RegExp(r'\.([a-zA-Z_][a-zA-Z0-9_-]*)');
-  static final tagName         = RegExp(r'^([a-zA-Z][a-zA-Z0-9]*)');
+  static final idIndex = RegExp(r'#([a-zA-Z_][a-zA-Z0-9_-]*)');
+  static final classIndex = RegExp(r'\.([a-zA-Z_][a-zA-Z0-9_-]*)');
+  static final tagName = RegExp(r'^([a-zA-Z][a-zA-Z0-9]*)');
 
   // ── Selectors — combined selector matcher ─────────────────────────────────
   // These use [a-zA-Z_-] as the first character (looser, handles edge cases
   // like `-webkit-` prefixed custom selectors in authored CSS).
-  static final idMatch         = RegExp(r'#([a-zA-Z_-][a-zA-Z0-9_-]*)');
-  static final classMatch      = RegExp(r'\.([a-zA-Z_-][a-zA-Z0-9_-]*)');
+  static final idMatch = RegExp(r'#([a-zA-Z_-][a-zA-Z0-9_-]*)');
+  static final classMatch = RegExp(r'\.([a-zA-Z_-][a-zA-Z0-9_-]*)');
 
   // ── Specificity ───────────────────────────────────────────────────────────
-  static final specId          = RegExp(r'#[a-zA-Z_-]+');
-  static final specClass       = RegExp(r'\.[a-zA-Z_-]+');
-  static final specAttr        = RegExp(r'\[[^\]]+\]');
-  static final specPseudo      = RegExp(r':[a-zA-Z_-]+');
-  static final specParts       = RegExp(r'[\s>+~]+');
-  static final startsWithLetter= RegExp(r'^[a-zA-Z]');
+  static final specId = RegExp(r'#[a-zA-Z_-]+');
+  static final specClass = RegExp(r'\.[a-zA-Z_-]+');
+  static final specAttr = RegExp(r'\[[^\]]+\]');
+  static final specPseudo = RegExp(r':[a-zA-Z_-]+');
+  static final specParts = RegExp(r'[\s>+~]+');
+  static final startsWithLetter = RegExp(r'^[a-zA-Z]');
 
   // ── Combinators ───────────────────────────────────────────────────────────
-  static final combinatorSplit   = RegExp(r'\s*[>+~]\s*|\s+');
+  static final combinatorSplit = RegExp(r'\s*[>+~]\s*|\s+');
   static final combinatorCapture = RegExp(r'\s*([>+~])\s*');
 
   // ── Pseudo-classes / pseudo-elements ─────────────────────────────────────
-  static final pseudoExtract   = RegExp(r'::?[a-zA-Z-]+(?:\([^()]*\))?');
-  static final nthChild        = RegExp(r'^:nth-child\(([^)]+)\)$');
-  static final nthLastChild    = RegExp(r'^:nth-last-child\(([^)]+)\)$');
-  static final nthExpr         = RegExp(r'^(-?\d*)?n(?:\+(\d+))?$');
+  static final pseudoExtract = RegExp(r'::?[a-zA-Z-]+(?:\([^()]*\))?');
+  static final nthChild = RegExp(r'^:nth-child\(([^)]+)\)$');
+  static final nthLastChild = RegExp(r'^:nth-last-child\(([^)]+)\)$');
+  static final nthExpr = RegExp(r'^(-?\d*)?n(?:\+(\d+))?$');
 
   // ── CSS value functions ───────────────────────────────────────────────────
   // url('/image.png') or url(image.png) — group(1) = URL
-  static final urlFunc         = RegExp(r'''url\(\s*['"]?([^'")\s]+)['"]?\s*\)''');
+  static final urlFunc = RegExp(r'''url\(\s*['"]?([^'")\s]+)['"]?\s*\)''');
   // var(--prop) or var(--prop, fallback) — group(1) = prop, group(2) = fallback
-  static final cssVar          = RegExp(r'var\(\s*(--[^,)]+?)(?:\s*,\s*([^)]*))?\s*\)');
-  static final calcInner       = RegExp(r'calc\(([^()]+)\)');
-  static final calcToken       = RegExp(r'(-?[\d.]+)(px|em|rem|%)?\s*|([+\-*/])');
+  static final cssVar = RegExp(r'var\(\s*(--[^,)]+?)(?:\s*,\s*([^)]*))?\s*\)');
+  static final calcInner = RegExp(r'calc\(([^()]+)\)');
+  static final calcToken = RegExp(r'(-?[\d.]+)(px|em|rem|%)?\s*|([+\-*/])');
 
   // ── Layout values ─────────────────────────────────────────────────────────
   // "span 2" or "span 12" — group(1) = count
-  static final gridSpan        = RegExp(r'span\s+(\d+)', caseSensitive: false);
+  static final gridSpan = RegExp(r'span\s+(\d+)', caseSensitive: false);
 
   // ── Color & gradient ─────────────────────────────────────────────────────
   // rgb(r, g, b) — groups 1/2/3 = r/g/b (supports negative clamped values)
-  static final rgb             = RegExp(r'rgb\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)');
+  static final rgb =
+      RegExp(r'rgb\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)');
   // rgba(r, g, b, a) — groups 1/2/3/4 = r/g/b/a
-  static final rgba            = RegExp(r'rgba\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?[\d.]+)\s*\)');
+  static final rgba = RegExp(
+      r'rgba\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?[\d.]+)\s*\)');
   // linear-gradient(content) — group(1) = full content incl. nested parens
-  static final linearGrad      = RegExp(r'linear-gradient\((.*)\)', dotAll: true);
+  static final linearGrad = RegExp(r'linear-gradient\((.*)\)', dotAll: true);
   // angle like "90deg" or "-45deg"
-  static final degAngle        = RegExp(r'-?\d*\.?\d+deg');
+  static final degAngle = RegExp(r'-?\d*\.?\d+deg');
   // leading numeric value from a string (for angle extraction)
-  static final leadingDigit    = RegExp(r'^-?[\d.]+');
+  static final leadingDigit = RegExp(r'^-?[\d.]+');
   // color-stop: group(1) = color, group(2) = stop% (may be empty string)
-  static final colorStopPart   = RegExp(r'^(.*?)\s*([\d.]+%|)$');
+  static final colorStopPart = RegExp(r'^(.*?)\s*([\d.]+%|)$');
   // percentage value: group(1) = numeric part
-  static final percentage      = RegExp(r'^([\d.]+)%');
+  static final percentage = RegExp(r'^([\d.]+)%');
 
   // ── Filters ───────────────────────────────────────────────────────────────
   // CSS filter functions: group(1) = name, group(2) = args
-  static final filterFunc      = RegExp(
+  static final filterFunc = RegExp(
     r'(blur|brightness|contrast|grayscale|hue-rotate|invert|opacity|saturate|sepia)\(([^)]*)\)',
   );
 }
@@ -197,7 +199,8 @@ class StyleResolver {
       borderColor: const Color(0xFFDDDDDD),
     ),
     'mark': ComputedStyle(
-      backgroundColor: const Color(0xFFFEF08A), // Softer yellow (Tailwind yellow-200)
+      backgroundColor:
+          const Color(0xFFFEF08A), // Softer yellow (Tailwind yellow-200)
       color: const Color(0xFF713F12), // Warm brown text — readable on yellow
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
     ),
@@ -224,7 +227,8 @@ class StyleResolver {
     'code': ComputedStyle(
       fontFamily: 'monospace',
       backgroundColor: const Color(0xFFF6F8FA), // GitHub-style light gray
-      color: const Color(0xFF0550AE), // GitHub-style blue — readable, professional
+      color:
+          const Color(0xFF0550AE), // GitHub-style blue — readable, professional
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       borderRadius: BorderRadius.circular(4),
       fontSize: 13,
@@ -247,7 +251,8 @@ class StyleResolver {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       borderWidth: const EdgeInsets.only(left: 4),
       borderColor: const Color(0xFF6366F1), // Indigo accent — clearly visible
-      backgroundColor: const Color(0xFFF8F8FF), // Ghost white — clean, not harsh
+      backgroundColor:
+          const Color(0xFFF8F8FF), // Ghost white — clean, not harsh
     ),
     'ul': ComputedStyle(
       display: DisplayType.block,
@@ -855,10 +860,19 @@ class StyleResolver {
   bool _matchesPseudoClass(UDTNode node, String pseudo) {
     // ── Behavioral states — never true in static rendering ──────────────────
     const dynamic_ = {
-      ':hover', ':focus', ':active', ':visited',
-      ':focus-within', ':focus-visible', ':focus-ring',
-      ':checked', ':indeterminate', ':disabled', ':enabled',
-      ':placeholder-shown', ':autofill',
+      ':hover',
+      ':focus',
+      ':active',
+      ':visited',
+      ':focus-within',
+      ':focus-visible',
+      ':focus-ring',
+      ':checked',
+      ':indeterminate',
+      ':disabled',
+      ':enabled',
+      ':placeholder-shown',
+      ':autofill',
     };
     if (dynamic_.contains(pseudo)) return false;
 
@@ -898,36 +912,36 @@ class StyleResolver {
     final nthLast = _Re.nthLastChild.firstMatch(pseudo);
     if (nthLast != null) {
       if (parent == null) return false;
-      final idx = parent.children.length - parent.children.indexOf(node); // 1-based from end
+      final idx = parent.children.length -
+          parent.children.indexOf(node); // 1-based from end
       return _matchesNthExpression(idx, nthLast.group(1)!.trim());
     }
 
     // ── :first-of-type ──────────────────────────────────────────────────────
     if (pseudo == ':first-of-type') {
       if (parent == null) return false;
-      return parent.children
-              .firstWhere(
-                (c) => c.tagName == node.tagName,
-                orElse: () => node,
-              ) ==
+      return parent.children.firstWhere(
+            (c) => c.tagName == node.tagName,
+            orElse: () => node,
+          ) ==
           node;
     }
 
     // ── :last-of-type ───────────────────────────────────────────────────────
     if (pseudo == ':last-of-type') {
       if (parent == null) return false;
-      return parent.children
-              .lastWhere(
-                (c) => c.tagName == node.tagName,
-                orElse: () => node,
-              ) ==
+      return parent.children.lastWhere(
+            (c) => c.tagName == node.tagName,
+            orElse: () => node,
+          ) ==
           node;
     }
 
     // ── :only-of-type ───────────────────────────────────────────────────────
     if (pseudo == ':only-of-type') {
       if (parent == null) return false;
-      return parent.children.where((c) => c.tagName == node.tagName).length == 1;
+      return parent.children.where((c) => c.tagName == node.tagName).length ==
+          1;
     }
 
     // ── Unknown / future pseudo-classes → ignore (don't block matching) ─────
@@ -950,7 +964,9 @@ class StyleResolver {
     if (match == null) return false;
 
     final aStr = match.group(1) ?? '1';
-    final a = aStr.isEmpty || aStr == '+' ? 1 : (aStr == '-' ? -1 : int.tryParse(aStr) ?? 1);
+    final a = aStr.isEmpty || aStr == '+'
+        ? 1
+        : (aStr == '-' ? -1 : int.tryParse(aStr) ?? 1);
     final b = int.tryParse(match.group(2) ?? '0') ?? 0;
 
     if (a == 0) return index == b;
@@ -1146,8 +1162,7 @@ class StyleResolver {
             style.markExplicitlySet('background-gradient');
           }
         } else if (value.contains('url(')) {
-          final match =
-              _Re.urlFunc.firstMatch(value);
+          final match = _Re.urlFunc.firstMatch(value);
           if (match != null) {
             style.backgroundImage = match.group(1);
             style.markExplicitlySet('background-image');
@@ -1186,8 +1201,7 @@ class StyleResolver {
             style.markExplicitlySet('background-gradient');
           }
         } else if (value.contains('url(')) {
-          final match =
-              _Re.urlFunc.firstMatch(value);
+          final match = _Re.urlFunc.firstMatch(value);
           if (match != null) {
             style.backgroundImage = match.group(1);
             style.markExplicitlySet('background-image');
@@ -2241,8 +2255,7 @@ class StyleResolver {
 
     for (int i = colorStartIndex; i < parts.length; i++) {
       final colorPart = parts[i].trim();
-      final colorMatch =
-          _Re.colorStopPart.firstMatch(colorPart);
+      final colorMatch = _Re.colorStopPart.firstMatch(colorPart);
       if (colorMatch == null) continue;
 
       final colorStr = colorMatch.group(1)!.trim();
@@ -2298,8 +2311,7 @@ class StyleResolver {
   ui.ImageFilter? _parseFilter(String value) {
     if (value.toLowerCase().trim() == 'none') return null;
 
-    final filterFuncs =
-        _Re.filterFunc.allMatches(value.toLowerCase());
+    final filterFuncs = _Re.filterFunc.allMatches(value.toLowerCase());
     if (filterFuncs.isEmpty) return null;
 
     final filters = <ui.ImageFilter>[];
@@ -2593,8 +2605,7 @@ class StyleResolver {
     }
 
     // rgb(r, g, b) — supports negative values (clamped to 0)
-    final rgbMatch =
-        _Re.rgb.firstMatch(value);
+    final rgbMatch = _Re.rgb.firstMatch(value);
     if (rgbMatch != null) {
       final r = int.parse(rgbMatch.group(1)!).clamp(0, 255);
       final g = int.parse(rgbMatch.group(2)!).clamp(0, 255);
@@ -2603,9 +2614,7 @@ class StyleResolver {
     }
 
     // rgba(r, g, b, a) — supports negative alpha (clamped to 0)
-    final rgbaMatch =
-        _Re.rgba
-            .firstMatch(value);
+    final rgbaMatch = _Re.rgba.firstMatch(value);
     if (rgbaMatch != null) {
       final r = int.parse(rgbaMatch.group(1)!).clamp(0, 255);
       final g = int.parse(rgbaMatch.group(2)!).clamp(0, 255);

@@ -64,8 +64,7 @@ void main() {
         RubyNode(baseText: '綺麗', rubyText: 'きれい'),
         TextNode('です'),
       ]);
-      final rubyNodes =
-          para.children.whereType<RubyNode>().toList();
+      final rubyNodes = para.children.whereType<RubyNode>().toList();
       expect(rubyNodes.length, equals(2));
       expect(rubyNodes[0].baseText, equals('日本'));
       expect(rubyNodes[1].baseText, equals('綺麗'));
@@ -371,7 +370,8 @@ void main() {
       }
     });
 
-    test('selection offset accumulates correctly across text + ruby + text', () {
+    test('selection offset accumulates correctly across text + ruby + text',
+        () {
       // Simulate the currentOffset tracking used in _paintSelection /
       // getSelectedText / getSelectionRects.
       //
@@ -380,10 +380,12 @@ void main() {
       final textNode = TextNode('placeholder');
       final rubyNode = RubyNode(baseText: '漢字', rubyText: 'かんじ');
 
-      final fragA = Fragment.text(text: 'ABC', sourceNode: textNode, style: style);
+      final fragA =
+          Fragment.text(text: 'ABC', sourceNode: textNode, style: style);
       final fragR = Fragment.ruby(
           baseText: '漢字', rubyText: 'かんじ', sourceNode: rubyNode, style: style);
-      final fragB = Fragment.text(text: 'DEF', sourceNode: textNode, style: style);
+      final fragB =
+          Fragment.text(text: 'DEF', sourceNode: textNode, style: style);
 
       int offset = 0;
 
@@ -444,7 +446,8 @@ void main() {
 
       expect(offsets[0], equals(0)); // "Hello" starts at 0
       expect(offsets[1], equals(5)); // ruby starts at 5 (after "Hello")
-      expect(offsets[2], equals(6)); // "World" starts at 6 (after "Hello" + '漢')
+      expect(
+          offsets[2], equals(6)); // "World" starts at 6 (after "Hello" + '漢')
     });
   });
 }

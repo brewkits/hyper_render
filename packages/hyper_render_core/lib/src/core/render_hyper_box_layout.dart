@@ -8,7 +8,8 @@ part of 'render_hyper_box.dart';
 // ticket before the v1.2 milestone to prevent further growth.
 
 // Layout spacing constants — single source of truth for all magic numbers
-const double _kImageMargin = 32.0; // horizontal margin subtracted from maxWidth for images
+const double _kImageMargin =
+    32.0; // horizontal margin subtracted from maxWidth for images
 const double _kDefaultFlexFallbackHeight = 50.0;
 const double _kDefaultTableFallbackHeight = 200.0;
 const double _kDefaultCodeBlockFallbackHeight = 100.0;
@@ -325,7 +326,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final imageHeight = image.height.toDouble();
 
         // Clamp available width (leave a small margin so content doesn't touch edges).
-        final maxW = _maxWidth > _kImageMargin ? _maxWidth - _kImageMargin : _maxWidth;
+        final maxW =
+            _maxWidth > _kImageMargin ? _maxWidth - _kImageMargin : _maxWidth;
         // Prefer HTML attrs first, then CSS style dims (width:80px etc.).
         final dimW = node.intrinsicWidth ?? node.style.width;
         final dimH = node.intrinsicHeight ?? node.style.height;
@@ -357,7 +359,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         }
       } else {
         // Image not loaded yet - use specified dimensions or smart placeholder
-        final maxW = _maxWidth > _kImageMargin ? _maxWidth - _kImageMargin : _maxWidth;
+        final maxW =
+            _maxWidth > _kImageMargin ? _maxWidth - _kImageMargin : _maxWidth;
         // Prefer HTML width/height attrs, then CSS style dims, then defaults.
         final dimW = node.intrinsicWidth ?? node.style.width;
         final dimH = node.intrinsicHeight ?? node.style.height;
@@ -396,15 +399,15 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
     } else if (node.tagName == 'audio') {
       // Audio: compact horizontal bar — matches DefaultMediaWidget._buildAudioPlaceholder
-      width = math.min(
-          node.intrinsicWidth ?? 300.0,
+      width = math.min(node.intrinsicWidth ?? 300.0,
           _maxWidth > 16 ? _maxWidth - 16 : _maxWidth);
       height = node.intrinsicHeight ?? 64.0;
     } else if (node.tagName == 'formula') {
       // Inline formula — estimate width from character count, fixed line height
       final formulaText = node.attributes['formula'] ?? node.src ?? '';
       width = node.intrinsicWidth ??
-          (formulaText.length * 9.0).clamp(60.0, _maxWidth > 32 ? _maxWidth - 32 : _maxWidth);
+          (formulaText.length * 9.0)
+              .clamp(60.0, _maxWidth > 32 ? _maxWidth - 32 : _maxWidth);
       height = node.intrinsicHeight ?? 32.0;
     } else {
       // Generic atomic element
@@ -550,7 +553,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       // height naturally, same as how RichText / flutter_html behaves.
       // forceStrutHeight: true was causing all lines to be the same height even
       // when no explicit line-height was set, making text look mechanically spaced.
-      strutStyle: StrutStyle.fromTextStyle(mergedStyle, forceStrutHeight: false),
+      strutStyle:
+          StrutStyle.fromTextStyle(mergedStyle, forceStrutHeight: false),
       textDirection: fragmentDirection,
       maxLines: maxLines,
       textHeightBehavior: const TextHeightBehavior(
@@ -574,14 +578,19 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     _leftFloats.clear();
     _rightFloats.clear();
 
+    // Reset layout caches
+    _cachedAvailableWidth = null;
+    _pendingLineLeftFloats.clear();
+    _pendingLineRightFloats.clear();
+
     // Seed floats inherited from the previous virtualized section so that
     // text in this section correctly wraps around a float that began in the
     // preceding chunk (cross-chunk float continuity).
     for (final carryover in _initialFloats) {
       final floatRect = carryover.direction == HyperFloat.left
           ? Rect.fromLTWH(0, 0, carryover.width, carryover.overhangHeight)
-          : Rect.fromLTWH(
-              _maxWidth - carryover.width, 0, carryover.width, carryover.overhangHeight);
+          : Rect.fromLTWH(_maxWidth - carryover.width, 0, carryover.width,
+              carryover.overhangHeight);
       final area = _FloatArea(rect: floatRect, direction: carryover.direction);
       if (carryover.direction == HyperFloat.left) {
         _leftFloats.add(area);
@@ -622,15 +631,68 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // until we exit the ellipsis block.
     bool skipEllipsisContent = false;
 
+    double getAvailableWidth() {
+      if (_cachedAvailableWidth != null) return _cachedAvailableWidth!;
+
+      assert(
+        _leftFloats.length + _rightFloats.length <= 50,
+        'HyperRender: ${_leftFloats.length + _rightFloats.length} active floats'
+        ' — layout may be slow',
+      );
+      // Start with accumulated block padding
+      double floatLeftInset = leftPaddingStack.last;
+      double floatRightInset = rightPaddingStack.last;
+
+      // Add float insets - O(Floats) but only called once per line or float addition
+      for (final float in _leftFloats) {
+        if (currentY >= float.rect.top && currentY < float.rect.bottom) {
+          floatLeftInset = math.max(floatLeftInset, float.rect.right);
+        }
+      }
+
+      for (final float in _rightFloats) {
+        if (currentY >= float.rect.top && currentY < float.rect.bottom) {
+          floatRightInset =
+              math.max(floatRightInset, _maxWidth - float.rect.left);
+        }
+      }
+
+      leftInset = floatLeftInset;
+      rightInset = floatRightInset;
+
+      _cachedAvailableWidth =
+          math.max(0.0, _maxWidth - floatLeftInset - floatRightInset);
+      return _cachedAvailableWidth!;
+    }
+
     void finishLine() {
-      if (currentLineFragments.isEmpty) return;
+      if (currentLineFragments.isEmpty) {
+        // Even if empty, if we had pending floats, flush them now.
+        if (_pendingLineLeftFloats.isNotEmpty ||
+            _pendingLineRightFloats.isNotEmpty) {
+          _leftFloats.addAll(_pendingLineLeftFloats);
+          _rightFloats.addAll(_pendingLineRightFloats);
+          _pendingLineLeftFloats.clear();
+          _pendingLineRightFloats.clear();
+          _cachedAvailableWidth = null;
+        }
+        return;
+      }
 
       while (currentLineFragments.isNotEmpty &&
           currentLineFragments.last.isWhitespace) {
         currentLineFragments.removeLast();
       }
 
-      if (currentLineFragments.isEmpty) return;
+      if (currentLineFragments.isEmpty) {
+        // Line became empty after trimming whitespace - just flush floats.
+        _leftFloats.addAll(_pendingLineLeftFloats);
+        _rightFloats.addAll(_pendingLineRightFloats);
+        _pendingLineLeftFloats.clear();
+        _pendingLineRightFloats.clear();
+        _cachedAvailableWidth = null;
+        return;
+      }
 
       final lineInfo = LineInfo(
         top: currentY,
@@ -655,36 +717,15 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       currentLineFragments.clear();
       lineHeight = 0;
       maxBaseline = 0;
-    }
 
-    double getAvailableWidth() {
-      assert(
-        _leftFloats.length + _rightFloats.length <= 50,
-        'HyperRender: ${_leftFloats.length + _rightFloats.length} active floats'
-        ' — layout may be slow',
-      );
-      // Start with accumulated block padding
-      double floatLeftInset = leftPaddingStack.last;
-      double floatRightInset = rightPaddingStack.last;
+      // Flush floats that were triggered by this line so next line can wrap around them.
+      _leftFloats.addAll(_pendingLineLeftFloats);
+      _rightFloats.addAll(_pendingLineRightFloats);
+      _pendingLineLeftFloats.clear();
+      _pendingLineRightFloats.clear();
 
-      // Add float insets
-      for (final float in _leftFloats) {
-        if (currentY >= float.rect.top && currentY < float.rect.bottom) {
-          floatLeftInset = math.max(floatLeftInset, float.rect.right);
-        }
-      }
-
-      for (final float in _rightFloats) {
-        if (currentY >= float.rect.top && currentY < float.rect.bottom) {
-          floatRightInset =
-              math.max(floatRightInset, _maxWidth - float.rect.left);
-        }
-      }
-
-      leftInset = floatLeftInset;
-      rightInset = floatRightInset;
-
-      return _maxWidth - leftInset - rightInset;
+      // Reset width cache for new line Y
+      _cachedAvailableWidth = null;
     }
 
     /// Get the Y position needed to clear floats based on the clear property
@@ -1515,7 +1556,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       } else {
         width = math.min(
           fragment.style.width ?? RenderHyperBox.defaultFloatSize,
-          availableWidth.isInfinite ? RenderHyperBox.defaultFloatSize : availableWidth,
+          availableWidth.isInfinite
+              ? RenderHyperBox.defaultFloatSize
+              : availableWidth,
         );
         height = fragment.style.height ?? RenderHyperBox.defaultFloatSize;
       }
@@ -1604,7 +1647,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         width + rightMargin,
         height + bottomMargin,
       );
-      _leftFloats.add(_FloatArea(rect: floatRect, direction: HyperFloat.left));
+      _pendingLineLeftFloats
+          .add(_FloatArea(rect: floatRect, direction: HyperFloat.left));
+      // Invalidate cache since a new float was added to the line's potential constraints
+      _cachedAvailableWidth = null;
     } else {
       double right = _maxWidth;
 
@@ -1672,8 +1718,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         width + leftMargin,
         height + bottomMargin,
       );
-      _rightFloats
+      _pendingLineRightFloats
           .add(_FloatArea(rect: floatRect, direction: HyperFloat.right));
+      // Invalidate cache
+      _cachedAvailableWidth = null;
     }
 
     fragment.measuredSize = Size(width, height);
@@ -1910,8 +1958,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           // details widget stays within its padded-block bounds.
           // Unconstrained height is kept so the expand/collapse animation
           // can change height without making this a relayout boundary.
-          final detailsWidth =
-              fragment.measuredSize?.width ?? _maxWidth;
+          final detailsWidth = fragment.measuredSize?.width ?? _maxWidth;
           child.layout(BoxConstraints(maxWidth: detailsWidth),
               parentUsesSize: true);
         } else {
@@ -1931,8 +1978,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         if (fragment != null) {
           parentData.fragment = fragment;
           if (fragment is _DetailsFragment) {
-            final detailsWidth =
-                fragment.measuredSize?.width ?? _maxWidth;
+            final detailsWidth = fragment.measuredSize?.width ?? _maxWidth;
             child.layout(BoxConstraints(maxWidth: detailsWidth),
                 parentUsesSize: true);
           } else {
