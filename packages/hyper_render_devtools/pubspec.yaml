@@ -1,6 +1,6 @@
 name: hyper_render_devtools
 description: "DevTools extension for HyperRender — inspect UDT trees, computed styles, fragments, and performance metrics."
-version: 1.1.4
+version: 1.1.5
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_devtools
 issue_tracker: https://github.com/brewkits/hyper_render/issues
@@ -28,7 +28,5 @@ dependencies:
   # dart:developer + hyper_render_core and needs no extra dependency.
 
 flutter:
-  plugin:
-    platforms:
-      flutter:
-        dartPluginClass: HyperRenderDevtoolsPlugin
+  # No assets or native code — pure Dart/VM-service-extension package.
+  # Platform support is inherited from the flutter SDK dependency (all 6 platforms).
