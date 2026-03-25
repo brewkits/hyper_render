@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Auto-generated boilerplate from `flutter create` — not needed in repo
+README.md
+analysis_options.yaml
+test/
