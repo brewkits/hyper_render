@@ -1,5 +1,15 @@
 # Changelog — hyper_render_devtools
 
+## [1.1.5] - 2026-03-25
+
+### 🔧 Improvements
+- Remove invalid `flutter.plugin.platforms` declaration (no native code exists); package now correctly reports support for all Flutter platforms.
+- Update `hyper_render_core` dependency to `^1.1.3`.
+
+## [1.1.4] - 2026-03-25
+
+- Fix pub.dev repository verification.
+
 ## [1.1.3] - 2026-03-25
 
 - Remove `publish_to: none` from pubspec.yaml so pub.dev can verify the repository URL (fixes 10-point deduction).
