@@ -32,6 +32,7 @@ if command -v fvm &>/dev/null; then
 fi
 
 DRY_FLAG=""
+FORCE_FLAG=""
 if [[ "$MODE" == "dry-run" ]]; then
   DRY_FLAG="--dry-run"
   echo "▶ DRY-RUN mode — no packages will be uploaded"
@@ -39,6 +40,7 @@ else
   echo "▶ PUBLISH mode — packages will be uploaded to pub.dev"
   read -rp "  Continue? [y/N] " confirm
   [[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
+  FORCE_FLAG="--force"   # skip dart pub publish's own y/N prompt
 fi
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -106,13 +108,18 @@ publish_package() {
 
   patch_pubspec "$dir"
 
+  # Ensure pubspec is restored even if the publish command fails or the
+  # script is interrupted (Ctrl-C, set -e abort, etc.)
+  trap "restore_pubspec '$dir'" EXIT
+
   (
     cd "$dir"
-    echo "  Running: dart pub publish $DRY_FLAG"
-    $FLUTTER pub publish $DRY_FLAG
+    echo "  Running: dart pub publish $DRY_FLAG $FORCE_FLAG"
+    $FLUTTER pub publish $DRY_FLAG $FORCE_FLAG
   )
 
   restore_pubspec "$dir"
+  trap - EXIT   # clear trap after successful restore
 }
 
 # ── Static analysis first ─────────────────────────────────────────────────────
