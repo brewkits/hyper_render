@@ -1,8 +1,9 @@
 name: hyper_render_core
 description: Core engine for HyperRender. Universal Document Tree, single-RenderObject layout with CSS float, Flexbox, Grid, CJK typography, and crash-free text selection.
-version: 1.1.1
+version: 1.1.2
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_core
+issue_tracker: https://github.com/brewkits/hyper_render/issues
 
 topics:
   - flutter
@@ -19,7 +20,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  vector_math: ^2.2.0
+  vector_math: ^2.1.4
   csslib: ^1.0.0
   flutter_highlight: ^0.7.0
   highlight: ^0.7.0

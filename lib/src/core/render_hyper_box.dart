@@ -23,12 +23,15 @@ part 'render_hyper_box_selection.dart';
 part 'render_hyper_box_accessibility.dart';
 
 /// Callback for handling link taps
+/// Callback when a link is tapped.
 typedef HyperLinkTapCallback = void Function(String url);
 
 /// Callback for building custom widgets for embedded content
+/// Builder for custom widgets.
 typedef HyperWidgetBuilder = Widget? Function(UDTNode node);
 
 /// Callback when image loading state changes
+/// Callback for image loading events.
 typedef ImageLoadCallback = void Function(String src, ImageLoadState state);
 
 /// RenderHyperBox - The core custom rendering engine
@@ -42,8 +45,7 @@ typedef ImageLoadCallback = void Function(String src, ImageLoadState state);
 /// - Inline background/border for wrapped text
 /// - Async image loading
 ///
-/// Reference: doc1.txt - "Quy trình 4 bước của thuật toán"
-/// Reference: doc3.md - "RenderObject-centric Architecture"
+/// Main RenderObject for HyperRender.
 class RenderHyperBox extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, HyperBoxParentData>,
@@ -103,6 +105,10 @@ class RenderHyperBox extends RenderBox
 
   /// Image cache
   final Map<String, CachedImage> _imageCache = {};
+
+  /// Subscription tokens returned by [LazyImageQueue.enqueue].
+  /// Cancelled in [_disposeImages] so in-flight callbacks are dropped safely.
+  final Set<int> _imageTokens = {};
 
   /// Current text selection
   HyperTextSelection? _selection;
@@ -289,6 +295,14 @@ class RenderHyperBox extends RenderBox
   }
 
   void _disposeImages() {
+    // Cancel all pending/in-flight subscriptions so callbacks are not invoked
+    // on this (now-disposing) RenderBox. For in-flight loads the queue will
+    // dispose the ui.Image itself if no other subscribers remain.
+    for (final token in _imageTokens) {
+      LazyImageQueue.instance.cancel(token);
+    }
+    _imageTokens.clear();
+
     // BUG-C FIX: ui.Image is a native GPU resource that must be explicitly
     // disposed. Calling _imageCache.clear() without dispose() leaks GPU
     // texture memory — the Dart GC cannot free it. This matters especially
@@ -391,12 +405,21 @@ class RenderHyperBox extends RenderBox
 
     final loader = _imageLoader ?? defaultImageLoader;
 
-    LazyImageQueue.instance.enqueue(
+    // late allows the closures below to reference `token` before it is
+    // assigned; they only execute asynchronously, after enqueue() returns.
+    late final int token;
+    token = LazyImageQueue.instance.enqueue(
       url: src,
       priority: priority,
       loader: loader,
       onLoad: (ui.Image image) {
-        if (!attached) return;
+        if (!attached) {
+          // Safety net: token should have been cancelled by _disposeImages(),
+          // but guard here in case of unusual teardown ordering.
+          image.dispose();
+          return;
+        }
+        _imageTokens.remove(token);
         _imageCache[src] = CachedImage(
           image: image,
           state: ImageLoadState.loaded,
@@ -409,6 +432,7 @@ class RenderHyperBox extends RenderBox
       },
       onError: (Object error) {
         if (!attached) return;
+        _imageTokens.remove(token);
         _imageCache[src] = CachedImage(
           state: ImageLoadState.error,
           error: error.toString(),
@@ -416,6 +440,7 @@ class RenderHyperBox extends RenderBox
         markNeedsPaint();
       },
     );
+    _imageTokens.add(token);
   }
 
   // ============================================

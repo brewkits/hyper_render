@@ -242,13 +242,6 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     }
   }
 
-  void _handleTap(TapDownDetails details) {
-    // Hide menu and clear selection on tap
-    if (_showContextMenu || hasSelection) {
-      clearSelection();
-    }
-  }
-
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
@@ -309,8 +302,15 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     return Focus(
       focusNode: _focusNode,
       onKeyEvent: _handleKeyEvent,
-      child: GestureDetector(
-        onTapDown: _handleTap,
+      child: Listener(
+        // Use Listener instead of GestureDetector(onTapDown) so we don't enter the
+        // gesture arena. GestureDetector competes with inner TextButton recognizers
+        // and can prevent copy/share button onPressed from firing when the menu is
+        // visible. Listener fires on pointer-down without arena participation.
+        onPointerDown: (event) {
+          if (_showContextMenu) return;
+          if (hasSelection) clearSelection();
+        },
         behavior: HitTestBehavior.translucent,
         child: TapRegion(
           onTapOutside: (_) => _handleTapOutside(),

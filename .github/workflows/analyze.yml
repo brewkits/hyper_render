@@ -1,60 +1,140 @@
-name: Static Analysis
+name: Pre-flight Checks
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pipeline 1 — Pre-flight (target: < 2 min)
+#
+# Runs on every push / PR as the fast gate that must pass before any heavy
+# job is allowed to start.  Three responsibilities:
+#
+#   1. dart format   — code style, fails on any formatting diff
+#   2. flutter analyze --fatal-infos  — zero errors/warnings/infos enforced
+#   3. Changed-path detection — outputs which packages were touched so that
+#      downstream jobs (test.yml) know what to test
+#
+# Optimisations vs the old setup:
+#   • Single runner (ubuntu-22.04), single Flutter version — no duplication
+#   • Skips ALL checks when only *.md / doc/ / .github/ files changed
+#   • pub-cache restored from cache before `flutter pub get`
+# ─────────────────────────────────────────────────────────────────────────────
+
+env:
+  FLUTTER_VERSION: "3.29.2"
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
-  analyze:
-    name: Analyze Code
-    runs-on: ubuntu-latest
+  preflight:
+    name: Format · Analyze · Path-filter
+    runs-on: ubuntu-22.04
+
+    outputs:
+      # Which packages (or groups) have changed — consumed by test.yml
+      changed_core:      ${{ steps.filter.outputs.core }}
+      changed_html:      ${{ steps.filter.outputs.html }}
+      changed_markdown:  ${{ steps.filter.outputs.markdown }}
+      changed_highlight: ${{ steps.filter.outputs.highlight }}
+      changed_clipboard: ${{ steps.filter.outputs.clipboard }}
+      changed_devtools:  ${{ steps.filter.outputs.devtools }}
+      changed_root:      ${{ steps.filter.outputs.root }}
+      changed_any_dart:  ${{ steps.filter.outputs.any_dart }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
+      # ── Detect changed paths ────────────────────────────────────────────────
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            core:
+              - 'packages/hyper_render_core/**'
+            html:
+              - 'packages/hyper_render_html/**'
+            markdown:
+              - 'packages/hyper_render_markdown/**'
+            highlight:
+              - 'packages/hyper_render_highlight/**'
+            clipboard:
+              - 'packages/hyper_render_clipboard/**'
+            devtools:
+              - 'packages/hyper_render_devtools/**'
+            root:
+              - 'lib/**'
+              - 'test/**'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+            any_dart:
+              - '**/*.dart'
+              - '**/pubspec.yaml'
+              - '**/pubspec.lock'
+              - '**/analysis_options.yaml'
+
+      # ── Skip everything if only docs / CI config changed ───────────────────
+      - name: Skip if docs-only change
+        if: steps.filter.outputs.any_dart == 'false'
+        run: |
+          echo "✓ Only non-Dart files changed — skipping format & analyze"
+          echo "  (golden.yml and benchmark.yml handle their own triggers)"
+
+      # ── Flutter setup (only when Dart files changed) ────────────────────────
       - name: Setup Flutter
+        if: steps.filter.outputs.any_dart == 'true'
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
-      - name: Get dependencies
+      - name: Restore pub cache
+        if: steps.filter.outputs.any_dart == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ${{ env.PUB_CACHE }}
+          key: pub-ubuntu-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: pub-ubuntu-
+
+      - name: flutter pub get
+        if: steps.filter.outputs.any_dart == 'true'
         run: flutter pub get
 
-      - name: Run flutter analyze
-        run: flutter analyze --no-pub > analyze_report.txt || true
+      # ── dart format ─────────────────────────────────────────────────────────
+      - name: dart format (fail on diff)
+        if: steps.filter.outputs.any_dart == 'true'
+        run: dart format --set-exit-if-changed .
 
-      - name: Check for errors
+      # ── flutter analyze ─────────────────────────────────────────────────────
+      - name: flutter analyze --fatal-infos
+        if: steps.filter.outputs.any_dart == 'true'
         run: |
-          errors=$(grep -c "error •" analyze_report.txt || true)
-          warnings=$(grep -c "warning •" analyze_report.txt || true)
-          infos=$(grep -c "info •" analyze_report.txt || true)
+          flutter analyze --no-pub --fatal-infos 2>&1 | tee analyze_report.txt
+          EXIT=${PIPESTATUS[0]}
 
-          echo "Static Analysis Results:"
-          echo "  Errors: $errors"
-          echo "  Warnings: $warnings"
-          echo "  Infos: $infos"
+          ERRORS=$(grep -c "error •"   analyze_report.txt 2>/dev/null || true)
+          WARNS=$(grep -c "warning •"  analyze_report.txt 2>/dev/null || true)
+          INFOS=$(grep -c "info •"     analyze_report.txt 2>/dev/null || true)
 
-          # Fail if there are errors
-          if [ "$errors" -gt 0 ]; then
-            echo "❌ Found $errors errors"
-            cat analyze_report.txt
-            exit 1
-          fi
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  Static Analysis Results"
+          echo "  Errors:   $ERRORS"
+          echo "  Warnings: $WARNS"
+          echo "  Infos:    $INFOS"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-          # Warn if there are many warnings
-          if [ "$warnings" -gt 20 ]; then
-            echo "⚠️  High number of warnings: $warnings"
-          fi
-
-          echo "✅ Static analysis passed"
+          exit $EXIT
 
       - name: Upload analyze report
-        if: always()
+        if: always() && steps.filter.outputs.any_dart == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: analyze-report
+          name: analyze-report-${{ github.run_number }}
           path: analyze_report.txt
+          retention-days: 7

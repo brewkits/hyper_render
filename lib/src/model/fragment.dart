@@ -5,10 +5,10 @@ import 'node.dart';
 
 /// Fragment type for inline layout
 ///
-/// Reference: doc1.txt - "Chiến lược Chunking & Line Building"
-/// Content is divided into Fragments (Mảnh):
-/// - Text Fragment: A phrase with the same style
-/// - Atomic Fragment: An icon, image, or media (treated as a special character)
+/// Content is divided into fragments, each measured independently and then
+/// arranged into lines:
+/// - Text Fragment: A run of text sharing the same style
+/// - Atomic Fragment: An image, video, or other replaced element
 enum FragmentType {
   /// Text content fragment
   text,
@@ -28,11 +28,11 @@ enum FragmentType {
 /// During layout, the content is broken into Fragments, each measured
 /// independently, then arranged into lines.
 ///
-/// Reference: doc1.txt - "Quy trình 4 bước của thuật toán"
-/// Step 1: Tokenization - Break into Fragments
-/// Step 2: Measuring - Measure each Fragment
-/// Step 3: Line Breaking - Arrange into lines
-/// Step 4: Baseline Alignment
+/// Layout follows a 4-step algorithm:
+/// Step 1: Tokenization — break into Fragments
+/// Step 2: Measuring — measure each Fragment
+/// Step 3: Line breaking — arrange into lines
+/// Step 4: Baseline alignment
 class Fragment {
   /// Fragment type
   final FragmentType type;
@@ -170,7 +170,6 @@ class Fragment {
 
 /// A line of fragments after layout
 ///
-/// Reference: doc1.txt - "Bước 3: Xây dựng dòng (Line Breaking)"
 class LineInfo {
   /// Fragments in this line
   final List<Fragment> fragments = [];
@@ -226,13 +225,17 @@ class LineInfo {
   }
 
   /// Number of characters in this line
+  ///
+  /// Counts text and ruby base-text characters, plus 1 for each line break.
   int get characterCount {
     int count = 0;
     for (final frag in fragments) {
-      if (frag.type == FragmentType.text && frag.text != null) {
+      if ((frag.type == FragmentType.text ||
+              frag.type == FragmentType.ruby) &&
+          frag.text != null) {
         count += frag.text!.length;
       } else if (frag.type == FragmentType.lineBreak) {
-        count += 1; // Line break counts as 1 character
+        count += 1;
       }
     }
     return count;

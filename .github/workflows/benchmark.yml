@@ -1,63 +1,190 @@
-name: Benchmarks
+name: Performance Regression
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Two jobs:
+#
+#   layout-regression  — runs on every PR and every push to main.
+#     • Executes benchmark/layout_regression.dart
+#     • Fails if any fixture's median layout time exceeds its hard threshold
+#     • Posts a PR comment with the full results table
+#
+#   full-benchmark     — runs weekly + on release branches.
+#     • Executes the original benchmark/parse_benchmark.dart (throughput info)
+#     • Never fails CI (informational only) — results are uploaded as artifacts
+# ─────────────────────────────────────────────────────────────────────────────
+
+env:
+  FLUTTER_VERSION: "3.29.2"   # keep in sync with golden.yml
 
 on:
-  # Run benchmarks weekly
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
   schedule:
-    - cron: '0 0 * * 0'  # Every Sunday at midnight UTC
-
-  # Allow manual trigger
+    - cron: '0 0 * * 0'   # weekly full benchmark (Sunday midnight UTC)
   workflow_dispatch:
 
-  # Run on release branches
-  push:
-    branches:
-      - 'release/**'
-
 jobs:
-  benchmark:
-    name: Run Performance Benchmarks
-    runs-on: ubuntu-latest
+  # ── Layout regression guard (runs on every PR) ────────────────────────────
+  layout-regression:
+    name: Layout Regression (60 FPS guard)
+    runs-on: ubuntu-22.04
+    # Skip on the weekly schedule — that's for the full-benchmark job only
+    if: github.event_name != 'schedule'
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
+      - name: Setup Flutter (pinned)
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Run benchmarks
+      - name: Run layout regression benchmark
+        id: bench
         run: |
-          echo "Running benchmarks..."
-          flutter test benchmark/ --no-test-randomize-ordering-seed
+          mkdir -p benchmark/results
 
-      - name: Save benchmark results
+          # Run with JSON reporter so we can parse pass/fail
+          flutter test benchmark/layout_regression.dart \
+            --reporter expanded \
+            2>&1 | tee benchmark/results/ci_run.txt
+
+          # Extract overall pass/fail from test exit code
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          # Parse the JSON result files for the summary table
+          SUMMARY=$(python3 - <<'PYEOF'
+          import json, os, glob
+
+          files = sorted(glob.glob('benchmark/results/layout_*.json'))
+          if not files:
+              print("No result file generated.")
+          else:
+              data = json.load(open(files[-1]))
+              rows = []
+              any_fail = False
+              for r in data.get('results', []):
+                  icon = "✅" if r["passed"] else "❌"
+                  rows.append(
+                      f"| {icon} | `{r['fixture']}` | {r['threshold_ms']} | "
+                      f"{r['median_ms']} | {r['p95_ms']} |"
+                  )
+                  if not r["passed"]:
+                      any_fail = True
+
+              header = (
+                  "| | Fixture | Budget (ms) | Median (ms) | P95 (ms) |\n"
+                  "|---|---|---|---|---|"
+              )
+              print(header)
+              print("\n".join(rows))
+              if any_fail:
+                  print("\n**One or more fixtures exceeded the 16 ms budget.**")
+          PYEOF
+          )
+
+          echo "summary<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$SUMMARY" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+
+          exit $EXIT_CODE
+
+      - name: Upload result JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: layout-regression-${{ github.run_number }}
+          path: benchmark/results/
+          retention-days: 30
+
+      - name: Post PR comment
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const exitCode = '${{ steps.bench.outputs.exit_code }}';
+            const summary  = `${{ steps.bench.outputs.summary }}`;
+            const passed   = exitCode === '0';
+            const icon     = passed ? '✅' : '❌';
+            const headline = passed
+              ? '## ✅ Layout Regression — All fixtures within 60 FPS budget'
+              : '## ❌ Layout Regression — Budget exceeded';
+
+            const body = [
+              headline,
+              '',
+              summary,
+              '',
+              `> Flutter \`${{ env.FLUTTER_VERSION }}\` · ubuntu-22.04`,
+              '',
+              passed
+                ? '_No action required._'
+                : [
+                    '**Action required:** a layout fixture exceeded its millisecond',
+                    'budget.  Profile the regression with:',
+                    '```bash',
+                    'flutter test benchmark/layout_regression.dart --reporter expanded',
+                    '```',
+                    'and check `_performLineLayout` / `_buildCharacterMapping` for',
+                    'any new O(N²) or O(N log N) paths introduced in this PR.',
+                  ].join('\n'),
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+  # ── Full throughput benchmark (weekly, informational) ────────────────────
+  full-benchmark:
+    name: Full Throughput Benchmark
+    runs-on: ubuntu-22.04
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.ref, 'refs/heads/release/')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter (pinned)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run parse benchmarks
         run: |
-          mkdir -p benchmark_results
-          echo "Date: $(date)" > benchmark_results/latest.txt
-          echo "Commit: ${{ github.sha }}" >> benchmark_results/latest.txt
-          echo "" >> benchmark_results/latest.txt
-          echo "See test output above for detailed results" >> benchmark_results/latest.txt
+          flutter test benchmark/parse_benchmark.dart \
+            --no-test-randomize-ordering-seed \
+            --reporter expanded \
+            2>&1 | tee benchmark/results/parse_$(date +%Y%m%d).txt
+
+      - name: Run layout regression (informational — never fails here)
+        run: |
+          flutter test benchmark/layout_regression.dart \
+            --reporter expanded \
+            2>&1 | tee benchmark/results/layout_$(date +%Y%m%d).txt || true
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results
-          path: benchmark_results/
-
-      - name: Comment on PR (if applicable)
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🏎️ Benchmark tests completed. Check the Actions tab for detailed results.'
-            })
+          name: benchmark-full-${{ github.run_number }}
+          path: benchmark/results/
+          retention-days: 90

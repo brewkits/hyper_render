@@ -1,5 +1,10 @@
 # Changelog — hyper_render_html
 
+## [1.1.2] - 2026-03-25
+
+- Version bump to stay in sync with `hyper_render_core` 1.1.2 (Ruby selection fixes, CSS @keyframes support).
+- No API changes in this package.
+
 ## [1.1.1] - 2026-03-23
 
 - Maintenance release: no code changes — republish to sync repository verification with current git HEAD

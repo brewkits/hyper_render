@@ -1,47 +1,195 @@
-name: Tests
+name: Core Validation
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pipeline 2 — Core Validation (target: < 5 min on PR)
+#
+# Two jobs, gated by a shared path-filter:
+#
+#   test-pr      — PR trigger only.
+#                  Single runner (ubuntu-22.04, pinned Flutter).
+#                  Only the packages that changed are tested, so a one-line
+#                  fix in hyper_render_html doesn't re-run core/markdown/etc.
+#
+#   test-matrix  — Push to main/develop only.
+#                  Full 3-OS × 2-channel matrix to catch platform regressions
+#                  before the tag lands.
+#
+# What this job does NOT do (handled by Pipeline 1 — analyze.yml):
+#   • dart format
+#   • flutter analyze
+# ─────────────────────────────────────────────────────────────────────────────
+
+env:
+  FLUTTER_VERSION: "3.29.2"
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
-  test:
-    name: Run Tests
-    runs-on: ${{ matrix.os }}
+  # ── Changed-path detection ─────────────────────────────────────────────────
+  path-filter:
+    name: Detect Changed Packages
+    runs-on: ubuntu-22.04
+    outputs:
+      changed_core:      ${{ steps.filter.outputs.core }}
+      changed_html:      ${{ steps.filter.outputs.html }}
+      changed_markdown:  ${{ steps.filter.outputs.markdown }}
+      changed_highlight: ${{ steps.filter.outputs.highlight }}
+      changed_clipboard: ${{ steps.filter.outputs.clipboard }}
+      changed_devtools:  ${{ steps.filter.outputs.devtools }}
+      changed_root:      ${{ steps.filter.outputs.root }}
+      changed_any_dart:  ${{ steps.filter.outputs.any_dart }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            core:
+              - 'packages/hyper_render_core/**'
+            html:
+              - 'packages/hyper_render_html/**'
+            markdown:
+              - 'packages/hyper_render_markdown/**'
+            highlight:
+              - 'packages/hyper_render_highlight/**'
+            clipboard:
+              - 'packages/hyper_render_clipboard/**'
+            devtools:
+              - 'packages/hyper_render_devtools/**'
+            root:
+              - 'lib/**'
+              - 'test/**'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+            any_dart:
+              - '**/*.dart'
+              - '**/pubspec.yaml'
+              - '**/pubspec.lock'
+              - '**/analysis_options.yaml'
 
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        flutter-channel: [stable, beta]
+  # ── PR: fast single-OS run — only changed packages ─────────────────────────
+  test-pr:
+    name: Tests (PR · ubuntu-22.04 · stable)
+    runs-on: ubuntu-22.04
+    needs: path-filter
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.path-filter.outputs.changed_any_dart == 'true'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: ${{ matrix.flutter-channel }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
           cache: true
 
-      - name: Get dependencies
+      - name: Restore pub cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ${{ env.PUB_CACHE }}
+          key: pub-ubuntu-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: pub-ubuntu-
+
+      - name: flutter pub get
         run: flutter pub get
 
-      - name: Verify formatting
-        run: dart format --set-exit-if-changed .
-        if: matrix.os == 'ubuntu-latest' && matrix.flutter-channel == 'stable'
+      # Root package — always run when root lib/test or pubspec changed.
+      # Also covers tests that exercise the core package from the root.
+      - name: Test root package
+        if: >-
+          needs.path-filter.outputs.changed_root == 'true' ||
+          needs.path-filter.outputs.changed_core == 'true'
+        run: flutter test --no-pub
 
-      - name: Analyze code
-        run: flutter analyze
+      - name: Test hyper_render_core
+        if: needs.path-filter.outputs.changed_core == 'true'
+        working-directory: packages/hyper_render_core
+        run: flutter test --no-pub
 
-      - name: Run tests
-        run: flutter test
+      - name: Test hyper_render_html
+        if: >-
+          needs.path-filter.outputs.changed_html == 'true' ||
+          needs.path-filter.outputs.changed_core == 'true'
+        working-directory: packages/hyper_render_html
+        run: flutter test --no-pub
+
+      - name: Test hyper_render_markdown
+        if: >-
+          needs.path-filter.outputs.changed_markdown == 'true' ||
+          needs.path-filter.outputs.changed_core == 'true'
+        working-directory: packages/hyper_render_markdown
+        run: flutter test --no-pub
+
+      - name: Test hyper_render_highlight
+        if: >-
+          needs.path-filter.outputs.changed_highlight == 'true' ||
+          needs.path-filter.outputs.changed_core == 'true'
+        working-directory: packages/hyper_render_highlight
+        run: flutter test --no-pub
+
+      - name: Test hyper_render_clipboard
+        if: >-
+          needs.path-filter.outputs.changed_clipboard == 'true' ||
+          needs.path-filter.outputs.changed_core == 'true'
+        working-directory: packages/hyper_render_clipboard
+        run: flutter test --no-pub
 
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.os }}-${{ matrix.flutter-channel }}
-          path: test/**/*.dart
+          name: test-results-pr-${{ github.run_number }}
+          path: |
+            test-results/
+            **/test-results/
+          retention-days: 7
+
+  # ── Push to main/develop: full 3-OS × 2-channel matrix ────────────────────
+  test-matrix:
+    name: Tests (${{ matrix.os }} · ${{ matrix.flutter-channel }})
+    runs-on: ${{ matrix.os }}
+    needs: path-filter
+    if: >-
+      github.event_name == 'push' &&
+      needs.path-filter.outputs.changed_any_dart == 'true'
+
+    strategy:
+      fail-fast: false   # let all matrix legs complete so we see the full picture
+      matrix:
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+        flutter-channel: [stable, beta]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: ${{ matrix.flutter-channel }}
+          cache: true
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      - name: Run all tests
+        run: flutter test --no-pub
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.flutter-channel }}-${{ github.run_number }}
+          path: |
+            test-results/
+            **/test-results/
+          retention-days: 7

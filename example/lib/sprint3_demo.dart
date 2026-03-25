@@ -425,20 +425,20 @@ class _Sprint3DemoState extends State<Sprint3Demo>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.amber.shade50,
-            border: Border.all(color: Colors.amber.shade300),
+            color: Colors.green.shade50,
+            border: Border.all(color: Colors.green.shade300),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline, color: Colors.amber, size: 18),
+              Icon(Icons.check_circle_outline, color: Colors.green, size: 18),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'For full SVG support (gradients, filters, animations), '
-                  'add flutter_svg to your project and register a custom widget '
-                  'builder via HyperViewer\'s widgetBuilder parameter.',
+                  'SVG is rendered natively via flutter_svg (built-in). '
+                  'Inline <svg>, <img src="*.svg">, and data:image/svg+xml URIs '
+                  'are all handled automatically — no extra setup needed.',
                   style: TextStyle(fontSize: 12, color: Colors.black87, height: 1.4),
                 ),
               ),

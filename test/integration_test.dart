@@ -87,9 +87,7 @@ void main() {
             home: Scaffold(
               body: HyperRenderWidget(
                 document: document,
-                onLinkTap: (url) {
-                  // TODO: Add assertion for url
-                },
+                onLinkTap: (url) {},
               ),
             ),
           ),

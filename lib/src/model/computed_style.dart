@@ -3,7 +3,6 @@ import 'package:flutter/painting.dart';
 import 'package:vector_math/vector_math_64.dart' show Matrix4;
 
 /// Display type for CSS display property
-/// Reference: doc1.txt - ComputedStyle class
 enum DisplayType {
   /// Block-level element (div, p, h1-h6)
   block,
@@ -17,7 +16,7 @@ enum DisplayType {
   /// Flex container
   flex,
 
-  /// Grid container (future)
+  /// Grid container
   grid,
 
   /// Table element
@@ -268,11 +267,10 @@ class HyperTransition {
       'HyperTransition($property, ${duration}ms, $timingFunction, ${delay}ms)';
 }
 
-/// Computed style for a UDT node
-/// All CSS properties are resolved to final values here
+/// Computed style for a UDT node.
 ///
-/// Reference: doc1.txt - "1.1. Cấu trúc Dữ liệu Style (The Style Node)"
-/// Each Node in UDT will have a ComputedStyle object
+/// All CSS properties are resolved to their final values here.
+/// Every node in the Unified Document Tree owns exactly one [ComputedStyle].
 class ComputedStyle {
   /// Track which properties have been explicitly set (not inherited)
   /// This is crucial for proper CSS inheritance
@@ -658,7 +656,6 @@ class ComputedStyle {
 
   /// Inherit inheritable properties from parent
   ///
-  /// Reference: doc1.txt - "1.2. Quy trình Resolve"
   /// Properties like color, font-family are inherited from parent Node
   /// margin, padding are NOT inherited
   void inheritFrom(ComputedStyle parent) {

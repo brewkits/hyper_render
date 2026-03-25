@@ -4,11 +4,15 @@ import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../parser/html/html_adapter.dart';
+import '../plugins/default_css_parser.dart';
 import '../plugins/default_delta_parser.dart';
 import '../plugins/default_html_parser.dart';
 import '../plugins/default_markdown_parser.dart';
 import '../utils/html_heuristics.dart';
 import '../utils/html_sanitizer.dart';
+import '../utils/svg_builder.dart';
+import 'virtualized_selection_controller.dart';
+import 'virtualized_selection_overlay.dart';
 
 /// Rendering mode for [HyperViewer].
 ///
@@ -547,16 +551,57 @@ class _HyperViewerState extends State<HyperViewer>
   Isolate? _parseIsolate;
   ReceivePort? _parseReceivePort;
 
-  // Dùng cho chế độ Sync
+  // Used for Sync mode
   DocumentNode? _syncDocument;
 
-  // Dùng cho chế độ Virtualized
+  // Used for Virtualized mode
   List<DocumentNode>? _sections;
   bool _isLoading = true;
+
+  /// Float carryovers indexed by section: _floatCarryovers[N] holds the
+  /// dangling floats produced by section N's layout, to be passed as
+  /// initialFloats to section N+1.
+  final List<List<FloatCarryover>> _floatCarryovers = [];
 
   /// Monotonically-increasing counter that prevents stale isolate results
   /// from overwriting a newer parse when the content changes rapidly.
   int _parseId = 0;
+
+  /// `@keyframes` rules extracted from the document's own `<style>` tags.
+  ///
+  /// Merged with [HyperViewer.renderConfig.keyframeRegistry] in
+  /// [_effectiveConfig] so CSS animations declared inline in the HTML
+  /// automatically work without any extra configuration.
+  Map<String, HyperKeyframes> _docKeyframes = const {};
+
+  /// GlobalKey placed on the Stack that wraps the virtualized ListView.
+  /// Used by [VirtualizedSelectionController] to convert chunk-local
+  /// coordinates to Stack coordinates for handle and menu positioning.
+  final GlobalKey _virtualizedStackKey = GlobalKey();
+
+  /// Selection orchestrator for cross-chunk selection in virtualized mode.
+  VirtualizedSelectionController? _virtualizedSelectionController;
+
+  /// Effective render config — merges [HyperViewer.renderConfig] with
+  /// `@keyframes` rules extracted from the document's own `<style>` tags.
+  HyperRenderConfig get _effectiveConfig {
+    if (_docKeyframes.isEmpty) return widget.renderConfig;
+    final merged = <String, HyperKeyframes>{
+      ...widget.renderConfig.keyframeRegistry,
+      ..._docKeyframes,
+    };
+    final rc = widget.renderConfig;
+    return HyperRenderConfig(
+      textPainterCacheSize: rc.textPainterCacheSize,
+      imageCacheSize: rc.imageCacheSize,
+      defaultImagePlaceholderWidth: rc.defaultImagePlaceholderWidth,
+      imageConcurrency: rc.imageConcurrency,
+      virtualizationChunkSize: rc.virtualizationChunkSize,
+      extraLinkSchemes: rc.extraLinkSchemes,
+      codeHighlighter: rc.codeHighlighter,
+      keyframeRegistry: merged,
+    );
+  }
 
   @override
   void initState() {
@@ -570,6 +615,12 @@ class _HyperViewerState extends State<HyperViewer>
       parent: _contentFadeController,
       curve: Curves.easeOut,
     );
+    if (widget.selectable) {
+      _virtualizedSelectionController = VirtualizedSelectionController(
+        sectionsGetter: () => _sections ?? const [],
+        listViewKey: _virtualizedStackKey,
+      );
+    }
     _parseContent();
   }
 
@@ -594,6 +645,7 @@ class _HyperViewerState extends State<HyperViewer>
     WidgetsBinding.instance.removeObserver(this);
     _cancelParsing();
     _contentFadeController.dispose();
+    _virtualizedSelectionController?.dispose();
     super.dispose();
   }
 
@@ -609,8 +661,13 @@ class _HyperViewerState extends State<HyperViewer>
   }
 
   /// Called by the system when available memory is low.
-  /// Clears TextPainter and image caches in all active RenderHyperBox
-  /// instances to free native GPU and Dart heap memory.
+  ///
+  /// Releases memory on three fronts:
+  ///   1. TextPainter and image caches in every live [RenderHyperBox].
+  ///   2. The [LazyImageQueue] pending queue — drops not-yet-started loads so
+  ///      off-screen images are not decoded into a constrained heap.
+  ///   3. Flutter's own decoded-image cache ([PaintingBinding.imageCache]) to
+  ///      release GPU textures that Flutter holds independently of HyperRender.
   @override
   void didHaveMemoryPressure() {
     void clearBox(RenderObject obj) {
@@ -622,6 +679,14 @@ class _HyperViewerState extends State<HyperViewer>
 
     final ro = context.findRenderObject();
     if (ro != null) clearBox(ro);
+
+    // Drop pending (not-yet-started) image loads to avoid decoding off-screen
+    // images into an already-constrained heap on low-memory devices.
+    LazyImageQueue.instance.clearPending();
+
+    // Release Flutter's own decoded-image cache.  This covers any images
+    // loaded via Image.network / precacheImage that HyperRender didn't track.
+    PaintingBinding.instance.imageCache.clear();
   }
 
   /// Routes a parse/render error to [HyperViewer.onError] when provided,
@@ -642,6 +707,32 @@ class _HyperViewerState extends State<HyperViewer>
         ),
       ));
     }
+  }
+
+  /// Chains the built-in SVG builder before any user-supplied [widgetBuilder].
+  ///
+  /// SVG nodes are handled by [buildSvgWidget] using `flutter_svg`.
+  /// All other nodes are passed to [widget.widgetBuilder] (if any).
+  HyperWidgetBuilder get _effectiveWidgetBuilder {
+    final userBuilder = widget.widgetBuilder;
+    return (UDTNode node) =>
+        buildSvgWidget(node) ?? userBuilder?.call(node);
+  }
+
+  /// Stores dangling floats from section [index] and triggers a rebuild of
+  /// section [index+1] so it receives the updated [initialFloats].
+  void _onFloatCarryover(int index, List<FloatCarryover> carryovers) {
+    if (!mounted) return;
+    // Grow the list if needed.
+    while (_floatCarryovers.length <= index) {
+      _floatCarryovers.add(const []);
+    }
+    // Only rebuild if the carryover actually changed.
+    final prev = _floatCarryovers[index];
+    if (prev.length == carryovers.length && carryovers.isEmpty) return;
+    setState(() {
+      _floatCarryovers[index] = carryovers;
+    });
   }
 
   static const _kAllowedSchemes = {'http', 'https', 'mailto', 'tel'};
@@ -686,6 +777,9 @@ class _HyperViewerState extends State<HyperViewer>
     }
   }
 
+  /// Returns the CSS parser used for @keyframes extraction.
+  CssParserInterface _getDefaultCssParser() => const DefaultCssParser();
+
   void _parseContent() {
     // Fast path: pre-parsed AST — skip all parsing.
     if (widget._prebuiltDocument != null) {
@@ -697,6 +791,10 @@ class _HyperViewerState extends State<HyperViewer>
       _contentFadeController.forward();
       return;
     }
+
+    // Reset extracted keyframes so stale animations don't persist across
+    // content changes.
+    _docKeyframes = const {};
 
     String contentToRender = widget.content;
     // CSS collected from <style> tags + customCss (applied to resolver directly,
@@ -714,6 +812,16 @@ class _HyperViewerState extends State<HyperViewer>
         cssToApply = '${widget.customCss!}\n$docCss';
       } else {
         cssToApply = docCss;
+      }
+
+      // Extract @keyframes rules so CSS animations declared inside <style>
+      // tags work automatically (merged into _effectiveConfig.keyframeRegistry).
+      if (docCss.isNotEmpty) {
+        final cssParser = _getDefaultCssParser();
+        final extracted = cssParser.parseKeyframes(docCss);
+        if (extracted.isNotEmpty) {
+          _docKeyframes = extracted;
+        }
       }
 
       // 2. Resolve relative URLs against baseUrl
@@ -791,6 +899,7 @@ class _HyperViewerState extends State<HyperViewer>
               _sections = List<DocumentNode>.from(message);
               _syncDocument = null;
               _isLoading = false;
+              _floatCarryovers.clear(); // reset carryovers for new content
             });
             _contentFadeController.forward();
           } else {
@@ -937,8 +1046,11 @@ class _HyperViewerState extends State<HyperViewer>
       );
     }
 
-    // Case 1: Virtualized List (cho văn bản dài)
+    // Case 1: Virtualized List (for long text)
     if (_sections != null) {
+      final selCtrl = _virtualizedSelectionController;
+      final dir = widget.textDirection ?? Directionality.of(context);
+
       // cacheExtent 800: pre-renders ~1 screen ahead/behind. Smaller than
       // the old 1500 because chunks are now 6000 chars (was 25000), so
       // each item is cheaper — we need fewer pixels of pre-render buffer.
@@ -952,28 +1064,59 @@ class _HyperViewerState extends State<HyperViewer>
           // RepaintBoundary isolates each chunk into its own GPU layer.
           // Prevents a re-paint in one chunk from invalidating neighbours,
           // and keeps each composited layer well under GL_MAX_TEXTURE_SIZE.
+          // Retrieve carryover from previous section (if layout already ran).
+          final prevCarryover =
+              (index > 0 && _floatCarryovers.length >= index)
+                  ? _floatCarryovers[index - 1]
+                  : const <FloatCarryover>[];
           return RepaintBoundary(
-            child: HyperRenderWidget(
-              document: _sections![index],
-              selectable: widget.selectable,
-              selectionColor: widget.selectionColor,
-              textDirection:
-                  widget.textDirection ?? Directionality.of(context),
-              onLinkTap: _safeOnLinkTap,
-              widgetBuilder: widget.widgetBuilder,
-              debugShowBounds: widget.debugShowHyperRenderBounds,
-              enableComplexFilters: widget.enableComplexFilters,
-              config: widget.renderConfig,
-              // Suppress the first block's top margin on all sections after
-              // the first. This prevents double-spacing at section
-              // boundaries in virtualized mode: without suppression, section
-              // N's last marginBottom and section N+1's first marginTop both
-              // render fully instead of collapsing as CSS specifies.
-              suppressFirstBlockMarginTop: index > 0,
-            ),
+            child: selCtrl != null
+                ? VirtualizedChunk(
+                    chunkIndex: index,
+                    document: _sections![index],
+                    selectionController: selCtrl,
+                    selectable: widget.selectable,
+                    selectionColor: widget.selectionColor,
+                    textDirection: dir,
+                    onLinkTap: _safeOnLinkTap,
+                    widgetBuilder: _effectiveWidgetBuilder,
+                    debugShowBounds: widget.debugShowHyperRenderBounds,
+                    enableComplexFilters: widget.enableComplexFilters,
+                    config: _effectiveConfig,
+                    suppressFirstBlockMarginTop: index > 0,
+                    initialFloats: prevCarryover,
+                    onFloatCarryover: (carryovers) =>
+                        _onFloatCarryover(index, carryovers),
+                  )
+                : HyperRenderWidget(
+                    document: _sections![index],
+                    selectable: false,
+                    textDirection: dir,
+                    onLinkTap: _safeOnLinkTap,
+                    widgetBuilder: _effectiveWidgetBuilder,
+                    debugShowBounds: widget.debugShowHyperRenderBounds,
+                    enableComplexFilters: widget.enableComplexFilters,
+                    config: _effectiveConfig,
+                    suppressFirstBlockMarginTop: index > 0,
+                    initialFloats: prevCarryover,
+                    onFloatCarryover: (carryovers) =>
+                        _onFloatCarryover(index, carryovers),
+                  ),
           );
         },
       );
+
+      // Wrap with cross-chunk selection overlay when selectable.
+      final Widget content = (selCtrl != null && widget.showSelectionMenu)
+          ? VirtualizedSelectionOverlay(
+              key: _virtualizedStackKey,
+              controller: selCtrl,
+              handleColor:
+                  widget.selectionHandleColor ?? Theme.of(context).primaryColor,
+              menuBackgroundColor: null,
+              child: listView,
+            )
+          : KeyedSubtree(key: _virtualizedStackKey, child: listView);
 
       return KeyedSubtree(
         key: const ValueKey('virtualized'),
@@ -985,13 +1128,13 @@ class _HyperViewerState extends State<HyperViewer>
                 scaleEnabled: true,
                 minScale: widget.minScale,
                 maxScale: widget.maxScale,
-                child: listView,
+                child: content,
               )
-            : listView,
+            : content,
       );
     }
 
-    // Case 2: Single Widget (cho văn bản ngắn)
+    // Case 2: Single Widget (for short text)
     if (_syncDocument != null) {
       Widget content;
 
@@ -1001,7 +1144,7 @@ class _HyperViewerState extends State<HyperViewer>
           document: _syncDocument!,
           selectable: true,
           onLinkTap: widget.onLinkTap,
-          widgetBuilder: widget.widgetBuilder,
+          widgetBuilder: _effectiveWidgetBuilder,
           handleColor:
               widget.selectionHandleColor ?? Theme.of(context).primaryColor,
           menuActionsBuilder: widget.selectionMenuActionsBuilder,
@@ -1017,10 +1160,10 @@ class _HyperViewerState extends State<HyperViewer>
           document: _syncDocument!,
           selectable: widget.selectable,
           onLinkTap: widget.onLinkTap,
-          widgetBuilder: widget.widgetBuilder,
+          widgetBuilder: _effectiveWidgetBuilder,
           debugShowBounds: widget.debugShowHyperRenderBounds,
           onAnchorLayout: widget.controller?._onAnchorLayout,
-          config: widget.renderConfig,
+          config: _effectiveConfig,
         );
       }
 

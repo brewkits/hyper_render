@@ -9,6 +9,9 @@
 [![pub likes](https://img.shields.io/pub/likes/hyper_render)](https://pub.dev/packages/hyper_render/score)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.10+-54C5F8.svg)](https://flutter.dev)
+[![Pre-flight](https://github.com/brewkits/hyper_render/actions/workflows/analyze.yml/badge.svg)](https://github.com/brewkits/hyper_render/actions/workflows/analyze.yml)
+[![Tests](https://github.com/brewkits/hyper_render/actions/workflows/test.yml/badge.svg)](https://github.com/brewkits/hyper_render/actions/workflows/test.yml)
+[![Golden](https://github.com/brewkits/hyper_render/actions/workflows/golden.yml/badge.svg)](https://github.com/brewkits/hyper_render/actions/workflows/golden.yml)
 
 Renders HTML, Markdown, and Quill Delta using a **single custom RenderObject** — not a widget tree.
 Drop-in replacement for `flutter_html` and `flutter_widget_from_html`. Ships with CSS float, Flexbox, Grid, CJK typography, crash-free text selection, and zero JS dependencies.
@@ -23,7 +26,7 @@ Drop-in replacement for `flutter_html` and `flutter_widget_from_html`. Ships wit
 
 ```yaml
 dependencies:
-  hyper_render: ^1.1.0
+  hyper_render: ^1.1.2
 ```
 
 ```dart
@@ -110,6 +113,8 @@ HyperViewer(
 One continuous span tree = selection across headings, paragraphs, and table cells.
 Tested to **100,000-character documents** in CI without crashes.
 
+Hit-testing uses **binary search O(log N)** on sorted line tops — selection remains instant even on 1,000-line documents.
+
 ---
 
 ### 🈶 Professional CJK Typography
@@ -127,6 +132,8 @@ HyperViewer(
 
 Furigana renders **centered above** base characters. Kinsoku shori (line-breaking rules)
 applied across the full line — not truncated at widget boundaries like every other library.
+
+When copied to clipboard, a fully-selected ruby fragment is formatted as `base(ふりがな)` (e.g. `東京(とうきょう)`). Partial selections copy the base text only, keeping character offsets consistent.
 
 ---
 
@@ -426,8 +433,10 @@ SINGLE RenderObject       ← BFC · IFC · Flexbox · Grid · Table · Float
 **Key design choices:**
 - **Single RenderObject** — the whole document is one `RenderBox`; float layout and crash-free selection are only possible because every fragment's coordinates live in one coordinate system
 - **O(1) CSS rule lookup** — rules are indexed by tag/class/ID; lookup is constant-time regardless of stylesheet size
+- **O(log N) text selection** — `_lineStartOffsets[]` precomputed at layout time; hit-testing uses binary search on sorted line tops, giving instant response even on 1,000-line documents
 - **RepaintBoundary per chunk** — `ListView.builder` splits large documents into chunks, each with its own GPU layer; cross-chunk repaints never trigger
 - **One-shot image listeners** — `ImageStreamListener` self-removes on success and error; no listener leaks
+- **Layout regression guard** — CI runs 6 HTML fixtures (simple paragraph → 100-paragraph article) on every PR; any layout exceeding the 16 ms (60 FPS) budget fails the build
 
 ---
 
@@ -454,6 +463,7 @@ HyperRender is a content renderer, not a browser. Use something else for:
 | [`hyper_render_markdown`](https://pub.dev/packages/hyper_render_markdown) | Markdown adapter | ✅ Stable |
 | [`hyper_render_highlight`](https://pub.dev/packages/hyper_render_highlight) | Syntax highlighting for `<code>` | ✅ Stable |
 | [`hyper_render_clipboard`](https://pub.dev/packages/hyper_render_clipboard) | Image copy / share | ✅ Stable |
+| [`hyper_render_devtools`](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools extension — UDT inspector, computed style panel, demo mode | ✅ v1.0.0 |
 
 Use the convenience `hyper_render` package (this one) to get all of the above in one dependency.
 
@@ -461,22 +471,22 @@ Use the convenience `hyper_render` package (this one) to get all of the above in
 
 ## 🗺️ Roadmap
 
-### ✅ Shipped (v1.0 → v1.1)
+### ✅ Shipped (v1.0 → v1.1.2)
 
-CSS float · Flexbox · Grid · CSS Variables · `calc()` · Kinsoku + Ruby · `<details>` · RTL/BiDi · Quill Delta · Markdown · XSS sanitization · Screenshot export · `HtmlHeuristics` fallback · View virtualization · Design tokens · Dark mode · Performance monitoring
+CSS float · Flexbox · Grid · CSS Variables · `calc()` · Kinsoku + Ruby · `<details>` · RTL/BiDi · Quill Delta · Markdown · XSS sanitization · Screenshot export · `HtmlHeuristics` fallback · View virtualization · Design tokens · Dark mode · Performance monitoring · CSS `@keyframes` execution · O(log N) binary-search selection · Ruby clipboard (`base(ふりがな)`) · `hyper_render_devtools` v1.0.0 (UDT inspector + demo mode) · Layout regression CI guard (60 FPS / 16 ms budget per fixture) · 3-pipeline CI (Pre-flight · Core Validation · Full Matrix)
 
 ### 🔜 v1.2 — Stability & CSS polish
 
 - Memory-pressure handling (`WidgetsBindingObserver` — auto-evict caches on low-memory signal)
 - Full SVG renderer (currently shows placeholder)
 - `video_player` / `audio` integration
+- CSS `transition` execution (parsed; `AnimationController` wiring pending)
 
-### 🔮 v2.0+ — Plugin ecosystem & animation
+### 🔮 v2.0+ — Plugin ecosystem
 
 - `hyper_render_media` package — extract media layer so core stays zero-dep
-- CSS `@keyframes` / `transition` execution (currently parsed but not animated)
-- `hyper_render_devtools` first working release (UDT inspector, computed-style panel)
 - `hyper_render_export` — full-document PDF and high-res image export
+- Cross-chunk float carryover for tall floated images in virtualized mode
 
 Full details → [`doc/ROADMAP.md`](doc/ROADMAP.md)
 
@@ -487,9 +497,13 @@ Full details → [`doc/ROADMAP.md`](doc/ROADMAP.md)
 ```bash
 git clone https://github.com/brewkits/hyper_render.git
 cd hyper_render && flutter pub get
-flutter test                    # all tests must pass
-cd example && flutter run       # run the demo app
+flutter test                        # all tests must pass
+dart format --set-exit-if-changed . # format enforced in CI
+flutter analyze --fatal-infos       # zero issues enforced in CI
+cd example && flutter run           # run the demo app
 ```
+
+CI runs three pipelines on every PR — format + analyze (< 2 min), per-package tests (ubuntu-22.04, stable), and a layout regression guard that fails if any fixture exceeds 16 ms (60 FPS budget).
 
 Read the [Architecture Decision Records](doc/adr/) and [Contributing Guide](doc/CONTRIBUTING.md) before submitting PRs.
 
