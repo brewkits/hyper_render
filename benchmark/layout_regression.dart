@@ -68,7 +68,8 @@ const _kFloatLayout = '''
 </div>
 ''';
 
-const _kTable20Rows = '''
+// Not const — uses _repeat() which is a runtime function call.
+final _kTable20Rows = '''
 <table>
   <thead>
     <tr><th>Name</th><th colspan="2">Scores</th></tr>
