@@ -60,7 +60,7 @@ class _AccessibilityDemoState extends State<AccessibilityDemo> {
   <h3>Security Model</h3>
   <p>By default, only <code>https</code>, <code>http</code>, <code>mailto</code>, and <code>tel</code>
      schemes trigger <code>onLinkTap</code>.  Custom schemes must be explicitly whitelisted via
-     <code>HyperRenderConfig(extraLinkSchemes: {\'myapp\'})</code>.</p>
+     <code>HyperRenderConfig(extraLinkSchemes: {'myapp'})</code>.</p>
 </article>
 ''',
     },
@@ -498,7 +498,7 @@ MyWidget()        // Not as good</code></pre>
                                   style: TextStyle(fontSize: 11),
                                 ),
                                 value: _allowCustomScheme,
-                                activeColor: Colors.teal,
+                                activeThumbColor: Colors.teal,
                                 onChanged: (v) =>
                                     setState(() => _allowCustomScheme = v),
                               ),

@@ -1,4 +1,4 @@
-import 'package:flutter/gestures.dart';
+import 'package:flutter/gestures.dart'; // ignore: unnecessary_import
 import 'package:flutter/material.dart';
 
 import '../model/node.dart';
@@ -9,12 +9,13 @@ import 'render_ruby.dart';
 import 'render_table.dart';
 
 /// Callback for handling link taps
- /// Callback when a link is tapped.
+/// Callback when a link is tapped.
 typedef LinkTapCallback = void Function(String url);
 
 /// Callback for handling image loading
- /// Builder for custom images.
-typedef ImageBuilder = Widget Function(String src, String? alt, double? width, double? height);
+/// Builder for custom images.
+typedef ImageBuilder = Widget Function(
+    String src, String? alt, double? width, double? height);
 
 /// HtmlToSpanConverter - Core Engine
 ///
@@ -28,7 +29,7 @@ typedef ImageBuilder = Widget Function(String src, String? alt, double? width, d
 /// - Smooth text selection without interruption
 /// - Perfect compatibility with Flutter text engine
 ///
- /// Converter that transforms HTML nodes to Flutter spans.
+/// Converter that transforms HTML nodes to Flutter spans.
 class HtmlToSpanConverter {
   /// Base text style
   final TextStyle baseStyle;
@@ -58,7 +59,8 @@ class HtmlToSpanConverter {
     this.mediaBuilder,
     this.onMediaTap,
     this.preserveWhitespace = false,
-  }) : baseStyle = baseStyle ?? const TextStyle(fontSize: 16, color: Colors.black);
+  }) : baseStyle =
+            baseStyle ?? const TextStyle(fontSize: 16, color: Colors.black);
 
   /// Convert a document node to InlineSpan
   ///
@@ -151,8 +153,7 @@ class HtmlToSpanConverter {
       TapGestureRecognizer? recognizer;
 
       if (href != null && onLinkTap != null) {
-        recognizer = TapGestureRecognizer()
-          ..onTap = () => onLinkTap!(href);
+        recognizer = TapGestureRecognizer()..onTap = () => onLinkTap!(href);
         _recognizers.add(recognizer);
       }
 

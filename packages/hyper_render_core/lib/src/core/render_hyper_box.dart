@@ -2,7 +2,8 @@ import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show debugPrint, defaultTargetPlatform, kDebugMode, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show debugPrint, defaultTargetPlatform, kDebugMode, TargetPlatform;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
@@ -188,7 +189,8 @@ class RenderHyperBox extends RenderBox
     final epoch = _shimmerEpoch;
     if (epoch == null) return 0.0;
     final elapsed = SchedulerBinding.instance.currentFrameTimeStamp - epoch;
-    const periodMs = 1400.0; // 1.4 s per sweep — matches Material skeleton speed
+    const periodMs =
+        1400.0; // 1.4 s per sweep — matches Material skeleton speed
     return (elapsed.inMicroseconds / 1000.0 % periodMs) / periodMs;
   }
 
@@ -259,7 +261,8 @@ class RenderHyperBox extends RenderBox
   List<FloatCarryover> get initialFloats => _initialFloats;
   set initialFloats(List<FloatCarryover> value) {
     // Avoid spurious re-layouts when carryover list is effectively the same.
-    if (value.length == _initialFloats.length && identical(value, _initialFloats)) {
+    if (value.length == _initialFloats.length &&
+        identical(value, _initialFloats)) {
       return;
     }
     _initialFloats = value;
@@ -277,7 +280,8 @@ class RenderHyperBox extends RenderBox
   List<FloatCarryover> get danglingFloats {
     if (_lines.isEmpty) return const [];
     // Natural height = bottom of last line (before float extension).
-    final naturalHeight = _lines.isEmpty ? 0.0 : (_lines.last.bounds?.bottom ?? 0.0);
+    final naturalHeight =
+        _lines.isEmpty ? 0.0 : (_lines.last.bounds?.bottom ?? 0.0);
     final result = <FloatCarryover>[];
     for (final float in _leftFloats) {
       if (float.rect.bottom > naturalHeight) {
@@ -375,6 +379,18 @@ class RenderHyperBox extends RenderBox
 
   /// The [_maxWidth] value when _lines was last successfully built.
   double _linesMaxWidth = double.nan;
+
+  /// Cache available width for the current line to avoid O(N_floats) lookup
+  /// for every single fragment. Only needs recalculating when currentY changes
+  /// or when new floats are added to the line.
+  double? _cachedAvailableWidth;
+
+  /// List of floats added during the CURRENT line. They are kept separate
+  /// so that text on the current line doesn't wrap around a float that
+  /// it triggered (which would cause infinite line-wrapping loops).
+  /// They are flushed to the main float lists at the end of finishLine().
+  final List<_FloatArea> _pendingLineLeftFloats = [];
+  final List<_FloatArea> _pendingLineRightFloats = [];
 
   /// Default placeholder width for images without known dimensions.
   /// Driven by [HyperRenderConfig.defaultImagePlaceholderWidth].
@@ -551,8 +567,7 @@ class RenderHyperBox extends RenderBox
     // RenderObject. SchedulerBinding.cancelFrameCallbackWithId is safe to call
     // with an id that has already fired (it's a no-op in that case).
     if (_shimmerCallbackId != null) {
-      SchedulerBinding.instance
-          .cancelFrameCallbackWithId(_shimmerCallbackId!);
+      SchedulerBinding.instance.cancelFrameCallbackWithId(_shimmerCallbackId!);
       _shimmerCallbackId = null;
     }
     _disposeTextPainters();
@@ -761,10 +776,12 @@ class RenderHyperBox extends RenderBox
           return;
         }
         _imageTokens.remove(token);
-        _imageCache.put(src, CachedImage(
-          image: image,
-          state: ImageLoadState.loaded,
-        ));
+        _imageCache.put(
+            src,
+            CachedImage(
+              image: image,
+              state: ImageLoadState.loaded,
+            ));
         // Invalidate fragments so _tokenizeAtomic re-reads actual image
         // dimensions. Preserves text painter cache (text metrics unchanged).
         _invalidateFragments();
@@ -774,10 +791,12 @@ class RenderHyperBox extends RenderBox
       onError: (Object error) {
         if (!attached) return;
         _imageTokens.remove(token);
-        _imageCache.put(src, CachedImage(
-          state: ImageLoadState.error,
-          error: error.toString(),
-        ));
+        _imageCache.put(
+            src,
+            CachedImage(
+              state: ImageLoadState.error,
+              error: error.toString(),
+            ));
         markNeedsPaint();
       },
     );
@@ -963,8 +982,8 @@ class RenderHyperBox extends RenderBox
       // _measureFragments() can be skipped for those frames.
       final bool fragmentsOrWidthChanged =
           _linesFragmentsVersion != _fragmentsVersion ||
-          _linesMaxWidth != _maxWidth ||
-          _lines.isEmpty;
+              _linesMaxWidth != _maxWidth ||
+              _lines.isEmpty;
       final bool hasDetailsFragments =
           _fragments.any((f) => f is _DetailsFragment);
 
@@ -1265,8 +1284,7 @@ class RenderHyperBox extends RenderBox
                 // their own deep-link schemes via HyperRenderConfig.extraLinkSchemes
                 // (e.g. 'myapp', 'shopee', 'fb', 'momo').
                 const builtinSchemes = {'http', 'https', 'mailto', 'tel'};
-                final scheme =
-                    Uri.tryParse(href)?.scheme.toLowerCase() ?? '';
+                final scheme = Uri.tryParse(href)?.scheme.toLowerCase() ?? '';
                 final allowed = builtinSchemes.contains(scheme) ||
                     _config.extraLinkSchemes.contains(scheme);
                 if (allowed) {
@@ -1334,7 +1352,8 @@ class RenderHyperBox extends RenderBox
 
     for (final anchor in anchors) {
       // Reuse a pooled node when available; only allocate a new one if needed.
-      final semanticsNode = pool.isNotEmpty ? pool.removeAt(0) : SemanticsNode();
+      final semanticsNode =
+          pool.isNotEmpty ? pool.removeAt(0) : SemanticsNode();
       newCache.add(semanticsNode);
 
       final cfg = SemanticsConfiguration()

@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 
-import '../lib/hyper_render_devtools.dart';
+import 'package:hyper_render_devtools/hyper_render_devtools.dart';
 
 /// Example: integrating HyperRender DevTools in an app.
 ///

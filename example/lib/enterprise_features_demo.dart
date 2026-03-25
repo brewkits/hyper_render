@@ -564,7 +564,7 @@ class _DeeplinkSecurityTab extends StatefulWidget {
 class _DeeplinkSecurityTabState extends State<_DeeplinkSecurityTab> {
   final List<String> _tappedUrls = [];
   final List<String> _blockedUrls = [];
-  List<String> _customSchemes = ['shopee', 'myapp', 'momo'];
+  final List<String> _customSchemes = ['shopee', 'myapp', 'momo'];
 
   static const _html = '''
 <h2>URL Scheme Whitelist</h2>
@@ -743,14 +743,14 @@ class _ZoomModesTabState extends State<_ZoomModesTab> {
           subtitle: const Text('Wraps content in InteractiveViewer'),
           value: _zoom,
           onChanged: (v) => setState(() => _zoom = v),
-          activeColor: Colors.purple,
+          activeThumbColor: Colors.purple,
         ),
         SwitchListTile(
           title: const Text('Virtualized mode'),
           subtitle: const Text('Force async chunked rendering for long content'),
           value: _virtualized,
           onChanged: (v) => setState(() => _virtualized = v),
-          activeColor: Colors.purple,
+          activeThumbColor: Colors.purple,
         ),
         const SizedBox(height: 8),
         Row(

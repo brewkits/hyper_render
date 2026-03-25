@@ -1,4 +1,9 @@
 include: package:flutter_lints/flutter.yaml
 
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
+analyzer:
+  errors:
+    # Monorepo: sub-packages use path: deps for local development.
+    # The publish workflow swaps to version: deps before pub publish.
+    invalid_dependency: ignore
+    # Test file names may use camelCase (e.g. copyWith) per convention.
+    file_names: ignore

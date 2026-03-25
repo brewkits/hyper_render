@@ -134,7 +134,8 @@ void main() {
       final document = adapter.parse(html, baseUrl: baseUrl);
       final img = document.children.first as AtomicNode;
 
-      expect(img.src, equals('https://example.com/api/image?id=123&size=large'));
+      expect(
+          img.src, equals('https://example.com/api/image?id=123&size=large'));
     });
 
     test('resolves fragment identifiers correctly', () {
@@ -144,7 +145,8 @@ void main() {
       final document = adapter.parse(html, baseUrl: baseUrl);
       final link = document.children.first;
 
-      expect(link.attributes['href'], equals('https://example.com/page#section'));
+      expect(
+          link.attributes['href'], equals('https://example.com/page#section'));
     });
 
     test('handles baseUrl with trailing slash', () {
@@ -165,10 +167,12 @@ void main() {
       final img = document.children.first as AtomicNode;
 
       // Should resolve relative to the directory containing 'folder'
-      expect(img.src, anyOf(
-        equals('https://example.com/logo.png'),
-        equals('https://example.com/folder/logo.png'),
-      ));
+      expect(
+          img.src,
+          anyOf(
+            equals('https://example.com/logo.png'),
+            equals('https://example.com/folder/logo.png'),
+          ));
     });
 
     test('resolves video src with baseUrl', () {
@@ -208,7 +212,9 @@ void main() {
 
       void traverse(UDTNode node) {
         if (node.tagName == 'a' && link == null) link = node;
-        if (node is AtomicNode && node.tagName == 'img' && img == null) img = node;
+        if (node is AtomicNode && node.tagName == 'img' && img == null) {
+          img = node;
+        }
         for (final child in node.children) {
           traverse(child);
         }

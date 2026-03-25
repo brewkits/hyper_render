@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 /// Integration example showing how to use PerformanceMonitor in production
 ///
 /// This file demonstrates best practices for performance monitoring in HyperRender
@@ -31,6 +32,7 @@ void main() {
           countNodes(child);
         }
       }
+
       for (final child in document.children) {
         countNodes(child);
       }
@@ -83,14 +85,16 @@ void main() {
 
       print('\n--- Example 2: CSS Performance ---');
       print(report);
-      print('CSS Matching Efficiency: ${report.cssMatchingEfficiency.toStringAsFixed(1)}%');
+      print(
+          'CSS Matching Efficiency: ${report.cssMatchingEfficiency.toStringAsFixed(1)}%');
 
       expect(report.cssRuleCount, equals(100));
       expect(report.cssRulesMatched, equals(50));
       expect(report.cssMatchingEfficiency, equals(50.0));
     });
 
-    test('Example 3: Aggregating multiple reports with PerformanceStats', () async {
+    test('Example 3: Aggregating multiple reports with PerformanceStats',
+        () async {
       final stats = PerformanceStats();
 
       // Simulate multiple render cycles
@@ -121,7 +125,8 @@ void main() {
       expect(stats.p95TotalTimeMs, greaterThan(stats.averageTotalTimeMs));
     });
 
-    test('Example 4: Conditional monitoring (disabled in production)', () async {
+    test('Example 4: Conditional monitoring (disabled in production)',
+        () async {
       // In production, you might want to disable monitoring for performance
       final monitor = PerformanceMonitor(enabled: false);
 
@@ -164,6 +169,7 @@ void main() {
           countNodes(child);
         }
       }
+
       for (final child in document.children) {
         countNodes(child);
       }
@@ -180,7 +186,8 @@ void main() {
       print('\n--- Example 5: Memory Tracking ---');
       print('Nodes: ${report.nodeCount}');
       print('Estimated memory: ${report.memoryUsageKb.toStringAsFixed(1)}KB');
-      print('Per node: ${(report.memoryUsageBytes / report.nodeCount).toStringAsFixed(0)} bytes');
+      print(
+          'Per node: ${(report.memoryUsageBytes / report.nodeCount).toStringAsFixed(0)} bytes');
 
       expect(report.memoryUsageKb, greaterThan(0));
     });
@@ -288,6 +295,7 @@ void main() {
             countNodes(child);
           }
         }
+
         for (final child in parseResult.children) {
           countNodes(child);
         }
@@ -304,7 +312,8 @@ void main() {
       }
 
       print('\nAggregate Statistics:');
-      print('  Average render time: ${stats.averageTotalTimeMs.toStringAsFixed(1)}ms');
+      print(
+          '  Average render time: ${stats.averageTotalTimeMs.toStringAsFixed(1)}ms');
       print('  P95: ${stats.p95TotalTimeMs}ms');
       print('  P99: ${stats.p99TotalTimeMs}ms');
       print('  Average memory: ${stats.averageMemoryKb.toStringAsFixed(1)}KB');
@@ -336,7 +345,8 @@ void main() {
       expect(report.totalTime.inMicroseconds, greaterThan(0));
     });
 
-    test('Example 10: Comparing performance before/after optimization', () async {
+    test('Example 10: Comparing performance before/after optimization',
+        () async {
       final beforeStats = PerformanceStats();
       final afterStats = PerformanceStats();
 
@@ -377,8 +387,10 @@ void main() {
       }
 
       print('Results:');
-      print('  Before avg: ${beforeStats.averageStyleTimeMs.toStringAsFixed(1)}ms');
-      print('  After avg: ${afterStats.averageStyleTimeMs.toStringAsFixed(1)}ms');
+      print(
+          '  Before avg: ${beforeStats.averageStyleTimeMs.toStringAsFixed(1)}ms');
+      print(
+          '  After avg: ${afterStats.averageStyleTimeMs.toStringAsFixed(1)}ms');
 
       final improvement =
           beforeStats.averageStyleTimeMs / afterStats.averageStyleTimeMs;

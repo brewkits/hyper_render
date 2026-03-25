@@ -5,6 +5,7 @@
 - Remove `publish_to: none` from all sub-package pubspec.yaml files so pub.dev can verify repository URLs (fixes pub points deduction).
 - Commit DevTools extension web build to git so it is always available without a local rebuild step.
 - Fix `.gitignore` to untrack all sub-package `pubspec.lock` files per Dart library conventions.
+- Fix all unnecessary Flutter SDK import warnings (`rendering.dart`, `services.dart`, `gestures.dart` redundant with broader imports) across `lib/` and `packages/hyper_render_core/lib/` — resolves 6 static-analysis INFO issues and unblocks CI.
 
 
 All notable changes to HyperRender will be documented in this file.

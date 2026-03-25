@@ -128,8 +128,7 @@ class CodeBlockWidget extends StatelessWidget {
               bottom: 8,
               right: 8,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.black26,
                   borderRadius: BorderRadius.circular(4),
@@ -272,9 +271,28 @@ String? detectLanguageFromClass(String? classAttr) {
     if (cls.startsWith('hljs-')) return cls.substring(5);
 
     const knownLanguages = {
-      'dart', 'javascript', 'typescript', 'python', 'java', 'kotlin',
-      'swift', 'go', 'rust', 'c', 'cpp', 'csharp', 'php', 'ruby',
-      'html', 'css', 'xml', 'json', 'yaml', 'sql', 'bash', 'shell',
+      'dart',
+      'javascript',
+      'typescript',
+      'python',
+      'java',
+      'kotlin',
+      'swift',
+      'go',
+      'rust',
+      'c',
+      'cpp',
+      'csharp',
+      'php',
+      'ruby',
+      'html',
+      'css',
+      'xml',
+      'json',
+      'yaml',
+      'sql',
+      'bash',
+      'shell',
       'markdown',
     };
     if (knownLanguages.contains(cls.toLowerCase())) return cls.toLowerCase();

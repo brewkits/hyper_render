@@ -1,7 +1,6 @@
 import 'dart:isolate';
 
 import 'package:hyper_render_core/hyper_render_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../parser/html/html_adapter.dart';
 import '../plugins/default_css_parser.dart';

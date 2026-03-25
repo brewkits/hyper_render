@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 
-/// Helper: build a <details> node with a <summary> and body children.
+/// Helper: build a `<details>` node with a `<summary>` and body children.
 UDTNode buildDetailsNode({
   bool open = false,
   String summaryText = 'Summary',
@@ -90,7 +90,9 @@ void main() {
     test('nested details inside details', () {
       final inner = buildDetailsNode(
         summaryText: 'Inner',
-        body: [BlockNode.p(children: [TextNode('Nested body')])],
+        body: [
+          BlockNode.p(children: [TextNode('Nested body')])
+        ],
       );
       final outer = buildDetailsNode(
         summaryText: 'Outer',
@@ -142,7 +144,9 @@ void main() {
 
     test('details parent is set on children', () {
       final details = buildDetailsNode(
-        body: [BlockNode.p(children: [TextNode('Body')])],
+        body: [
+          BlockNode.p(children: [TextNode('Body')])
+        ],
       );
       for (final child in details.children) {
         expect(child.parent, same(details));
@@ -156,7 +160,9 @@ void main() {
       final details = buildDetailsNode(
         open: false,
         summaryText: 'My Summary',
-        body: [BlockNode.p(children: [TextNode('Hidden')])],
+        body: [
+          BlockNode.p(children: [TextNode('Hidden')])
+        ],
       );
 
       await tester.pumpWidget(
@@ -177,7 +183,9 @@ void main() {
       final details = buildDetailsNode(
         open: true,
         summaryText: 'Open Section',
-        body: [BlockNode.p(children: [TextNode('Visible body')])],
+        body: [
+          BlockNode.p(children: [TextNode('Visible body')])
+        ],
       );
 
       await tester.pumpWidget(
@@ -194,11 +202,14 @@ void main() {
       expect(find.byIcon(Icons.arrow_right), findsOneWidget);
     });
 
-    testWidgets('tapping InkWell toggles state without crashing', (tester) async {
+    testWidgets('tapping InkWell toggles state without crashing',
+        (tester) async {
       final details = buildDetailsNode(
         open: false,
         summaryText: 'Toggle Me',
-        body: [BlockNode.p(children: [TextNode('Body text')])],
+        body: [
+          BlockNode.p(children: [TextNode('Body text')])
+        ],
       );
 
       await tester.pumpWidget(
@@ -221,7 +232,9 @@ void main() {
         (tester) async {
       final details = BlockNode(
         tagName: 'details',
-        children: [BlockNode.p(children: [TextNode('Body only')])],
+        children: [
+          BlockNode.p(children: [TextNode('Body only')])
+        ],
       );
 
       await tester.pumpWidget(
@@ -274,7 +287,9 @@ void main() {
     test('document with details node traversal', () {
       final details = buildDetailsNode(
         summaryText: 'FAQ',
-        body: [BlockNode.p(children: [TextNode('Answer')])],
+        body: [
+          BlockNode.p(children: [TextNode('Answer')])
+        ],
       );
       final doc = DocumentNode(children: [details]);
 

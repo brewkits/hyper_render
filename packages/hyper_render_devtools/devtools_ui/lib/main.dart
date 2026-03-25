@@ -129,12 +129,14 @@ final _kDemoFragments = List.generate(12, (i) {
   };
 });
 
-final _kDemoLines = List.generate(4, (i) => <String, dynamic>{
-      'fragmentCount': 3 + i,
-      'top': i * 24.0,
-      'height': 22.0,
-      'baseline': 17.0,
-    });
+final _kDemoLines = List.generate(
+    4,
+    (i) => <String, dynamic>{
+          'fragmentCount': 3 + i,
+          'top': i * 24.0,
+          'height': 22.0,
+          'baseline': 17.0,
+        });
 
 final _kDemoStyle = <String, dynamic>{
   'display': 'block',
@@ -265,8 +267,7 @@ class _InspectorShellState extends State<InspectorShell>
     Map<String, Object> args = const {},
   ]) async {
     try {
-      final result =
-          await serviceManager.callServiceExtensionOnMainIsolate(
+      final result = await serviceManager.callServiceExtensionOnMainIsolate(
         method,
         args: args,
       );
@@ -342,8 +343,7 @@ class _InspectorShellState extends State<InspectorShell>
   }
 
   Future<void> _loadFragments(String id) async {
-    final result =
-        await _call('ext.hyperRender.getFragments', {'id': id});
+    final result = await _call('ext.hyperRender.getFragments', {'id': id});
     if (result != null && !result.containsKey('_error')) {
       setState(() {
         _fragments = result['fragments'] as List? ?? [];
@@ -353,8 +353,7 @@ class _InspectorShellState extends State<InspectorShell>
   }
 
   Future<void> _loadPerformance(String id) async {
-    final result =
-        await _call('ext.hyperRender.getPerformance', {'id': id});
+    final result = await _call('ext.hyperRender.getPerformance', {'id': id});
     if (result != null && !result.containsKey('_error')) {
       setState(() => _perfData = result);
     }
@@ -603,10 +602,9 @@ class _InspectorShellState extends State<InspectorShell>
       children: [
         // Performance summary
         if (_perfData != null) ...[
-          _SectionHeader('Renderer'),
+          const _SectionHeader('Renderer'),
           _PropertyRow(name: 'id', value: _perfData!['id']),
-          _PropertyRow(
-              name: 'fragments', value: _perfData!['fragmentCount']),
+          _PropertyRow(name: 'fragments', value: _perfData!['fragmentCount']),
           _PropertyRow(name: 'lines', value: _perfData!['lineCount']),
           if (_perfData!['note'] != null)
             Padding(
@@ -619,8 +617,7 @@ class _InspectorShellState extends State<InspectorShell>
         ],
 
         // Fragment list
-        _SectionHeader(
-            'Fragments (${_fragments.length}) — last layout pass'),
+        _SectionHeader('Fragments (${_fragments.length}) — last layout pass'),
         if (_fragments.isEmpty)
           const Padding(
             padding: EdgeInsets.only(bottom: 8),
@@ -643,9 +640,7 @@ class _InspectorShellState extends State<InspectorShell>
                 style: TextStyle(color: Colors.grey, fontSize: 12)),
           )
         else
-          ..._lines
-              .cast<Map<String, dynamic>>()
-              .map((l) => _LineRow(line: l)),
+          ..._lines.cast<Map<String, dynamic>>().map((l) => _LineRow(line: l)),
 
         const SizedBox(height: 16),
         const _InfoCard(
@@ -685,8 +680,8 @@ class _RendererDropdown extends StatelessWidget {
           .map((id) => DropdownMenuItem<String>(
                 value: id,
                 child: Text(id,
-                    style: const TextStyle(
-                        fontFamily: 'monospace', fontSize: 12)),
+                    style:
+                        const TextStyle(fontFamily: 'monospace', fontSize: 12)),
               ))
           .toList(),
       onChanged: onChanged,
@@ -745,12 +740,9 @@ class _UdtNodeWidgetState extends State<_UdtNodeWidget> {
               children: [
                 if (hasChildren)
                   GestureDetector(
-                    onTap: () =>
-                        setState(() => _expanded = !_expanded),
+                    onTap: () => setState(() => _expanded = !_expanded),
                     child: Icon(
-                      _expanded
-                          ? Icons.expand_more
-                          : Icons.chevron_right,
+                      _expanded ? Icons.expand_more : Icons.chevron_right,
                       size: 16,
                       color: Colors.grey,
                     ),
@@ -800,12 +792,13 @@ class _UdtNodeWidgetState extends State<_UdtNodeWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ...children.cast<Map<String, dynamic>>().map((child) =>
-                    _UdtNodeWidget(
-                      node: child,
-                      selectedId: widget.selectedId,
-                      onSelected: widget.onSelected,
-                    )),
+                ...children
+                    .cast<Map<String, dynamic>>()
+                    .map((child) => _UdtNodeWidget(
+                          node: child,
+                          selectedId: widget.selectedId,
+                          onSelected: widget.onSelected,
+                        )),
                 if (truncated)
                   const Padding(
                     padding: EdgeInsets.only(left: 4, top: 2),
@@ -870,9 +863,7 @@ class _FragmentRow extends StatelessWidget {
           Text(
             '$w×$h @ ($x,$y)',
             style: const TextStyle(
-                fontSize: 10,
-                fontFamily: 'monospace',
-                color: Colors.blueGrey),
+                fontSize: 10, fontFamily: 'monospace', color: Colors.blueGrey),
           ),
         ],
       ),
@@ -889,8 +880,7 @@ class _LineRow extends StatelessWidget {
     final frags = line['fragmentCount'] ?? '?';
     final top = (line['top'] as num?)?.toStringAsFixed(1) ?? '—';
     final h = (line['height'] as num?)?.toStringAsFixed(1) ?? '—';
-    final baseline =
-        (line['baseline'] as num?)?.toStringAsFixed(1) ?? '—';
+    final baseline = (line['baseline'] as num?)?.toStringAsFixed(1) ?? '—';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1),
@@ -906,9 +896,7 @@ class _LineRow extends StatelessWidget {
           Text(
             'top=$top  h=$h  base=$baseline',
             style: const TextStyle(
-                fontSize: 10,
-                fontFamily: 'monospace',
-                color: Colors.blueGrey),
+                fontSize: 10, fontFamily: 'monospace', color: Colors.blueGrey),
           ),
         ],
       ),
@@ -1015,12 +1003,11 @@ class _InfoCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 13)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             const SizedBox(height: 4),
             Text(description,
-                style:
-                    const TextStyle(fontSize: 12, color: Colors.grey)),
+                style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
       ),

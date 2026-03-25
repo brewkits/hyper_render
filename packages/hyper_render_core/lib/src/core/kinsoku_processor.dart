@@ -55,7 +55,7 @@ class KinsokuProcessor {
       '［｛' // U+FF3B fullwidth [ , U+FF5B fullwidth {
       // ── Chinese smart-quote opens ────────────────────────────────────
       '"\'' // U+201C " U+2018 '
-  ;
+      ;
 
   /// Matching bracket/quote pairs that must not be split across lines (分離禁止).
   ///
@@ -102,7 +102,7 @@ class KinsokuProcessor {
   // so String.codeUnitAt() returns the exact Unicode code point — no surrogate
   // pair handling required, and the index is always within [0, 0xFFFF].
   static const int _kStart = 1 << 0; // bit 0 — cannot start a line
-  static const int _kEnd   = 1 << 1; // bit 1 — cannot end a line
+  static const int _kEnd = 1 << 1; // bit 1 — cannot end a line
 
   /// 64 KB bitmask table: `_table[codeUnit] & _kStart != 0` → kinsoku start.
   static final Uint8List _table = _buildTable();
@@ -137,7 +137,9 @@ class KinsokuProcessor {
   static bool canBreakBetween(String current, String next) {
     if (current.isEmpty || next.isEmpty) return true;
     if ((_table[next.codeUnitAt(0)] & _kStart) != 0) return false;
-    if ((_table[current.codeUnitAt(current.length - 1)] & _kEnd) != 0) return false;
+    if ((_table[current.codeUnitAt(current.length - 1)] & _kEnd) != 0) {
+      return false;
+    }
     return true;
   }
 

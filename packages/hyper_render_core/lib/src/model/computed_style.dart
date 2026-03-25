@@ -695,7 +695,9 @@ class ComputedStyle {
     if (!isExplicitlySet('font-style')) fontStyle = parent.fontStyle;
     if (!isExplicitlySet('font-family')) fontFamily = parent.fontFamily;
     if (!isExplicitlySet('line-height')) lineHeight = parent.lineHeight;
-    if (!isExplicitlySet('letter-spacing')) letterSpacing = parent.letterSpacing;
+    if (!isExplicitlySet('letter-spacing')) {
+      letterSpacing = parent.letterSpacing;
+    }
     if (!isExplicitlySet('word-spacing')) wordSpacing = parent.wordSpacing;
     if (!isExplicitlySet('text-align')) textAlign = parent.textAlign;
     if (!isExplicitlySet('white-space')) whiteSpace = parent.whiteSpace;

@@ -211,7 +211,7 @@ void main() {
   print('\n${'═' * 64}');
   print('  HyperRender Layout Regression Benchmark');
   print('  Budget: 16 ms per layout pass (60 FPS)');
-  print('${'═' * 64}');
+  print('═' * 64);
 
   tearDownAll(_writeResults);
 

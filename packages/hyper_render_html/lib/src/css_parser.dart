@@ -155,7 +155,9 @@ class DefaultCssParser implements CssParserInterface {
       final decls = _parseKfDeclarations(m.group(2)!);
       for (final raw in m.group(1)!.split(',')) {
         final offset = _kfSelectorToOffset(raw.trim());
-        if (offset != null) keyframes.add(_kfDeclarationsToKeyframe(offset, decls));
+        if (offset != null) {
+          keyframes.add(_kfDeclarationsToKeyframe(offset, decls));
+        }
       }
     }
     if (keyframes.isEmpty) return null;
@@ -188,14 +190,20 @@ class DefaultCssParser implements CssParserInterface {
   HyperKeyframe _kfDeclarationsToKeyframe(
       double offset, Map<String, String> decls) {
     double? opacity, translateX, translateY, scale, rotation;
-    if (decls.containsKey('opacity')) opacity = double.tryParse(decls['opacity']!);
+    if (decls.containsKey('opacity')) {
+      opacity = double.tryParse(decls['opacity']!);
+    }
     final t = decls['transform'];
     if (t != null) {
-      final txM = RegExp(r'translateX\(\s*(-?[\d.]+)(?:px|%|rem|em)?\s*\)').firstMatch(t);
+      final txM = RegExp(r'translateX\(\s*(-?[\d.]+)(?:px|%|rem|em)?\s*\)')
+          .firstMatch(t);
       if (txM != null) translateX = double.tryParse(txM.group(1)!);
-      final tyM = RegExp(r'translateY\(\s*(-?[\d.]+)(?:px|%|rem|em)?\s*\)').firstMatch(t);
+      final tyM = RegExp(r'translateY\(\s*(-?[\d.]+)(?:px|%|rem|em)?\s*\)')
+          .firstMatch(t);
       if (tyM != null) translateY = double.tryParse(tyM.group(1)!);
-      final tM = RegExp(r'(?<![XY])translate\(\s*(-?[\d.]+)(?:px)?\s*(?:,\s*(-?[\d.]+)(?:px)?)?\s*\)').firstMatch(t);
+      final tM = RegExp(
+              r'(?<![XY])translate\(\s*(-?[\d.]+)(?:px)?\s*(?:,\s*(-?[\d.]+)(?:px)?)?\s*\)')
+          .firstMatch(t);
       if (tM != null) {
         translateX ??= double.tryParse(tM.group(1)!);
         if (tM.group(2) != null) translateY ??= double.tryParse(tM.group(2)!);
@@ -205,9 +213,13 @@ class DefaultCssParser implements CssParserInterface {
       final rM = RegExp(r'rotate\(\s*(-?[\d.]+)deg\s*\)').firstMatch(t);
       if (rM != null) rotation = double.tryParse(rM.group(1)!);
     }
-    return HyperKeyframe(offset: offset, opacity: opacity,
-        translateX: translateX, translateY: translateY,
-        scale: scale, rotation: rotation);
+    return HyperKeyframe(
+        offset: offset,
+        opacity: opacity,
+        translateX: translateX,
+        translateY: translateY,
+        scale: scale,
+        rotation: rotation);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
