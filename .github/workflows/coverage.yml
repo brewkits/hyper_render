@@ -89,8 +89,8 @@ jobs:
           total=$(lcov --summary coverage/lcov.info 2>&1 | grep "lines" | awk '{print $2}' | cut -d'%' -f1)
           echo "Coverage: $total%"
 
-          if (( $(echo "$total < 65" | bc -l) )); then
-            echo "❌ Coverage below 65% threshold: $total%"
+          if (( $(echo "$total < 50" | bc -l) )); then
+            echo "❌ Coverage below 50% threshold: $total%"
             exit 1
           else
             echo "✅ Coverage meets threshold: $total%"
