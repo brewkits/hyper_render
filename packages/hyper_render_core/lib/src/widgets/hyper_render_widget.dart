@@ -330,7 +330,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   }
 
   /// Build CodeBlockWidget for <pre> elements with syntax highlighting
-  static Widget? _buildCodeBlockWidget(UDTNode node, CodeHighlighter? highlighter) {
+  static Widget? _buildCodeBlockWidget(
+      UDTNode node, CodeHighlighter? highlighter) {
     // Extract code content and language
     String codeContent = '';
     String? language;
@@ -706,7 +707,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       selectionColor: selectionColor,
       onSelectionChanged: onSelectionChanged,
       config: config,
-    )..debugShowBounds = debugShowBounds
+    )
+      ..debugShowBounds = debugShowBounds
       ..enableComplexFilters = enableComplexFilters
       ..suppressFirstBlockMarginTop = suppressFirstBlockMarginTop
       ..onAnchorLayout = onAnchorLayout
@@ -748,7 +750,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       renderObject.enableComplexFilters = enableComplexFilters;
       renderObject.markNeedsPaint();
     }
-    if (renderObject.suppressFirstBlockMarginTop != suppressFirstBlockMarginTop) {
+    if (renderObject.suppressFirstBlockMarginTop !=
+        suppressFirstBlockMarginTop) {
       renderObject.suppressFirstBlockMarginTop = suppressFirstBlockMarginTop;
       renderObject.markNeedsLayout();
     }

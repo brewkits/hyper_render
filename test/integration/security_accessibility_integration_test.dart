@@ -92,7 +92,7 @@ void main() {
               sanitize: true,
               selectable: true,
               semanticLabel: 'User comments section',
-              onLinkTap: (url) => print('Tapped: $url'),
+              onLinkTap: (url) => debugPrint('Tapped: $url'),
             ),
           ),
         ),
@@ -157,7 +157,8 @@ void main() {
             body: HyperViewer(
               html: largeHtml,
               sanitize: true,
-              mode: HyperRenderMode.sync, // Force sync mode for predictable testing
+              mode: HyperRenderMode
+                  .sync, // Force sync mode for predictable testing
               semanticLabel: 'Large article',
             ),
           ),
@@ -249,8 +250,8 @@ This is **bold** text with a [link](https://example.com).
       await tester.pumpAndSettle();
 
       // Even with errors, accessibility should work
-      expect(find.bySemanticsLabel('Article with parsing errors'),
-          findsOneWidget);
+      expect(
+          find.bySemanticsLabel('Article with parsing errors'), findsOneWidget);
     });
 
     testWidgets('data-* attributes with sanitization and accessibility',

@@ -423,7 +423,8 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
           _hideMenu(); // Hide menu while dragging
           // Freeze the ancestor scroll view so the handle drag wins the arena.
           _releaseScrollHold();
-          _scrollHold = Scrollable.maybeOf(context)?.position.hold(_releaseScrollHold);
+          _scrollHold =
+              Scrollable.maybeOf(context)?.position.hold(_releaseScrollHold);
         },
         onPanUpdate: (details) {
           final renderBox = _renderBox;

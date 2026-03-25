@@ -229,9 +229,12 @@ class StyleResolver {
   /// which meant only the last class/element name was kept (e.g. "div p" became
   /// just "p").  We now use [sel.span?.text] which gives the exact source text
   /// of each selector (including combinators like space, ">", "+", "~").
-  List<CssRule> _convertRuleSet(css_ast.RuleSet ruleSet, {int sourceIndex = 0}) {
+  List<CssRule> _convertRuleSet(css_ast.RuleSet ruleSet,
+      {int sourceIndex = 0}) {
     final selectorGroup = ruleSet.selectorGroup;
-    if (selectorGroup == null || selectorGroup.selectors.isEmpty) return const [];
+    if (selectorGroup == null || selectorGroup.selectors.isEmpty) {
+      return const [];
+    }
 
     // Collect declaration values once — shared across all selectors in the group.
     final declarations = <String, String>{};
@@ -498,7 +501,8 @@ class StyleResolver {
     }
 
     // Element is everything before first . or #
-    final elementMatch = RegExp(r'^([a-zA-Z][a-zA-Z0-9]*)').firstMatch(selector);
+    final elementMatch =
+        RegExp(r'^([a-zA-Z][a-zA-Z0-9]*)').firstMatch(selector);
     if (elementMatch != null) {
       elementPart = elementMatch.group(1);
     }
@@ -625,8 +629,10 @@ class StyleResolver {
     final result = ComputedStyle(
       width: override.width ?? base.width,
       height: override.height ?? base.height,
-      margin: override.margin != EdgeInsets.zero ? override.margin : base.margin,
-      padding: override.padding != EdgeInsets.zero ? override.padding : base.padding,
+      margin:
+          override.margin != EdgeInsets.zero ? override.margin : base.margin,
+      padding:
+          override.padding != EdgeInsets.zero ? override.padding : base.padding,
       borderWidth: override.borderWidth != EdgeInsets.zero
           ? override.borderWidth
           : base.borderWidth,
@@ -709,7 +715,8 @@ class StyleResolver {
     }
 
     // Resolve var() and calc() references before processing
-    value = _resolveCssValue(value, style.customProperties, inheritedCustomProps);
+    value =
+        _resolveCssValue(value, style.customProperties, inheritedCustomProps);
 
     switch (property) {
       case 'color':
@@ -729,7 +736,8 @@ class StyleResolver {
             style.markExplicitlySet('background-gradient');
           }
         } else if (value.contains('url(')) {
-          final match = RegExp(r"""url\(["']?([^"')]+)["']?\)""").firstMatch(value);
+          final match =
+              RegExp(r"""url\(["']?([^"')]+)["']?\)""").firstMatch(value);
           if (match != null) {
             style.backgroundImage = match.group(1);
             style.markExplicitlySet('background-image');
@@ -768,7 +776,8 @@ class StyleResolver {
             style.markExplicitlySet('background-gradient');
           }
         } else if (value.contains('url(')) {
-          final match = RegExp(r"""url\(["']?([^"')]+)["']?\)""").firstMatch(value);
+          final match =
+              RegExp(r"""url\(["']?([^"')]+)["']?\)""").firstMatch(value);
           if (match != null) {
             style.backgroundImage = match.group(1);
             style.markExplicitlySet('background-image');
@@ -819,7 +828,8 @@ class StyleResolver {
         break;
 
       case 'line-height':
-        final lineHeight = _parseLineHeight(value, parentFontSize: parentFontSize);
+        final lineHeight =
+            _parseLineHeight(value, parentFontSize: parentFontSize);
         if (lineHeight != null) {
           style.lineHeight = lineHeight;
           style.markExplicitlySet('line-height');
@@ -827,7 +837,8 @@ class StyleResolver {
         break;
 
       case 'letter-spacing':
-        final spacing = _parseLengthWithContext(value, parentFontSize: parentFontSize);
+        final spacing =
+            _parseLengthWithContext(value, parentFontSize: parentFontSize);
         if (spacing != null) {
           style.letterSpacing = spacing;
           style.markExplicitlySet('letter-spacing');
@@ -1121,20 +1132,20 @@ class StyleResolver {
         break;
 
       case 'text-shadow':
-       final shadows = _parseTextShadow(value);
-       if (shadows != null && shadows.isNotEmpty) {
-         style.textShadow = shadows;
-         style.markExplicitlySet('text-shadow');
-       }
-       break;
+        final shadows = _parseTextShadow(value);
+        if (shadows != null && shadows.isNotEmpty) {
+          style.textShadow = shadows;
+          style.markExplicitlySet('text-shadow');
+        }
+        break;
 
       case 'box-shadow':
-       final shadows = _parseBoxShadow(value);
-       if (shadows != null && shadows.isNotEmpty) {
-         style.boxShadow = shadows;
-         style.markExplicitlySet('box-shadow');
-       }
-       break;
+        final shadows = _parseBoxShadow(value);
+        if (shadows != null && shadows.isNotEmpty) {
+          style.boxShadow = shadows;
+          style.markExplicitlySet('box-shadow');
+        }
+        break;
 
       case 'filter':
         final filter = _parseFilter(value);
@@ -1152,7 +1163,8 @@ class StyleResolver {
         }
         break;
 
-      case 'border-style':        final borderStyle = _parseBorderStyle(value);
+      case 'border-style':
+        final borderStyle = _parseBorderStyle(value);
         if (borderStyle != null) {
           style.borderStyle = borderStyle;
           style.markExplicitlySet('border-style');
@@ -1470,7 +1482,8 @@ class StyleResolver {
     final multiplier = double.tryParse(value);
     if (multiplier != null) return multiplier;
     // With units - convert to multiplier
-    final length = _parseLengthWithContext(value, parentFontSize: parentFontSize);
+    final length =
+        _parseLengthWithContext(value, parentFontSize: parentFontSize);
     if (length != null && parentFontSize != null) {
       return length / parentFontSize;
     }
@@ -1731,16 +1744,21 @@ class StyleResolver {
       colorStartIndex = 1;
     } else if (RegExp(r'^\d+deg').hasMatch(firstPart)) {
       // Simplified angle handling: 0deg=top, 90deg=right, 180deg=bottom, 270deg=left
-      final angle = double.tryParse(RegExp(r'^\d+').firstMatch(firstPart)?.group(0) ?? '180');
+      final angle = double.tryParse(
+          RegExp(r'^\d+').firstMatch(firstPart)?.group(0) ?? '180');
       if (angle != null) {
         if (angle >= 45 && angle < 135) {
-          begin = Alignment.centerLeft; end = Alignment.centerRight;
+          begin = Alignment.centerLeft;
+          end = Alignment.centerRight;
         } else if (angle >= 135 && angle < 225) {
-          begin = Alignment.topCenter; end = Alignment.bottomCenter;
+          begin = Alignment.topCenter;
+          end = Alignment.bottomCenter;
         } else if (angle >= 225 && angle < 315) {
-          begin = Alignment.centerRight; end = Alignment.centerLeft;
+          begin = Alignment.centerRight;
+          end = Alignment.centerLeft;
         } else {
-          begin = Alignment.bottomCenter; end = Alignment.topCenter;
+          begin = Alignment.bottomCenter;
+          end = Alignment.topCenter;
         }
       }
       colorStartIndex = 1;
@@ -1751,7 +1769,8 @@ class StyleResolver {
 
     for (int i = colorStartIndex; i < parts.length; i++) {
       final colorPart = parts[i].trim();
-      final colorMatch = RegExp(r'^([^(]+(?:\([^)]*\))?)\s*(.*)$').firstMatch(colorPart);
+      final colorMatch =
+          RegExp(r'^([^(]+(?:\([^)]*\))?)\s*(.*)$').firstMatch(colorPart);
       if (colorMatch == null) continue;
 
       final colorStr = colorMatch.group(1)!.trim();
@@ -1790,9 +1809,11 @@ class StyleResolver {
     int depth = 0;
     int start = 0;
     for (int i = 0; i < inner.length; i++) {
-      if (inner[i] == '(') { depth++; }
-      else if (inner[i] == ')') { depth--; }
-      else if (inner[i] == ',' && depth == 0) {
+      if (inner[i] == '(') {
+        depth++;
+      } else if (inner[i] == ')') {
+        depth--;
+      } else if (inner[i] == ',' && depth == 0) {
         parts.add(inner.substring(start, i).trim());
         start = i + 1;
       }
@@ -1805,7 +1826,8 @@ class StyleResolver {
   ui.ImageFilter? _parseFilter(String value) {
     if (value.toLowerCase().trim() == 'none') return null;
 
-    final filterFuncs = RegExp(r'([a-z-]+)\(([^)]+)\)').allMatches(value.toLowerCase());
+    final filterFuncs =
+        RegExp(r'([a-z-]+)\(([^)]+)\)').allMatches(value.toLowerCase());
     if (filterFuncs.isEmpty) return null;
 
     final filters = <ui.ImageFilter>[];
@@ -1826,10 +1848,26 @@ class StyleResolver {
           final factor = args.contains('%') ? amount / 100.0 : amount;
           if (factor != 1.0) {
             final matrix = <double>[
-              factor, 0, 0, 0, 0,
-              0, factor, 0, 0, 0,
-              0, 0, factor, 0, 0,
-              0, 0, 0, 1, 0,
+              factor,
+              0,
+              0,
+              0,
+              0,
+              0,
+              factor,
+              0,
+              0,
+              0,
+              0,
+              0,
+              factor,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
             ];
             filters.add(ui.ColorFilter.matrix(matrix));
           }
@@ -1840,10 +1878,26 @@ class StyleResolver {
           if (factor != 1.0) {
             final t = (1.0 - factor) / 2.0;
             final matrix = <double>[
-              factor, 0, 0, 0, t * 255,
-              0, factor, 0, 0, t * 255,
-              0, 0, factor, 0, t * 255,
-              0, 0, 0, 1, 0,
+              factor,
+              0,
+              0,
+              0,
+              t * 255,
+              0,
+              factor,
+              0,
+              0,
+              t * 255,
+              0,
+              0,
+              factor,
+              0,
+              t * 255,
+              0,
+              0,
+              0,
+              1,
+              0,
             ];
             filters.add(ui.ColorFilter.matrix(matrix));
           }
@@ -1856,7 +1910,9 @@ class StyleResolver {
 
     return ui.ImageFilter.compose(
       outer: filters[0],
-      inner: filters.length > 1 ? filters[1] : filters[0], // Simplified compose for 2
+      inner: filters.length > 1
+          ? filters[1]
+          : filters[0], // Simplified compose for 2
     );
   }
 
@@ -2065,7 +2121,8 @@ class StyleResolver {
     }
 
     // rgb(r, g, b) — supports negative values (clamped to 0)
-    final rgbMatch = RegExp(r'rgb\((-?\d+),\s*(-?\d+),\s*(-?\d+)\)').firstMatch(value);
+    final rgbMatch =
+        RegExp(r'rgb\((-?\d+),\s*(-?\d+),\s*(-?\d+)\)').firstMatch(value);
     if (rgbMatch != null) {
       final r = int.parse(rgbMatch.group(1)!).clamp(0, 255);
       final g = int.parse(rgbMatch.group(2)!).clamp(0, 255);
@@ -2075,12 +2132,14 @@ class StyleResolver {
 
     // rgba(r, g, b, a) — supports negative alpha (clamped to 0)
     final rgbaMatch =
-        RegExp(r'rgba\((-?\d+),\s*(-?\d+),\s*(-?\d+),\s*(-?[\d.]+)\)').firstMatch(value);
+        RegExp(r'rgba\((-?\d+),\s*(-?\d+),\s*(-?\d+),\s*(-?[\d.]+)\)')
+            .firstMatch(value);
     if (rgbaMatch != null) {
       final r = int.parse(rgbaMatch.group(1)!).clamp(0, 255);
       final g = int.parse(rgbaMatch.group(2)!).clamp(0, 255);
       final b = int.parse(rgbaMatch.group(3)!).clamp(0, 255);
-      final alpha = (double.tryParse(rgbaMatch.group(4)!) ?? 1.0).clamp(0.0, 1.0);
+      final alpha =
+          (double.tryParse(rgbaMatch.group(4)!) ?? 1.0).clamp(0.0, 1.0);
       return Color.fromARGB((alpha * 255).round(), r, g, b);
     }
 
@@ -2435,7 +2494,6 @@ class CssRule {
   }) : importantDeclarations = importantDeclarations ?? const {};
 
   @override
-  String toString() =>
-      'CssRule($selector, specificity=$specificity, '
+  String toString() => 'CssRule($selector, specificity=$specificity, '
       '${declarations.length} normal + ${importantDeclarations.length} !important)';
 }

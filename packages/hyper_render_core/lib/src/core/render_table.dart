@@ -414,6 +414,7 @@ class _TableGrid {
 
 class _GridCell {
   final TableCellNode cellNode;
+
   /// The parent row node — used to inherit row-level background-color and color
   /// when the cell itself has no explicit background/color set.
   final TableRowNode rowNode;
@@ -444,6 +445,7 @@ class _TableCellParentData extends ContainerBoxParentData<RenderBox> {
   int col = 0;
   int colspan = 1;
   int rowspan = 1;
+
   /// CSS `vertical-align` for this cell.  Defaults to [HyperVerticalAlign.top]
   /// which is the CSS table-cell initial value (not `baseline`, which applies
   /// to inline contexts).
@@ -698,14 +700,15 @@ class _RenderHyperTable extends RenderBox
     if (_columnCount == 0 || _rowCount == 0) return 0;
     // Reuse cached column widths when the same width is queried repeatedly
     // (e.g. outer IntrinsicHeight calling once per row — O(R×N) → O(N)).
-    final colW = (_intrinsicCacheWidth == width && _intrinsicColWidthsCache != null)
-        ? _intrinsicColWidthsCache!
-        : () {
-            final w = _distributeColumnWidths(width);
-            _intrinsicCacheWidth = width;
-            _intrinsicColWidthsCache = w;
-            return w;
-          }();
+    final colW =
+        (_intrinsicCacheWidth == width && _intrinsicColWidthsCache != null)
+            ? _intrinsicColWidthsCache!
+            : () {
+                final w = _distributeColumnWidths(width);
+                _intrinsicCacheWidth = width;
+                _intrinsicColWidthsCache = w;
+                return w;
+              }();
     final rowH = List<double>.filled(_rowCount, 0.0);
 
     // Only rowspan = 1 cells contribute reliably without a layout pass.
@@ -1057,8 +1060,7 @@ class _RenderHyperTable extends RenderBox
 
   /// Iterates children using [children] snapshot when available (O(N) array
   /// traversal), or falls back to [_walkChildren] (O(N) linked-list traversal).
-  void _forEach(
-      void Function(RenderBox child, _TableCellParentData pd) fn,
+  void _forEach(void Function(RenderBox child, _TableCellParentData pd) fn,
       [List<(RenderBox, _TableCellParentData)>? children]) {
     if (children != null) {
       for (final (child, pd) in children) {

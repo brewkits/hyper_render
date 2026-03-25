@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'; // ignore: unnecessary_import
 
 import '../core/image_provider.dart';
 import '../core/render_hyper_box.dart';
@@ -17,10 +17,13 @@ import 'hyper_details_widget.dart';
 enum ImageAction {
   /// Copy image URL to clipboard
   copyUrl,
+
   /// Copy image data (requires ImageClipboardHandler)
   copyImage,
+
   /// Save image to device (requires ImageClipboardHandler)
   saveImage,
+
   /// Share image (requires ImageClipboardHandler)
   shareImage,
 }
@@ -110,7 +113,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.selectionColor,
     this.onSelectionChanged,
     this.debugShowBounds = false,
-  }) : super(children: _buildChildren(document, widgetBuilder, selectable: selectable));
+  }) : super(
+            children: _buildChildren(document, widgetBuilder,
+                selectable: selectable));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
   static List<Widget> _buildChildren(
@@ -119,7 +124,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     bool selectable = true,
   }) {
     final children = <Widget>[];
-    _collectAtomicChildren(document, children, widgetBuilder, selectable: selectable);
+    _collectAtomicChildren(document, children, widgetBuilder,
+        selectable: selectable);
     return children;
   }
 
@@ -196,7 +202,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     } else if (node.type == NodeType.table) {
       final tableNode = node as TableNode;
       childWidget = widgetBuilder?.call(tableNode);
-      childWidget ??= _buildDefaultTableWidget(tableNode, selectable: selectable);
+      childWidget ??=
+          _buildDefaultTableWidget(tableNode, selectable: selectable);
       if (childWidget != null) {
         children.add(_HyperChildWidget(node: node, child: childWidget));
       }
@@ -206,7 +213,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     // (because its children are not part of the main render tree)
     if (childWidget == null) {
       for (final child in node.children) {
-        _collectAtomicChildren(child, children, widgetBuilder, selectable: selectable);
+        _collectAtomicChildren(child, children, widgetBuilder,
+            selectable: selectable);
       }
     }
   }
@@ -353,7 +361,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     return null;
   }
 
-  static Widget? _buildDefaultTableWidget(TableNode node, {bool selectable = true}) {
+  static Widget? _buildDefaultTableWidget(TableNode node,
+      {bool selectable = true}) {
     // Use the SmartTableWrapper for intelligent table rendering
     // Auto-detect strategy based on CSS width:
     // - If width is 100%, use fitWidth (table wraps to screen like fwfh)
@@ -364,9 +373,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     final styleAttr = node.attributes['style'];
     final widthAttr = node.attributes['width'];
 
-    final hasPercentWidth = (styleAttr?.contains('width') == true &&
-                            styleAttr!.contains('%')) ||
-                            (widthAttr?.contains('%') ?? false);
+    final hasPercentWidth =
+        (styleAttr?.contains('width') == true && styleAttr!.contains('%')) ||
+            (widthAttr?.contains('%') ?? false);
 
     if (hasPercentWidth) {
       // Use fitWidth for percentage widths (wraps to device width)
@@ -421,7 +430,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   }
 
   /// Build a single flex child
-  static Widget? _buildFlexChild(UDTNode node, HyperWidgetBuilder? widgetBuilder) {
+  static Widget? _buildFlexChild(
+      UDTNode node, HyperWidgetBuilder? widgetBuilder) {
     // If it's text content, convert to Text widget
     if (node.type == NodeType.text) {
       final textNode = node as TextNode;
@@ -714,7 +724,8 @@ class HyperImage extends StatelessWidget {
             height: height ?? 100,
             color: const Color(0xFFE0E0E0),
             child: const Center(
-              child: Icon(Icons.broken_image, size: 32, color: Color(0xFF9E9E9E)),
+              child:
+                  Icon(Icons.broken_image, size: 32, color: Color(0xFF9E9E9E)),
             ),
           );
         },
@@ -726,15 +737,18 @@ class HyperImage extends StatelessWidget {
     }
 
     return GestureDetector(
-      onLongPressStart: (details) => _showContextMenu(context, details.globalPosition),
-      onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
+      onLongPressStart: (details) =>
+          _showContextMenu(context, details.globalPosition),
+      onSecondaryTapDown: (details) =>
+          _showContextMenu(context, details.globalPosition),
       child: imageWidget,
     );
   }
 
   void _showContextMenu(BuildContext context, Offset position) {
     final handler = clipboardHandler ?? const DefaultImageClipboardHandler();
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
 
     // Build menu items based on handler capabilities
     final menuItems = <PopupMenuEntry<ImageAction>>[
@@ -823,7 +837,8 @@ class HyperImage extends StatelessWidget {
 
         case ImageAction.copyImage:
           success = await handler.copyImageFromUrl(src);
-          message = success ? 'Image copied to clipboard' : 'Failed to copy image';
+          message =
+              success ? 'Image copied to clipboard' : 'Failed to copy image';
           break;
 
         case ImageAction.saveImage:
@@ -834,7 +849,9 @@ class HyperImage extends StatelessWidget {
 
         case ImageAction.shareImage:
           success = await handler.shareImageFromUrl(src);
-          message = success ? '' : 'Failed to share image'; // No message on share success
+          message = success
+              ? ''
+              : 'Failed to share image'; // No message on share success
           break;
       }
 

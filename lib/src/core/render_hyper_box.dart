@@ -143,7 +143,8 @@ class RenderHyperBox extends RenderBox
   final Map<UDTNode, int> _listItemIndices = {};
 
   /// Fragment range for efficient character lookup
-  final List<(int, int, Fragment)> _fragmentRanges = []; // (startIndex, endIndex, fragment)
+  final List<(int, int, Fragment)> _fragmentRanges =
+      []; // (startIndex, endIndex, fragment)
 
   // ── Incremental layout dirty tracking ─────────────────────────────────────
   /// Bumped each time _fragments is rebuilt (via _ensureFragments).
@@ -471,7 +472,8 @@ class RenderHyperBox extends RenderBox
             maxWidth = painter.width;
           }
         }
-      } else if (fragment.type == FragmentType.atomic || fragment.type == FragmentType.ruby) {
+      } else if (fragment.type == FragmentType.atomic ||
+          fragment.type == FragmentType.ruby) {
         // Ensure fragment is measured if it hasn't been already
         if (fragment.measuredSize == null) _measureFragment(fragment);
         if (fragment.width > maxWidth) {
@@ -575,11 +577,13 @@ class RenderHyperBox extends RenderBox
       // to call performLayout.  Version mismatch forces a full rebuild.
       // <details> elements can change height dynamically (expand/collapse),
       // so always redo line layout when the document contains any.
-      final bool hasDetailsFragments = _fragments.any((f) => f is _DetailsFragment);
-      final bool needsLineLayout = _linesFragmentsVersion != _fragmentsVersion ||
-          _linesMaxWidth != _maxWidth ||
-          _lines.isEmpty ||
-          hasDetailsFragments;
+      final bool hasDetailsFragments =
+          _fragments.any((f) => f is _DetailsFragment);
+      final bool needsLineLayout =
+          _linesFragmentsVersion != _fragmentsVersion ||
+              _linesMaxWidth != _maxWidth ||
+              _lines.isEmpty ||
+              hasDetailsFragments;
 
       if (needsLineLayout) {
         // Step 2: Measure all fragments
@@ -666,7 +670,9 @@ class RenderHyperBox extends RenderBox
       _paintFloatImages(canvas, offset);
 
       // 3. Selection highlight (behind text)
-      if (_selection != null && _selection!.isValid && !_selection!.isCollapsed) {
+      if (_selection != null &&
+          _selection!.isValid &&
+          !_selection!.isCollapsed) {
         _paintSelection(canvas, offset);
       }
 

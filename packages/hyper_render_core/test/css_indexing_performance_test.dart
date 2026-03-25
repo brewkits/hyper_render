@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 
@@ -7,11 +8,16 @@ void main() {
       // Create 500 CSS rules
       final rules = <ParsedCssRule>[];
       for (var i = 0; i < 100; i++) {
-        rules.add(ParsedCssRule(selector: 'div$i', declarations: {'color': 'red'}));
-        rules.add(ParsedCssRule(selector: 'p$i', declarations: {'color': 'blue'}));
-        rules.add(ParsedCssRule(selector: '.class$i', declarations: {'padding': '10px'}));
-        rules.add(ParsedCssRule(selector: '#id$i', declarations: {'margin': '5px'}));
-        rules.add(ParsedCssRule(selector: 'span$i a$i', declarations: {'text-decoration': 'none'}));
+        rules.add(
+            ParsedCssRule(selector: 'div$i', declarations: {'color': 'red'}));
+        rules.add(
+            ParsedCssRule(selector: 'p$i', declarations: {'color': 'blue'}));
+        rules.add(ParsedCssRule(
+            selector: '.class$i', declarations: {'padding': '10px'}));
+        rules.add(
+            ParsedCssRule(selector: '#id$i', declarations: {'margin': '5px'}));
+        rules.add(ParsedCssRule(
+            selector: 'span$i a$i', declarations: {'text-decoration': 'none'}));
       }
 
       // Build index
@@ -75,8 +81,10 @@ void main() {
       print('\nCandidate reduction:');
       print('  Linear matches (1000 iters): $linearMatches');
       print('  Linear would check: ${rules.length} rules per node');
-      print('  Indexed checks: ${(indexedCandidates / 1000).toStringAsFixed(1)} rules per node');
-      print('  Reduction: ${(100 * (1 - indexedCandidates / 1000 / rules.length)).toStringAsFixed(1)}%');
+      print(
+          '  Indexed checks: ${(indexedCandidates / 1000).toStringAsFixed(1)} rules per node');
+      print(
+          '  Reduction: ${(100 * (1 - indexedCandidates / 1000 / rules.length)).toStringAsFixed(1)}%');
 
       // Indexed should be significantly faster
       expect(indexedStopwatch.elapsedMilliseconds,
@@ -91,46 +99,65 @@ void main() {
       final rules = <ParsedCssRule>[];
 
       // Common resets and base styles
-      rules.add(ParsedCssRule(selector: '*', declarations: {'box-sizing': 'border-box'}));
+      rules.add(ParsedCssRule(
+          selector: '*', declarations: {'box-sizing': 'border-box'}));
       rules.add(ParsedCssRule(selector: 'body', declarations: {'margin': '0'}));
-      rules.add(ParsedCssRule(selector: 'html', declarations: {'font-size': '16px'}));
+      rules.add(
+          ParsedCssRule(selector: 'html', declarations: {'font-size': '16px'}));
 
       // Typography
       for (var i = 1; i <= 6; i++) {
-        rules.add(ParsedCssRule(selector: 'h$i', declarations: {'font-weight': 'bold'}));
+        rules.add(ParsedCssRule(
+            selector: 'h$i', declarations: {'font-weight': 'bold'}));
       }
-      rules.add(ParsedCssRule(selector: 'p', declarations: {'margin': '1em 0'}));
+      rules
+          .add(ParsedCssRule(selector: 'p', declarations: {'margin': '1em 0'}));
       rules.add(ParsedCssRule(selector: 'a', declarations: {'color': 'blue'}));
-      rules.add(ParsedCssRule(selector: 'strong', declarations: {'font-weight': 'bold'}));
-      rules.add(ParsedCssRule(selector: 'em', declarations: {'font-style': 'italic'}));
+      rules.add(ParsedCssRule(
+          selector: 'strong', declarations: {'font-weight': 'bold'}));
+      rules.add(ParsedCssRule(
+          selector: 'em', declarations: {'font-style': 'italic'}));
 
       // Common components (200 rules)
       for (var i = 0; i < 50; i++) {
-        rules.add(ParsedCssRule(selector: '.btn$i', declarations: {'padding': '10px'}));
-        rules.add(ParsedCssRule(selector: '.card$i', declarations: {'border': '1px solid'}));
-        rules.add(ParsedCssRule(selector: '.container$i', declarations: {'width': '100%'}));
-        rules.add(ParsedCssRule(selector: '#section$i', declarations: {'margin': '20px'}));
+        rules.add(ParsedCssRule(
+            selector: '.btn$i', declarations: {'padding': '10px'}));
+        rules.add(ParsedCssRule(
+            selector: '.card$i', declarations: {'border': '1px solid'}));
+        rules.add(ParsedCssRule(
+            selector: '.container$i', declarations: {'width': '100%'}));
+        rules.add(ParsedCssRule(
+            selector: '#section$i', declarations: {'margin': '20px'}));
       }
 
       // Complex selectors (200 rules)
       for (var i = 0; i < 50; i++) {
-        rules.add(ParsedCssRule(selector: 'div p', declarations: {'line-height': '1.5'}));
-        rules.add(ParsedCssRule(selector: '.card > h2', declarations: {'margin-top': '0'}));
-        rules.add(ParsedCssRule(selector: 'p + p', declarations: {'margin-top': '0.5em'}));
-        rules.add(ParsedCssRule(selector: 'a:hover', declarations: {'text-decoration': 'underline'}));
+        rules.add(ParsedCssRule(
+            selector: 'div p', declarations: {'line-height': '1.5'}));
+        rules.add(ParsedCssRule(
+            selector: '.card > h2', declarations: {'margin-top': '0'}));
+        rules.add(ParsedCssRule(
+            selector: 'p + p', declarations: {'margin-top': '0.5em'}));
+        rules.add(ParsedCssRule(
+            selector: 'a:hover',
+            declarations: {'text-decoration': 'underline'}));
       }
 
       // More specific rules (until we reach 1000)
       while (rules.length < 1000) {
         final i = rules.length;
         if (i % 4 == 0) {
-          rules.add(ParsedCssRule(selector: 'div$i', declarations: {'display': 'block'}));
+          rules.add(ParsedCssRule(
+              selector: 'div$i', declarations: {'display': 'block'}));
         } else if (i % 4 == 1) {
-          rules.add(ParsedCssRule(selector: '.style$i', declarations: {'color': 'black'}));
+          rules.add(ParsedCssRule(
+              selector: '.style$i', declarations: {'color': 'black'}));
         } else if (i % 4 == 2) {
-          rules.add(ParsedCssRule(selector: '#elem$i', declarations: {'position': 'relative'}));
+          rules.add(ParsedCssRule(
+              selector: '#elem$i', declarations: {'position': 'relative'}));
         } else {
-          rules.add(ParsedCssRule(selector: 'span$i a$i', declarations: {'display': 'inline'}));
+          rules.add(ParsedCssRule(
+              selector: 'span$i a$i', declarations: {'display': 'inline'}));
         }
       }
 
@@ -199,8 +226,10 @@ void main() {
 
       print('\nProcessing 100 nodes:');
       print('  Time: ${indexedStopwatch.elapsedMilliseconds}ms');
-      print('  Average candidates per node: ${(totalCandidates / nodes.length).toStringAsFixed(1)}');
-      print('  Reduction: ${(100 * (1 - totalCandidates / nodes.length / rules.length)).toStringAsFixed(1)}%');
+      print(
+          '  Average candidates per node: ${(totalCandidates / nodes.length).toStringAsFixed(1)}');
+      print(
+          '  Reduction: ${(100 * (1 - totalCandidates / nodes.length / rules.length)).toStringAsFixed(1)}%');
 
       // Should process 100 nodes very quickly
       expect(indexedStopwatch.elapsedMilliseconds, lessThan(50));
@@ -265,7 +294,8 @@ void main() {
       stopwatch.stop();
 
       print('\n10 rebuilds with 500 rules: ${stopwatch.elapsedMilliseconds}ms');
-      print('Average rebuild time: ${(stopwatch.elapsedMilliseconds / 10).toStringAsFixed(1)}ms');
+      print(
+          'Average rebuild time: ${(stopwatch.elapsedMilliseconds / 10).toStringAsFixed(1)}ms');
 
       // Should rebuild quickly
       expect(stopwatch.elapsedMilliseconds / 10, lessThan(10));

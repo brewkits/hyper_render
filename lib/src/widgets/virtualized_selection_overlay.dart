@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'; // ignore: unnecessary_import
 import 'package:hyper_render_core/hyper_render_core.dart';
 
 import 'virtualized_selection_controller.dart';
@@ -111,8 +111,7 @@ class _VirtualizedChunkState extends State<VirtualizedChunk> {
         document: widget.document,
         selectable: widget.selectable,
         selectionColor: widget.selectionColor,
-        textDirection:
-            widget.textDirection ?? Directionality.of(context),
+        textDirection: widget.textDirection ?? Directionality.of(context),
         onLinkTap: widget.onLinkTap,
         widgetBuilder: widget.widgetBuilder,
         debugShowBounds: widget.debugShowBounds,
@@ -151,6 +150,7 @@ class VirtualizedSelectionOverlay extends StatefulWidget {
 
   /// Overrides the default [Copy / Select All] menu. Receives the controller
   /// so custom actions can call [controller.getSelectedText()].
+  // ignore: library_private_types_in_public_api
   final List<_SelectionMenuAction> Function(VirtualizedSelectionController)?
       selectionMenuActionsBuilder;
 
@@ -295,8 +295,11 @@ class _VirtualizedSelectionOverlayState
       top: top,
       child: GestureDetector(
         onPanStart: (_) {
-          if (isStart) _draggingStart = true;
-          else _draggingEnd = true;
+          if (isStart) {
+            _draggingStart = true;
+          } else {
+            _draggingEnd = true;
+          }
           _dismissMenu();
           _releaseScrollHold();
           _scrollHold =
@@ -307,8 +310,11 @@ class _VirtualizedSelectionOverlayState
               .updateSelectionFromHandle(isStart, details.globalPosition);
         },
         onPanEnd: (_) {
-          if (isStart) _draggingStart = false;
-          else _draggingEnd = false;
+          if (isStart) {
+            _draggingStart = false;
+          } else {
+            _draggingEnd = false;
+          }
           _releaseScrollHold();
           if (widget.controller.hasSelection) _revealMenu();
         },
@@ -349,11 +355,11 @@ class _VirtualizedSelectionOverlayState
   }
 
   Widget _buildDefaultMenu(BuildContext context) {
-    final bgColor = widget.menuBackgroundColor ??
-        Theme.of(context).colorScheme.surface;
-    final actions = widget.selectionMenuActionsBuilder
-            ?.call(widget.controller) ??
-        _defaultActions;
+    final bgColor =
+        widget.menuBackgroundColor ?? Theme.of(context).colorScheme.surface;
+    final actions =
+        widget.selectionMenuActionsBuilder?.call(widget.controller) ??
+            _defaultActions;
 
     return Material(
       elevation: 8,
@@ -364,8 +370,7 @@ class _VirtualizedSelectionOverlayState
           color: bgColor,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color:
-                Theme.of(context).dividerColor.withValues(alpha: 0.1),
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
           ),
         ),
         child: SingleChildScrollView(

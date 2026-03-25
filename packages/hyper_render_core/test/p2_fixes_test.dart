@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 // Tests covering P1 + P2 fixes from the recent engineering sessions.
 //
 // Fixes tested here:
@@ -9,7 +10,6 @@
 //  • Details relayout — expand/collapse works without crashing
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 
@@ -116,39 +116,39 @@ void main() {
       test('rgb(r,g,b) parses to correct color', () {
         final style = _resolveInline('color: rgb(255, 0, 128)', 'p');
         expect(style.color, isNotNull);
-        expect(style.color!.red, 255);
-        expect(style.color!.green, 0);
-        expect(style.color!.blue, 128);
+        expect(style.color.red, 255);
+        expect(style.color.green, 0);
+        expect(style.color.blue, 128);
       });
 
       test('rgb with negative values clamped to 0', () {
         final style = _resolveInline('color: rgb(-10, 200, 50)', 'p');
         expect(style.color, isNotNull);
-        expect(style.color!.red, 0);
-        expect(style.color!.green, 200);
-        expect(style.color!.blue, 50);
+        expect(style.color.red, 0);
+        expect(style.color.green, 200);
+        expect(style.color.blue, 50);
       });
 
       test('rgba(r,g,b,a) parses alpha correctly', () {
         final style = _resolveInline('color: rgba(255, 128, 0, 0.5)', 'p');
         expect(style.color, isNotNull);
-        expect(style.color!.red, 255);
-        expect(style.color!.green, 128);
-        expect(style.color!.blue, 0);
+        expect(style.color.red, 255);
+        expect(style.color.green, 128);
+        expect(style.color.blue, 0);
         // alpha 0.5 → ~128
-        expect(style.color!.alpha, closeTo(128, 2));
+        expect(style.color.alpha, closeTo(128, 2));
       });
 
       test('rgba with alpha=0 is fully transparent', () {
         final style = _resolveInline('color: rgba(0, 0, 0, 0)', 'p');
         expect(style.color, isNotNull);
-        expect(style.color!.alpha, 0);
+        expect(style.color.alpha, 0);
       });
 
       test('rgba with alpha=1 is fully opaque', () {
         final style = _resolveInline('color: rgba(0, 0, 0, 1)', 'p');
         expect(style.color, isNotNull);
-        expect(style.color!.alpha, 255);
+        expect(style.color.alpha, 255);
       });
     });
 
@@ -159,8 +159,8 @@ void main() {
       });
 
       test('url() without quotes', () {
-        final style = _resolveInline(
-            'background: url(https://example.com/img.jpg)', 'p');
+        final style =
+            _resolveInline('background: url(https://example.com/img.jpg)', 'p');
         expect(style.backgroundImage, 'https://example.com/img.jpg');
       });
 
@@ -176,18 +176,17 @@ void main() {
         final style =
             _resolveInline('color: var(--missing-prop, #00FF00)', 'p');
         expect(style.color, isNotNull);
-        expect(style.color!.green, 0xFF);
-        expect(style.color!.red, 0);
-        expect(style.color!.blue, 0);
+        expect(style.color.green, 0xFF);
+        expect(style.color.red, 0);
+        expect(style.color.blue, 0);
       });
 
       test('var() fallback parses hex correctly', () {
-        final style =
-            _resolveInline('color: var(--x, #FF5500)', 'p');
+        final style = _resolveInline('color: var(--x, #FF5500)', 'p');
         expect(style.color, isNotNull);
-        expect(style.color!.red, 0xFF);
-        expect(style.color!.green, 0x55);
-        expect(style.color!.blue, 0x00);
+        expect(style.color.red, 0xFF);
+        expect(style.color.green, 0x55);
+        expect(style.color.blue, 0x00);
       });
     });
 
@@ -285,7 +284,8 @@ void main() {
       stopwatch.stop();
 
       expect(stopwatch.elapsedMilliseconds, lessThan(500),
-          reason: 'Deeply nested calc() should resolve quickly due to depth cap');
+          reason:
+              'Deeply nested calc() should resolve quickly due to depth cap');
     });
   });
 
@@ -310,7 +310,8 @@ void main() {
         // h3 comes after h1/h2 so _fragments.isNotEmpty → always detected.
         BlockNode(
           tagName: 'h3',
-          style: ComputedStyle(margin: const EdgeInsets.symmetric(vertical: 10)),
+          style:
+              ComputedStyle(margin: const EdgeInsets.symmetric(vertical: 10)),
           children: [TextNode('Third Level')],
         ),
       ]);
@@ -334,8 +335,7 @@ void main() {
         (tester) async {
       final doc = DocumentNode(children: [
         BlockNode(tagName: 'p', children: [TextNode('Plain paragraph.')]),
-        BlockNode(tagName: 'blockquote',
-            children: [TextNode('A quote.')]),
+        BlockNode(tagName: 'blockquote', children: [TextNode('A quote.')]),
       ]);
 
       await tester.pumpWidget(_app(HyperRenderWidget(document: doc)));
@@ -350,8 +350,7 @@ void main() {
         (tester) async {
       final doc = DocumentNode(children: [
         BlockNode.h1(children: [TextNode('First')]),
-        BlockNode(tagName: 'p',
-            children: [TextNode('A long paragraph ' * 20)]),
+        BlockNode(tagName: 'p', children: [TextNode('A long paragraph ' * 20)]),
         BlockNode.h2(children: [TextNode('Second')]),
       ]);
 
@@ -420,8 +419,7 @@ void main() {
       expect(renderBox.headingAnchors.length, 2);
 
       // The full semantics node for HyperRenderWidget should exist.
-      final semanticsNode =
-          tester.getSemantics(find.byType(HyperRenderWidget));
+      final semanticsNode = tester.getSemantics(find.byType(HyperRenderWidget));
       expect(semanticsNode, isNotNull);
 
       // The top-level label includes all text (flat label for linear reading).
@@ -446,8 +444,7 @@ void main() {
       await tester.pumpWidget(_app(HyperRenderWidget(document: doc)));
       await tester.pump();
 
-      final semanticsNode =
-          tester.getSemantics(find.byType(HyperRenderWidget));
+      final semanticsNode = tester.getSemantics(find.byType(HyperRenderWidget));
       expect(semanticsNode, isNotNull);
       // Flat label covers the link text.
       expect(semanticsNode.label, contains('Visit Example'));
@@ -466,8 +463,7 @@ void main() {
       await tester.pumpWidget(_app(HyperRenderWidget(document: doc)));
       await tester.pump();
 
-      final semanticsNode =
-          tester.getSemantics(find.byType(HyperRenderWidget));
+      final semanticsNode = tester.getSemantics(find.byType(HyperRenderWidget));
       expect(semanticsNode.label, contains('Just a paragraph.'));
 
       handle.dispose();
@@ -532,10 +528,13 @@ void main() {
       expect(find.byType(HyperDetailsWidget), findsOneWidget);
     });
 
-    testWidgets('details collapses on second tap without crash', (tester) async {
+    testWidgets('details collapses on second tap without crash',
+        (tester) async {
       // Start open
       final doc = DocumentNode(children: [
-        BlockNode(tagName: 'details', attributes: {'open': ''}, children: [
+        BlockNode(tagName: 'details', attributes: {
+          'open': ''
+        }, children: [
           BlockNode(tagName: 'summary', children: [TextNode('Toggle me')]),
           BlockNode(tagName: 'p', children: [TextNode('Collapsible body')]),
         ]),
@@ -563,8 +562,7 @@ void main() {
       final doc = DocumentNode(children: [
         BlockNode(tagName: 'details', children: [
           BlockNode(tagName: 'summary', children: [TextNode('Expand')]),
-          BlockNode(tagName: 'p',
-              children: [TextNode('Body ' * 10)]),
+          BlockNode(tagName: 'p', children: [TextNode('Body ' * 10)]),
         ]),
         BlockNode(tagName: 'p', children: [TextNode('Below the details')]),
       ]);
@@ -715,7 +713,8 @@ void main() {
       expect(tappedUrl, 'myapp://open/article/123');
     });
 
-    testWidgets('https link triggers onLinkTap (standard scheme always allowed)',
+    testWidgets(
+        'https link triggers onLinkTap (standard scheme always allowed)',
         (tester) async {
       String? tappedUrl;
       final doc = DocumentNode(children: [

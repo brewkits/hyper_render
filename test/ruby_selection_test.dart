@@ -5,7 +5,7 @@ import 'package:hyper_render/hyper_render.dart';
 /// Widget-level integration tests for ruby/furigana text selection.
 ///
 /// These tests verify the 5 bugs fixed in the selection pipeline when
-/// documents contain <ruby>/<rt> elements:
+/// documents contain `<ruby>`/`<rt>` elements:
 ///   1. Character offset tracking (skip-lines section)
 ///   2. _buildCharacterMapping includes ruby base text
 ///   3. getSelectedText returns ruby base text
@@ -66,7 +66,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('selectAll on document with ruby does not throw', (tester) async {
+    testWidgets('selectAll on document with ruby does not throw',
+        (tester) async {
       const html = '<p>'
           'Hello <ruby>世界<rt>せかい</rt></ruby>!'
           '</p>';

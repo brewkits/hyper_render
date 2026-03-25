@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'; // ignore: unnecessary_import
 
 import 'package:hyper_render_core/hyper_render_core.dart' show DesignTokens;
 import '../core/render_hyper_box.dart';
@@ -327,7 +327,8 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
                   widgetBuilder: widget.widgetBuilder,
                   selectable: widget.selectable,
                   selectionColor: widget.selectionColor,
-                  textDirection: widget.textDirection ?? Directionality.of(context),
+                  textDirection:
+                      widget.textDirection ?? Directionality.of(context),
                   onSelectionChanged: _onSelectionChanged,
                   debugShowBounds: widget.debugShowBounds,
                 ),
@@ -357,7 +358,8 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     return Positioned(
       left: 0,
       right: 0,
-      top: menuPosition.dy - 56, // Dynamic menu height (adjusted for Material buttons)
+      top: menuPosition.dy -
+          56, // Dynamic menu height (adjusted for Material buttons)
       child: AnimatedBuilder(
         animation: _menuAnimController,
         builder: (context, child) {
@@ -425,8 +427,8 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
 
   Widget _buildDefaultContextMenu(BuildContext context) {
     final actions = widget.menuActionsBuilder?.call(this) ?? _defaultActions;
-    final bgColor = widget.menuBackgroundColor ??
-        Theme.of(context).colorScheme.surface;
+    final bgColor =
+        widget.menuBackgroundColor ?? Theme.of(context).colorScheme.surface;
 
     return Material(
       elevation: 8,

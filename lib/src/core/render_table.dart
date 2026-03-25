@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/rendering.dart'; // ignore: unnecessary_import
 
 import '../model/node.dart';
 
@@ -123,7 +123,6 @@ class SmartTableWrapper extends StatelessWidget {
   }
 }
 
-
 /// HyperTable - Custom table widget with advanced features
 ///
 /// Features:
@@ -238,8 +237,7 @@ class HyperTable extends StatelessWidget {
       TextSpan(
         children: spans,
         style: TextStyle(
-          fontWeight:
-              cellNode.isHeader ? FontWeight.bold : FontWeight.normal,
+          fontWeight: cellNode.isHeader ? FontWeight.bold : FontWeight.normal,
         ),
       ),
     );
