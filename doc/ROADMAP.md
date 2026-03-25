@@ -1,6 +1,6 @@
 # HyperRender — Product Roadmap
 
-**Last Updated**: 2026-03-24
+**Last Updated**: 2026-03-25
 **Current Stable**: v1.1.2
 **Repository**: [github.com/brewkits/hyper_render](https://github.com/brewkits/hyper_render)
 
@@ -9,7 +9,7 @@ For detailed CSS property tracking, see [`internal/CSS_SUPPORT_ROADMAP.md`](inte
 
 ---
 
-## Completed — v1.0 → v1.1
+## Completed — v1.0 → v1.1.2
 
 - Single `RenderObject` pipeline (Parse → Style → Layout → Paint)
 - Float layout algorithm (`float: left/right`, `clear`) — unique advantage over FWFH
@@ -19,15 +19,21 @@ For detailed CSS property tracking, see [`internal/CSS_SUPPORT_ROADMAP.md`](inte
 - CSS Variables `var()`, `transition`, `animation-*` parsing
 - Ruby / Furigana, Kinsoku line-breaking (CJK typography)
 - Crash-free text selection across the entire document
+- **O(log N) binary-search hit-testing** — `_lineStartOffsets[]` precomputed at layout; selection instant on 1,000-line documents
+- **Ruby clipboard format** — fully-selected ruby fragment copied as `base(ふりがな)`; partial selection copies base text only
 - Interactive `<details>` / `<summary>`
 - Multimedia error boundaries via `_safeWidgetBuilder`
 - CSS Box Shadow, linear-gradient, retina image rendering
 - Adaptive text selection colors (iOS / Material)
 - CSS Grid layout (`display:grid` — full row/column track sizing, `gap`, span)
 - RTL / bidirectional text (Arabic, Hebrew, Persian via `direction: rtl`)
+- **CSS `@keyframes` execution** (v1.1.2) — `opacity`, `transform` (translate, scale, rotate); `from`/`to` and percentage selectors; vendor prefixes
 - Modular package architecture: `hyper_render_core`, `hyper_render_html`,
   `hyper_render_markdown`, `hyper_render_highlight`, `hyper_render_clipboard`
-- `hyper_render_devtools` — package scaffolded, UI panels stubbed
+- **`hyper_render_devtools` v1.0.0** — UDT Tree inspector, Computed Style panel, Float region visualizer, demo mode (no live app required); published to pub.dev
+- **Golden test coverage** — Float layout, RTL/BiDi, CJK + Ruby suites pinned to ubuntu-22.04 + Flutter 3.29.2 + Noto fonts for pixel-stable CI
+- **Layout regression CI guard** — 6 fixtures (simple paragraph → 100-paragraph article) with hard 16 ms (60 FPS) thresholds; any regression fails the PR build
+- **3-pipeline CI architecture** — Pre-flight (format + analyze, < 2 min) · Core Validation (per-package selective tests on PR, full 3-OS × 2-channel matrix on push) · Visual/Performance gates (golden + benchmark)
 
 ---
 
@@ -163,34 +169,25 @@ Scope:
 **Source**: Expert review — "make content feel alive"
 **Priority**: Medium
 
-`transition` and `animation-*` are fully *parsed* into `ComputedStyle` today but are
-never *executed* — no `AnimationController`, no ticker. This gap means styled content
-is static despite the CSS being valid.
+**v1.1.2**: `@keyframes` fully parsed and **executed** — `opacity`, `transform` (translate, scale, rotate), `from`/`to` and `%` selectors, vendor prefixes, `HyperAnimatedWidget.keyframesLookup`.
 
-Scope:
-- [ ] Wire `AnimationController` into the render cycle for `transition`
-- [ ] Support animatable properties: `opacity`, `transform` (translate, scale, rotate), `color`
-- [ ] Support `@keyframes` lookup via `animation-name`
+Remaining v2.0 scope:
+- [ ] Wire `AnimationController` into the render cycle for `transition` (parsed but not yet executed)
+- [ ] Animatable properties beyond `opacity`/`transform`: `color`, `background-color`
 - [ ] Timing functions: `ease`, `linear`, `ease-in-out`, `cubic-bezier()`
 - [ ] Repaint only the animated region — do not rebuild the full span tree
 - [ ] Trigger mechanism: class toggle via public API (hover on web/desktop)
 - [ ] Out of scope for v2.0: layout animations (`width`, `height`), `clip-path` animation
 
-### hyper_render_devtools — First Functional Release
+### hyper_render_devtools — v2.x Improvements
 
-**Source**: Expert review; package already scaffolded in `packages/hyper_render_devtools/`
-**Priority**: Medium — high value for developer adoption
+**Status**: ✅ v1.0.0 shipped — UDT Tree inspector, Computed Style panel, Float region visualizer, demo mode
 
-The package exists and the UI panels are stubbed, but `devtools_extensions` SDK
-is currently commented out pending stability. Target for v2.0: ship a working
-read-only inspector.
-
-Scope:
-- [ ] Enable `devtools_extensions` dependency once SDK is stable
-- [ ] UDT Tree panel (Elements tab equivalent — node type, tag, attributes)
-- [ ] Computed Style panel (show inherited vs. declared values, specificity winner)
-- [ ] Float region visualizer (highlight floated-block boundaries in layout)
-- [ ] Publish `hyper_render_devtools` to pub.dev
+Remaining v2.x scope:
+- [ ] Performance timeline overlay (layout + paint timing per chunk)
+- [ ] Live CSS variable inspector (edit `--var` values and see instant re-render)
+- [ ] Selection debug panel (show fragment boundaries, ruby offsets)
+- [ ] Export UDT snapshot to JSON for offline analysis
 
 ---
 

@@ -211,6 +211,15 @@ class RenderHyperBox extends RenderBox
   /// Character offset to fragment mapping
   final Map<int, Fragment> _characterToFragment = {};
 
+  /// Cumulative character count at the start of each line.
+  ///
+  /// `_lineStartOffsets[i]` is the number of text/ruby characters that
+  /// appear in all lines *before* line `i`.  Built by [_buildCharacterMapping]
+  /// after every layout; used by [_getCharacterPositionAtOffset] to avoid
+  /// scanning all preceding lines when the user drags a selection handle
+  /// (O(log N) binary-search instead of O(N) linear scan).
+  final List<int> _lineStartOffsets = [];
+
   /// Color for text selection highlight
   Color? _selectionColor;
 
@@ -613,6 +622,7 @@ class RenderHyperBox extends RenderBox
     _blockDecorations.clear();
     _characterToFragment.clear();
     _fragmentRanges.clear();
+    _lineStartOffsets.clear();
     _fragmentChildMap.clear();
 
     anchorOffsets.clear();
@@ -638,6 +648,7 @@ class RenderHyperBox extends RenderBox
     _blockDecorations.clear();
     _characterToFragment.clear();
     _fragmentRanges.clear();
+    _lineStartOffsets.clear();
     _totalCharacterCount = 0;
     _cachedMinIntrinsicWidth = null;
     _cachedMaxIntrinsicWidth = null;

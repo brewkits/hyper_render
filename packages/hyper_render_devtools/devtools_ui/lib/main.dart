@@ -3,6 +3,157 @@ import 'dart:convert';
 import 'package:devtools_extensions/devtools_extensions.dart';
 import 'package:flutter/material.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Demo / sample data (shown when no real app is connected)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _kDemoRendererId = 'demo-renderer';
+
+final _kDemoUdtTree = <String, dynamic>{
+  'id': 'doc-0',
+  'type': 'document',
+  'tagName': '#document',
+  'attributes': <String, String>{},
+  'style': <String, dynamic>{},
+  'childCount': 3,
+  'children': [
+    {
+      'id': 'h1-1',
+      'type': 'block',
+      'tagName': 'h1',
+      'attributes': <String, String>{},
+      'style': <String, dynamic>{'fontSize': 28.0, 'fontWeight': 7},
+      'childCount': 1,
+      'children': [
+        {
+          'id': 'text-2',
+          'type': 'text',
+          'tagName': '(text)',
+          'text': 'HyperRender DevTools Inspector',
+          'attributes': <String, String>{},
+          'style': <String, dynamic>{},
+          'childCount': 0,
+          'children': <dynamic>[],
+        }
+      ],
+    },
+    {
+      'id': 'p-3',
+      'type': 'block',
+      'tagName': 'p',
+      'attributes': <String, String>{},
+      'style': <String, dynamic>{
+        'fontSize': 16.0,
+        'lineHeight': 1.6,
+        'margin': {'top': 8.0, 'right': 0.0, 'bottom': 8.0, 'left': 0.0},
+      },
+      'childCount': 2,
+      'children': [
+        {
+          'id': 'text-4',
+          'type': 'text',
+          'tagName': '(text)',
+          'text': 'This is a ',
+          'attributes': <String, String>{},
+          'style': <String, dynamic>{},
+          'childCount': 0,
+          'children': <dynamic>[],
+        },
+        {
+          'id': 'strong-5',
+          'type': 'inline',
+          'tagName': 'strong',
+          'attributes': <String, String>{},
+          'style': <String, dynamic>{'fontWeight': 7},
+          'childCount': 1,
+          'children': [
+            {
+              'id': 'text-6',
+              'type': 'text',
+              'tagName': '(text)',
+              'text': 'demo document',
+              'attributes': <String, String>{},
+              'style': <String, dynamic>{},
+              'childCount': 0,
+              'children': <dynamic>[],
+            }
+          ],
+        },
+      ],
+    },
+    {
+      'id': 'div-7',
+      'type': 'block',
+      'tagName': 'div',
+      'attributes': <String, String>{'class': 'float-container'},
+      'style': <String, dynamic>{
+        'float': 'left',
+        'width': 200.0,
+        'margin': {'top': 0.0, 'right': 12.0, 'bottom': 0.0, 'left': 0.0},
+        'backgroundColor': 0xFFE3F2FD,
+        'borderRadius': 'BorderRadius.circular(8.0)',
+        'padding': {'top': 8.0, 'right': 8.0, 'bottom': 8.0, 'left': 8.0},
+      },
+      'childCount': 1,
+      'children': [
+        {
+          'id': 'img-8',
+          'type': 'atomic',
+          'tagName': 'img',
+          'src': 'https://example.com/cover.jpg',
+          'alt': 'Book cover',
+          'intrinsicWidth': 200.0,
+          'intrinsicHeight': 300.0,
+          'attributes': <String, String>{
+            'src': 'https://example.com/cover.jpg',
+            'alt': 'Book cover',
+          },
+          'style': <String, dynamic>{},
+          'childCount': 0,
+          'children': <dynamic>[],
+        }
+      ],
+    },
+  ],
+};
+
+final _kDemoFragments = List.generate(12, (i) {
+  final types = ['text', 'inline', 'block', 'image', 'text', 'text'];
+  return <String, dynamic>{
+    'type': types[i % types.length],
+    'text': i % 3 == 0 ? 'Sample text fragment $i' : null,
+    'width': 80.0 + (i * 13.7) % 200,
+    'height': 18.0 + (i * 3.1) % 10,
+    'offsetX': (i % 4) * 90.0,
+    'offsetY': (i ~/ 4) * 24.0,
+  };
+});
+
+final _kDemoLines = List.generate(4, (i) => <String, dynamic>{
+      'fragmentCount': 3 + i,
+      'top': i * 24.0,
+      'height': 22.0,
+      'baseline': 17.0,
+    });
+
+final _kDemoStyle = <String, dynamic>{
+  'display': 'block',
+  'fontSize': 28.0,
+  'fontWeight': 7,
+  'fontStyle': 0,
+  'fontFamily': null,
+  'color': 0xFF212121,
+  'lineHeight': 1.2,
+  'letterSpacing': 0.0,
+  'textAlign': 'start',
+  'float': 'none',
+  'opacity': 1.0,
+  'margin': {'top': 16.0, 'right': 0.0, 'bottom': 12.0, 'left': 0.0},
+  'padding': {'top': 0.0, 'right': 0.0, 'bottom': 0.0, 'left': 0.0},
+  'width': null,
+  'height': null,
+};
+
 void main() {
   runApp(const HyperRenderInspectorApp());
 }
@@ -60,10 +211,44 @@ class _InspectorShellState extends State<InspectorShell>
   bool _loading = false;
   String? _error;
 
+  // Demo mode — shows sample data when no real app is connected.
+  bool _demoMode = false;
+
   @override
   void initState() {
     super.initState();
     _tabs = TabController(length: 3, vsync: this);
+    _refresh();
+  }
+
+  void _enterDemoMode() {
+    setState(() {
+      _demoMode = true;
+      _error = null;
+      _rendererIds = [_kDemoRendererId];
+      _selectedRendererId = _kDemoRendererId;
+      _udtTree = _kDemoUdtTree;
+      _fragments = _kDemoFragments;
+      _lines = _kDemoLines;
+      _selectedNodeStyle = _kDemoStyle;
+      _selectedNodeId = 'h1-1';
+      _loading = false;
+    });
+    _tabs.animateTo(0);
+  }
+
+  void _exitDemoMode() {
+    setState(() {
+      _demoMode = false;
+      _rendererIds = [];
+      _selectedRendererId = null;
+      _udtTree = null;
+      _fragments = [];
+      _lines = [];
+      _selectedNodeStyle = null;
+      _selectedNodeId = null;
+      _perfData = null;
+    });
     _refresh();
   }
 
@@ -217,10 +402,30 @@ class _InspectorShellState extends State<InspectorShell>
                 },
               ),
             const Spacer(),
+            if (_demoMode)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Chip(
+                  label: const Text('DEMO', style: TextStyle(fontSize: 11)),
+                  backgroundColor: Colors.amber.shade100,
+                  side: BorderSide(color: Colors.amber.shade400),
+                  onDeleted: _exitDemoMode,
+                  deleteIcon: const Icon(Icons.close, size: 14),
+                ),
+              )
+            else
+              TextButton.icon(
+                onPressed: _enterDemoMode,
+                icon: const Icon(Icons.play_circle_outline, size: 16),
+                label: const Text('Demo', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.amber.shade800,
+                ),
+              ),
             IconButton(
               icon: const Icon(Icons.refresh),
               tooltip: 'Refresh',
-              onPressed: _refresh,
+              onPressed: _demoMode ? null : _refresh,
             ),
           ],
         ),
@@ -286,10 +491,34 @@ class _InspectorShellState extends State<InspectorShell>
             ),
           ),
           const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: _refresh,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _refresh,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: _enterDemoMode,
+                icon: const Icon(Icons.play_circle_outline, size: 16),
+                label: const Text('Try Demo'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.amber.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 48),
+            child: Text(
+              'Demo mode loads sample data so you can explore the inspector\n'
+              'without a live HyperRender app.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ),
         ],
       ),
@@ -639,7 +868,7 @@ class _FragmentRow extends StatelessWidget {
             ),
           ),
           Text(
-            '${w}×$h @ ($x,$y)',
+            '$w×$h @ ($x,$y)',
             style: const TextStyle(
                 fontSize: 10,
                 fontFamily: 'monospace',

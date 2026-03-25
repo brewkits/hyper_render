@@ -1,5 +1,12 @@
 part of 'render_hyper_box.dart';
 
+// TODO(refactor): This file is ~2 100 lines / 80 KB.  The Table and Flex
+// sub-layouts (_tokenizeTable, _layoutTableFragment, _FlexFragment handling)
+// are good candidates for extraction into dedicated Strategy/Delegate classes
+// (e.g. _TableLayoutStrategy, _FlexLayoutStrategy) so each is independently
+// testable.  Tracking issue: github.com/brewkits/hyper_render/issues — file a
+// ticket before the v1.2 milestone to prevent further growth.
+
 // Layout spacing constants — single source of truth for all magic numbers
 const double _kImageMargin = 32.0; // horizontal margin subtracted from maxWidth for images
 const double _kDefaultFlexFallbackHeight = 50.0;
@@ -1833,6 +1840,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   void _buildCharacterMapping() {
     _characterToFragment.clear();
     _fragmentRanges.clear();
+    _lineStartOffsets.clear();
     _totalCharacterCount = 0;
 
     // Build ranges instead of individual character mapping
@@ -1844,6 +1852,20 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final endIdx = startIdx + fragment.text!.length;
         _fragmentRanges.add((startIdx, endIdx, fragment));
         _totalCharacterCount = endIdx;
+      }
+    }
+
+    // Build per-line start offsets for O(log N) selection hit-testing.
+    // _lineStartOffsets[i] = cumulative char count before line i.
+    int lineStart = 0;
+    for (final line in _lines) {
+      _lineStartOffsets.add(lineStart);
+      for (final frag in line.fragments) {
+        if ((frag.type == FragmentType.text ||
+                frag.type == FragmentType.ruby) &&
+            frag.text != null) {
+          lineStart += frag.text!.length;
+        }
       }
     }
   }

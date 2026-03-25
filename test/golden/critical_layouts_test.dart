@@ -382,6 +382,161 @@ void main() {
     });
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Float + RTL + CJK — the "fragile triangle" that must stay green
+  // ─────────────────────────────────────────────────────────────────────────
+
+  group('Golden — Float layout', () {
+    testWidgets('left float with text wrap', (tester) async {
+      await _pump(tester, '''
+        <div style="overflow:hidden">
+          <img src="https://invalid.example.test/cover.jpg"
+               style="float:left; width:100px; height:120px; margin-right:12px"
+               alt="float left">
+          <p>Text wraps around a left-floated image. The inline layout engine
+          must reserve the float inset for each line that overlaps the image
+          vertically, then resume full-width once the float is cleared.</p>
+        </div>
+      ''');
+      await expectLater(
+        find.byKey(_goldenKey),
+        matchesGoldenFile('goldens/float_left.png'),
+      );
+    });
+
+    testWidgets('right float with text wrap', (tester) async {
+      await _pump(tester, '''
+        <div style="overflow:hidden">
+          <img src="https://invalid.example.test/cover.jpg"
+               style="float:right; width:100px; height:80px; margin-left:12px"
+               alt="float right">
+          <p>Text wraps around a right-floated image. Lines must be inset from
+          the right edge while the float occupies vertical space, then use the
+          full available width below it.</p>
+        </div>
+      ''');
+      await expectLater(
+        find.byKey(_goldenKey),
+        matchesGoldenFile('goldens/float_right.png'),
+      );
+    });
+
+    testWidgets('float with clear', (tester) async {
+      await _pump(tester, '''
+        <div style="overflow:hidden">
+          <img src="https://invalid.example.test/a.jpg"
+               style="float:left; width:80px; height:60px; margin-right:8px"
+               alt="float">
+          <p>Short text beside float.</p>
+          <p style="clear:both">This paragraph has clear:both so it starts
+          below the floated element, not beside it.</p>
+        </div>
+      ''');
+      await expectLater(
+        find.byKey(_goldenKey),
+        matchesGoldenFile('goldens/float_clear.png'),
+      );
+    });
+  });
+
+  group('Golden — RTL / BiDi', () {
+    testWidgets('Arabic paragraph (direction:rtl)', (tester) async {
+      await _pump(tester, '''
+        <p dir="rtl" style="text-align:right">
+          هذا نص عربي يُكتب من اليمين إلى اليسار.
+          يجب أن يتدفق النص بشكل صحيح.
+        </p>
+        <p dir="rtl" style="text-align:right">
+          <strong>نص عريض</strong> و<em>نص مائل</em> في فقرة واحدة.
+        </p>
+      ''');
+      await expectLater(
+        find.byKey(_goldenKey),
+        matchesGoldenFile('goldens/rtl_arabic.png'),
+      );
+    });
+
+    testWidgets('Hebrew paragraph (direction:rtl)', (tester) async {
+      await _pump(tester, '''
+        <p dir="rtl" style="text-align:right">
+          זהו טקסט עברי הנכתב מימין לשמאל.
+          המעבד חייב לטפל בו כהלכה.
+        </p>
+      ''');
+      await expectLater(
+        find.byKey(_goldenKey),
+        matchesGoldenFile('goldens/rtl_hebrew.png'),
+      );
+    });
+
+    testWidgets('mixed LTR + RTL in same document', (tester) async {
+      await _pump(tester, '''
+        <p>English LTR paragraph at the top.</p>
+        <p dir="rtl" style="text-align:right">
+          فقرة عربية في المنتصف.
+        </p>
+        <p>Another English paragraph below.</p>
+      ''');
+      await expectLater(
+        find.byKey(_goldenKey),
+        matchesGoldenFile('goldens/rtl_mixed.png'),
+      );
+    });
+  });
+
+  group('Golden — CJK + Ruby typography', () {
+    testWidgets('Japanese ruby (furigana) annotation', (tester) async {
+      await _pump(tester, '''
+        <p>
+          <ruby>東京<rt>とうきょう</rt></ruby>は日本の首都です。
+        </p>
+        <p>
+          <ruby>漢字<rt>かんじ</rt></ruby>の上に
+          <ruby>振り仮名<rt>ふりがな</rt></ruby>が付きます。
+        </p>
+      ''');
+      await expectLater(
+        find.byKey(_goldenKey),
+        matchesGoldenFile('goldens/cjk_ruby.png'),
+      );
+    });
+
+    testWidgets('CJK line-breaking (kinsoku shori)', (tester) async {
+      await _pump(tester, '''
+        <p style="font-size:16px">
+          日本語のテキストは行末で適切に折り返される必要があります。
+          句読点（。、）は行頭に来てはならず、
+          括弧の開き（「）は行末に来てはなりません。
+        </p>
+        <p>
+          中文文本也应该在正确的位置换行，标点符号不应该出现在行首。
+        </p>
+      ''');
+      await expectLater(
+        find.byKey(_goldenKey),
+        matchesGoldenFile('goldens/cjk_kinsoku.png'),
+      );
+    });
+
+    testWidgets('float + CJK mixed layout', (tester) async {
+      await _pump(tester, '''
+        <div style="overflow:hidden">
+          <img src="https://invalid.example.test/jp.jpg"
+               style="float:left; width:80px; height:80px; margin-right:10px"
+               alt="float">
+          <p>
+            <ruby>日本語<rt>にほんご</rt></ruby>のテキストが
+            フロートの横に流れます。行分割は正しく処理される必要があります。
+          </p>
+        </div>
+      ''');
+      await expectLater(
+        find.byKey(_goldenKey),
+        matchesGoldenFile('goldens/float_cjk.png'),
+      );
+    });
+  });
+
   group('Golden — Full article layout', () {
     testWidgets('realistic article with mixed elements', (tester) async {
       await _pump(tester, '''

@@ -1,73 +1,82 @@
 part of 'render_hyper_box.dart';
 
 extension RenderHyperBoxSelection on RenderHyperBox {
-  Fragment? _findFragmentAtPosition(Offset position) {
-    for (final line in _lines) {
-      if (position.dy >= line.top && position.dy < line.top + line.height) {
-        for (final fragment in line.fragments) {
-          final rect = fragment.rect;
-          if (rect != null && rect.contains(position)) {
-            return fragment;
-          }
-        }
+  // ── Binary-search helper ──────────────────────────────────────────────────
+
+  /// Returns the index of the [LineInfo] in [_lines] whose vertical span
+  /// contains [dy], or -1 when [dy] falls outside all lines.
+  ///
+  /// Lines are laid out top-to-bottom with monotonically increasing [top]
+  /// values, so binary search gives O(log N) instead of the previous O(N)
+  /// linear scan — critical for long documents during handle-drag selection.
+  int _lineIndexAt(double dy) {
+    int lo = 0, hi = _lines.length - 1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >>> 1;
+      final line = _lines[mid];
+      if (dy < line.top) {
+        hi = mid - 1;
+      } else if (dy >= line.top + line.height) {
+        lo = mid + 1;
+      } else {
+        return mid;
       }
+    }
+    return -1;
+  }
+
+  // ── Hit testing ───────────────────────────────────────────────────────────
+
+  Fragment? _findFragmentAtPosition(Offset position) {
+    final lineIdx = _lineIndexAt(position.dy);
+    if (lineIdx < 0) return null;
+    for (final fragment in _lines[lineIdx].fragments) {
+      final rect = fragment.rect;
+      if (rect != null && rect.contains(position)) return fragment;
     }
     return null;
   }
 
   int _getCharacterPositionAtOffset(Offset position) {
-    int currentOffset = 0;
+    final lineIdx = _lineIndexAt(position.dy);
+    if (lineIdx < 0) return -1;
 
-    for (final line in _lines) {
-      if (position.dy >= line.top && position.dy < line.top + line.height) {
-        // Save offset at the start of this line so we can return it when
-        // a click lands in the left margin (before all text fragments).
-        final lineStartOffset = currentOffset;
+    final line = _lines[lineIdx];
+    // O(1) lookup of cumulative char count before this line
+    // (populated by _buildCharacterMapping after every layout pass).
+    int currentOffset =
+        lineIdx < _lineStartOffsets.length ? _lineStartOffsets[lineIdx] : 0;
+    final lineStartOffset = currentOffset;
 
-        for (final fragment in line.fragments) {
-          if ((fragment.type == FragmentType.text && fragment.text != null) ||
-              fragment.type == FragmentType.ruby) {
-            final text = fragment.type == FragmentType.ruby
-                ? fragment.text!
-                : fragment.text!;
-            final fragmentOffset = fragment.offset ?? Offset.zero;
-            final fragmentRect = Rect.fromLTWH(
-              fragmentOffset.dx,
-              fragmentOffset.dy,
-              fragment.width,
-              fragment.height,
-            );
+    for (final fragment in line.fragments) {
+      if ((fragment.type == FragmentType.text && fragment.text != null) ||
+          fragment.type == FragmentType.ruby) {
+        final text = fragment.text!;
+        final fragmentOffset = fragment.offset ?? Offset.zero;
+        final fragmentRect = Rect.fromLTWH(
+          fragmentOffset.dx,
+          fragmentOffset.dy,
+          fragment.width,
+          fragment.height,
+        );
 
-            // Click is before this fragment — place cursor at start of line.
-            if (position.dx < fragmentRect.left) return lineStartOffset;
+        // Click is before this fragment — place cursor at start of line.
+        if (position.dx < fragmentRect.left) return lineStartOffset;
 
-            if (position.dx <= fragmentRect.right) {
-              // Click is within this fragment — find exact character position.
-              final painter = _getTextPainter(text, fragment.style);
-              final localX = position.dx - fragmentRect.left;
-              final textPosition =
-                  painter.getPositionForOffset(Offset(localX, 0));
-              return currentOffset + textPosition.offset;
-            }
-
-            currentOffset += text.length;
-          }
+        if (position.dx <= fragmentRect.right) {
+          // Click is within this fragment — find exact character position.
+          final painter = _getTextPainter(text, fragment.style);
+          final localX = position.dx - fragmentRect.left;
+          final textPosition =
+              painter.getPositionForOffset(Offset(localX, 0));
+          return currentOffset + textPosition.offset;
         }
-        // Click was past all fragments (right margin) — return end of line.
-        return currentOffset;
-      }
 
-      // Add character count for this line
-      for (final fragment in line.fragments) {
-        if ((fragment.type == FragmentType.text ||
-                fragment.type == FragmentType.ruby) &&
-            fragment.text != null) {
-          currentOffset += fragment.text!.length;
-        }
+        currentOffset += text.length;
       }
     }
-
-    return -1;
+    // Click was past all fragments (right margin) — return end of line.
+    return currentOffset;
   }
 
   /// Get selected text
@@ -116,7 +125,24 @@ extension RenderHyperBoxSelection on RenderHyperBox {
       final selectStart = math.max(0, _selection!.start - fragmentStart);
       final selectEnd =
           math.min(fragment.text!.length, _selection!.end - fragmentStart);
-      buffer.write(fragment.text!.substring(selectStart, selectEnd));
+
+      if (isRuby) {
+        final base = fragment.text!.substring(selectStart, selectEnd);
+        // Include furigana annotation when the *full* base text is selected,
+        // formatted as "base(annotation)" — e.g. "東京(とうきょう)".
+        // Partial ruby selections copy only the base text so that the
+        // character count remains consistent with _selection offsets.
+        if (selectStart == 0 &&
+            selectEnd == fragment.text!.length &&
+            fragment.rubyText != null &&
+            fragment.rubyText!.isNotEmpty) {
+          buffer.write('$base(${fragment.rubyText})');
+        } else {
+          buffer.write(base);
+        }
+      } else {
+        buffer.write(fragment.text!.substring(selectStart, selectEnd));
+      }
     }
 
     return buffer.isEmpty ? null : buffer.toString();
