@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3] - 2026-03-25
+
+- Remove `publish_to: none` from all sub-package pubspec.yaml files so pub.dev can verify repository URLs (fixes pub points deduction).
+- Commit DevTools extension web build to git so it is always available without a local rebuild step.
+- Fix `.gitignore` to untrack all sub-package `pubspec.lock` files per Dart library conventions.
+
+
 All notable changes to HyperRender will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

@@ -1,5 +1,10 @@
 # Changelog — hyper_render_html
 
+## [1.1.3] - 2026-03-25
+
+- Remove `publish_to: none` from pubspec.yaml so pub.dev can verify the repository URL (fixes 10-point deduction).
+
+
 ## [1.1.2] - 2026-03-25
 
 - Version bump to stay in sync with `hyper_render_core` 1.1.2 (Ruby selection fixes, CSS @keyframes support).

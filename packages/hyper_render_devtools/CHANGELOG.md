@@ -1,5 +1,10 @@
 # Changelog — hyper_render_devtools
 
+## [1.1.3] - 2026-03-25
+
+- Remove `publish_to: none` from pubspec.yaml so pub.dev can verify the repository URL (fixes 10-point deduction).
+
+
 ## [1.1.2] - 2026-03-25
 
 ### ✨ New
