@@ -67,7 +67,14 @@ jobs:
         run: flutter pub get
 
       - name: Run tests with coverage
-        run: flutter test --no-pub --coverage
+        # Exclude test/golden/ — visual snapshot tests don't add coverage signal
+        # and fail on Linux because reference PNGs were generated on macOS.
+        # Golden correctness is enforced by the dedicated golden.yml workflow.
+        run: |
+          readarray -d '' TEST_FILES < <(
+            find test -name '*_test.dart' -not -path 'test/golden/*' -print0
+          )
+          flutter test --no-pub --coverage "${TEST_FILES[@]}"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

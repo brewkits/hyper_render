@@ -1,6 +1,12 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
+  exclude:
+    # Sub-packages have their own pubspec.yaml and analysis_options.yaml.
+    # Excluding them prevents "uri_does_not_exist" errors for deps that are
+    # only declared in those packages (super_clipboard, devtools_extensions…).
+    - packages/hyper_render_clipboard/**
+    - packages/hyper_render_devtools/**
   errors:
     # Monorepo: sub-packages use path: deps for local development.
     # The publish workflow swaps to version: deps before pub publish.
