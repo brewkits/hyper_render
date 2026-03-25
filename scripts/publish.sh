@@ -136,7 +136,9 @@ for pkg in "${PACKAGES[@]}"; do
   echo ""
   echo "  Analyzing $pkg..."
   cd "$ROOT/packages/$pkg"
-  if $FLUTTER analyze --no-fatal-infos 2>&1 | tail -3; then
+  # Analyze only lib/ — test files are not published and may have
+  # avoid_print infos that should not block a release.
+  if $FLUTTER analyze lib/ --fatal-warnings 2>&1 | tail -3; then
     echo "  ✓ $pkg OK"
   else
     echo "  ✗ $pkg FAILED"
