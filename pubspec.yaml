@@ -83,7 +83,7 @@ dev_dependencies:
     sdk: flutter
 
   # Linting
-  flutter_lints: ^6.0.0
+  flutter_lints: ^5.0.0
 
   # Mocking for tests
   mockito: ^5.4.4
