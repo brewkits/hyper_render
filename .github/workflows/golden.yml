@@ -136,6 +136,8 @@ jobs:
     name: Update Goldens (manual)
     runs-on: ubuntu-22.04   # MUST match the comparison job above
     if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write   # required to push the regenerated golden PNGs
 
     steps:
       - name: Checkout
