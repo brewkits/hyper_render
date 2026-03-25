@@ -5,8 +5,7 @@ import 'node.dart';
 
 /// Fragment type for inline layout
 ///
-/// Reference: doc1.txt - "Chiến lược Chunking & Line Building"
-/// Content is divided into Fragments (Mảnh):
+/// Content is divided into Fragments:
 /// - Text Fragment: A phrase with the same style
 /// - Atomic Fragment: An icon, image, or media (treated as a special character)
 enum FragmentType {
@@ -28,7 +27,6 @@ enum FragmentType {
 /// During layout, the content is broken into Fragments, each measured
 /// independently, then arranged into lines.
 ///
-/// Reference: doc1.txt - "Quy trình 4 bước của thuật toán"
 /// Step 1: Tokenization - Break into Fragments
 /// Step 2: Measuring - Measure each Fragment
 /// Step 3: Line Breaking - Arrange into lines
@@ -171,7 +169,6 @@ class Fragment {
 
 /// A line of fragments after layout
 ///
-/// Reference: doc1.txt - "Bước 3: Xây dựng dòng (Line Breaking)"
 class LineInfo {
   /// Fragments in this line
   final List<Fragment> fragments = [];
@@ -227,13 +224,17 @@ class LineInfo {
   }
 
   /// Number of characters in this line
+  ///
+  /// Counts text and ruby base-text characters, plus 1 for each line break.
   int get characterCount {
     int count = 0;
     for (final frag in fragments) {
-      if (frag.type == FragmentType.text && frag.text != null) {
+      if ((frag.type == FragmentType.text ||
+              frag.type == FragmentType.ruby) &&
+          frag.text != null) {
         count += frag.text!.length;
       } else if (frag.type == FragmentType.lineBreak) {
-        count += 1; // Line break counts as 1 character
+        count += 1;
       }
     }
     return count;

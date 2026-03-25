@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_highlight/flutter_highlight.dart';
-import 'package:flutter_highlight/themes/vs2015.dart';
-import 'package:flutter_highlight/themes/atom-one-dark.dart';
-import 'package:flutter_highlight/themes/atom-one-light.dart';
-import 'package:flutter_highlight/themes/github.dart';
-import 'package:flutter_highlight/themes/monokai-sublime.dart';
-import 'package:flutter_highlight/themes/dracula.dart';
 
-/// Available syntax highlighting themes
+import '../interfaces/code_highlighter.dart';
+
+/// Available syntax highlighting themes.
+///
+/// Passed as a hint to the [CodeHighlighter] plugin.  When no plugin is
+/// configured, the renderer falls back to plain monospace text and uses the
+/// theme only to pick a background colour.
 enum CodeTheme {
   vs2015,
   atomOneDark,
@@ -18,37 +17,42 @@ enum CodeTheme {
   dracula,
 }
 
-/// A widget that displays code with syntax highlighting
+/// A widget that displays code with optional syntax highlighting.
 ///
-/// Supports 180+ programming languages via highlight.js
-/// Use [language] to specify the language (e.g., 'dart', 'javascript', 'html')
-/// If language is not specified, auto-detection will be attempted
+/// Syntax highlighting requires a [CodeHighlighter] plugin (e.g. the
+/// `HyperHighlighter` from `hyper_render_highlight`).  Without a plugin the
+/// code is rendered as plain monospace text, which keeps the core package
+/// free of heavy highlight.js dependencies.
 class CodeBlockWidget extends StatelessWidget {
-  /// The source code to display
+  /// The source code to display.
   final String code;
 
-  /// Programming language for syntax highlighting
-  /// Common values: 'dart', 'javascript', 'python', 'java', 'html', 'css', 'xml', 'json'
-  /// If null, highlight.js will attempt auto-detection
+  /// Programming language hint (e.g. 'dart', 'javascript').
   final String? language;
 
-  /// Theme for syntax highlighting
+  /// Visual theme — used to pick background colour and passed to [highlighter].
   final CodeTheme theme;
 
-  /// Padding inside the code block
+  /// Padding inside the code block.
   final EdgeInsets padding;
 
-  /// Border radius of the code block
+  /// Border radius of the code block container.
   final BorderRadius borderRadius;
 
-  /// Whether to show line numbers
+  /// Whether to show line numbers in the gutter.
   final bool showLineNumbers;
 
-  /// Whether to show copy button
+  /// Whether to show a copy-to-clipboard button.
   final bool showCopyButton;
 
-  /// Text style override (fontSize, fontFamily will be applied)
+  /// Text style override applied to the code text.
   final TextStyle? textStyle;
+
+  /// Syntax-highlighting plugin.
+  ///
+  /// When `null` the code is rendered as plain text.  Inject a plugin via
+  /// [HyperRenderConfig.codeHighlighter].
+  final CodeHighlighter? highlighter;
 
   const CodeBlockWidget({
     super.key,
@@ -60,66 +64,72 @@ class CodeBlockWidget extends StatelessWidget {
     this.showLineNumbers = false,
     this.showCopyButton = true,
     this.textStyle,
+    this.highlighter,
   });
 
-  Map<String, TextStyle> _getThemeMap() {
+  /// Background colour for each theme variant.
+  Color get _backgroundColor {
     switch (theme) {
-      case CodeTheme.vs2015:
-        return vs2015Theme;
-      case CodeTheme.atomOneDark:
-        return atomOneDarkTheme;
       case CodeTheme.atomOneLight:
-        return atomOneLightTheme;
       case CodeTheme.github:
-        return githubTheme;
+        return const Color(0xFFFAFAFA);
+      case CodeTheme.vs2015:
+      case CodeTheme.atomOneDark:
       case CodeTheme.monokaiSublime:
-        return monokaiSublimeTheme;
       case CodeTheme.dracula:
-        return draculaTheme;
+        return const Color(0xFF1E1E1E);
+    }
+  }
+
+  /// Default text colour when no plugin is present.
+  Color get _defaultTextColor {
+    switch (theme) {
+      case CodeTheme.atomOneLight:
+      case CodeTheme.github:
+        return const Color(0xFF383A42);
+      case CodeTheme.vs2015:
+      case CodeTheme.atomOneDark:
+      case CodeTheme.monokaiSublime:
+      case CodeTheme.dracula:
+        return const Color(0xFFABB2BF);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeMap = _getThemeMap();
-    final backgroundColor =
-        themeMap['root']?.backgroundColor ?? const Color(0xFF1E1E1E);
+    final bgColor = _backgroundColor;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: bgColor,
         borderRadius: borderRadius,
       ),
       child: Stack(
         children: [
-          // Code content
           ClipRRect(
             borderRadius: borderRadius,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Padding(
                 padding: padding,
-                child: _buildHighlightView(themeMap),
+                child: _buildContent(),
               ),
             ),
           ),
-
-          // Copy button
           if (showCopyButton)
             Positioned(
               top: 8,
               right: 8,
               child: _CopyButton(code: code),
             ),
-
-          // Language badge
           if (language != null)
             Positioned(
               bottom: 8,
               right: 8,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.black26,
                   borderRadius: BorderRadius.circular(4),
@@ -139,78 +149,44 @@ class CodeBlockWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildHighlightView(Map<String, TextStyle> themeMap) {
-    // Prepare code - ensure no trailing whitespace issues
+  Widget _buildContent() {
+    final codeStyle = textStyle ??
+        TextStyle(
+          fontFamily: 'monospace',
+          fontSize: 13,
+          height: 1.5,
+          color: _defaultTextColor,
+        );
+
     final cleanCode = code.trimRight();
 
-    if (showLineNumbers) {
-      return _buildWithLineNumbers(cleanCode, themeMap);
+    // Highlighted spans from plugin, or plain text fallback.
+    final List<TextSpan> spans;
+    if (highlighter != null &&
+        (language == null ||
+            language!.isEmpty ||
+            highlighter!.isLanguageSupported(language!))) {
+      spans = highlighter!.highlight(cleanCode, language);
+    } else {
+      spans = [TextSpan(text: cleanCode, style: codeStyle)];
     }
 
-    final codeStyle = textStyle ??
-        const TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 13,
-          height: 1.5,
-        );
-
-    // If no language specified, render as plain text without highlighting
-    if (language == null || language!.isEmpty) {
-      final rootStyle = themeMap['root'];
-      return Text(
-        cleanCode,
-        style: codeStyle.copyWith(
-          color: rootStyle?.color ?? Colors.white,
-        ),
-      );
-    }
-
-    return HighlightView(
-      cleanCode,
-      language: language!,
-      theme: themeMap,
-      textStyle: codeStyle,
+    final richText = Text.rich(
+      TextSpan(children: spans, style: codeStyle),
+      softWrap: false,
     );
-  }
 
-  Widget _buildWithLineNumbers(
-      String cleanCode, Map<String, TextStyle> themeMap) {
+    if (!showLineNumbers) return richText;
+
     final lines = cleanCode.split('\n');
     final lineCount = lines.length;
-    final lineNumberWidth = lineCount.toString().length * 10.0 + 24;
-
-    final codeStyle = textStyle ??
-        const TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 13,
-          height: 1.5,
-        );
-
-    // Build code widget - plain text if no language, otherwise highlighted
-    Widget codeWidget;
-    if (language == null || language!.isEmpty) {
-      final rootStyle = themeMap['root'];
-      codeWidget = Text(
-        cleanCode,
-        style: codeStyle.copyWith(
-          color: rootStyle?.color ?? Colors.white,
-        ),
-      );
-    } else {
-      codeWidget = HighlightView(
-        cleanCode,
-        language: language!,
-        theme: themeMap,
-        textStyle: codeStyle,
-      );
-    }
+    final gutterWidth = lineCount.toString().length * 10.0 + 24;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Line numbers
         SizedBox(
-          width: lineNumberWidth,
+          width: gutterWidth,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: List.generate(lineCount, (i) {
@@ -229,27 +205,21 @@ class CodeBlockWidget extends StatelessWidget {
             }),
           ),
         ),
-
-        // Divider
         Container(
           width: 1,
-          height: lineCount * 19.5, // approximate line height
+          height: lineCount * 19.5,
           color: Colors.white12,
         ),
-
         const SizedBox(width: 16),
-
-        // Code
-        codeWidget,
+        richText,
       ],
     );
   }
 }
 
-/// Copy button with feedback
+/// Copy-to-clipboard button with confirmation feedback.
 class _CopyButton extends StatefulWidget {
   final String code;
-
   const _CopyButton({required this.code});
 
   @override
@@ -262,11 +232,8 @@ class _CopyButtonState extends State<_CopyButton> {
   Future<void> _copyToClipboard() async {
     await Clipboard.setData(ClipboardData(text: widget.code));
     setState(() => _copied = true);
-
     await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      setState(() => _copied = false);
-    }
+    if (mounted) setState(() => _copied = false);
   }
 
   @override
@@ -293,53 +260,24 @@ class _CopyButtonState extends State<_CopyButton> {
   }
 }
 
-/// Helper to detect language from class attribute
-/// e.g., "language-dart", "lang-javascript", "hljs-python"
+/// Detect programming language from a CSS class attribute value.
+///
+/// Recognises common patterns: `language-dart`, `lang-python`, `hljs-js`.
 String? detectLanguageFromClass(String? classAttr) {
   if (classAttr == null || classAttr.isEmpty) return null;
 
-  final classes = classAttr.split(' ');
-  for (final cls in classes) {
-    // Common patterns: language-xxx, lang-xxx, hljs-xxx
-    if (cls.startsWith('language-')) {
-      return cls.substring(9);
-    }
-    if (cls.startsWith('lang-')) {
-      return cls.substring(5);
-    }
-    if (cls.startsWith('hljs-')) {
-      return cls.substring(5);
-    }
+  for (final cls in classAttr.split(' ')) {
+    if (cls.startsWith('language-')) return cls.substring(9);
+    if (cls.startsWith('lang-')) return cls.substring(5);
+    if (cls.startsWith('hljs-')) return cls.substring(5);
 
-    // Direct language names
-    final knownLanguages = [
-      'dart',
-      'javascript',
-      'typescript',
-      'python',
-      'java',
-      'kotlin',
-      'swift',
-      'go',
-      'rust',
-      'c',
-      'cpp',
-      'csharp',
-      'php',
-      'ruby',
-      'html',
-      'css',
-      'xml',
-      'json',
-      'yaml',
-      'sql',
-      'bash',
-      'shell',
+    const knownLanguages = {
+      'dart', 'javascript', 'typescript', 'python', 'java', 'kotlin',
+      'swift', 'go', 'rust', 'c', 'cpp', 'csharp', 'php', 'ruby',
+      'html', 'css', 'xml', 'json', 'yaml', 'sql', 'bash', 'shell',
       'markdown',
-    ];
-    if (knownLanguages.contains(cls.toLowerCase())) {
-      return cls.toLowerCase();
-    }
+    };
+    if (knownLanguages.contains(cls.toLowerCase())) return cls.toLowerCase();
   }
 
   return null;

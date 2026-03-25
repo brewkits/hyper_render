@@ -1,5 +1,12 @@
 part of 'render_hyper_box.dart';
 
+// TODO(refactor): This file is ~2 100 lines / 80 KB.  The Table and Flex
+// sub-layouts (_tokenizeTable, _layoutTableFragment, _FlexFragment handling)
+// are good candidates for extraction into dedicated Strategy/Delegate classes
+// (e.g. _TableLayoutStrategy, _FlexLayoutStrategy) so each is independently
+// testable.  Tracking issue: github.com/brewkits/hyper_render/issues — file a
+// ticket before the v1.2 milestone to prevent further growth.
+
 // Layout spacing constants — single source of truth for all magic numbers
 const double _kImageMargin = 32.0; // horizontal margin subtracted from maxWidth for images
 const double _kDefaultFlexFallbackHeight = 50.0;
@@ -9,7 +16,6 @@ const double _kDefaultDetailsFallbackHeight = 40.0;
 const double _kTableBottomMargin = 16.0;
 const double _kCodeBlockBottomMargin = 8.0;
 const double _kDetailsBottomMargin = 4.0;
-const int _kNodeRectCacheMaxDepth = 32; // max ancestor walk depth in _buildNodeRectCache
 
 extension _RenderHyperBoxLayout on RenderHyperBox {
   /// Step 1: Tokenization - Convert UDT tree to flat list of Fragments
@@ -310,7 +316,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     double height;
 
     if (node.tagName == 'img' && node.src != null) {
-      final cached = _imageCache[node.src];
+      final cached = _imageCache.get(node.src!);
 
       if (cached?.state == ImageLoadState.loaded && cached?.image != null) {
         // Image loaded - use actual dimensions
@@ -567,6 +573,22 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     _lines.clear();
     _leftFloats.clear();
     _rightFloats.clear();
+
+    // Seed floats inherited from the previous virtualized section so that
+    // text in this section correctly wraps around a float that began in the
+    // preceding chunk (cross-chunk float continuity).
+    for (final carryover in _initialFloats) {
+      final floatRect = carryover.direction == HyperFloat.left
+          ? Rect.fromLTWH(0, 0, carryover.width, carryover.overhangHeight)
+          : Rect.fromLTWH(
+              _maxWidth - carryover.width, 0, carryover.width, carryover.overhangHeight);
+      final area = _FloatArea(rect: floatRect, direction: carryover.direction);
+      if (carryover.direction == HyperFloat.left) {
+        _leftFloats.add(area);
+      } else {
+        _rightFloats.add(area);
+      }
+    }
 
     if (_fragments.isEmpty) return;
 
@@ -1243,6 +1265,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       return null;
     }
 
+    // Snap breakIndex off any UTF-16 low surrogate (0xDC00–0xDFFF).
+    // Low surrogates are the *second* code unit of a surrogate pair (emoji,
+    // rare CJK extension B, etc.).  If breakIndex lands there, substring()
+    // would put the lone high surrogate at the end of the first fragment —
+    // an invalid Dart string that crashes TextPainter and corrupts clipboard.
+    // Stepping back by one puts the break BEFORE the whole surrogate pair.
+    if ((text.codeUnitAt(breakIndex) & 0xFC00) == 0xDC00) {
+      breakIndex -= 1;
+      if (breakIndex <= 0) return null;
+    }
+
     // Only trim spaces for normal/nowrap/pre-line modes
     // For pre/pre-wrap/break-spaces, preserve all whitespace
     final whiteSpace = fragment.style.whiteSpace;
@@ -1359,6 +1392,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
     }
 
+    // Snap off any low surrogate — same reason as in _splitTextFragment.
+    if ((text.codeUnitAt(breakIndex) & 0xFC00) == 0xDC00) {
+      breakIndex -= 1;
+      if (breakIndex <= 0) return null;
+    }
+
     final firstPart = text.substring(0, breakIndex);
     final secondPart = text.substring(breakIndex);
 
@@ -1419,7 +1458,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     if (sourceNode is AtomicNode &&
         sourceNode.tagName == 'img' &&
         sourceNode.src != null) {
-      final cached = _imageCache[sourceNode.src];
+      final cached = _imageCache.get(sourceNode.src!);
       if (cached?.state == ImageLoadState.loaded && cached?.image != null) {
         final img = cached!.image!;
         final imgW = img.width.toDouble();
@@ -1801,15 +1840,32 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   void _buildCharacterMapping() {
     _characterToFragment.clear();
     _fragmentRanges.clear();
+    _lineStartOffsets.clear();
     _totalCharacterCount = 0;
 
     // Build ranges instead of individual character mapping
     for (final fragment in _fragments) {
-      if (fragment.type == FragmentType.text && fragment.text != null) {
+      if ((fragment.type == FragmentType.text ||
+              fragment.type == FragmentType.ruby) &&
+          fragment.text != null) {
         final startIdx = _totalCharacterCount;
         final endIdx = startIdx + fragment.text!.length;
         _fragmentRanges.add((startIdx, endIdx, fragment));
         _totalCharacterCount = endIdx;
+      }
+    }
+
+    // Build per-line start offsets for O(log N) selection hit-testing.
+    // _lineStartOffsets[i] = cumulative char count before line i.
+    int lineStart = 0;
+    for (final line in _lines) {
+      _lineStartOffsets.add(lineStart);
+      for (final frag in line.fragments) {
+        if ((frag.type == FragmentType.text ||
+                frag.type == FragmentType.ruby) &&
+            frag.text != null) {
+          lineStart += frag.text!.length;
+        }
       }
     }
   }
@@ -2084,31 +2140,6 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
     }
     return null;
-  }
-
-  /// Builds [_nodeRectCache]: maps each [UDTNode] to its bounding [Rect]
-  /// by aggregating the rects of all fragments that belong to that node or
-  /// any of its descendants.  Called once per layout pass (Step 8), so that
-  /// [_getNodeRect] in the accessibility extension is O(1) instead of O(N).
-  void _buildNodeRectCache() {
-    _nodeRectCache.clear();
-    for (final fragment in _fragments) {
-      final rect = fragment.rect;
-      if (rect == null) continue;
-
-      // Walk up the ancestor chain so every ancestor's bounding box expands
-      // to include this fragment. Depth is capped to avoid O(N×depth) cost
-      // on deeply-nested HTML (e.g. 50-level div soup).
-      UDTNode? node = fragment.sourceNode;
-      int depth = 0;
-      while (node != null && depth < _kNodeRectCacheMaxDepth) {
-        final existing = _nodeRectCache[node];
-        _nodeRectCache[node] =
-            existing == null ? rect : existing.expandToInclude(rect);
-        node = node.parent;
-        depth++;
-      }
-    }
   }
 
   /// Find float fragment that matches the given source node

@@ -3,7 +3,65 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../model/computed_style.dart';
 import '../model/node.dart';
+
+/// Maximum colspan/rowspan value accepted from HTML attributes.
+///
+/// Browsers cap at 1 000; values beyond this trigger [List.generate] calls
+/// that allocate millions of grid cells, causing OOM on adversarial or
+/// malformed markup.
+const int _kMaxSpan = 1000;
+
+/// Maximum nesting depth for tables-within-tables.
+///
+/// The 2-pass layout algorithm in [_RenderHyperTable] has O(2^depth)
+/// complexity for deeply nested tables: measuring column widths triggers
+/// each child's layout, which for nested tables triggers another 2 passes,
+/// doubling per level.  At depth ≥ [_kMaxTableNestingDepth], [HyperTable]
+/// renders a lightweight placeholder instead, preventing ANR on adversarial
+/// or poorly-authored HTML.
+///
+/// Browsers themselves cap nested table rendering at ~6–10 levels.
+const int _kMaxTableNestingDepth = 6;
+
+// ── Nesting-depth tracker (InheritedWidget) ───────────────────────────────────
+//
+// Propagated through the widget tree so any descendant [HyperTable] can read
+// the current depth without requiring changes to constructor signatures.
+class _TableNestingDepth extends InheritedWidget {
+  const _TableNestingDepth({required this.depth, required super.child});
+
+  final int depth;
+
+  /// Returns the current table nesting depth, or 0 if outside any table.
+  static int of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_TableNestingDepth>()?.depth ??
+      0;
+
+  @override
+  bool updateShouldNotify(_TableNestingDepth old) => depth != old.depth;
+}
+
+/// Shown in place of a table that exceeds [_kMaxTableNestingDepth].
+class _TableDepthExceededPlaceholder extends StatelessWidget {
+  const _TableDepthExceededPlaceholder({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFBDBDBD)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: const Text(
+        '[table]',
+        style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 12),
+      ),
+    );
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PUBLIC API
@@ -121,6 +179,12 @@ class HyperTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Guard against exponential 2-pass layout complexity in deeply nested tables.
+    final depth = _TableNestingDepth.of(context);
+    if (depth >= _kMaxTableNestingDepth) {
+      return const _TableDepthExceededPlaceholder();
+    }
+
     final grid = _TableGrid.fromTableNode(tableNode);
     if (grid.isEmpty) return const SizedBox.shrink();
 
@@ -137,16 +201,32 @@ class HyperTable extends StatelessWidget {
           // where the row sets the background but individual cells do not.
           final cellBg = cell.cellNode.style.backgroundColor ??
               cell.rowNode.style.backgroundColor;
+          // Resolve vertical-align: cell > row > top (table-cell default).
+          // ComputedStyle.verticalAlign defaults to `baseline`; we use that
+          // as the sentinel for "not explicitly set".  An explicit `top`
+          // value (from valign="top" or vertical-align:top) is != baseline
+          // and therefore takes precedence correctly.
+          final cellVAlign = cell.cellNode.style.verticalAlign;
+          final rowVAlign = cell.rowNode.style.verticalAlign;
+          final effectiveVAlign = cellVAlign != HyperVerticalAlign.baseline
+              ? cellVAlign
+              : rowVAlign != HyperVerticalAlign.baseline
+                  ? rowVAlign
+                  : HyperVerticalAlign.top;
+          final cellContent = Container(
+            padding: cellPadding,
+            color: cellBg,
+            child: _buildCellContent(cell.cellNode),
+          );
           children.add(_TableCellSlot(
             row: row,
             col: col,
             colspan: cell.colspan,
             rowspan: cell.rowspan,
-            child: Container(
-              padding: cellPadding,
-              color: cellBg,
-              child: _buildCellContent(cell.cellNode),
-            ),
+            verticalAlign: effectiveVAlign,
+            child: cell.cellNode.isHeader
+                ? Semantics(header: true, child: cellContent)
+                : cellContent,
           ));
         }
       }
@@ -160,10 +240,19 @@ class HyperTable extends StatelessWidget {
       children: children,
     );
 
-    if (selectable) {
-      return SelectionArea(child: tableWidget);
-    }
-    return tableWidget;
+    // Increment depth for any nested tables inside cells.
+    final depthWrapped = _TableNestingDepth(
+      depth: depth + 1,
+      child: selectable ? SelectionArea(child: tableWidget) : tableWidget,
+    );
+
+    // Announce the table structure to screen readers: "Table, N rows, M columns".
+    // Each <th> cell is already marked with Semantics(header: true) above.
+    return Semantics(
+      container: true,
+      label: 'Table, ${grid.rowCount} rows, ${grid.columnCount} columns',
+      child: depthWrapped,
+    );
   }
 
   Widget _buildCellContent(TableCellNode cellNode) {
@@ -260,11 +349,13 @@ class _TableGrid {
       return _TableGrid(cells: [], columnCount: 0, rowCount: 0);
     }
 
+    // Clamp per-cell colspan to [_kMaxSpan] so adversarial or malformed HTML
+    // (e.g. colspan="1000000") cannot trigger an OOM List.generate call.
     int maxCols = 0;
     for (final row in rows) {
       int colCount = 0;
       for (final cell in row.children) {
-        if (cell is TableCellNode) colCount += cell.colspan;
+        if (cell is TableCellNode) colCount += cell.colspan.clamp(1, _kMaxSpan);
       }
       if (colCount > maxCols) maxCols = colCount;
     }
@@ -284,8 +375,8 @@ class _TableGrid {
           }
           if (colIdx >= maxCols) break;
 
-          final colspan = child.colspan;
-          final rowspan = child.rowspan;
+          final colspan = child.colspan.clamp(1, _kMaxSpan);
+          final rowspan = child.rowspan.clamp(1, _kMaxSpan);
           final rowNode = rows[rowIdx];
           final primary = _GridCell(
             cellNode: child,
@@ -353,21 +444,28 @@ class _TableCellParentData extends ContainerBoxParentData<RenderBox> {
   int col = 0;
   int colspan = 1;
   int rowspan = 1;
+  /// CSS `vertical-align` for this cell.  Defaults to [HyperVerticalAlign.top]
+  /// which is the CSS table-cell initial value (not `baseline`, which applies
+  /// to inline contexts).
+  HyperVerticalAlign verticalAlign = HyperVerticalAlign.top;
 }
 
-/// [ParentDataWidget] that injects row/col/colspan/rowspan into each cell's
-/// [_TableCellParentData] so [_RenderHyperTable] can read it during layout.
+/// [ParentDataWidget] that injects row/col/colspan/rowspan/verticalAlign into
+/// each cell's [_TableCellParentData] so [_RenderHyperTable] can read it
+/// during layout.
 class _TableCellSlot extends ParentDataWidget<_TableCellParentData> {
   final int row;
   final int col;
   final int colspan;
   final int rowspan;
+  final HyperVerticalAlign verticalAlign;
 
   const _TableCellSlot({
     required this.row,
     required this.col,
     required this.colspan,
     required this.rowspan,
+    this.verticalAlign = HyperVerticalAlign.top,
     required super.child,
   });
 
@@ -389,6 +487,10 @@ class _TableCellSlot extends ParentDataWidget<_TableCellParentData> {
     }
     if (pd.rowspan != rowspan) {
       pd.rowspan = rowspan;
+      changed = true;
+    }
+    if (pd.verticalAlign != verticalAlign) {
+      pd.verticalAlign = verticalAlign;
       changed = true;
     }
     if (changed) {
@@ -862,7 +964,29 @@ class _RenderHyperTable extends RenderBox
     }
 
     _forEach((child, pd) {
-      pd.offset = Offset(colX[pd.col], rowY[pd.row]);
+      // Compute the total height available to this cell (spanned rows + inner
+      // borders between them).  For rowspan=1 this equals rowHeights[row].
+      final endRow = math.min(pd.row + pd.rowspan, _rowCount);
+      double cellSlotH = _borderWidth * (endRow - pd.row - 1);
+      for (int r = pd.row; r < endRow; r++) {
+        cellSlotH += rowHeights[r];
+      }
+
+      // Vertical offset inside the slot (0 for top/baseline, centred for
+      // middle, pushed to bottom for bottom).
+      final cellH = child.size.height;
+      final slack = math.max(0.0, cellSlotH - cellH);
+      final double dy;
+      if (pd.verticalAlign == HyperVerticalAlign.middle) {
+        dy = slack / 2;
+      } else if (pd.verticalAlign == HyperVerticalAlign.bottom ||
+          pd.verticalAlign == HyperVerticalAlign.textBottom) {
+        dy = slack;
+      } else {
+        dy = 0; // top / baseline / text-top
+      }
+
+      pd.offset = Offset(colX[pd.col], rowY[pd.row] + dy);
     }, children);
   }
 

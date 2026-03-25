@@ -956,6 +956,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       return null;
     }
 
+    // Snap breakIndex off any UTF-16 low surrogate (0xDC00–0xDFFF).
+    // Low surrogates are the *second* code unit of a surrogate pair (emoji,
+    // rare CJK extension B, etc.).  If breakIndex lands there, substring()
+    // would put the lone high surrogate at the end of the first fragment —
+    // an invalid Dart string that crashes TextPainter and corrupts clipboard.
+    // Stepping back by one puts the break BEFORE the whole surrogate pair.
+    if ((text.codeUnitAt(breakIndex) & 0xFC00) == 0xDC00) {
+      breakIndex -= 1;
+      if (breakIndex <= 0) return null;
+    }
+
     // Only trim spaces for normal/nowrap/pre-line modes
     // For pre/pre-wrap/break-spaces, preserve all whitespace
     final whiteSpace = fragment.style.whiteSpace;
@@ -968,9 +979,6 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         : text.substring(0, breakIndex);
     final secondRaw = text.substring(breakIndex);
     final secondPart = shouldTrim ? secondRaw.trimLeft() : secondRaw;
-    
-    // account for trimmed chars in offset
-    final trimmedLeading = shouldTrim ? secondRaw.length - secondPart.length : 0;
 
     if (firstPart.isEmpty || secondPart.isEmpty) {
       return null;
@@ -984,11 +992,15 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     );
     _measureFragment(firstFragment);
 
+    // characterOffset points to the START of secondPart in the document.
+    // Use `breakIndex` (not `breakIndex + trimmedChars`) so that trimmed
+    // leading spaces are still covered by this fragment's character range —
+    // adding trimmedChars would create a gap in the selection mapping.
     final secondFragment = Fragment.text(
       text: secondPart,
       sourceNode: fragment.sourceNode,
       style: fragment.style,
-      characterOffset: fragment.characterOffset + breakIndex + trimmedLeading,
+      characterOffset: fragment.characterOffset + breakIndex,
     );
     _measureFragment(secondFragment);
 
@@ -1052,6 +1064,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
     if (breakIndex <= 0 || breakIndex >= text.length) {
       return null;
+    }
+
+    // Snap off any low surrogate — same reason as in _splitTextFragment.
+    if ((text.codeUnitAt(breakIndex) & 0xFC00) == 0xDC00) {
+      breakIndex -= 1;
+      if (breakIndex <= 0) return null;
     }
 
     final firstPart = text.substring(0, breakIndex);
@@ -1369,7 +1387,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
     // Build ranges instead of individual character mapping
     for (final fragment in _fragments) {
-      if (fragment.type == FragmentType.text && fragment.text != null) {
+      if ((fragment.type == FragmentType.text ||
+              fragment.type == FragmentType.ruby) &&
+          fragment.text != null) {
         final startIdx = _totalCharacterCount;
         final endIdx = startIdx + fragment.text!.length;
         _fragmentRanges.add((startIdx, endIdx, fragment));

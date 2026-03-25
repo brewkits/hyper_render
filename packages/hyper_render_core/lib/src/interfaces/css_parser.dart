@@ -1,3 +1,5 @@
+import '../core/animation_controller.dart';
+
 /// Interface for CSS parsing plugins
 ///
 /// Implement this interface to provide custom CSS parsing.
@@ -17,6 +19,12 @@
 ///     // Parse style="..." attribute
 ///     return {...};
 ///   }
+///
+///   @override
+///   Map<String, HyperKeyframes> parseKeyframes(String css) {
+///     // Parse @keyframes blocks
+///     return {};
+///   }
 /// }
 /// ```
 abstract class CssParserInterface {
@@ -31,6 +39,17 @@ abstract class CssParserInterface {
   /// [style] - The style attribute value (e.g., "color: red; font-size: 16px")
   /// Returns a map of property -> value
   Map<String, String> parseInlineStyle(String style);
+
+  /// Parse `@keyframes` rules from a CSS stylesheet.
+  ///
+  /// Returns a map from animation name → [HyperKeyframes].
+  /// The default implementation returns an empty map so that the core package
+  /// has no dependency on any CSS parser library.  Full @keyframes support
+  /// requires a CSS plugin (e.g. `DefaultCssParser` from the main package).
+  ///
+  /// The returned map is merged into [HyperRenderConfig.keyframeRegistry] by
+  /// the HTML adapter, making the animations available to [RenderHyperBox].
+  Map<String, HyperKeyframes> parseKeyframes(String css) => const {};
 }
 
 /// Represents a parsed CSS rule
@@ -91,4 +110,7 @@ class SimpleInlineStyleParser implements CssParserInterface {
     }
     return result;
   }
+
+  @override
+  Map<String, HyperKeyframes> parseKeyframes(String css) => const {};
 }

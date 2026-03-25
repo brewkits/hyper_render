@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 
 /// Accessibility Demo - Showcasing Screen Reader Support
+///
+/// Updated for WCAG 2.1 AA:
+/// • h1-h6 headings emit isHeader:true SemanticsNodes → TalkBack/VoiceOver
+///   heading swipe navigation works.
+/// • <a href> links emit isLink:true + onTap SemanticsNodes → screen reader
+///   "activate" gesture calls onLinkTap.
+/// • Custom deep-link schemes supported via HyperRenderConfig.extraLinkSchemes.
 class AccessibilityDemo extends StatefulWidget {
   const AccessibilityDemo({super.key});
 
@@ -10,12 +17,53 @@ class AccessibilityDemo extends StatefulWidget {
 }
 
 class _AccessibilityDemoState extends State<AccessibilityDemo> {
-  String _selectedContent = 'news_article';
+  String _selectedContent = 'wcag_headings';
   String _customLabel = '';
   bool _useCustomLabel = false;
   bool _excludeFromSemantics = false;
+  String? _lastTappedLink;
+  // Custom scheme example: allows myapp:// deep-links via extraLinkSchemes.
+  bool _allowCustomScheme = false;
 
   static const Map<String, Map<String, String>> _contentExamples = {
+    'wcag_headings': {
+      'name': 'WCAG 2.1 AA — Heading Navigation',
+      'defaultLabel': 'Article: HyperRender accessibility',
+      'html': '''
+<article>
+  <h1>HyperRender Accessibility Guide</h1>
+  <p>This article demonstrates <strong>WCAG 2.1 AA</strong> compliance with full heading and link semantics.</p>
+
+  <h2>Screen Reader Navigation</h2>
+  <p>TalkBack (Android) and VoiceOver (iOS) users can swipe through headings using the heading navigation gesture.
+     Each heading below is announced with its level.</p>
+
+  <h3>What Changes at the AA Level</h3>
+  <ul>
+    <li>h1–h6 headings emit <code>isHeader: true</code> semantics nodes</li>
+    <li><a href="https://flutter.dev">Links</a> emit <code>isLink: true</code> + <code>onTap</code></li>
+    <li>Screen reader "activate" gesture calls <code>onLinkTap</code></li>
+  </ul>
+
+  <h2>Link Activation</h2>
+  <p>All links below are tappable via screen reader gestures:</p>
+  <ul>
+    <li><a href="https://flutter.dev">Flutter website</a></li>
+    <li><a href="https://pub.dev">Pub.dev package registry</a></li>
+    <li><a href="mailto:support@example.com">Email support</a></li>
+  </ul>
+
+  <h2>Custom Deep-Link Schemes</h2>
+  <p>Enable <em>"Allow custom scheme"</em> below to unlock the <code>myapp://</code> link:
+     <a href="myapp://open/article/42">Open article in app</a>.</p>
+
+  <h3>Security Model</h3>
+  <p>By default, only <code>https</code>, <code>http</code>, <code>mailto</code>, and <code>tel</code>
+     schemes trigger <code>onLinkTap</code>.  Custom schemes must be explicitly whitelisted via
+     <code>HyperRenderConfig(extraLinkSchemes: {\'myapp\'})</code>.</p>
+</article>
+''',
+    },
     'news_article': {
       'name': 'News Article',
       'defaultLabel': 'Breaking news: Flutter 4.0 released',
@@ -414,6 +462,64 @@ MyWidget()        // Not as good</code></pre>
 
                   const SizedBox(height: 16),
 
+                  // ── WCAG 2.1 AA new feature: custom scheme toggle ─────────
+                  if (_selectedContent == 'wcag_headings')
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Card(
+                        color: Colors.teal.shade50,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.link,
+                                      color: Colors.teal.shade700, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'extraLinkSchemes Demo',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.teal.shade900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              SwitchListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text(
+                                    'Allow myapp:// deep-link scheme'),
+                                subtitle: const Text(
+                                  'Adds "myapp" to HyperRenderConfig.extraLinkSchemes',
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                                value: _allowCustomScheme,
+                                activeColor: Colors.teal,
+                                onChanged: (v) =>
+                                    setState(() => _allowCustomScheme = v),
+                              ),
+                              if (_lastTappedLink != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    'Last tapped: $_lastTappedLink',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.teal.shade800,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // Rendered content
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -432,10 +538,69 @@ MyWidget()        // Not as good</code></pre>
                       semanticLabel:
                           _excludeFromSemantics ? null : semanticLabel,
                       excludeSemantics: _excludeFromSemantics,
+                      onLinkTap: (url) {
+                        setState(() => _lastTappedLink = url);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Link tapped: $url'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      renderConfig: HyperRenderConfig(
+                        extraLinkSchemes:
+                            _allowCustomScheme ? {'myapp'} : const {},
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 24),
+
+                  // ── WCAG 2.1 AA new feature card ──────────────────────────
+                  Card(
+                    color: Colors.indigo.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.new_releases,
+                                  color: Colors.indigo.shade700),
+                              const SizedBox(width: 8),
+                              Text(
+                                'WCAG 2.1 AA — New Semantics',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Colors.indigo.shade900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildBestPractice(
+                            '🏷️ Heading navigation (isHeader)',
+                            'h1–h6 elements produce SemanticsNodes with isHeader:true. '
+                                'TalkBack/VoiceOver users can swipe between headings.',
+                          ),
+                          _buildBestPractice(
+                            '🔗 Link activation (isLink + onTap)',
+                            '<a href> elements produce isLink:true nodes. '
+                                'The screen reader "activate" action calls onLinkTap.',
+                          ),
+                          _buildBestPractice(
+                            '🔒 Scheme security (extraLinkSchemes)',
+                            'Only https/http/mailto/tel are allowed by default. '
+                                'Add deep-link schemes via HyperRenderConfig.extraLinkSchemes.',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
 
                   // Best practices
                   Card(
@@ -462,12 +627,17 @@ MyWidget()        // Not as good</code></pre>
                           ),
                           const SizedBox(height: 12),
                           _buildBestPractice(
-                            '✅ Provide descriptive labels',
-                            'Use clear, meaningful semantic labels that describe the content',
+                            '✅ Use heading structure (h1→h2→h3)',
+                            'Well-structured headings let screen reader users jump to sections',
                           ),
                           _buildBestPractice(
-                            '✅ Include context in labels',
-                            'e.g., "News article: Title" instead of just "Article"',
+                            '✅ Provide descriptive link text',
+                            'Avoid "click here" — use "Read the Flutter docs" instead',
+                          ),
+                          _buildBestPractice(
+                            '✅ Whitelist deep-link schemes explicitly',
+                            'HyperRenderConfig(extraLinkSchemes: {\'myapp\'}) keeps unknown '
+                                'schemes blocked by default',
                           ),
                           _buildBestPractice(
                             '⚠️ Only exclude decorative content',

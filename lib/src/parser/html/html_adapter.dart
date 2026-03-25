@@ -107,6 +107,20 @@ class HtmlAdapter {
     return buffer.toString();
   }
 
+  /// Parses `@keyframes` rules from all `<style>` elements in [html].
+  ///
+  /// Returns a map from animation name → [HyperKeyframes].  The result can be
+  /// merged into [HyperRenderConfig.keyframeRegistry] so that the renderer
+  /// can drive CSS animations declared in the document itself.
+  ///
+  /// Call this **before** sanitizing (same reason as [extractCss]).
+  Map<String, HyperKeyframes> extractKeyframes(
+      String html, CssParserInterface cssParser) {
+    final css = extractCss(html);
+    if (css.isEmpty) return const {};
+    return cssParser.parseKeyframes(css);
+  }
+
   List<DocumentNode> parseToSections(String html, {int chunkSize = 3000}) {
     final document = html_parser.parse(html);
     final body = document.body;
@@ -160,7 +174,11 @@ class HtmlAdapter {
                 nextTag == 'h6';
           }
 
-          if (!isHeading && !nextIsHeading) {
+          // Also don't split immediately after a float-containing block. The next
+          // block needs to be in the same section to flow text around the float.
+          // (CSS float wasted-space mitigation — see ROADMAP.md)
+          final currentHasFloat = _containsFloatChild(child);
+          if (!isHeading && !nextIsHeading && !currentHasFloat) {
             sections.add(currentSection);
             currentSection = DocumentNode(children: []);
             currentSize = 0;
@@ -358,5 +376,31 @@ class HtmlAdapter {
   bool _isAtomic(dom.Element element) {
     return const ['img', 'video', 'audio', 'iframe', 'br', 'hr', 'input']
         .contains(element.localName);
+  }
+
+  /// Returns `true` if [node] or any of its descendants is an element with
+  /// a CSS `float:left` or `float:right` property.
+  ///
+  /// Used by [parseToSections] to avoid splitting a section immediately after
+  /// a float-containing block — the following block should stay in the same
+  /// section so text can wrap around the float within a single [RenderHyperBox].
+  bool _containsFloatChild(dom.Node node) {
+    if (node is! dom.Element) return false;
+    // Check inline style
+    final style = node.attributes['style'] ?? '';
+    if (style.contains('float:left') ||
+        style.contains('float: left') ||
+        style.contains('float:right') ||
+        style.contains('float: right')) {
+      return true;
+    }
+    // Check float attribute (legacy HTML)
+    final floatAttr = node.attributes['float'] ?? '';
+    if (floatAttr == 'left' || floatAttr == 'right') return true;
+    // Recurse into children
+    for (final child in node.nodes) {
+      if (_containsFloatChild(child)) return true;
+    }
+    return false;
   }
 }

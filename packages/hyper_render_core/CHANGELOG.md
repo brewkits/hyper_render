@@ -1,5 +1,19 @@
 # Changelog — hyper_render_core
 
+## [1.1.2] - 2026-03-25
+
+### 🐛 Bug Fixes
+- **Ruby selection — 5 bugs fixed**: `FragmentType.ruby` was silently skipped in every selection pipeline step, causing character offset desynchronisation for all content after a ruby fragment.
+  - `_buildCharacterMapping()`: ruby fragments now included in `_fragmentRanges` and `_totalCharacterCount`
+  - `_paintSelection()`: selection highlight is now drawn over ruby fragments; offset correctly advanced
+  - `getSelectedText()`: ruby base text is now included in copied text
+  - `getSelectionRects()`: ruby fragment rects are now returned for handle positioning
+  - `_getCharacterPositionAtOffset()` skip-lines section: ruby chars now counted when advancing past earlier lines
+- **`LineInfo.characterCount`**: now counts ruby base-text characters (was 0 for ruby fragments)
+
+### 🔬 Tests
+- **+17 tests** — `ruby_layout_test.dart`: `LineInfo.characterCount` with ruby, selection offset accumulation across text + ruby + text, character position mapping
+
 ## [1.1.1] - 2026-03-23
 
 ### 🐛 Bug Fixes

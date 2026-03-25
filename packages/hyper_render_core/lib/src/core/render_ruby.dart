@@ -1,6 +1,7 @@
 import 'dart:math' show max;
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter/rendering.dart';
 
 /// RubySpan - A WidgetSpan that renders Ruby/Furigana text
 ///
@@ -12,7 +13,6 @@ import 'package:flutter/widgets.dart';
 /// <ruby>漢字<rt>かんじ</rt></ruby>
 /// ```
 ///
-/// Reference: doc3.md - "Requirement 4: Japanese Ruby/Furigana Support"
 class RubySpan extends WidgetSpan {
   RubySpan({
     required String baseText,
@@ -67,7 +67,6 @@ class RubyTextWidget extends LeafRenderObjectWidget {
 /// This renders base text with smaller ruby text above it,
 /// maintaining consistent line height and proper baseline alignment.
 ///
-/// Reference: doc3.md - "class RenderRubyText extends RenderBox"
 class RenderRubyText extends RenderBox {
   String _baseText;
   String _rubyText;
@@ -206,6 +205,15 @@ class RenderRubyText extends RenderBox {
 
     final baseBaseline = _basePainter.computeDistanceToActualBaseline(baseline);
     return _rubyPainter.height + rubySpacing + baseBaseline;
+  }
+
+  @override
+  void describeSemanticsConfiguration(SemanticsConfiguration config) {
+    super.describeSemanticsConfiguration(config);
+    config
+      ..isReadOnly = true
+      ..label = '$_baseText ($_rubyText)'
+      ..textDirection = TextDirection.ltr;
   }
 
   @override

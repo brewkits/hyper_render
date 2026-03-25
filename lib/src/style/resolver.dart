@@ -11,8 +11,7 @@ import '../model/node.dart';
 ///
 /// Resolves styles for UDT nodes following CSS cascade rules.
 ///
-/// Reference: doc1.txt - "1.2. Quy trình Resolve (Phân giải)"
-/// The resolver traverses the tree Top-Down:
+/// The resolver traverses the tree top-down:
 /// 1. User Agent Styles - Browser defaults (h1 is bold, etc.)
 /// 2. External/Internal CSS - CSS rules from <style> tags
 /// 3. Inline Styles - style attribute on elements

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/animation_controller.dart';
 import '../core/hyper_render_config.dart';
 import '../core/image_provider.dart';
 import '../core/render_formula.dart';
 import '../core/render_hyper_box.dart';
 import '../core/render_media.dart';
 import '../core/render_table.dart';
+import '../interfaces/code_highlighter.dart';
 import '../interfaces/image_clipboard.dart';
 import '../model/computed_style.dart';
 import '../model/node.dart';
@@ -67,7 +69,6 @@ typedef ImageActionCallback = Future<bool> Function(
 /// )
 /// ```
 ///
-/// Reference: doc3.md - "RenderObject-centric Architecture"
 class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// The parsed document tree to render
   final DocumentNode document;
@@ -120,9 +121,24 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     List<({int level, String text, String? cssId, double yOffset})> headings,
   )? onAnchorLayout;
 
+  /// Called after each layout pass with floats that overhang the section bottom.
+  /// Pass the list to the next section's [initialFloats] for cross-chunk float
+  /// continuity.  Receives an empty list when no floats dangle.
+  final void Function(List<FloatCarryover> carryovers)? onFloatCarryover;
+
   /// Engine configuration — tunable cache sizes and concurrency.
   /// See [HyperRenderConfig] for all options and defaults.
   final HyperRenderConfig config;
+
+  /// Floats inherited from the previous virtualized section.
+  ///
+  /// When non-empty, the render object seeds its left/right float lists from
+  /// these carryovers before processing fragments, so text wraps correctly
+  /// alongside a float element that began in the preceding chunk.
+  ///
+  /// Obtain the value for section N from [RenderHyperBox.danglingFloats] after
+  /// section N-1 has completed layout, and pass it here for section N.
+  final List<FloatCarryover> initialFloats;
 
   /// Creates a HyperRenderWidget
   ///
@@ -143,20 +159,28 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.enableComplexFilters = true,
     this.suppressFirstBlockMarginTop = false,
     this.onAnchorLayout,
+    this.onFloatCarryover,
     this.config = HyperRenderConfig.defaults,
+    this.initialFloats = const [],
   }) : super(
             children: _buildChildren(document, widgetBuilder,
-                selectable: selectable));
+                selectable: selectable,
+                codeHighlighter: config.codeHighlighter,
+                keyframeRegistry: config.keyframeRegistry));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
   static List<Widget> _buildChildren(
     DocumentNode document,
     HyperWidgetBuilder? widgetBuilder, {
     bool selectable = true,
+    CodeHighlighter? codeHighlighter,
+    Map<String, HyperKeyframes> keyframeRegistry = const {},
   }) {
     final children = <Widget>[];
     _collectAtomicChildren(document, children, widgetBuilder,
-        selectable: selectable);
+        selectable: selectable,
+        codeHighlighter: codeHighlighter,
+        keyframeRegistry: keyframeRegistry);
     return children;
   }
 
@@ -165,6 +189,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     List<Widget> children,
     HyperWidgetBuilder? widgetBuilder, {
     bool selectable = true,
+    CodeHighlighter? codeHighlighter,
+    Map<String, HyperKeyframes> keyframeRegistry = const {},
   }) {
     Widget? childWidget;
 
@@ -174,7 +200,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       childWidget ??= _buildFlexContainerWidget(node, widgetBuilder,
           selectable: selectable);
       if (childWidget != null) {
-        children.add(_HyperChildWidget(node: node, child: childWidget));
+        children.add(_HyperChildWidget(
+            node: node,
+            child: _maybeAnimate(node, childWidget, keyframeRegistry)));
       }
       // Don't recurse into flex children - they're handled by flex container
       return;
@@ -185,7 +213,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       childWidget ??= _buildGridContainerWidget(node, widgetBuilder,
           selectable: selectable);
       if (childWidget != null) {
-        children.add(_HyperChildWidget(node: node, child: childWidget));
+        children.add(_HyperChildWidget(
+            node: node,
+            child: _maybeAnimate(node, childWidget, keyframeRegistry)));
       }
       // Don't recurse into grid children - they're handled by grid container
       return;
@@ -202,7 +232,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
         children.add(_HyperFloatChildWidget(
           node: node,
           floatDirection: node.style.float,
-          child: childWidget,
+          child: _maybeAnimate(node, childWidget, keyframeRegistry),
         ));
       }
     }
@@ -210,6 +240,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     else if (node.type == NodeType.errorBoundary) {
       childWidget = widgetBuilder?.call(node);
       childWidget ??= ErrorBoundaryWidget(errorNode: node as ErrorBoundaryNode);
+      // Error boundaries are never animated.
       children.add(_HyperChildWidget(node: node, child: childWidget));
       return;
     }
@@ -220,15 +251,19 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
         detailsNode: node,
         widgetBuilder: widgetBuilder,
       );
-      children.add(_HyperChildWidget(node: node, child: childWidget));
+      children.add(_HyperChildWidget(
+          node: node,
+          child: _maybeAnimate(node, childWidget, keyframeRegistry)));
       return; // children handled internally by HyperDetailsWidget
     }
     // Is it a code block (<pre> with optional <code> child)?
     else if (_isCodeBlock(node)) {
       childWidget = widgetBuilder?.call(node);
-      childWidget ??= _buildCodeBlockWidget(node);
+      childWidget ??= _buildCodeBlockWidget(node, codeHighlighter);
       if (childWidget != null) {
-        children.add(_HyperChildWidget(node: node, child: childWidget));
+        children.add(_HyperChildWidget(
+            node: node,
+            child: _maybeAnimate(node, childWidget, keyframeRegistry)));
       }
     }
     // Is it a non-floating atomic element or table?
@@ -237,7 +272,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       childWidget = widgetBuilder?.call(atomicNode);
       childWidget ??= _buildDefaultAtomicWidget(atomicNode);
       if (childWidget != null) {
-        children.add(_HyperChildWidget(node: node, child: childWidget));
+        children.add(_HyperChildWidget(
+            node: node,
+            child: _maybeAnimate(node, childWidget, keyframeRegistry)));
       }
     } else if (node.type == NodeType.table) {
       final tableNode = node as TableNode;
@@ -245,7 +282,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       childWidget ??=
           _buildDefaultTableWidget(tableNode, selectable: selectable);
       if (childWidget != null) {
-        children.add(_HyperChildWidget(node: node, child: childWidget));
+        children.add(_HyperChildWidget(
+            node: node,
+            child: _maybeAnimate(node, childWidget, keyframeRegistry)));
       }
     }
 
@@ -254,9 +293,34 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (childWidget == null) {
       for (final child in node.children) {
         _collectAtomicChildren(child, children, widgetBuilder,
-            selectable: selectable);
+            selectable: selectable,
+            codeHighlighter: codeHighlighter,
+            keyframeRegistry: keyframeRegistry);
       }
     }
+  }
+
+  /// Wraps [child] with [HyperAnimatedWidget] when [node] carries a CSS
+  /// `animation-name` property and the keyframes are known.  Returns [child]
+  /// unchanged if no animation should be applied.
+  static Widget _maybeAnimate(
+    UDTNode node,
+    Widget child,
+    Map<String, HyperKeyframes> keyframeRegistry,
+  ) {
+    final animName = node.style.animationName;
+    if (animName == null || animName.isEmpty) return child;
+
+    // Require that the keyframe definition is resolvable.
+    final known = keyframeRegistry.containsKey(animName) ||
+        HyperAnimations.byName(animName) != null;
+    if (!known) return child;
+
+    return HyperAnimatedWidget.fromStyle(
+      style: node.style,
+      keyframesLookup: keyframeRegistry.isNotEmpty ? keyframeRegistry : null,
+      child: child,
+    );
   }
 
   /// Check if node is a code block (<pre> element)
@@ -266,7 +330,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   }
 
   /// Build CodeBlockWidget for <pre> elements with syntax highlighting
-  static Widget? _buildCodeBlockWidget(UDTNode node) {
+  static Widget? _buildCodeBlockWidget(UDTNode node, CodeHighlighter? highlighter) {
     // Extract code content and language
     String codeContent = '';
     String? language;
@@ -300,6 +364,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       theme: CodeTheme.vs2015,
       showCopyButton: true,
       showLineNumbers: false,
+      highlighter: highlighter,
     );
   }
 
@@ -644,7 +709,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     )..debugShowBounds = debugShowBounds
       ..enableComplexFilters = enableComplexFilters
       ..suppressFirstBlockMarginTop = suppressFirstBlockMarginTop
-      ..onAnchorLayout = onAnchorLayout;
+      ..onAnchorLayout = onAnchorLayout
+      ..initialFloats = initialFloats
+      ..onFloatCarryover = onFloatCarryover;
   }
 
   @override
@@ -689,6 +756,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (renderObject.config != config) {
       renderObject.config = config;
     }
+    renderObject.initialFloats = initialFloats;
+    renderObject.onFloatCarryover = onFloatCarryover;
   }
 }
 

@@ -14,6 +14,7 @@ import '../model/computed_style.dart';
 import '../model/fragment.dart';
 import '../model/node.dart';
 import 'hyper_render_config.dart';
+import 'hyper_render_debug_hooks.dart';
 import 'image_provider.dart';
 import 'kinsoku_processor.dart';
 import 'lazy_image_queue.dart';
@@ -74,6 +75,11 @@ final Paint _errorSlashPaint = Paint()
   ..isAntiAlias = true;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Compiled-once regex constants for hot paths in RenderHyperBox.
+// Using a library-level final avoids re-compiling the DFA on every call.
+final _kWhitespaceSplitter = RegExp(r'\s+');
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 /// Callback for handling link taps
 typedef HyperLinkTapCallback = void Function(String url);
@@ -95,8 +101,6 @@ typedef ImageLoadCallback = void Function(String src, ImageLoadState state);
 /// - Inline background/border for wrapped text
 /// - Async image loading
 ///
-/// Reference: doc1.txt - "Quy trình 4 bước của thuật toán"
-/// Reference: doc3.md - "RenderObject-centric Architecture"
 class RenderHyperBox extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, HyperBoxParentData>,
@@ -156,8 +160,19 @@ class RenderHyperBox extends RenderBox
   /// Block decorations for painting border-left, backgrounds
   final List<_BlockDecoration> _blockDecorations = [];
 
-  /// Image cache
-  final Map<String, CachedImage> _imageCache = {};
+  /// LRU image cache — bounded by [HyperRenderConfig.imageCacheSize].
+  ///
+  /// Evicting an entry calls [ui.Image.dispose] to release the GPU texture.
+  /// If a paint pass requests a URL that was evicted, [_paintImage] shows a
+  /// shimmer and schedules a re-fetch via [addPostFrameCallback].
+  late final _LruCache<String, CachedImage> _imageCache = _LruCache(
+    maxSize: _config.imageCacheSize,
+    onEvict: (ci) => ci.image?.dispose(),
+  );
+
+  /// Subscription tokens returned by [LazyImageQueue.enqueue].
+  /// Cancelled in [_disposeImages] so in-flight callbacks are dropped safely.
+  final Set<int> _imageTokens = {};
 
   /// Shimmer animation state.
   /// [_shimmerEpoch] marks when animation started; null = not animating.
@@ -196,6 +211,15 @@ class RenderHyperBox extends RenderBox
   /// Character offset to fragment mapping
   final Map<int, Fragment> _characterToFragment = {};
 
+  /// Cumulative character count at the start of each line.
+  ///
+  /// `_lineStartOffsets[i]` is the number of text/ruby characters that
+  /// appear in all lines *before* line `i`.  Built by [_buildCharacterMapping]
+  /// after every layout; used by [_getCharacterPositionAtOffset] to avoid
+  /// scanning all preceding lines when the user drags a selection handle
+  /// (O(log N) binary-search instead of O(N) linear scan).
+  final List<int> _lineStartOffsets = [];
+
   /// Color for text selection highlight
   Color? _selectionColor;
 
@@ -226,6 +250,56 @@ class RenderHyperBox extends RenderBox
     markNeedsLayout();
   }
 
+  /// Floats inherited from the previous virtualized section.
+  ///
+  /// When set, [_performLineLayout] seeds [_leftFloats]/[_rightFloats] from
+  /// these carryovers before processing any fragments, so that text in this
+  /// section wraps around floats that began in the preceding section.
+  List<FloatCarryover> _initialFloats = const [];
+  List<FloatCarryover> get initialFloats => _initialFloats;
+  set initialFloats(List<FloatCarryover> value) {
+    // Avoid spurious re-layouts when carryover list is effectively the same.
+    if (value.length == _initialFloats.length && identical(value, _initialFloats)) {
+      return;
+    }
+    _initialFloats = value;
+    _invalidateLayout();
+    markNeedsLayout();
+  }
+
+  /// Returns floats from this section that extend below its natural text height.
+  ///
+  /// Pass the result to the next section's [initialFloats] so its text wraps
+  /// correctly alongside the continuation of tall float elements.
+  ///
+  /// Returns an empty list when no floats dangle past the section boundary.
+  /// Only valid to call after layout has completed.
+  List<FloatCarryover> get danglingFloats {
+    if (_lines.isEmpty) return const [];
+    // Natural height = bottom of last line (before float extension).
+    final naturalHeight = _lines.isEmpty ? 0.0 : (_lines.last.bounds?.bottom ?? 0.0);
+    final result = <FloatCarryover>[];
+    for (final float in _leftFloats) {
+      if (float.rect.bottom > naturalHeight) {
+        result.add(FloatCarryover(
+          direction: float.direction,
+          width: float.rect.width,
+          overhangHeight: float.rect.bottom - naturalHeight,
+        ));
+      }
+    }
+    for (final float in _rightFloats) {
+      if (float.rect.bottom > naturalHeight) {
+        result.add(FloatCarryover(
+          direction: float.direction,
+          width: float.rect.width,
+          overhangHeight: float.rect.bottom - naturalHeight,
+        ));
+      }
+    }
+    return result;
+  }
+
   /// Track list item indices for ordered lists
   final Map<UDTNode, int> _listItemIndices = {};
 
@@ -236,12 +310,6 @@ class RenderHyperBox extends RenderBox
   /// Maps fragment → its linked child RenderBox for O(1) paint-time lookup.
   /// Rebuilt at the end of [_layoutChildren]; cleared by [_invalidateLayout].
   final Map<Fragment, RenderBox> _fragmentChildMap = {};
-
-  /// Maps UDTNode → its bounding Rect for O(1) accessibility lookup.
-  /// Built at the end of [performLayout] after all fragment offsets are set;
-  /// cleared by [_invalidateLayout]. Used by [_getNodeRect] so that
-  /// VoiceOver/TalkBack semantics queries are instant rather than O(fragments).
-  final Map<UDTNode, Rect> _nodeRectCache = {};
 
   /// Maps CSS `id` attribute values → their y-offset within this RenderObject.
   /// Populated during [_performLineLayout]; cleared by [_invalidateLayout].
@@ -261,6 +329,21 @@ class RenderHyperBox extends RenderBox
     Map<String, double> offsets,
     List<({int level, String text, String? cssId, double yOffset})> headings,
   )? onAnchorLayout;
+
+  /// Called after each layout pass with the list of floats that overhang the
+  /// bottom of this section.  Pass the result to the next section's
+  /// [initialFloats] to enable cross-chunk float continuity.
+  ///
+  /// Receives an empty list when no floats dangle past the section boundary.
+  void Function(List<FloatCarryover> carryovers)? onFloatCarryover;
+
+  /// Cached semantic nodes for headings and links.
+  ///
+  /// Reusing the same [SemanticsNode] objects across [assembleSemanticsNode]
+  /// calls avoids the parentDataDirty assertion that fires in debug mode when
+  /// newly created nodes are adopted by [SemanticsNode.updateWith].
+  /// Modelled after the same pattern in Flutter's [RenderParagraph].
+  final List<SemanticsNode> _cachedSemanticAnchorNodes = [];
 
   // ── Per-instance cached Paint objects ─────────────────────────────────────
   //
@@ -308,6 +391,13 @@ class RenderHyperBox extends RenderBox
 
   /// Default float size when not specified in CSS
   static const double defaultFloatSize = 100.0;
+
+  /// Stable identifier for this renderer instance.
+  ///
+  /// Used by [HyperRenderDebugHooks] so DevTools can address a specific
+  /// renderer across layout passes.  Based on identity hash so it never
+  /// changes for the lifetime of this object.
+  late final String _debugId = 'r${identityHashCode(this).toRadixString(16)}';
 
   RenderHyperBox({
     DocumentNode? document,
@@ -390,6 +480,16 @@ class RenderHyperBox extends RenderBox
     markNeedsPaint();
   }
 
+  /// Total character count in this render box (available after first layout).
+  /// Used by VirtualizedSelectionController to register chunk sizes.
+  int get totalCharacterCount => _totalCharacterCount;
+
+  /// Public wrapper for the private _getCharacterPositionAtOffset.
+  /// Used by VirtualizedSelectionController to map a pointer position to a
+  /// char offset within this chunk.
+  int getCharacterPositionAtOffset(Offset localPosition) =>
+      _getCharacterPositionAtOffset(localPosition);
+
   HyperTextSelection? get selection => _selection;
   set selection(HyperTextSelection? value) {
     if (_selection == value) return;
@@ -432,6 +532,17 @@ class RenderHyperBox extends RenderBox
     super.attach(owner);
     // Load images when attached
     _loadImages();
+    if (kDebugMode) {
+      HyperRenderDebugHooks.onRendererAttached?.call(_debugId, () => _document);
+    }
+  }
+
+  @override
+  void detach() {
+    if (kDebugMode) {
+      HyperRenderDebugHooks.onRendererDetached?.call(_debugId);
+    }
+    super.detach();
   }
 
   @override
@@ -447,6 +558,11 @@ class RenderHyperBox extends RenderBox
     _disposeTextPainters();
     _disposeLinkRecognizers();
     _disposeImages();
+    // Do NOT call detach() on cached semantic anchor nodes here.
+    // Flutter's semantics teardown already detaches them during widget
+    // unmounting — calling detach() again asserts inside SemanticsOwner
+    // that the node is still in _nodes, which it no longer is.
+    _cachedSemanticAnchorNodes.clear();
     super.dispose();
   }
 
@@ -482,13 +598,17 @@ class RenderHyperBox extends RenderBox
   }
 
   void _disposeImages() {
-    // BUG-C FIX: ui.Image is a native GPU resource that must be explicitly
-    // disposed. Calling _imageCache.clear() without dispose() leaks GPU
-    // texture memory — the Dart GC cannot free it. This matters especially
-    // when documents with many images are swapped frequently.
-    for (final entry in _imageCache.values) {
-      entry.image?.dispose();
+    // Cancel all pending/in-flight subscriptions so callbacks are not invoked
+    // on this (now-disposing) RenderBox. For in-flight loads the queue will
+    // dispose the ui.Image itself if no other subscribers remain.
+    for (final token in _imageTokens) {
+      LazyImageQueue.instance.cancel(token);
     }
+    _imageTokens.clear();
+
+    // _LruCache.clear() calls onEvict on every entry, which calls
+    // ci.image?.dispose().  The Dart GC cannot release the native GPU texture
+    // backing a ui.Image — only dispose() does that.
     _imageCache.clear();
   }
 
@@ -502,8 +622,9 @@ class RenderHyperBox extends RenderBox
     _blockDecorations.clear();
     _characterToFragment.clear();
     _fragmentRanges.clear();
+    _lineStartOffsets.clear();
     _fragmentChildMap.clear();
-    _nodeRectCache.clear();
+
     anchorOffsets.clear();
     headingAnchors.clear();
     _totalCharacterCount = 0;
@@ -527,6 +648,7 @@ class RenderHyperBox extends RenderBox
     _blockDecorations.clear();
     _characterToFragment.clear();
     _fragmentRanges.clear();
+    _lineStartOffsets.clear();
     _totalCharacterCount = 0;
     _cachedMinIntrinsicWidth = null;
     _cachedMaxIntrinsicWidth = null;
@@ -616,30 +738,33 @@ class RenderHyperBox extends RenderBox
   }
 
   void _loadImage(String src, {int priority = 999999}) {
-    _imageCache[src] = const CachedImage(state: ImageLoadState.loading);
+    _imageCache.put(src, const CachedImage(state: ImageLoadState.loading));
     // Start the shimmer animation loop as soon as the first image starts loading.
     if (attached) _ensureShimmerRunning();
 
     final loader = _imageLoader ?? defaultImageLoader;
 
-    LazyImageQueue.instance.enqueue(
+    // late allows the closures below to reference `token` before it is
+    // assigned; they only execute asynchronously, after enqueue() returns.
+    late final int token;
+    token = LazyImageQueue.instance.enqueue(
       url: src,
       priority: priority,
       loader: loader,
       onLoad: (ui.Image image) {
         if (!attached) {
-          // Widget was removed from the tree while the image was loading.
-          // We MUST call dispose() here — Dart GC cannot release the native GPU
-          // texture backing ui.Image; only dispose() does that.  Skipping this
-          // causes an unbounded GPU memory leak: each back-navigation leaks the
-          // images that were still in flight.
+          // Safety net: token should have been cancelled by _disposeImages(),
+          // but guard here in case of unusual teardown ordering.
+          // Each callback receives its own clone from the queue, so disposing
+          // here does not affect other viewers sharing the same URL.
           image.dispose();
           return;
         }
-        _imageCache[src] = CachedImage(
+        _imageTokens.remove(token);
+        _imageCache.put(src, CachedImage(
           image: image,
           state: ImageLoadState.loaded,
-        );
+        ));
         // Invalidate fragments so _tokenizeAtomic re-reads actual image
         // dimensions. Preserves text painter cache (text metrics unchanged).
         _invalidateFragments();
@@ -648,13 +773,15 @@ class RenderHyperBox extends RenderBox
       },
       onError: (Object error) {
         if (!attached) return;
-        _imageCache[src] = CachedImage(
+        _imageTokens.remove(token);
+        _imageCache.put(src, CachedImage(
           state: ImageLoadState.error,
           error: error.toString(),
-        );
+        ));
         markNeedsPaint();
       },
     );
+    _imageTokens.add(token);
   }
 
   // ============================================
@@ -671,31 +798,48 @@ class RenderHyperBox extends RenderBox
     }
 
     _ensureFragments();
-    // This is expensive but correct. It finds the longest unbreakable word.
     double maxWidth = 0;
+
+    // ── O(F) strategy — one TextPainter call per text fragment ──────────────
+    //
+    // Previously this was O(W) — one layout call per word across the entire
+    // document.  For a 3000-word article that means ~3000 TextPainter.layout()
+    // calls synchronously on the main thread, causing 200–400 ms jank when the
+    // widget is wrapped in IntrinsicWidth or DataTable.
+    //
+    // Key insight: the longest *measured* word is almost always the longest
+    // *character-count* word.  The only edge case is a short wide-glyph run
+    // ("WWW") vs a long narrow-glyph run ("iiiiiiiii"), which is negligible
+    // for real prose.  By picking only the longest-by-char-count word per
+    // fragment we reduce TextPainter calls from O(totalWords) to O(fragments).
+    //
+    // Two painters — one per text direction — are reused across all fragments
+    // to avoid repeated native-object allocation.  They are NOT stored in
+    // _textPainters so per-word spans don't pollute the LRU cache.
+    final ltrPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+    final rtlPainter = TextPainter(textDirection: ui.TextDirection.rtl);
 
     for (final fragment in _fragments) {
       if (fragment.type == FragmentType.text && fragment.text != null) {
         final text = fragment.text!;
-        final words = text.split(RegExp(r'\s+'));
-        // Use a throw-away TextPainter so measuring individual words does NOT
-        // evict real paragraph painters from the LRU cache.  A 3 000-word
-        // article would otherwise push ~3 000 single-word entries into the
-        // 5 000-slot cache, displacing the painters that paint() actually needs
-        // and forcing them to be rebuilt — causing paint-phase FPS drops.
-        final fragDir =
-            fragment.style.isRtl ? ui.TextDirection.rtl : _textDirection;
-        final mergedStyle = _baseStyle.merge(fragment.style.toTextStyle());
-        final measurePainter = TextPainter(textDirection: fragDir);
-        for (final word in words) {
-          if (word.isEmpty) continue;
-          measurePainter.text = TextSpan(text: word, style: mergedStyle);
-          measurePainter.layout();
-          if (measurePainter.width > maxWidth) {
-            maxWidth = measurePainter.width;
-          }
+        // Find the single longest word by character count.  This is a
+        // simple O(W) scan with no allocations beyond the split list itself,
+        // far cheaper than W TextPainter.layout() calls.
+        final words = text.split(_kWhitespaceSplitter);
+        String longestWord = '';
+        for (final w in words) {
+          if (w.length > longestWord.length) longestWord = w;
         }
-        measurePainter.dispose();
+        if (longestWord.isEmpty) continue;
+
+        final isRtl = fragment.style.isRtl;
+        final measurePainter = isRtl ? rtlPainter : ltrPainter;
+        final mergedStyle = _baseStyle.merge(fragment.style.toTextStyle());
+        measurePainter.text = TextSpan(text: longestWord, style: mergedStyle);
+        measurePainter.layout();
+        if (measurePainter.width > maxWidth) {
+          maxWidth = measurePainter.width;
+        }
       } else if (fragment.type == FragmentType.atomic ||
           fragment.type == FragmentType.ruby) {
         // Ensure fragment is measured if it hasn't been already
@@ -708,6 +852,9 @@ class RenderHyperBox extends RenderBox
         }
       }
     }
+
+    ltrPainter.dispose();
+    rtlPainter.dispose();
 
     _cachedMinIntrinsicWidth = maxWidth;
     return maxWidth;
@@ -810,20 +957,19 @@ class RenderHyperBox extends RenderBox
       _buildFragmentChildMap();
 
       // Steps 2–6: Measure + line layout.
-      // Skipped when fragments and constraint width are both unchanged —
-      // e.g. a repaint-only trigger (selection change, scroll) that happens
-      // to call performLayout.  Version mismatch forces a full rebuild.
-      // <details> elements can change height dynamically (expand/collapse),
-      // so always redo line layout when the document contains any.
+      // Run full line layout (including text measurement) only when document
+      // content or constraint width has changed.  A <details> expand/collapse
+      // only changes block heights — text fragments are untouched — so
+      // _measureFragments() can be skipped for those frames.
+      final bool fragmentsOrWidthChanged =
+          _linesFragmentsVersion != _fragmentsVersion ||
+          _linesMaxWidth != _maxWidth ||
+          _lines.isEmpty;
       final bool hasDetailsFragments =
           _fragments.any((f) => f is _DetailsFragment);
-      final bool needsLineLayout =
-          _linesFragmentsVersion != _fragmentsVersion ||
-              _linesMaxWidth != _maxWidth ||
-              _lines.isEmpty ||
-              hasDetailsFragments;
 
-      if (needsLineLayout) {
+      if (fragmentsOrWidthChanged) {
+        // Full rebuild: text or constraint width changed.
         // Step 2: Measure all fragments
         _measureFragments();
 
@@ -841,14 +987,19 @@ class RenderHyperBox extends RenderBox
 
         _linesFragmentsVersion = _fragmentsVersion;
         _linesMaxWidth = _maxWidth;
+      } else if (hasDetailsFragments) {
+        // A details child changed height (each animation frame during
+        // expand/collapse).  Re-run line layout to update block y-offsets, but
+        // skip _measureFragments() — TextPainter output is identical because
+        // text content and constraint width are both unchanged.
+        _performLineLayout();
+        _positionFragments();
+        _buildInlineDecorations();
+        _buildCharacterMapping();
       }
 
       // Step 7: Layout child RenderBoxes (always — child constraints may change)
       _layoutChildren();
-
-      // Step 8: Build node→Rect cache for O(1) accessibility queries.
-      // Done here (after _layoutChildren) so child-widget offsets are final.
-      _buildNodeRectCache();
 
       // Calculate final size
       double height = 0;
@@ -875,6 +1026,16 @@ class RenderHyperBox extends RenderBox
         }
       }
 
+      // Extend height to include the full float so it is never visually clipped.
+      // NOTE — "wasted space" trade-off: when a float is taller than the text
+      // that flows alongside it, this produces empty whitespace to the side of
+      // the float's lower portion.  In a true browser (no chunking) subsequent
+      // paragraphs would fill that space.  Here they can't because they live in
+      // a different RenderHyperBox chunk.  The HtmlAdapter._containsFloatChild
+      // heuristic reduces the occurrence by keeping float-bearing blocks and
+      // their immediate successors in the same chunk.  A full cross-chunk
+      // FloatCarryover (image-split across ListView items) is tracked as a
+      // future improvement in ROADMAP.md.
       for (final float in [..._leftFloats, ..._rightFloats]) {
         if (float.rect.bottom > height) {
           height = float.rect.bottom;
@@ -889,6 +1050,24 @@ class RenderHyperBox extends RenderBox
         onAnchorLayout!(
           Map.unmodifiable(anchorOffsets),
           List.unmodifiable(headingAnchors),
+        );
+      }
+
+      // Notify float-carryover consumer so the next virtualized section can
+      // seed its float insets and avoid text overflowing a dangling float.
+      final carryover = onFloatCarryover;
+      if (carryover != null) {
+        carryover(danglingFloats);
+      }
+
+      // Notify DevTools of layout completion (debug mode only, no-op if no
+      // listener is registered — HyperRenderDebugHooks.onLayoutComplete is
+      // null in release builds and when devtools is not initialised).
+      if (kDebugMode) {
+        HyperRenderDebugHooks.onLayoutComplete?.call(
+          _debugId,
+          debugFragments,
+          debugLines,
         );
       }
     } catch (e, stack) {
@@ -1052,11 +1231,23 @@ class RenderHyperBox extends RenderBox
       _selectionStartPosition = null;
 
       // Fire link tap on PointerUp only when the finger hasn't moved (tap, not drag).
-      // Threshold: 8 logical pixels — small enough to feel instant, large enough
-      // to ignore micro-jitter on touch screens.
-      const tapThreshold = 8.0;
+      //
+      // Use Flutter's computeHitSlop() instead of a hardcoded pixel constant so
+      // the threshold automatically matches platform gesture physics:
+      //   - Mouse/trackpad: kPrecisePointerHitSlop  (1.0 px — very precise)
+      //   - Touch:          DeviceGestureSettings.touchSlop ?? kTouchSlop (18.0)
+      //   - Stylus:         same as touch by default
+      // A hardcoded 8.0 was too tight for some touch screens (missed taps) and
+      // too loose for mouse clicks (stray drags triggered taps).
+      final tapSlop = computeHitSlop(
+        event.kind,
+        // DeviceGestureSettings is only available via MediaQuery in widget
+        // context; pass null so computeHitSlop falls back to kTouchSlop (18 px)
+        // for touch/stylus and kPrecisePointerHitSlop (1 px) for mouse.
+        null,
+      );
       final isTap = downPosition == null ||
-          (upPosition - downPosition).distance < tapThreshold;
+          (upPosition - downPosition).distance < tapSlop;
 
       if (isTap && onLinkTap != null) {
         final clickedFragment = _findFragmentAtPosition(upPosition);
@@ -1069,17 +1260,21 @@ class RenderHyperBox extends RenderBox
             if (node.tagName == 'a') {
               final href = node.attributes['href'];
               if (href != null) {
-                // Scheme whitelist: only allow safe, well-known URL schemes.
-                // This prevents javascript:, data:, file: etc. from reaching
-                // the host app's link handler.
-                const allowedSchemes = {'http', 'https', 'mailto', 'tel'};
+                // Scheme security: always block javascript:, data:, file: etc.
+                // The built-in safe set covers standard web links; apps can add
+                // their own deep-link schemes via HyperRenderConfig.extraLinkSchemes
+                // (e.g. 'myapp', 'shopee', 'fb', 'momo').
+                const builtinSchemes = {'http', 'https', 'mailto', 'tel'};
                 final scheme =
                     Uri.tryParse(href)?.scheme.toLowerCase() ?? '';
-                if (allowedSchemes.contains(scheme)) {
+                final allowed = builtinSchemes.contains(scheme) ||
+                    _config.extraLinkSchemes.contains(scheme);
+                if (allowed) {
                   onLinkTap!(href);
                 } else if (kDebugMode) {
                   debugPrint(
-                    '[HyperRender] Blocked link tap with disallowed scheme: $href',
+                    '[HyperRender] Blocked link tap — scheme "$scheme" not in '
+                    'built-in set or HyperRenderConfig.extraLinkSchemes: $href',
                   );
                 }
               }
@@ -1112,42 +1307,80 @@ class RenderHyperBox extends RenderBox
       ..textDirection = _textDirection;
   }
 
-  /// Fragment count above which we skip per-node semantic tree building.
-  ///
-  /// Building thousands of [SemanticsNode]s for large documents causes
-  /// measurable TalkBack/VoiceOver jank because every `updateWith` call
-  /// triggers a synchronous tree diff on the accessibility thread.
-  ///
-  /// Above this threshold we fall back to Flutter's default flat semantics
-  /// (the coarse document-level label set in [describeSemanticsConfiguration]).
-  /// Interactive elements like links already receive individual nodes from
-  /// Flutter's own semantics pipeline, so screen-reader users keep tap targets.
-  static const int _kSemanticNodeBuildThreshold = 500;
-
   @override
   void assembleSemanticsNode(
     SemanticsNode node,
     SemanticsConfiguration config,
     Iterable<SemanticsNode> children,
   ) {
-    final doc = _document;
-    if (doc != null && _fragments.length <= _kSemanticNodeBuildThreshold) {
-      final semanticNodes = <SemanticsNode>[];
-      _buildSemanticNodes(doc, semanticNodes, node);
-      node.updateWith(
-        config: config,
-        childrenInInversePaintOrder:
-            semanticNodes.isNotEmpty ? semanticNodes : children.toList(),
-      );
-    } else {
-      // Large document or no document: use flat children provided by Flutter's
-      // semantics pipeline. The document-level label (set in
-      // describeSemanticsConfiguration) remains readable for screen readers.
-      node.updateWith(
-        config: config,
-        childrenInInversePaintOrder: children.toList(),
-      );
+    // Build semantic nodes for headings (h1–h6) and links (<a href>).
+    //
+    // These two element types are the primary WCAG 2.1 AA requirements for
+    // a read-only renderer:
+    //   • Headings: TalkBack/VoiceOver "swipe to next heading" navigation
+    //   • Links:    double-tap to activate via the accessibility service
+    //
+    // Regular paragraph text is announced via the flat `label` set in
+    // describeSemanticsConfiguration and does not need per-fragment nodes.
+    //
+    // We reuse the same SemanticsNode objects across calls (pooled in
+    // _cachedSemanticAnchorNodes) instead of creating new ones every frame.
+    // This mirrors the pattern used by Flutter's own RenderParagraph: newly
+    // created SemanticsNodes get parentDataDirty=true when adopted, which
+    // fires an assertion in flushSemantics() in debug mode.
+    final anchors = _collectSemanticAnchors();
+    final pool = List<SemanticsNode>.of(_cachedSemanticAnchorNodes);
+    final newCache = <SemanticsNode>[];
+
+    for (final anchor in anchors) {
+      // Reuse a pooled node when available; only allocate a new one if needed.
+      final semanticsNode = pool.isNotEmpty ? pool.removeAt(0) : SemanticsNode();
+      newCache.add(semanticsNode);
+
+      final cfg = SemanticsConfiguration()
+        ..textDirection = _textDirection
+        ..label = anchor.label;
+
+      if (anchor.isHeading) {
+        cfg.isHeader = true;
+      } else {
+        cfg.isLink = true;
+        final href = anchor.href;
+        if (href != null && onLinkTap != null) {
+          cfg.onTap = () {
+            // Reuse the same scheme-allow-list logic as pointer events.
+            const builtinSchemes = {'http', 'https', 'mailto', 'tel'};
+            final scheme = Uri.tryParse(href)?.scheme.toLowerCase() ?? '';
+            if (builtinSchemes.contains(scheme) ||
+                _config.extraLinkSchemes.contains(scheme)) {
+              onLinkTap!(href);
+            }
+          };
+        }
+      }
+
+      semanticsNode
+        ..rect = anchor.rect
+        ..updateWith(config: cfg, childrenInInversePaintOrder: const []);
     }
+
+    // Do NOT call detach() on surplus pool nodes: node.updateWith() below
+    // will call _replaceChildren, which calls _dropChild → detach() for any
+    // node not in the new childrenInInversePaintOrder list.  Calling detach()
+    // ourselves before updateWith() would leave them half-torn-down.
+    _cachedSemanticAnchorNodes
+      ..clear()
+      ..addAll(newCache);
+
+    node.updateWith(
+      config: config,
+      // Anchors first (painted below child widgets), then child RenderObjects
+      // (HyperDetailsWidget, HyperTable, CodeBlockWidget, etc.).
+      childrenInInversePaintOrder: [
+        ..._cachedSemanticAnchorNodes.reversed,
+        ...children,
+      ],
+    );
   }
 
   @override

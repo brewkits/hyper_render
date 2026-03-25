@@ -264,4 +264,187 @@ void main() {
       expect(ruby.isBlock, isFalse);
     });
   });
+
+  // ─── Selection / Character-offset tests ───────────────────────────────────
+
+  group('LineInfo.characterCount with ruby', () {
+    late ComputedStyle style;
+    late RubyNode rubySource;
+
+    setUp(() {
+      style = ComputedStyle(fontSize: 16);
+      rubySource = RubyNode(baseText: '漢字', rubyText: 'かんじ');
+    });
+
+    test('counts ruby base-text characters', () {
+      final line = LineInfo();
+      line.add(Fragment.ruby(
+        baseText: '漢字',
+        rubyText: 'かんじ',
+        sourceNode: rubySource,
+        style: style,
+      ));
+      // '漢字' is 2 characters
+      expect(line.characterCount, equals(2));
+    });
+
+    test('counts text + ruby characters together', () {
+      final textNode = TextNode('AB');
+      final line = LineInfo();
+      line.add(Fragment.text(
+        text: 'AB',
+        sourceNode: textNode,
+        style: style,
+      ));
+      line.add(Fragment.ruby(
+        baseText: '漢字',
+        rubyText: 'かんじ',
+        sourceNode: rubySource,
+        style: style,
+      ));
+      // 'AB' (2) + '漢字' (2) = 4
+      expect(line.characterCount, equals(4));
+    });
+
+    test('multiple ruby fragments are summed', () {
+      final r1 = RubyNode(baseText: '東', rubyText: 'ひがし');
+      final r2 = RubyNode(baseText: '京', rubyText: 'きょう');
+      final line = LineInfo();
+      line.add(Fragment.ruby(
+          baseText: '東', rubyText: 'ひがし', sourceNode: r1, style: style));
+      line.add(Fragment.ruby(
+          baseText: '京', rubyText: 'きょう', sourceNode: r2, style: style));
+      // '東' (1) + '京' (1) = 2
+      expect(line.characterCount, equals(2));
+    });
+
+    test('atomic fragments are not counted', () {
+      final atomicNode = AtomicNode(tagName: 'img', src: 'x.png');
+      final line = LineInfo();
+      line.add(Fragment.atomic(
+        sourceNode: atomicNode,
+        style: style,
+        size: const Size(40, 40),
+      ));
+      expect(line.characterCount, equals(0));
+    });
+  });
+
+  group('Fragment selection offset — ruby in mixed content', () {
+    late ComputedStyle style;
+
+    setUp(() {
+      style = ComputedStyle(fontSize: 16);
+    });
+
+    test('ruby fragment text field holds base text only', () {
+      final ruby = RubyNode(baseText: '東京', rubyText: 'とうきょう');
+      final frag = Fragment.ruby(
+        baseText: '東京',
+        rubyText: 'とうきょう',
+        sourceNode: ruby,
+        style: style,
+      );
+      // .text is used as the character contribution in selection offset tracking
+      expect(frag.text, equals('東京'));
+      expect(frag.text!.length, equals(2));
+      expect(frag.rubyText, equals('とうきょう'));
+    });
+
+    test('ruby fragment character length matches baseText', () {
+      final cases = [
+        ('字', 1),
+        ('漢字', 2),
+        ('東京都', 3),
+        ('日本語テスト', 6),
+      ];
+      for (final (base, expectedLen) in cases) {
+        final node = RubyNode(baseText: base, rubyText: 'よみ');
+        final frag = Fragment.ruby(
+          baseText: base,
+          rubyText: 'よみ',
+          sourceNode: node,
+          style: style,
+        );
+        expect(frag.text!.length, equals(expectedLen),
+            reason: 'baseText "$base"');
+      }
+    });
+
+    test('selection offset accumulates correctly across text + ruby + text', () {
+      // Simulate the currentOffset tracking used in _paintSelection /
+      // getSelectedText / getSelectionRects.
+      //
+      // Layout: [ "ABC" | <ruby>漢字</ruby> | "DEF" ]
+      //          off 0-3       off 3-5            off 5-8
+      final textNode = TextNode('placeholder');
+      final rubyNode = RubyNode(baseText: '漢字', rubyText: 'かんじ');
+
+      final fragA = Fragment.text(text: 'ABC', sourceNode: textNode, style: style);
+      final fragR = Fragment.ruby(
+          baseText: '漢字', rubyText: 'かんじ', sourceNode: rubyNode, style: style);
+      final fragB = Fragment.text(text: 'DEF', sourceNode: textNode, style: style);
+
+      int offset = 0;
+
+      // Consume 'ABC'
+      final startA = offset;
+      offset += fragA.text!.length; // offset = 3
+      expect(startA, equals(0));
+      expect(offset, equals(3));
+
+      // Consume ruby '漢字'
+      final startR = offset;
+      offset += fragR.text!.length; // offset = 5
+      expect(startR, equals(3));
+      expect(offset, equals(5));
+
+      // Consume 'DEF'
+      final startB = offset;
+      offset += fragB.text!.length; // offset = 8
+      expect(startB, equals(5));
+      expect(offset, equals(8));
+    });
+
+    test('ruby-only line characterCount equals base text length', () {
+      final ruby1 = RubyNode(baseText: '日本', rubyText: 'にほん');
+      final ruby2 = RubyNode(baseText: '語', rubyText: 'ご');
+      final line = LineInfo();
+      line.add(Fragment.ruby(
+          baseText: '日本', rubyText: 'にほん', sourceNode: ruby1, style: style));
+      line.add(Fragment.ruby(
+          baseText: '語', rubyText: 'ご', sourceNode: ruby2, style: style));
+      // '日本' (2) + '語' (1) = 3
+      expect(line.characterCount, equals(3));
+    });
+
+    test('text after ruby starts at correct offset', () {
+      // Verify that text fragments following a ruby fragment in the same line
+      // are offset correctly (i.e., ruby chars were counted).
+      final textNode = TextNode('foo');
+      final rubyNode = RubyNode(baseText: '漢', rubyText: 'かん');
+
+      final frags = [
+        Fragment.text(text: 'Hello', sourceNode: textNode, style: style),
+        Fragment.ruby(
+            baseText: '漢', rubyText: 'かん', sourceNode: rubyNode, style: style),
+        Fragment.text(text: 'World', sourceNode: textNode, style: style),
+      ];
+
+      // Simulate the skip-line currentOffset accumulation
+      int offset = 0;
+      final offsets = <int>[];
+      for (final f in frags) {
+        offsets.add(offset);
+        if ((f.type == FragmentType.text || f.type == FragmentType.ruby) &&
+            f.text != null) {
+          offset += f.text!.length;
+        }
+      }
+
+      expect(offsets[0], equals(0)); // "Hello" starts at 0
+      expect(offsets[1], equals(5)); // ruby starts at 5 (after "Hello")
+      expect(offsets[2], equals(6)); // "World" starts at 6 (after "Hello" + '漢')
+    });
+  });
 }

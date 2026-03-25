@@ -1,15 +1,47 @@
 name: Coverage
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Pipeline 2 (continuation) — Coverage report
+#
+# Runs only on push to main (not on PRs) to keep PR feedback fast.
+# Skipped entirely when no Dart files changed (docs-only push).
+#
+# Pinned to the same runner + Flutter version as Pipeline 1 & 2 so that
+# coverage numbers are produced in a reproducible environment.
+# ─────────────────────────────────────────────────────────────────────────────
+
+env:
+  FLUTTER_VERSION: "3.29.2"
+
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
+  # ── Detect changed paths ───────────────────────────────────────────────────
+  path-filter:
+    name: Detect Changed Packages
+    runs-on: ubuntu-22.04
+    outputs:
+      changed_any_dart: ${{ steps.filter.outputs.any_dart }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            any_dart:
+              - '**/*.dart'
+              - '**/pubspec.yaml'
+              - '**/pubspec.lock'
+              - '**/analysis_options.yaml'
+
+  # ── Coverage report ────────────────────────────────────────────────────────
   coverage:
     name: Generate Coverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    needs: path-filter
+    if: needs.path-filter.outputs.changed_any_dart == 'true'
 
     steps:
       - name: Checkout code
@@ -18,14 +50,24 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
-      - name: Install dependencies
+      - name: Restore pub cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ${{ env.PUB_CACHE }}
+          key: pub-ubuntu-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: pub-ubuntu-
+
+      - name: flutter pub get
         run: flutter pub get
 
       - name: Run tests with coverage
-        run: flutter test --coverage
+        run: flutter test --no-pub --coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -36,7 +78,7 @@ jobs:
 
       - name: Check coverage threshold
         run: |
-          sudo apt-get install -y lcov
+          sudo apt-get install -y --no-install-recommends lcov
           total=$(lcov --summary coverage/lcov.info 2>&1 | grep "lines" | awk '{print $2}' | cut -d'%' -f1)
           echo "Coverage: $total%"
 
@@ -48,11 +90,11 @@ jobs:
           fi
 
       - name: Generate HTML report
-        run: |
-          genhtml coverage/lcov.info -o coverage/html
+        run: genhtml coverage/lcov.info -o coverage/html
 
       - name: Upload HTML report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: coverage-report-${{ github.run_number }}
           path: coverage/html
+          retention-days: 30

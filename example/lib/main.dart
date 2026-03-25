@@ -29,6 +29,7 @@ import 'cjk_languages_demo.dart';
 import 'email_demo.dart';
 import 'stress_test_demo.dart';
 import 'why_hyper_render_demo.dart';
+import 'css_animations_demo.dart';
 import 'enterprise_features_demo.dart';
 
 /// Optimized base TextStyle for better readability

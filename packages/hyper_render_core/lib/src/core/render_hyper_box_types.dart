@@ -26,6 +26,43 @@ class _FloatArea {
   _FloatArea({required this.rect, required this.direction});
 }
 
+/// Describes a float element whose visual area extends beyond the bottom of a
+/// virtualized section boundary.
+///
+/// Produced by [RenderHyperBox.danglingFloats] after layout and consumed by the
+/// next section's [RenderHyperBox] via [RenderHyperBox.initialFloats], so that
+/// text in Chunk N+1 correctly indents alongside a float that began in Chunk N.
+///
+/// ### Why parse-time dimensions are used
+/// The carryover is computed from float-fragment dimensions already resolved
+/// during the layout of Chunk N — no additional image-load is required.
+/// For lazy-loaded images whose dimensions are not yet known, [width] will be
+/// zero and the carryover will have no effect on Chunk N+1 (safe default).
+class FloatCarryover {
+  /// Whether this float is on the left or right edge.
+  final HyperFloat direction;
+
+  /// Width of the float element in logical pixels.
+  final double width;
+
+  /// The height of the float that overhangs into the next section (logical px).
+  ///
+  /// This equals `float.rect.bottom − naturalTextHeight` for the originating
+  /// chunk, where `naturalTextHeight` is the content height without the float
+  /// extension.
+  final double overhangHeight;
+
+  const FloatCarryover({
+    required this.direction,
+    required this.width,
+    required this.overhangHeight,
+  });
+
+  @override
+  String toString() =>
+      'FloatCarryover($direction, w=$width, overhang=$overhangHeight)';
+}
+
 /// Inline decoration info for painting background/border across line breaks
 class _InlineDecoration {
   final UDTNode node;

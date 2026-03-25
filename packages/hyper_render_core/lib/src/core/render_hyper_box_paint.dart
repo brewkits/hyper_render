@@ -477,6 +477,30 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           }
 
           currentOffset = fragmentEnd;
+        } else if (fragment.type == FragmentType.ruby &&
+            fragment.text != null) {
+          // Ruby fragments contribute to character offset and get a full-rect
+          // highlight covering both the annotation and the base text.
+          final fragmentStart = currentOffset;
+          final fragmentEnd = currentOffset + fragment.text!.length;
+
+          if (fragmentEnd > _selection!.start &&
+              fragmentStart < _selection!.end) {
+            final fragmentOffset = fragment.offset ?? Offset.zero;
+            final rect = Rect.fromLTWH(
+              offset.dx + fragmentOffset.dx,
+              offset.dy + fragmentOffset.dy,
+              fragment.width,
+              fragment.height,
+            );
+            final boxPath = Path()
+              ..addRRect(RRect.fromRectAndRadius(rect, selectionRadius));
+            linePath = linePath == null
+                ? boxPath
+                : Path.combine(PathOperation.union, linePath, boxPath);
+          }
+
+          currentOffset = fragmentEnd;
         }
       }
 
@@ -611,9 +635,26 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       fragment.height,
     );
 
-    final cached = _imageCache[src];
+    // _LruCache.get() promotes the entry to most-recently-used so images
+    // that are actively being painted are never evicted mid-session.
+    final cached = _imageCache.get(src);
 
-    if (cached?.state == ImageLoadState.loaded && cached?.image != null) {
+    if (cached == null) {
+      // Cache miss: image was evicted by LRU pressure (or not yet loaded for
+      // the first time).  Show shimmer and schedule a re-fetch after this
+      // paint pass.  We cannot call _loadImage() directly from paint() because
+      // it modifies state — use addPostFrameCallback instead.
+      _paintSkeletonPlaceholder(canvas, rect);
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (attached && !_imageCache.containsKey(src)) {
+          _loadImage(src);
+          markNeedsPaint();
+        }
+      });
+      return;
+    }
+
+    if (cached.state == ImageLoadState.loaded && cached.image != null) {
       // Draw loaded image with rounded corners if specified
       final borderRadius = fragment.style.borderRadius;
       if (borderRadius != null) {
@@ -630,7 +671,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       paintImage(
         canvas: canvas,
         rect: rect,
-        image: cached!.image!,
+        image: cached.image!,
         fit: _getBoxFit(fragment.style.backgroundSize),
         filterQuality:
             FilterQuality.medium, // Crisp rendering on retina displays
@@ -639,7 +680,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       if (borderRadius != null) {
         canvas.restore();
       }
-    } else if (cached?.state == ImageLoadState.loading) {
+    } else if (cached.state == ImageLoadState.loading) {
       // Draw modern skeleton placeholder
       _paintSkeletonPlaceholder(canvas, rect);
     } else {

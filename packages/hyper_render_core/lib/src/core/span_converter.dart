@@ -27,7 +27,6 @@ typedef ImageBuilder = Widget Function(
 /// - Smooth text selection without interruption
 /// - Perfect compatibility with Flutter text engine
 ///
-/// Reference: doc3.md - "2.1 Paradigm Shift: Single InlineSpan Tree"
 class HtmlToSpanConverter {
   /// Base text style
   final TextStyle baseStyle;

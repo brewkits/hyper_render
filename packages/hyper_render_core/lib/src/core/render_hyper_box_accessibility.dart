@@ -1,7 +1,51 @@
 part of 'render_hyper_box.dart';
 
+// ── Semantics virtualization constants ────────────────────────────────────────
+
+/// Maximum semantic anchor nodes built per [RenderHyperBox].
+///
+/// A typical long article has ≤ 50 headings and ≤ 200 links, so this cap is
+/// only reached on adversarially large documents. Headings that exceed the
+/// cap are silently dropped (plain-text label still covers their content).
+const int _kMaxSemanticAnchors = 200;
+
+// ── Semantic anchor data ───────────────────────────────────────────────────
+
+/// Describes one semantic anchor — either a heading block or a link span.
+class _SemanticAnchor {
+  const _SemanticAnchor({
+    required this.rect,
+    required this.label,
+    required this.isHeading,
+    this.headingLevel = 0,
+    this.href,
+  });
+
+  /// Bounding rect in the local coordinate system of [RenderHyperBox].
+  final Rect rect;
+
+  /// Accessible label announced by TalkBack / VoiceOver.
+  final String label;
+
+  /// `true` for h1–h6 blocks, `false` for `<a href>` spans.
+  final bool isHeading;
+
+  /// Heading level (1–6). 0 for links.
+  final int headingLevel;
+
+  /// Link URL. `null` for headings.
+  final String? href;
+}
+
+// ── Accessibility extension ────────────────────────────────────────────────
+
 extension _RenderHyperBoxAccessibility on RenderHyperBox {
-  /// Builds a plain text representation of the content for screen readers
+  /// Builds a plain text representation of the content for screen readers.
+  ///
+  /// Used by [describeSemanticsConfiguration] to populate the top-level
+  /// `label` of the semantics node so that TalkBack / VoiceOver can announce
+  /// the full document text even when no finer-grained semantic children are
+  /// generated.
   String _buildTextContentForSemantics() {
     if (_document == null) return '';
 
@@ -12,7 +56,6 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
           buffer.write((node as TextNode).text);
           break;
         case NodeType.ruby:
-          // For ruby text, read both base and annotation
           final ruby = node as RubyNode;
           buffer.write('${ruby.baseText} (${ruby.rubyText})');
           break;
@@ -20,7 +63,6 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
           buffer.write(' ');
           break;
         case NodeType.atomic:
-          // For images, read alt text
           final atomic = node as AtomicNode;
           if (atomic.alt != null && atomic.alt!.isNotEmpty) {
             buffer.write('[Image: ${atomic.alt}] ');
@@ -36,410 +78,135 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
     return buffer.toString().trim();
   }
 
-  /// Recursively builds semantic nodes for the document tree
-  void _buildSemanticNodes(
-    UDTNode node,
-    List<SemanticsNode> semanticNodes,
-    SemanticsNode parentNode,
-  ) {
-    // Handle links - they need special semantic treatment
-    if (node is InlineNode && node.tagName == 'a') {
-      final href = node.attributes['href'];
-      if (href != null) {
-        final rect = _getNodeRect(node);
-        // Only add semantic node if it has a valid, visible rect
-        if (rect != null && rect.width > 0 && rect.height > 0) {
-          final linkNode = SemanticsNode();
+  // ── Semantic anchor collection ───────────────────────────────────────────
 
-          linkNode.updateWith(
-            config: SemanticsConfiguration()
-              ..isLink = true
-              ..textDirection = textDirection
-              ..label = node.textContent
-              ..hint = 'Link to $href'
-              ..onTap = () {
-                onLinkTap?.call(href);
-              },
-          );
-
-          linkNode.rect = rect;
-          semanticNodes.add(linkNode);
-        }
-        return; // Don't process children of links separately
-      }
-    }
-
-    // Handle headings - announce heading level
-    if (node is BlockNode && node.tagName != null) {
-      final headingLevel = _getHeadingLevel(node.tagName!);
-      if (headingLevel > 0) {
-        final rect = _getNodeRect(node);
-        // Only add semantic node if it has a valid, visible rect
-        if (rect != null && rect.width > 0 && rect.height > 0) {
-          final headingNode = SemanticsNode();
-
-          headingNode.updateWith(
-            config: SemanticsConfiguration()
-              ..isHeader = true
-              ..textDirection = textDirection
-              ..label = node.textContent
-              ..hint = 'Heading level $headingLevel',
-          );
-
-          headingNode.rect = rect;
-          semanticNodes.add(headingNode);
-        }
-        return;
-      }
-    }
-
-    // Handle images
-    if (node is AtomicNode && node.tagName == 'img') {
-      final rect = _getNodeRect(node);
-      // Only add semantic node if it has a valid, visible rect
-      if (rect != null && rect.width > 0 && rect.height > 0) {
-        final imgNode = SemanticsNode();
-
-        imgNode.updateWith(
-          config: SemanticsConfiguration()
-            ..isImage = true
-            ..textDirection = textDirection
-            ..label = node.alt ?? 'Image',
-        );
-
-        imgNode.rect = rect;
-        semanticNodes.add(imgNode);
-      }
-      return;
-    }
-
-    // Handle buttons (if any interactive elements)
-    if (node.tagName == 'button') {
-      final rect = _getNodeRect(node);
-      // Only add semantic node if it has a valid, visible rect
-      if (rect != null && rect.width > 0 && rect.height > 0) {
-        final buttonNode = SemanticsNode();
-        final label = _ariaLabel(node) ?? node.textContent;
-        buttonNode.updateWith(
-          config: SemanticsConfiguration()
-            ..isButton = true
-            ..textDirection = textDirection
-            ..label = label,
-        );
-        buttonNode.rect = rect;
-        semanticNodes.add(buttonNode);
-      }
-      return;
-    }
-
-    // Handle <input type="button"> / <input type="submit"> / <input type="reset">
-    if (node.tagName == 'input') {
-      final inputType = node.attributes['type']?.toLowerCase() ?? '';
-      if (inputType == 'button' ||
-          inputType == 'submit' ||
-          inputType == 'reset') {
-        final rect = _getNodeRect(node);
-        if (rect != null && rect.width > 0 && rect.height > 0) {
-          final btnNode = SemanticsNode();
-          final label =
-              _ariaLabel(node) ?? node.attributes['value'] ?? inputType;
-          btnNode.updateWith(
-            config: SemanticsConfiguration()
-              ..isButton = true
-              ..textDirection = textDirection
-              ..label = label,
-          );
-          btnNode.rect = rect;
-          semanticNodes.add(btnNode);
-        }
-        return;
-      }
-    }
-
-    // Handle <ul> / <ol> — announce as list
-    if (node.tagName == 'ul' || node.tagName == 'ol') {
-      final rect = _getNodeRect(node);
-      if (rect != null && rect.width > 0 && rect.height > 0) {
-        final listNode = SemanticsNode();
-        final label = _ariaLabel(node) ??
-            (node.tagName == 'ol' ? 'Ordered list' : 'List');
-        listNode.updateWith(
-          config: SemanticsConfiguration()
-            ..isHeader = false
-            ..textDirection = textDirection
-            ..label = label
-            ..hint = 'list',
-        );
-        listNode.rect = rect;
-        semanticNodes.add(listNode);
-      }
-      // Still recurse so list items get their own semantics
-      for (final child in node.children) {
-        _buildSemanticNodes(child, semanticNodes, parentNode);
-      }
-      return;
-    }
-
-    // Handle <li> — handled in leafBlocks section below to ensure recursion
-
-    // Handle ARIA role attribute
-    final role = node.attributes['role']?.toLowerCase();
-    if (role != null) {
-      switch (role) {
-        case 'button':
-          final rect = _getNodeRect(node);
-          if (rect != null && rect.width > 0 && rect.height > 0) {
-            final roleNode = SemanticsNode();
-            final label = _ariaLabel(node) ?? node.textContent;
-            roleNode.updateWith(
-              config: SemanticsConfiguration()
-                ..isButton = true
-                ..textDirection = textDirection
-                ..label = label,
-            );
-            roleNode.rect = rect;
-            semanticNodes.add(roleNode);
-          }
-          return;
-        case 'region':
-        case 'landmark':
-          final rect = _getNodeRect(node);
-          if (rect != null && rect.width > 0 && rect.height > 0) {
-            final regionNode = SemanticsNode();
-            final label = _ariaLabel(node) ?? 'Region';
-            regionNode.updateWith(
-              config: SemanticsConfiguration()
-                ..isHeader = false
-                ..textDirection = textDirection
-                ..label = label,
-            );
-            regionNode.rect = rect;
-            semanticNodes.add(regionNode);
-          }
-          // Recurse into region children
-          for (final child in node.children) {
-            _buildSemanticNodes(child, semanticNodes, parentNode);
-          }
-          return;
-        case 'heading':
-          final rect = _getNodeRect(node);
-          if (rect != null && rect.width > 0 && rect.height > 0) {
-            final headingNode = SemanticsNode();
-            final label = _ariaLabel(node) ?? node.textContent;
-            headingNode.updateWith(
-              config: SemanticsConfiguration()
-                ..isHeader = true
-                ..textDirection = textDirection
-                ..label = label,
-            );
-            headingNode.rect = rect;
-            semanticNodes.add(headingNode);
-          }
-          return;
-        default:
-          break;
-      }
-    }
-
-    // Paragraph and landmark block elements — emit one SemanticsNode per block
-    // so screen readers (VoiceOver, TalkBack) can navigate paragraph-by-paragraph.
-    // We cover: <p>, <blockquote>, <pre>, <li>, <div> and landmark containers
-    // (<section>, <article>, <main>, <header>, <footer>, <nav>, <aside>).
-    //
-    // Landmark containers recurse into children AFTER emitting their own node
-    // (they act as named regions). Leaf content blocks (<p>, <blockquote>, <pre>)
-    // are treated as terminal — their full text goes into the label.
-    const leafBlocks = {'p', 'blockquote', 'pre', 'div', 'li'};
-    const landmarkBlocks = {
-      'section',
-      'article',
-      'main',
-      'header',
-      'footer',
-      'nav',
-      'aside'
-    };
-    final tag = node.tagName;
-    if (tag != null &&
-        (leafBlocks.contains(tag) || landmarkBlocks.contains(tag))) {
-      final rect = _getNodeRect(node);
-      if (rect != null && rect.width > 0 && rect.height > 0) {
-        final text = _ariaLabel(node) ?? node.textContent;
-        if (text.trim().isNotEmpty) {
-          final blockNode = SemanticsNode();
-          final config = SemanticsConfiguration()
-            ..isReadOnly = true
-            ..textDirection = textDirection
-            ..label = text.trim();
-          if (tag == 'blockquote') {
-            config.hint = 'Block quote';
-          } else if (tag == 'pre') {
-            config.hint = 'Code block';
-          } else if (tag == 'li') {
-            final position = _listItemPosition(node);
-            config.hint = position > 0 ? 'Item $position' : 'List item';
-          } else if (landmarkBlocks.contains(tag)) {
-            // Landmark — use aria-label or tag name as hint
-            config.hint = _ariaLabel(node) ?? tag;
-          }
-          blockNode.updateWith(config: config);
-          blockNode.rect = rect;
-          semanticNodes.add(blockNode);
-        }
-
-        // Recurse into blocks to find nested links/interactive elements.
-        // We always recurse because even a <p> might contain an <a>.
-        for (final child in node.children) {
-          _buildSemanticNodes(child, semanticNodes, parentNode);
-        }
-        return;
-      }
-    }
-
-    // Handle loose text nodes (not inside a paragraph)
-    if (node is TextNode) {
-      final text = node.text.trim();
-      if (text.isNotEmpty) {
-        final rect = _getNodeRect(node);
-        if (rect != null && rect.width > 0 && rect.height > 0) {
-          final textNode = SemanticsNode();
-          textNode.updateWith(
-            config: SemanticsConfiguration()
-              ..isReadOnly = true
-              ..textDirection = textDirection
-              ..label = text,
-          );
-          textNode.rect = rect;
-          semanticNodes.add(textNode);
-        }
-      }
-      return;
-    }
-
-    // Generic: if aria-label / aria-labelledby is present, emit a labelled node
-    final ariaLabel = _ariaLabel(node);
-    if (ariaLabel != null && ariaLabel.isNotEmpty) {
-      final rect = _getNodeRect(node);
-      if (rect != null && rect.width > 0 && rect.height > 0) {
-        final ariaNode = SemanticsNode();
-        ariaNode.updateWith(
-          config: SemanticsConfiguration()
-            ..isHeader = false
-            ..textDirection = textDirection
-            ..label = ariaLabel,
-        );
-        ariaNode.rect = rect;
-        semanticNodes.add(ariaNode);
-        return;
-      }
-    }
-
-    // Recursively process children
-    for (final child in node.children) {
-      _buildSemanticNodes(child, semanticNodes, parentNode);
-    }
-  }
-
-  /// Returns the `aria-label` value, or resolves `aria-labelledby` to the
-  /// text content of the referenced element (best-effort, id lookup).
-  String? _ariaLabel(UDTNode node) {
-    final direct = node.attributes['aria-label'];
-    if (direct != null && direct.isNotEmpty) return direct;
-    // aria-labelledby: look up referenced id within the same document.
-    final labelledBy = node.attributes['aria-labelledby'];
-    if (labelledBy != null && labelledBy.isNotEmpty) {
-      final referenced = _findNodeById(labelledBy);
-      if (referenced != null) return referenced.textContent;
-    }
-    return null;
-  }
-
-  /// Finds a node by its `id` attribute, scanning the full document.
-  UDTNode? _findNodeById(String id) {
-    if (_document == null) return null;
-    UDTNode? found;
-    _document!.traverse((n) {
-      if (found == null && n.attributes['id'] == id) {
-        found = n;
-      }
-    });
-    return found;
-  }
-
-  /// Returns the 1-based ordinal position of a `<li>` within its parent list.
-  int _listItemPosition(UDTNode liNode) {
-    final p = liNode.parent;
-    if (p == null) return 0;
-    int position = 0;
-    for (final child in p.children) {
-      if (child.tagName == 'li') {
-        position++;
-        if (child == liNode) return position;
-      }
-    }
-    return 0;
-  }
-
-  /// Gets the heading level from a tag name (h1 = 1, h2 = 2, etc.)
-  int _getHeadingLevel(String tagName) {
-    switch (tagName) {
-      case 'h1':
-        return 1;
-      case 'h2':
-        return 2;
-      case 'h3':
-        return 3;
-      case 'h4':
-        return 4;
-      case 'h5':
-        return 5;
-      case 'h6':
-        return 6;
-      default:
-        return 0;
-    }
-  }
-
-  /// Gets the bounding rect for a node. Uses the O(1) [_nodeRectCache] built
-  /// during layout (Step 8); falls back to a linear scan only when the cache
-  /// is empty (e.g. before the first layout pass).
-  Rect? _getNodeRect(UDTNode node) {
-    // Fast path — O(1) lookup via cache built in _buildNodeRectCache().
-    final cached = _nodeRectCache[node];
-    if (cached != null) return cached;
-
-    // Fallback: cache not yet populated (before first layout).
-    double? minX, minY, maxX, maxY;
-    for (final fragment in _fragments) {
-      if (fragment.sourceNode == node ||
-          _isDescendantOf(fragment.sourceNode, node)) {
-        final rect = fragment.rect;
-        if (rect != null) {
-          minX = minX == null ? rect.left : math.min(minX, rect.left);
-          minY = minY == null ? rect.top : math.min(minY, rect.top);
-          maxX = maxX == null ? rect.right : math.max(maxX, rect.right);
-          maxY = maxY == null ? rect.bottom : math.max(maxY, rect.bottom);
-        }
-      }
-    }
-    if (minX != null && minY != null && maxX != null && maxY != null) {
-      return Rect.fromLTRB(minX, minY, maxX, maxY);
-    }
-    return null;
-  }
-
-  /// Checks if [child] is a descendant of (or equal to) [ancestor].
+  /// Collects semantic anchors for all headings and links in the document.
   ///
-  /// Walks UP the child's parent-chain rather than DOWN the ancestor's subtree.
-  /// This is O(depth) ≈ O(32) instead of the previous O(N_descendants), which
-  /// made the fallback path of [_getNodeRect] O(N_fragments × N_tree) for
-  /// deeply-nested "div soup" HTML.
-  bool _isDescendantOf(UDTNode? child, UDTNode ancestor) {
-    UDTNode? current = child;
-    while (current != null) {
-      if (current == ancestor) return true;
-      current = current.parent;
+  /// **Headings** are sourced from [headingAnchors] (populated by layout),
+  /// so this does not re-walk fragments for heading detection.
+  ///
+  /// **Links** are found by iterating [_fragments] and walking each fragment's
+  /// `sourceNode.parent` chain to detect an `<a href>` ancestor.  Consecutive
+  /// fragments sharing the same anchor node are merged into one semantic node.
+  ///
+  /// The result is capped at [_kMaxSemanticAnchors] to guard against
+  /// adversarially large documents filling the accessibility tree.
+  List<_SemanticAnchor> _collectSemanticAnchors() {
+    if (!hasSize) return const [];
+
+    final anchors = <_SemanticAnchor>[];
+
+    // ── Headings ─────────────────────────────────────────────────────────
+    // headingAnchors is already populated by _performLineLayout so we just
+    // convert each entry into a _SemanticAnchor with an estimated height.
+    for (int i = 0; i < headingAnchors.length; i++) {
+      final h = headingAnchors[i];
+      // Height: span to next heading's y-offset, or document bottom.
+      final nextY = (i + 1 < headingAnchors.length)
+          ? headingAnchors[i + 1].yOffset
+          : size.height;
+      final height = (nextY - h.yOffset).clamp(16.0, double.infinity);
+      anchors.add(_SemanticAnchor(
+        rect: Rect.fromLTWH(0, h.yOffset, size.width, height),
+        label: h.text,
+        isHeading: true,
+        headingLevel: h.level,
+      ));
     }
-    return false;
+
+    // ── Links ────────────────────────────────────────────────────────────
+    // Walk fragments, grouping consecutive fragments that share the same
+    // <a> ancestor node into a single semantic link node.
+    String? currentAnchorId;
+    String? currentHref;
+    Rect? currentRect;
+    final linkTextBuffer = StringBuffer();
+
+    void flushLink() {
+      if (currentAnchorId == null || currentRect == null) return;
+      final label = linkTextBuffer.toString().trim();
+      if (label.isNotEmpty && currentHref != null) {
+        anchors.add(_SemanticAnchor(
+          rect: currentRect!,
+          label: label,
+          isHeading: false,
+          href: currentHref,
+        ));
+      }
+      currentAnchorId = null;
+      currentHref = null;
+      currentRect = null;
+      linkTextBuffer.clear();
+    }
+
+    for (final fragment in _fragments) {
+      // Block/inline markers carry no text; flush any open link.
+      if (fragment is _BlockStartFragment ||
+          fragment is _BlockEndFragment ||
+          fragment is _InlineStartFragment ||
+          fragment is _InlineEndFragment ||
+          fragment is _ListMarkerFragment) {
+        flushLink();
+        continue;
+      }
+
+      // Walk the source node's parent chain looking for an <a href> ancestor.
+      String? href;
+      String? anchorNodeId;
+      UDTNode? node = fragment.sourceNode;
+      while (node != null) {
+        if (node.tagName == 'a') {
+          final h = node.attributes['href'];
+          if (h != null && h.isNotEmpty) {
+            href = h;
+            anchorNodeId = node.id;
+          }
+          break;
+        }
+        node = node.parent;
+      }
+
+      if (anchorNodeId == null) {
+        flushLink();
+        continue;
+      }
+
+      // Different link → flush previous and start new.
+      if (anchorNodeId != currentAnchorId) {
+        flushLink();
+        currentAnchorId = anchorNodeId;
+        currentHref = href;
+      }
+
+      // Extend bounding rect.
+      final fRect = fragment.rect;
+      if (fRect != null) {
+        if (currentRect == null) {
+          currentRect = fRect;
+        } else {
+          currentRect = Rect.fromLTRB(
+            fRect.left < currentRect!.left ? fRect.left : currentRect!.left,
+            fRect.top < currentRect!.top ? fRect.top : currentRect!.top,
+            fRect.right > currentRect!.right ? fRect.right : currentRect!.right,
+            fRect.bottom > currentRect!.bottom
+                ? fRect.bottom
+                : currentRect!.bottom,
+          );
+        }
+      }
+
+      // Accumulate label text.
+      final text = fragment.text;
+      if (text != null && text.trim().isNotEmpty) {
+        if (linkTextBuffer.isNotEmpty) linkTextBuffer.write(' ');
+        linkTextBuffer.write(text.trim());
+      }
+    }
+    flushLink();
+
+    if (anchors.length > _kMaxSemanticAnchors) {
+      return anchors.sublist(0, _kMaxSemanticAnchors);
+    }
+    return anchors;
   }
 }

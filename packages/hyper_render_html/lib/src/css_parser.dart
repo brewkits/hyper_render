@@ -103,6 +103,115 @@ class DefaultCssParser implements CssParserInterface {
     return (ids * 65536) + (classes * 256) + elements;
   }
 
+  // ── @keyframes parsing ────────────────────────────────────────────────────
+
+  @override
+  Map<String, HyperKeyframes> parseKeyframes(String css) {
+    if (css.isEmpty) return const {};
+
+    final result = <String, HyperKeyframes>{};
+    int i = 0;
+
+    final atRule = RegExp(
+      r'@(?:-(?:webkit|moz|ms|o)-)?keyframes\s+([\w-]+)\s*\{',
+      caseSensitive: false,
+    );
+
+    while (i < css.length) {
+      final match = atRule.firstMatch(css.substring(i));
+      if (match == null) break;
+
+      final animName = match.group(1)!;
+      final bodyStart = i + match.end;
+
+      int depth = 1;
+      int j = bodyStart;
+      while (j < css.length && depth > 0) {
+        if (css[j] == '{') depth++;
+        if (css[j] == '}') depth--;
+        j++;
+      }
+
+      if (depth == 0) {
+        final body = css.substring(bodyStart, j - 1);
+        final kf = _parseKeyframeBody(animName, body);
+        if (kf != null) result[animName] = kf;
+        i = j;
+      } else {
+        i += match.start + 1;
+      }
+    }
+
+    return result;
+  }
+
+  HyperKeyframes? _parseKeyframeBody(String name, String body) {
+    final keyframes = <HyperKeyframe>[];
+    final blockPat = RegExp(
+      r'((?:(?:from|to|\d+(?:\.\d+)?%)\s*,?\s*)+)\{([^}]*)\}',
+      caseSensitive: false,
+    );
+    for (final m in blockPat.allMatches(body)) {
+      final decls = _parseKfDeclarations(m.group(2)!);
+      for (final raw in m.group(1)!.split(',')) {
+        final offset = _kfSelectorToOffset(raw.trim());
+        if (offset != null) keyframes.add(_kfDeclarationsToKeyframe(offset, decls));
+      }
+    }
+    if (keyframes.isEmpty) return null;
+    keyframes.sort((a, b) => a.offset.compareTo(b.offset));
+    return HyperKeyframes(name: name, keyframes: keyframes);
+  }
+
+  double? _kfSelectorToOffset(String sel) {
+    final s = sel.toLowerCase();
+    if (s == 'from') return 0.0;
+    if (s == 'to') return 1.0;
+    final m = RegExp(r'^(\d+(?:\.\d+)?)%$').firstMatch(s);
+    if (m != null) return (double.tryParse(m.group(1)!) ?? 0) / 100.0;
+    return null;
+  }
+
+  Map<String, String> _parseKfDeclarations(String decls) {
+    final result = <String, String>{};
+    for (final d in decls.split(';')) {
+      final c = d.indexOf(':');
+      if (c > 0) {
+        final p = d.substring(0, c).trim().toLowerCase();
+        final v = d.substring(c + 1).trim();
+        if (p.isNotEmpty && v.isNotEmpty) result[p] = v;
+      }
+    }
+    return result;
+  }
+
+  HyperKeyframe _kfDeclarationsToKeyframe(
+      double offset, Map<String, String> decls) {
+    double? opacity, translateX, translateY, scale, rotation;
+    if (decls.containsKey('opacity')) opacity = double.tryParse(decls['opacity']!);
+    final t = decls['transform'];
+    if (t != null) {
+      final txM = RegExp(r'translateX\(\s*(-?[\d.]+)(?:px|%|rem|em)?\s*\)').firstMatch(t);
+      if (txM != null) translateX = double.tryParse(txM.group(1)!);
+      final tyM = RegExp(r'translateY\(\s*(-?[\d.]+)(?:px|%|rem|em)?\s*\)').firstMatch(t);
+      if (tyM != null) translateY = double.tryParse(tyM.group(1)!);
+      final tM = RegExp(r'(?<![XY])translate\(\s*(-?[\d.]+)(?:px)?\s*(?:,\s*(-?[\d.]+)(?:px)?)?\s*\)').firstMatch(t);
+      if (tM != null) {
+        translateX ??= double.tryParse(tM.group(1)!);
+        if (tM.group(2) != null) translateY ??= double.tryParse(tM.group(2)!);
+      }
+      final sM = RegExp(r'(?<![XY])scale\(\s*([\d.]+)\s*\)').firstMatch(t);
+      if (sM != null) scale = double.tryParse(sM.group(1)!);
+      final rM = RegExp(r'rotate\(\s*(-?[\d.]+)deg\s*\)').firstMatch(t);
+      if (rM != null) rotation = double.tryParse(rM.group(1)!);
+    }
+    return HyperKeyframe(offset: offset, opacity: opacity,
+        translateX: translateX, translateY: translateY,
+        scale: scale, rotation: rotation);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   @override
   Map<String, String> parseInlineStyle(String style) {
     final result = <String, String>{};

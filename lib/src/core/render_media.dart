@@ -8,12 +8,14 @@ import '../model/node.dart';
 ///
 /// This allows users to plug in their own video/audio player implementations
 /// (video_player, chewie, just_audio, etc.)
+/// Builder for media widgets.
 typedef MediaWidgetBuilder = Widget Function(
   BuildContext context,
   MediaInfo mediaInfo,
 );
 
 /// Information about a media element
+/// Metadata for media items.
 class MediaInfo {
   /// Media type (audio or video)
   final MediaType type;
@@ -89,6 +91,7 @@ class MediaInfo {
 }
 
 /// Type of media element
+/// Supported media types.
 enum MediaType {
   audio,
   video,
@@ -108,6 +111,7 @@ extension AtomicNodeMediaExtension on AtomicNode {
 /// This is used when no custom MediaWidgetBuilder is provided.
 /// For actual video/audio playback, users should provide their own
 /// implementation using video_player, chewie, just_audio, etc.
+/// Default widget for media playback.
 class DefaultMediaWidget extends StatefulWidget {
   final MediaInfo mediaInfo;
   final VoidCallback? onTap;

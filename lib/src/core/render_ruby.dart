@@ -12,7 +12,6 @@ import 'package:flutter/widgets.dart';
 /// <ruby>漢字<rt>かんじ</rt></ruby>
 /// ```
 ///
-/// Reference: doc3.md - "Requirement 4: Japanese Ruby/Furigana Support"
 class RubySpan extends WidgetSpan {
   RubySpan({
     required String baseText,
@@ -67,7 +66,6 @@ class RubyTextWidget extends LeafRenderObjectWidget {
 /// This renders base text with smaller ruby text above it,
 /// maintaining consistent line height and proper baseline alignment.
 ///
-/// Reference: doc3.md - "class RenderRubyText extends RenderBox"
 class RenderRubyText extends RenderBox {
   String _baseText;
   String _rubyText;

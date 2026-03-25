@@ -443,6 +443,69 @@ void main() {
     });
   });
 
+  group('HtmlAdapter.parseToSections — float split guard', () {
+    // The float-aware split guard ensures that a section is never split
+    // immediately after a block containing a CSS-floated element.
+    // This keeps the float-bearing block and its successor in the same chunk
+    // so RenderHyperBox can flow text around the float correctly.
+
+    test('does not split immediately after float:left img block', () {
+      final adapter = HtmlAdapter();
+      // Build a document that exceeds the chunkSize threshold (default 6000)
+      // right after the float-containing paragraph.
+      final padding = 'x' * 200; // filler to simulate accumulated size
+      final big = 'word ' * 1200; // ~6000 chars to push over threshold
+      final html = '<p>$big</p>'
+          '<p><img style="float:left" src="img.jpg"> Caption.</p>'
+          '<p>$padding</p>';
+      final sections = adapter.parseToSections(html, chunkSize: 6000);
+
+      // The float-containing paragraph and the paragraph immediately after it
+      // must be in the SAME section.
+      bool foundFloatAndNext = false;
+      for (final section in sections) {
+        final text = section.textContent;
+        // The float paragraph ends with 'Caption.' and the next para starts
+        // with 'x' (our padding filler).
+        if (text.contains('Caption.') && text.contains(padding.trim())) {
+          foundFloatAndNext = true;
+          break;
+        }
+      }
+      expect(foundFloatAndNext, isTrue,
+          reason: 'Float-containing block and its successor must be in the same section');
+    });
+
+    test('does not split immediately after float:right img block', () {
+      final adapter = HtmlAdapter();
+      final big = 'word ' * 1200;
+      final html = '<p>$big</p>'
+          '<p><img style="float: right; width:120px" src="img.png"> Text.</p>'
+          '<p>After float paragraph.</p>';
+      final sections = adapter.parseToSections(html, chunkSize: 6000);
+
+      bool foundTogether = false;
+      for (final section in sections) {
+        final text = section.textContent;
+        if (text.contains('Text.') && text.contains('After float paragraph.')) {
+          foundTogether = true;
+          break;
+        }
+      }
+      expect(foundTogether, isTrue);
+    });
+
+    test('still splits normally when no float present', () {
+      final adapter = HtmlAdapter();
+      // Two big paragraphs without floats — should split between them.
+      final big = 'word ' * 1200;
+      final html = '<p>$big</p><p>$big</p>';
+      final sections = adapter.parseToSections(html, chunkSize: 6000);
+      // Should produce at least 2 sections.
+      expect(sections.length, greaterThanOrEqualTo(2));
+    });
+  });
+
   group('Markdown adapter', () {
     test('MarkdownAdapter parses heading', () {
       const md = '# Hello World\n\nSome text.';
