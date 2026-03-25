@@ -45,7 +45,7 @@ class _TableNestingDepth extends InheritedWidget {
 
 /// Shown in place of a table that exceeds [_kMaxTableNestingDepth].
 class _TableDepthExceededPlaceholder extends StatelessWidget {
-  const _TableDepthExceededPlaceholder({super.key});
+  const _TableDepthExceededPlaceholder();
 
   @override
   Widget build(BuildContext context) {
