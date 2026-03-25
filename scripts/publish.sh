@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# HyperRender publish helper — v1.1.2
+# HyperRender publish helper — v1.1.3
 #
 # Usage:
 #   ./scripts/publish.sh dry-run   # verify all packages (no upload)
@@ -13,15 +13,14 @@
 #
 # What the script does:
 #   - Temporarily patches each pubspec.yaml:
-#       • Removes publish_to: none
-#       • Replaces path: ../hyper_render_core with hyper_render_core: ^1.1.2
+#       • Replaces path: ../hyper_render_core with hyper_render_core: ^VERSION
 #   - Runs `dart pub publish [--dry-run]`
 #   - Restores the original pubspec.yaml from git after each step
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
 
-VERSION="1.1.2"
+VERSION="1.1.3"
 MODE="${1:-dry-run}"   # dry-run | publish
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FLUTTER="${FVM_HOME:-$HOME/fvm}/default/bin/flutter"
@@ -51,9 +50,6 @@ patch_pubspec() {
 
   # Backup
   cp "$pubspec" "$pubspec.bak"
-
-  # Remove publish_to: none
-  sed -i '' '/^publish_to: none/d' "$pubspec"
 
   # Replace path dep with version constraint
   sed -i '' \
