@@ -58,7 +58,7 @@ class UdtSerializer {
       // Text
       'color': style.color.toARGB32(),
       'fontSize': style.fontSize,
-      'fontWeight': style.fontWeight.index,
+      'fontWeight': style.fontWeight.value,
       'fontStyle': style.fontStyle.index,
       'fontFamily': style.fontFamily,
       'lineHeight': style.lineHeight,
