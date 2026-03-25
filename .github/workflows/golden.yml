@@ -19,7 +19,7 @@ name: Visual Regression
 # ─────────────────────────────────────────────────────────────────────────────
 
 env:
-  FLUTTER_VERSION: "3.29.2"   # ← single source of truth; bump here + update-goldens
+  FLUTTER_VERSION: "3.41.5"   # ← single source of truth; bump here + update-goldens
   FONT_PACKAGES: >-
     fonts-noto
     fonts-noto-cjk

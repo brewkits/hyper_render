@@ -14,7 +14,7 @@ name: Performance Regression
 # ─────────────────────────────────────────────────────────────────────────────
 
 env:
-  FLUTTER_VERSION: "3.29.2"   # keep in sync with golden.yml
+  FLUTTER_VERSION: "3.41.5"   # keep in sync with golden.yml
 
 on:
   pull_request:
