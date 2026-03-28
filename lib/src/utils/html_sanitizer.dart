@@ -206,7 +206,7 @@ class HtmlSanitizer {
 
       // Validate URL-bearing attributes.
       if (name == 'href' || name == 'src') {
-        if (!_isSafeUrl(entry.value)) {
+        if (!isSafeUrl(entry.value)) {
           toRemove.add(entry.key);
         }
       }
@@ -232,7 +232,9 @@ class HtmlSanitizer {
   ///
   /// Blocked: `javascript:`, `vbscript:`, `data:image/svg` (SVG can embed
   /// `<script>`), and any non-image `data:` URL.
-  static bool _isSafeUrl(String url) {
+  ///
+  /// Exposed as public so Markdown/Delta adapters can reuse the same check.
+  static bool isSafeUrl(String url) {
     final trimmed = url.trim().toLowerCase();
     if (trimmed.startsWith('javascript:')) return false;
     if (trimmed.startsWith('vbscript:')) return false;
