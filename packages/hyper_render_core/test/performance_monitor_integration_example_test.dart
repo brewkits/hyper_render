@@ -175,7 +175,7 @@ void main() {
       }
 
       // Estimate memory usage (rough approximation)
-      final estimatedBytesPerNode = 200; // Rough estimate
+      const estimatedBytesPerNode = 200; // Rough estimate
       final totalBytes = nodeCount * estimatedBytesPerNode;
 
       monitor.recordNodeCount(nodeCount);

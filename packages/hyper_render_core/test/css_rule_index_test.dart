@@ -11,11 +11,11 @@ void main() {
 
     group('Indexing by selector type', () {
       test('indexes simple tag selectors', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'div',
           declarations: {'color': 'red'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'p',
           declarations: {'color': 'blue'},
         ));
@@ -26,11 +26,11 @@ void main() {
       });
 
       test('indexes class selectors', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '.button',
           declarations: {'padding': '10px'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '.card',
           declarations: {'border': '1px solid'},
         ));
@@ -41,11 +41,11 @@ void main() {
       });
 
       test('indexes ID selectors', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '#header',
           declarations: {'height': '60px'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '#footer',
           declarations: {'height': '40px'},
         ));
@@ -56,7 +56,7 @@ void main() {
       });
 
       test('indexes universal selectors', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '*',
           declarations: {'box-sizing': 'border-box'},
         ));
@@ -67,15 +67,15 @@ void main() {
       });
 
       test('indexes complex selectors as universal', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'div p',
           declarations: {'margin': '10px'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'div > span',
           declarations: {'display': 'block'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'p + span',
           declarations: {'margin-top': '5px'},
         ));
@@ -86,7 +86,7 @@ void main() {
       });
 
       test('prioritizes ID over class over tag in compound selectors', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'div.button#submit',
           declarations: {'color': 'green'},
         ));
@@ -99,7 +99,7 @@ void main() {
       });
 
       test('indexes by class when no ID present', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'div.container',
           declarations: {'width': '100%'},
         ));
@@ -110,11 +110,11 @@ void main() {
       });
 
       test('indexes tag with pseudo-class', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'a:hover',
           declarations: {'color': 'blue'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'p:first-child',
           declarations: {'margin-top': '0'},
         ));
@@ -125,7 +125,7 @@ void main() {
       });
 
       test('indexes tag with attribute selector', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'input[type="text"]',
           declarations: {'border': '1px solid'},
         ));
@@ -138,23 +138,23 @@ void main() {
     group('getCandidates()', () {
       setUp(() {
         // Add various rules
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'div',
           declarations: {'display': 'block'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '.button',
           declarations: {'padding': '10px'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '#header',
           declarations: {'height': '60px'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '*',
           declarations: {'box-sizing': 'border-box'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'div p',
           declarations: {'margin': '5px'},
         ));
@@ -257,11 +257,11 @@ void main() {
       });
 
       test('returns rules for multiple classes', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '.primary',
           declarations: {'color': 'blue'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '.large',
           declarations: {'font-size': '20px'},
         ));
@@ -301,15 +301,15 @@ void main() {
 
     group('clear()', () {
       test('removes all indexed rules', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'div',
           declarations: {'color': 'red'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '.button',
           declarations: {'padding': '10px'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '#header',
           declarations: {'height': '60px'},
         ));
@@ -327,13 +327,13 @@ void main() {
       });
 
       test('can add rules after clearing', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'div',
           declarations: {'color': 'red'},
         ));
         index.clear();
 
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'p',
           declarations: {'color': 'blue'},
         ));
@@ -344,7 +344,7 @@ void main() {
 
     group('Edge cases', () {
       test('handles empty selector', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '',
           declarations: {'color': 'red'},
         ));
@@ -355,7 +355,7 @@ void main() {
       });
 
       test('handles whitespace-only selector', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '   ',
           declarations: {'color': 'red'},
         ));
@@ -365,7 +365,7 @@ void main() {
       });
 
       test('handles selector with extra whitespace', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '  div  ',
           declarations: {'color': 'red'},
         ));
@@ -375,11 +375,11 @@ void main() {
       });
 
       test('handles multiple rules with same selector', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'div',
           declarations: {'color': 'red'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: 'div',
           declarations: {'background': 'blue'},
         ));
@@ -394,11 +394,11 @@ void main() {
       });
 
       test('handles special characters in class names', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '.my-button',
           declarations: {'padding': '10px'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '.button_primary',
           declarations: {'color': 'blue'},
         ));
@@ -408,11 +408,11 @@ void main() {
       });
 
       test('handles special characters in ID names', () {
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '#my-header',
           declarations: {'height': '60px'},
         ));
-        index.addRule(ParsedCssRule(
+        index.addRule(const ParsedCssRule(
           selector: '#header_main',
           declarations: {'width': '100%'},
         ));
@@ -424,11 +424,11 @@ void main() {
 
     group('Statistics', () {
       test('provides accurate statistics', () {
-        index.addRule(ParsedCssRule(selector: 'div', declarations: {}));
-        index.addRule(ParsedCssRule(selector: 'p', declarations: {}));
-        index.addRule(ParsedCssRule(selector: '.button', declarations: {}));
-        index.addRule(ParsedCssRule(selector: '#header', declarations: {}));
-        index.addRule(ParsedCssRule(selector: '*', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: 'div', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: 'p', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: '.button', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: '#header', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: '*', declarations: {}));
 
         final stats = index.getStats();
 
@@ -440,9 +440,9 @@ void main() {
       });
 
       test('calculates average rules per tag', () {
-        index.addRule(ParsedCssRule(selector: 'div', declarations: {}));
-        index.addRule(ParsedCssRule(selector: 'div', declarations: {}));
-        index.addRule(ParsedCssRule(selector: 'p', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: 'div', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: 'div', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: 'p', declarations: {}));
 
         final stats = index.getStats();
 
@@ -451,8 +451,8 @@ void main() {
       });
 
       test('handles zero average when no tag rules', () {
-        index.addRule(ParsedCssRule(selector: '.button', declarations: {}));
-        index.addRule(ParsedCssRule(selector: '#header', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: '.button', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: '#header', declarations: {}));
 
         final stats = index.getStats();
 
@@ -460,8 +460,8 @@ void main() {
       });
 
       test('toString() provides readable output', () {
-        index.addRule(ParsedCssRule(selector: 'div', declarations: {}));
-        index.addRule(ParsedCssRule(selector: '.button', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: 'div', declarations: {}));
+        index.addRule(const ParsedCssRule(selector: '.button', declarations: {}));
 
         final stats = index.getStats();
         final output = stats.toString();

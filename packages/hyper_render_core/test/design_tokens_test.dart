@@ -56,11 +56,11 @@ void main() {
 
       test('heading margins follow 0.67-0.83em rhythm', () {
         // H1 margin should be around 0.67em
-        final h1EmMargin = DesignTokens.h1MarginTop / DesignTokens.h1FontSize;
+        const h1EmMargin = DesignTokens.h1MarginTop / DesignTokens.h1FontSize;
         expect(h1EmMargin, closeTo(0.67, 0.01));
 
         // H2-H6 margins should be around 0.83em
-        final h2EmMargin = DesignTokens.h2MarginTop / DesignTokens.h2FontSize;
+        const h2EmMargin = DesignTokens.h2MarginTop / DesignTokens.h2FontSize;
         expect(h2EmMargin, closeTo(0.83, 0.01));
       });
 
@@ -432,8 +432,8 @@ void main() {
 
       test('type scale is harmonious', () {
         // Check that font sizes follow a reasonable scale ratio
-        final ratio1 = DesignTokens.h2FontSize / DesignTokens.h3FontSize;
-        final ratio2 = DesignTokens.h3FontSize / DesignTokens.h4FontSize;
+        const ratio1 = DesignTokens.h2FontSize / DesignTokens.h3FontSize;
+        const ratio2 = DesignTokens.h3FontSize / DesignTokens.h4FontSize;
 
         // Ratios should be similar (within 20%)
         expect((ratio1 - ratio2).abs() / ratio1, lessThan(0.2));

@@ -99,11 +99,11 @@ void main() {
       final rules = <ParsedCssRule>[];
 
       // Common resets and base styles
-      rules.add(ParsedCssRule(
+      rules.add(const ParsedCssRule(
           selector: '*', declarations: {'box-sizing': 'border-box'}));
-      rules.add(ParsedCssRule(selector: 'body', declarations: {'margin': '0'}));
+      rules.add(const ParsedCssRule(selector: 'body', declarations: {'margin': '0'}));
       rules.add(
-          ParsedCssRule(selector: 'html', declarations: {'font-size': '16px'}));
+          const ParsedCssRule(selector: 'html', declarations: {'font-size': '16px'}));
 
       // Typography
       for (var i = 1; i <= 6; i++) {
@@ -111,11 +111,11 @@ void main() {
             selector: 'h$i', declarations: {'font-weight': 'bold'}));
       }
       rules
-          .add(ParsedCssRule(selector: 'p', declarations: {'margin': '1em 0'}));
-      rules.add(ParsedCssRule(selector: 'a', declarations: {'color': 'blue'}));
-      rules.add(ParsedCssRule(
+          .add(const ParsedCssRule(selector: 'p', declarations: {'margin': '1em 0'}));
+      rules.add(const ParsedCssRule(selector: 'a', declarations: {'color': 'blue'}));
+      rules.add(const ParsedCssRule(
           selector: 'strong', declarations: {'font-weight': 'bold'}));
-      rules.add(ParsedCssRule(
+      rules.add(const ParsedCssRule(
           selector: 'em', declarations: {'font-style': 'italic'}));
 
       // Common components (200 rules)
@@ -132,13 +132,13 @@ void main() {
 
       // Complex selectors (200 rules)
       for (var i = 0; i < 50; i++) {
-        rules.add(ParsedCssRule(
+        rules.add(const ParsedCssRule(
             selector: 'div p', declarations: {'line-height': '1.5'}));
-        rules.add(ParsedCssRule(
+        rules.add(const ParsedCssRule(
             selector: '.card > h2', declarations: {'margin-top': '0'}));
-        rules.add(ParsedCssRule(
+        rules.add(const ParsedCssRule(
             selector: 'p + p', declarations: {'margin-top': '0.5em'}));
-        rules.add(ParsedCssRule(
+        rules.add(const ParsedCssRule(
             selector: 'a:hover',
             declarations: {'text-decoration': 'underline'}));
       }

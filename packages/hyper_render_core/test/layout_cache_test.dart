@@ -19,7 +19,7 @@ void main() {
 
     group('Position management', () {
       test('stores and retrieves position', () {
-        final rect = const Rect.fromLTWH(10, 20, 100, 50);
+        const rect = Rect.fromLTWH(10, 20, 100, 50);
         cache.setPosition(node1, rect);
 
         expect(cache.getPosition(node1), equals(rect));
@@ -108,7 +108,7 @@ void main() {
 
     group('Content bounds management', () {
       test('stores and retrieves content bounds', () {
-        final bounds = const Rect.fromLTWH(5, 5, 90, 40);
+        const bounds = Rect.fromLTWH(5, 5, 90, 40);
         cache.setContentBounds(node1, bounds);
 
         expect(cache.getContentBounds(node1), equals(bounds));
