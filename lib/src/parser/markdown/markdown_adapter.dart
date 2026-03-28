@@ -2,6 +2,7 @@ import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:flutter/painting.dart';
 import 'package:markdown/markdown.dart' as md;
 import '../adapter.dart';
+import '../../utils/html_sanitizer.dart';
 
 /// Markdown to UDT adapter
 ///
@@ -262,14 +263,16 @@ class MarkdownAdapter extends ExtendedDocumentAdapter {
           children: children,
         );
 
-      // Link
+      // Link — sanitize href to block javascript:/vbscript: XSS
       case 'a':
-        final href = attributes['href'] ?? '#';
+        final rawHref = attributes['href'] ?? '#';
+        final href = HtmlSanitizer.isSafeUrl(rawHref) ? rawHref : '#';
         return InlineNode.a(href: href, children: children);
 
-      // Image
+      // Image — sanitize src to block javascript:/data: XSS
       case 'img':
-        final src = attributes['src'] ?? '';
+        final rawSrc = attributes['src'] ?? '';
+        final src = HtmlSanitizer.isSafeUrl(rawSrc) ? rawSrc : '';
         final alt = attributes['alt'];
         return AtomicNode.img(src: src, alt: alt);
 
