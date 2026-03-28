@@ -188,6 +188,37 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 publish_package "hyper_render_clipboard"
 publish_package "hyper_render_devtools"
 
+if [[ "$MODE" == "publish" ]]; then
+  echo ""
+  echo "  Waiting 30s for pub.dev to index all sub-packages..."
+  sleep 30
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  Step 4: hyper_render (root wrapper)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Root package uses pubspec_publish_ready.yaml (has version deps, not path deps)
+ROOT_PUBSPEC="$ROOT/pubspec.yaml"
+ROOT_PUBSPEC_BAK="$ROOT/pubspec.yaml.bak"
+READY_PUBSPEC="$ROOT/pubspec_publish_ready.yaml"
+
+cp "$ROOT_PUBSPEC" "$ROOT_PUBSPEC_BAK"
+cp "$READY_PUBSPEC" "$ROOT_PUBSPEC"
+trap "mv '$ROOT_PUBSPEC_BAK' '$ROOT_PUBSPEC'" EXIT
+
+echo "  Swapped pubspec.yaml → pubspec_publish_ready.yaml"
+(
+  cd "$ROOT"
+  echo "  Running: flutter pub publish $DRY_FLAG $FORCE_FLAG"
+  flutter pub publish $DRY_FLAG $FORCE_FLAG
+)
+
+mv "$ROOT_PUBSPEC_BAK" "$ROOT_PUBSPEC"
+trap - EXIT
+echo "  Restored pubspec.yaml"
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 if [[ "$MODE" == "dry-run" ]]; then
