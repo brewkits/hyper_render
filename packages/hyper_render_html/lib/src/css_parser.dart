@@ -105,7 +105,6 @@ class DefaultCssParser implements CssParserInterface {
 
   // ── @keyframes parsing ────────────────────────────────────────────────────
 
-  @override
   Map<String, HyperKeyframes> parseKeyframes(String css) {
     if (css.isEmpty) return const {};
 

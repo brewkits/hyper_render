@@ -15,6 +15,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   }
 
   void _tokenizeNode(UDTNode node, UDTNode? parentBlock) {
+    // Skip nodes with display:none — they must not produce any fragments.
+    if (node.style.display == DisplayType.none) return;
+
     switch (node.type) {
       case NodeType.document:
         for (final child in node.children) {
@@ -405,17 +408,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     final fragmentDirection =
         style.isRtl ? ui.TextDirection.rtl : textDirection;
 
-    // Composite key using Object.hash to avoid XOR collision (a^b == b^a)
-    final key = Object.hash(
-      text,
-      style.fontSize,
-      style.fontWeight,
-      style.fontStyle,
-      style.color,
-      style.fontFamily,
-      style.lineHeight,
-      style.letterSpacing,
-      fragmentDirection,
+    final key = _TextPainterKey(
+      text: text,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      fontStyle: style.fontStyle,
+      color: style.color,
+      fontFamily: style.fontFamily,
+      lineHeight: style.lineHeight,
+      letterSpacing: style.letterSpacing,
+      textDirection: fragmentDirection,
     );
 
     final cached = _textPainters.get(key);

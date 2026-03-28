@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# HyperRender publish helper — v1.1.3
+# HyperRender publish helper — v1.1.4
 #
 # Usage:
 #   ./scripts/publish.sh dry-run   # verify all packages (no upload)
@@ -20,7 +20,7 @@
 
 set -euo pipefail
 
-VERSION="1.1.3"
+VERSION="1.1.4"
 MODE="${1:-dry-run}"   # dry-run | publish
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FLUTTER="${FVM_HOME:-$HOME/fvm}/default/bin/flutter"

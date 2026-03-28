@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/brewkits/hyper_render/main/assets/logo.png" width="96" alt="HyperRender logo" />
+<img src="https://raw.githubusercontent.com/brewkits/hyper_render/main/assets/logo.svg" width="96" alt="HyperRender logo" />
 
 # HyperRender
 
@@ -38,11 +38,11 @@ Drop-in replacement for `flutter_html` and `flutter_widget_from_html`.
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ```yaml
 dependencies:
-  hyper_render: ^1.1.3
+  hyper_render: ^1.1.4
 ```
 
 ```dart
@@ -59,7 +59,7 @@ Works for articles, emails, docs, newsletters, and CJK content.
 
 ---
 
-## Why Switch? The Architecture Argument
+## 🏗️ Why Switch? The Architecture Argument
 
 Most Flutter HTML libraries map each HTML tag to a Flutter widget. A 3 000-word article becomes **500+ nested widgets** — and some layout primitives simply cannot be expressed that way:
 
@@ -220,7 +220,7 @@ HyperViewer(
 
 ---
 
-## API Reference
+## 📖 API Reference
 
 ### `HyperViewer`
 
@@ -329,7 +329,7 @@ Key engineering decisions:
 
 ---
 
-## Packages
+## 📦 Packages
 
 | Package | pub.dev | Description |
 |---------|---------|-------------|
@@ -366,6 +366,18 @@ MIT — see [LICENSE](LICENSE).
 
 <div align="center">
 
-[Get Started](#-quick-start) · [Example App](example/) · [Report a Bug](https://github.com/brewkits/hyper_render/issues) · [pub.dev](https://pub.dev/packages/hyper_render)
+**Built with ❤️ for the Flutter community**
+
+If HyperRender saves you time, a ⭐ **[star on GitHub](https://github.com/brewkits/hyper_render)** helps other developers discover it.
+
+[![GitHub stars](https://img.shields.io/github/stars/brewkits/hyper_render?style=social)](https://github.com/brewkits/hyper_render)
+
+---
+
+[🚀 Get Started](#-quick-start) · [📦 Example App](example/) · [📋 Changelog](CHANGELOG.md) · [🗺️ Roadmap](doc/ROADMAP.md)
+
+[🐛 Report a Bug](https://github.com/brewkits/hyper_render/issues/new?template=bug_report.md) · [💡 Request a Feature](https://github.com/brewkits/hyper_render/issues/new?template=feature_request.md) · [💬 Discussions](https://github.com/brewkits/hyper_render/discussions)
+
+[pub.dev](https://pub.dev/packages/hyper_render) · [API docs](https://pub.dev/documentation/hyper_render/latest/)
 
 </div>
