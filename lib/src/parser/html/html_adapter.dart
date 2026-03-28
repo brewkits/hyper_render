@@ -263,7 +263,9 @@ class HtmlAdapter {
 
   UDTNode? _parseNode(dom.Node node) {
     if (node.nodeType == dom.Node.TEXT_NODE) {
-      if (node.text == null || node.text!.trim().isEmpty) return null;
+      // Drop structural whitespace (contains newlines — pure indentation) but
+      // preserve space-only nodes (e.g. " ") that separate inline elements.
+      if (node.text == null || (node.text!.trim().isEmpty && !RegExp(r'^[ \t]+$').hasMatch(node.text!))) return null;
       return TextNode(node.text!);
     }
 
@@ -285,8 +287,21 @@ class HtmlAdapter {
       }
 
       if (_isAtomic(element)) {
-        if (tagName == 'br' || tagName == 'hr') {
-          return LineBreakNode(); // Simplified
+        if (tagName == 'br') {
+          return LineBreakNode();
+        }
+        if (tagName == 'hr') {
+          return BlockNode(
+            tagName: 'hr',
+            attributes: element.attributes.map((k, v) => MapEntry(k.toString(), v)),
+            style: ComputedStyle(
+              display: DisplayType.block,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              borderColor: const Color(0xFFCCCCCC),
+              borderWidth: const EdgeInsets.only(top: 1),
+            ),
+            children: const [],
+          );
         }
         return AtomicNode(
           tagName: tagName,

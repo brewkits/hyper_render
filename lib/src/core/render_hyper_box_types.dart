@@ -138,6 +138,61 @@ class _LruCache<K, V> {
   Iterable<V> get values => _cache.values;
 }
 
+/// Value-equality key for the TextPainter LRU cache.
+///
+/// Using a proper [==]/[hashCode] key avoids hash collisions that [Object.hash]
+/// can produce for large documents with many distinct text styles.
+class _TextPainterKey {
+  final String text;
+  final double fontSize;
+  final FontWeight? fontWeight;
+  final FontStyle? fontStyle;
+  final Color? color;
+  final String? fontFamily;
+  final double? lineHeight;
+  final double? letterSpacing;
+  final ui.TextDirection textDirection;
+
+  const _TextPainterKey({
+    required this.text,
+    required this.fontSize,
+    required this.fontWeight,
+    required this.fontStyle,
+    required this.color,
+    required this.fontFamily,
+    required this.lineHeight,
+    this.letterSpacing,
+    required this.textDirection,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _TextPainterKey &&
+          text == other.text &&
+          fontSize == other.fontSize &&
+          fontWeight == other.fontWeight &&
+          fontStyle == other.fontStyle &&
+          color == other.color &&
+          fontFamily == other.fontFamily &&
+          lineHeight == other.lineHeight &&
+          letterSpacing == other.letterSpacing &&
+          textDirection == other.textDirection;
+
+  @override
+  int get hashCode => Object.hash(
+        text,
+        fontSize,
+        fontWeight,
+        fontStyle,
+        color,
+        fontFamily,
+        lineHeight,
+        letterSpacing,
+        textDirection,
+      );
+}
+
 /// Selection range for text
 class HyperTextSelection {
   final int start;

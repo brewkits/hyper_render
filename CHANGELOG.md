@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.4] - 2026-03-28
+
+### 🐛 Bug Fixes
+
+- **`display:none` not respected in renderer** (`render_hyper_box_layout.dart`): Added early-return guard in `_tokenizeNode` — elements with `display:none` no longer produce any layout fragments and are correctly hidden. Previously, elements styled with `display:none` (e.g. Wikipedia `[edit]` section links) were still rendered.
+
+- **`<hr>` rendered as line break** (`html_adapter.dart`): `<hr>` now correctly returns a styled `BlockNode` with a top border (`borderColor: #CCCCCC, borderWidth: 1px`), matching browser behavior. Previously it was incorrectly treated identically to `<br>`.
+
+- **Whitespace-only space nodes dropped between inline elements** (`html_adapter.dart`): Text nodes consisting only of horizontal spaces (e.g. `" "` between `<b>text</b> <i>more</i>`) were being silently dropped by `.trim().isEmpty`, causing missing word-separating spaces. Fixed to only drop nodes that contain newlines (structural indentation whitespace), not pure-space nodes.
+
+- **`TextPainter` cache hash collision** (`render_hyper_box.dart`): The `_LruCache<int, TextPainter>` key was computed with `Object.hash()` which can collide for large documents with many distinct text styles, leading to wrong text metrics and subtle layout glitches. Replaced with a new `_TextPainterKey` class using full value equality over all 9 style fields.
+
+- **`@override` analyzer warning** (`packages/hyper_render_html/lib/src/css_parser.dart`): Removed incorrect `@override` on `parseKeyframes()`. The `override_on_non_overriding_member` lint flagged this because the parent method has a concrete default body. Now `flutter analyze` reports 0 issues.
+
+### 📸 Assets & Documentation
+
+- **Added `assets/logo.svg`** — vector HyperRender logo now correctly displayed in README header and pub.dev listing.
+- **README**: Fixed broken in-page navigation links (`Quick Start`, `Why Switch?`, `API`, `Packages`) — added emoji prefixes to section headings which generate the leading `-` in GitHub anchor IDs. Improved bottom section with star call-to-action, Discussions, API docs links. Updated version badge to `1.1.4`.
+
 ## [1.1.3] - 2026-03-25
 
 - Remove `publish_to: none` from all sub-package pubspec.yaml files so pub.dev can verify repository URLs (fixes pub points deduction).

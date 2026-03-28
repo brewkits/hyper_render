@@ -86,7 +86,7 @@ class RenderHyperBox extends RenderBox
   /// The LRU eviction ensures memory stays bounded while keeping frequently used painters
   /// Larger cache = better performance for stress tests with 500+ pages
   /// 5000 entries ≈ ~20MB memory for typical text styles
-  late final _LruCache<int, TextPainter> _textPainters = _LruCache(
+  late final _LruCache<_TextPainterKey, TextPainter> _textPainters = _LruCache(
     maxSize: 5000,
     onEvict: (painter) => painter.dispose(),
   );

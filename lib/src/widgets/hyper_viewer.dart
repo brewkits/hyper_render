@@ -911,6 +911,9 @@ class _HyperViewerState extends State<HyperViewer>
           }
         }).catchError((Object e, StackTrace st) {
           _cancelParsing();
+          // Suppress the 'No element' StateError caused by closing the ReceivePort
+          // during an active wait (e.g. widget disposed or parsing cancelled).
+          if (e is StateError && e.message == 'No element') return;
           if (mounted && _parseId == currentParseId) {
             _reportError(e, st);
             setState(() => _isLoading = false);
