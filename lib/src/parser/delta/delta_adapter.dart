@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/painting.dart';
 
 import '../adapter.dart';
+import '../../utils/html_sanitizer.dart';
 
 /// Quill Delta to UDT adapter
 ///
@@ -222,11 +223,13 @@ class DeltaAdapter extends ExtendedDocumentAdapter {
     final style = _attributesToStyle(attributes);
     final textNode = TextNode(text, style: style);
 
-    // Handle link
+    // Handle link — sanitize to block javascript: XSS
     if (attributes.containsKey('link')) {
+      final rawHref = attributes['link'].toString();
+      final href = HtmlSanitizer.isSafeUrl(rawHref) ? rawHref : '#';
       return InlineNode(
         tagName: 'a',
-        attributes: {'href': attributes['link'].toString()},
+        attributes: {'href': href},
         style: style.copyWith(
           color: const Color(0xFF0000EE),
           textDecoration: TextDecoration.underline,
@@ -354,9 +357,10 @@ class DeltaAdapter extends ExtendedDocumentAdapter {
     Map<String, dynamic>? attributes,
     List<String> warnings,
   ) {
-    // Image
+    // Image — sanitize src to block javascript:/data: XSS
     if (embed.containsKey('image')) {
-      final src = embed['image'].toString();
+      final rawSrc = embed['image'].toString();
+      final src = HtmlSanitizer.isSafeUrl(rawSrc) ? rawSrc : '';
       return AtomicNode.img(
         src: src,
         alt: attributes?['alt']?.toString(),
@@ -365,9 +369,10 @@ class DeltaAdapter extends ExtendedDocumentAdapter {
       );
     }
 
-    // Video
+    // Video — sanitize src
     if (embed.containsKey('video')) {
-      final src = embed['video'].toString();
+      final rawSrc = embed['video'].toString();
+      final src = HtmlSanitizer.isSafeUrl(rawSrc) ? rawSrc : '';
       return AtomicNode.video(
         src: src,
         width: _parseDouble(embed['width']),
