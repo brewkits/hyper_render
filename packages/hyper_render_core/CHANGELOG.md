@@ -1,5 +1,14 @@
 # Changelog — hyper_render_core
 
+## [1.1.4] - 2026-03-28
+
+### 🐛 Bug Fixes
+- **`display:none` not respected**: Added guard in `_tokenizeNode` — elements with `display:none` produce no layout fragments.
+- **`_TextPainterKey` hash collision**: Replaced `Object.hash()` int key with full value-equality struct — eliminates subtle layout glitches on large documents with many distinct text styles.
+
+### 🏗️ Code Quality
+- `dart fix` applied to test files: 73 `prefer_const` issues resolved — 0 analyzer issues.
+
 ## [1.1.3] - 2026-03-25
 
 - Remove `publish_to: none` from pubspec.yaml so pub.dev can verify the repository URL (fixes 10-point deduction).
