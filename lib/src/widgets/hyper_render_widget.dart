@@ -693,7 +693,7 @@ class HyperImage extends StatelessWidget {
           return Container(
             width: width ?? 100,
             height: height ?? 100,
-            color: const Color(0xFFF5F5F5),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: Center(
               child: SizedBox(
                 width: 24,
@@ -719,13 +719,14 @@ class HyperImage extends StatelessWidget {
           );
         },
         errorBuilder: (context, error, stackTrace) {
+          final scheme = Theme.of(context).colorScheme;
           return Container(
             width: width ?? 100,
             height: height ?? 100,
-            color: const Color(0xFFE0E0E0),
-            child: const Center(
-              child:
-                  Icon(Icons.broken_image, size: 32, color: Color(0xFF9E9E9E)),
+            color: scheme.surfaceContainerHighest,
+            child: Center(
+              child: Icon(Icons.broken_image, size: 32,
+                  color: scheme.onSurfaceVariant),
             ),
           );
         },
@@ -874,15 +875,19 @@ class _SvgPlaceholderPainter extends CustomPainter {
   final String svgData;
   const _SvgPlaceholderPainter(this.svgData);
 
+  // Semi-transparent grays work on both light and dark backgrounds.
+  static const _fill = Color(0x1A808080);
+  static const _stroke = Color(0x40808080);
+
   @override
   void paint(Canvas canvas, Size size) {
-    // Fill
+    // Fill — adaptive to any background brightness
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(0, 0, size.width, size.height),
         const Radius.circular(4),
       ),
-      Paint()..color = const Color(0xFFE0E0E0),
+      Paint()..color = _fill,
     );
     // Border
     canvas.drawRRect(
@@ -891,24 +896,16 @@ class _SvgPlaceholderPainter extends CustomPainter {
         const Radius.circular(4),
       ),
       Paint()
-        ..color = const Color(0xFFBDBDBD)
+        ..color = _stroke
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1,
     );
-    // Draw diagonal SVG placeholder lines
+    // Diagonal X lines
     final linePaint = Paint()
-      ..color = const Color(0xFFBDBDBD)
+      ..color = _stroke
       ..strokeWidth = 1;
-    canvas.drawLine(
-      Offset(0, 0),
-      Offset(size.width, size.height),
-      linePaint,
-    );
-    canvas.drawLine(
-      Offset(size.width, 0),
-      Offset(0, size.height),
-      linePaint,
-    );
+    canvas.drawLine(Offset.zero, Offset(size.width, size.height), linePaint);
+    canvas.drawLine(Offset(size.width, 0), Offset(0, size.height), linePaint);
   }
 
   @override
