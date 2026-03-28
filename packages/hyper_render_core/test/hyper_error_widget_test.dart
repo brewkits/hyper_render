@@ -535,13 +535,13 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: ListView(
-              children: [
-                const Text('Header'),
-                const HyperErrorWidget.image(
+              children: const [
+                Text('Header'),
+                HyperErrorWidget.image(
                   width: 300,
                   height: 200,
                 ),
-                const Text('Footer'),
+                Text('Footer'),
               ],
             ),
           ),
@@ -555,13 +555,13 @@ void main() {
 
     testWidgets('multiple error widgets render correctly', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Column(
               children: [
-                const HyperErrorWidget.error(message: 'Error 1'),
-                const HyperErrorWidget.warning(message: 'Warning 1'),
-                const HyperErrorWidget.info(message: 'Info 1'),
+                HyperErrorWidget.error(message: 'Error 1'),
+                HyperErrorWidget.warning(message: 'Warning 1'),
+                HyperErrorWidget.info(message: 'Info 1'),
               ],
             ),
           ),

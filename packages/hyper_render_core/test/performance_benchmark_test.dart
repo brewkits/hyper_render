@@ -183,9 +183,9 @@ void main() {
 
         // Populate cache
         for (final child in root.children) {
-          cache.setPosition(child, Rect.fromLTWH(0, 0, 100, 20));
+          cache.setPosition(child, const Rect.fromLTWH(0, 0, 100, 20));
           for (final grandchild in child.children) {
-            cache.setPosition(grandchild, Rect.fromLTWH(0, 0, 100, 20));
+            cache.setPosition(grandchild, const Rect.fromLTWH(0, 0, 100, 20));
           }
         }
 
@@ -367,10 +367,10 @@ void main() {
         // Cache all positions
         var nodeCount = 0;
         for (final child in root.children) {
-          cache.setPosition(child, Rect.fromLTWH(0, 0, 100, 20));
+          cache.setPosition(child, const Rect.fromLTWH(0, 0, 100, 20));
           nodeCount++;
           for (final grandchild in child.children) {
-            cache.setPosition(grandchild, Rect.fromLTWH(0, 0, 100, 20));
+            cache.setPosition(grandchild, const Rect.fromLTWH(0, 0, 100, 20));
             nodeCount++;
           }
         }
@@ -496,7 +496,7 @@ void main() {
         final index = CssRuleIndex();
         final rules = List.generate(
           1000,
-          (i) => ParsedCssRule(
+          (i) => const ParsedCssRule(
             selector: 'div',
             declarations: {'color': 'red'},
           ),
