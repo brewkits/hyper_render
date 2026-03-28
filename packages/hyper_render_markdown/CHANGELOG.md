@@ -1,5 +1,9 @@
 # Changelog — hyper_render_markdown
 
+## [1.1.4] - 2026-03-28
+
+- Version bump to stay in sync with `hyper_render` 1.1.4.
+
 ## [1.1.3] - 2026-03-25
 
 - Remove `publish_to: none` from pubspec.yaml so pub.dev can verify the repository URL (fixes 10-point deduction).

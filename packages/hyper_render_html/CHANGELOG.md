@@ -1,5 +1,10 @@
 # Changelog — hyper_render_html
 
+## [1.1.4] - 2026-03-28
+
+### 🐛 Bug Fixes
+- **`@override` analyzer warning removed**: `parseKeyframes()` no longer carries `@override` annotation — method overrides a concrete default in `CssParserInterface`, which triggered `override_on_non_overriding_member` lint. `flutter analyze` now reports 0 issues.
+
 ## [1.1.3] - 2026-03-25
 
 - Remove `publish_to: none` from pubspec.yaml so pub.dev can verify the repository URL (fixes 10-point deduction).
