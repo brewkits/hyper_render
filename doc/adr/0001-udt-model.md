@@ -250,7 +250,7 @@ UDT supports both inline and block content seamlessly.
 ## References
 
 - Initial design doc: `docs/design/udt-architecture.md`
-- Implementation: `lib/src/model/node.dart`
+- Implementation: `packages/hyper_render_core/lib/src/model/node.dart`
 - Adapters: `lib/src/adapter/`
 
 ---

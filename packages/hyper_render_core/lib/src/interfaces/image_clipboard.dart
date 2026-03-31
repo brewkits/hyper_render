@@ -1,9 +1,9 @@
 import 'package:flutter/services.dart';
 
-/// Interface for image clipboard and sharing operations
+/// Interface for image clipboard and sharing operations.
 ///
-/// This interface allows users to provide custom implementations
-/// for copying images to clipboard, saving to device, and sharing.
+/// Implement this to customize how images are copied to the clipboard,
+/// saved to the device, or shared.
 ///
 /// ## Default Implementation
 /// The [DefaultImageClipboardHandler] only supports copying URLs to clipboard.

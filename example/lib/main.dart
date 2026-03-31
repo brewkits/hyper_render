@@ -30,6 +30,9 @@ import 'email_demo.dart';
 import 'stress_test_demo.dart';
 import 'why_hyper_render_demo.dart';
 import 'enterprise_features_demo.dart';
+import 'paged_mode_demo.dart';
+import 'plugin_api_demo.dart';
+import 'reader_app/library_screen.dart';
 
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
@@ -118,6 +121,18 @@ class DemoHomePage extends StatelessWidget {
             onTap: () => Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const EmailDemo())),
           ),
+          // ── Applications ──────────────────────────────────────────────────
+          _buildSectionHeader(context, 'Applications & Solutions'),
+          _buildDemoCard(
+            context,
+            icon: Icons.auto_stories,
+            title: 'HyperReader App',
+            subtitle:
+                'Full e-book solution with paged mode, themes, and library management',
+            color: Colors.deepPurple,
+            onTap: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const LibraryScreen())),
+          ),
           // ── Layout ────────────────────────────────────────────────────────
           _buildSectionHeader(context, 'Layout'),
           _buildDemoCard(
@@ -149,6 +164,26 @@ class DemoHomePage extends StatelessWidget {
             color: DemoColors.secondary,
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const Sprint3Demo())),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.menu_book_outlined,
+            title: 'Paged Mode',
+            subtitle:
+                'PageView-based e-book / reader UI — one section per page with HyperPageController navigation',
+            color: DemoColors.secondary,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const PagedModeDemo())),
+          ),
+          _buildDemoCard(
+            context,
+            icon: Icons.extension,
+            title: 'Plugin API',
+            subtitle:
+                'Render custom HTML tags as Flutter widgets — block and inline tiers (v1.2.0)',
+            color: DemoColors.secondary,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const PluginApiDemo())),
           ),
           // ── Text & Typography ─────────────────────────────────────────────
           _buildSectionHeader(context, 'Text & Typography'),
@@ -703,7 +738,7 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
 
       if (canLaunch) {
         print('[KitchenSinkDemo] Launching URL...');
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
         _showSnackBar(
             '🚀 Opening: ${uri.toString().length > 40 ? '${uri.toString().substring(0, 40)}...' : uri.toString()}');
       } else {
@@ -3075,10 +3110,10 @@ class VideoDemo extends StatelessWidget {
               </video>
             ''',
             onLinkTap: (url) async {
-              print('✅ [VideoDemo] TAP CALLBACK CALLED! URL: $url');
+              
               final uri = Uri.tryParse(url);
               if (uri != null && await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                await launchUrl(uri, mode: LaunchMode.platformDefault);
               }
             },
           ),
@@ -3098,10 +3133,10 @@ class VideoDemo extends StatelessWidget {
               </video>
             ''',
             onLinkTap: (url) async {
-              print('✅ [VideoDemo] TAP CALLBACK CALLED! URL: $url');
+              
               final uri = Uri.tryParse(url);
               if (uri != null && await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                await launchUrl(uri, mode: LaunchMode.platformDefault);
               }
             },
           ),
@@ -3116,7 +3151,7 @@ class VideoDemo extends StatelessWidget {
               <div style="display: flex; gap: 16px; flex-wrap: wrap;">
                 <video
                   src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
-                  poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg"
+                  poster="https://picsum.photos/seed/elephants/300/200"
                   width="300"
                   height="200"
                   controls>
@@ -3124,7 +3159,7 @@ class VideoDemo extends StatelessWidget {
 
                 <video
                   src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-                  poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg"
+                  poster="https://picsum.photos/seed/blazes/300/200"
                   width="300"
                   height="200"
                   controls>
@@ -3132,7 +3167,7 @@ class VideoDemo extends StatelessWidget {
 
                 <video
                   src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
-                  poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg"
+                  poster="https://picsum.photos/seed/sintel/300/200"
                   width="300"
                   height="200"
                   controls>
@@ -3140,10 +3175,10 @@ class VideoDemo extends StatelessWidget {
               </div>
             ''',
             onLinkTap: (url) async {
-              print('✅ [VideoDemo] TAP CALLBACK CALLED! URL: $url');
+              
               final uri = Uri.tryParse(url);
               if (uri != null && await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                await launchUrl(uri, mode: LaunchMode.platformDefault);
               }
             },
           ),
@@ -3159,7 +3194,7 @@ class VideoDemo extends StatelessWidget {
 
               <video
                 src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4"
-                poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/WeAreGoingOnBullrun.jpg"
+                poster="https://picsum.photos/seed/bullrun/320/180"
                 width="320"
                 height="180"
                 style="float: left; margin-right: 16px; margin-bottom: 8px;"
@@ -3183,10 +3218,10 @@ class VideoDemo extends StatelessWidget {
             ''',
             selectable: true,
             onLinkTap: (url) async {
-              print('✅ [VideoDemo] TAP CALLBACK CALLED! URL: $url');
+              
               final uri = Uri.tryParse(url);
               if (uri != null && await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                await launchUrl(uri, mode: LaunchMode.platformDefault);
               }
             },
           ),

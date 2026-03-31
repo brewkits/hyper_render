@@ -1,6 +1,6 @@
 # Usage Guide
 
-This guide provides comprehensive examples of using the `hyper_render_clipboard` package in various scenarios.
+Examples and recipes for using the `hyper_render_clipboard` package.
 
 ## Table of Contents
 

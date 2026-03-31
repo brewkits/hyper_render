@@ -1,12 +1,11 @@
 # Supported HTML Elements and CSS Properties
 
 This document lists the HTML elements and CSS properties that hyper_render
-renders correctly.  Anything not listed here is either silently unwrapped
+renders correctly. Anything not listed here is either silently unwrapped
 (unknown tags) or ignored (unknown CSS properties).
 
-For content that falls outside this subset, use the `fallbackBuilder`
-parameter to delegate to a WebView or other renderer — see
-[LIMITATIONS.md](LIMITATIONS.md) for guidance.
+For content that falls outside this subset, use the **Plugin API (v1.2.0)**
+or the `fallbackBuilder` parameter to delegate to a WebView or other renderer.
 
 ---
 
@@ -40,7 +39,7 @@ parameter to delegate to a WebView or other renderer — see
 | `<span>` | Generic inline container |
 | `<a>` | Links — `href` resolved against `baseUrl`; `onLinkTap` callback |
 | `<strong>`, `<b>` | Bold |
-| `<em>`, `<i>` | Italic |
+| `em>`, `<i>` | Italic |
 | `<u>` | Underline |
 | `<s>`, `<del>` | Strikethrough |
 | `<ins>`, `<mark>` | Highlight |
@@ -58,7 +57,7 @@ parameter to delegate to a WebView or other renderer — see
 | Element | Notes |
 |---------|-------|
 | `<img>` | Lazy-loaded; `alt`, `width`, `height`, aspect ratio |
-| `<video>` | Placeholder widget with poster image; no JS playback |
+| `<video>` | Placeholder widget with poster image |
 | `<audio>` | Placeholder audio bar |
 | `<source>` | Parsed for media attributes |
 | `<picture>` | First `<img>` child used |
@@ -71,9 +70,9 @@ parameter to delegate to a WebView or other renderer — see
 
 | Property | Support |
 |----------|---------|
-| `color` | Full — named, hex (#RGB, #RRGGBB, #RGBA, #RRGGBBAA), rgb(), rgba(), hsl() |
-| `font-size` | px, em, rem, %, named (small/medium/large/…) |
-| `font-weight` | Numeric (100–900) and named |
+| `color` | Full color support including alpha |
+| `font-size` | px, em, rem, %, named |
+| `font-weight` | 100–900 and named |
 | `font-style` | normal, italic, oblique |
 | `font-family` | System font lookup |
 | `line-height` | Unitless, px, em, % |
@@ -84,6 +83,7 @@ parameter to delegate to a WebView or other renderer — see
 | `text-transform` | uppercase, lowercase, capitalize |
 | `white-space` | normal, pre, pre-wrap, nowrap |
 | `text-overflow` | clip, ellipsis |
+| `text-shadow` | Full support for multiple shadows (v1.2.0) |
 | `direction` / `dir` attr | ltr, rtl |
 
 ### Box Model
@@ -92,9 +92,9 @@ parameter to delegate to a WebView or other renderer — see
 |----------|---------|
 | `width`, `height` | px, %, em, rem; `auto` |
 | `min-width`, `max-width` | px, %, em |
-| `margin` | All shorthand forms; `auto` on block elements |
+| `margin` | All shorthand forms; `auto` support |
 | `padding` | All shorthand forms |
-| `border` | `border`, `border-width`, `border-color`, `border-style` |
+| `border` | width, style, color |
 | `border-style` | solid, dashed, dotted, double, none |
 | `border-radius` | px, % |
 | `box-sizing` | border-box, content-box |
@@ -104,44 +104,38 @@ parameter to delegate to a WebView or other renderer — see
 
 | Property | Support |
 |----------|---------|
-| `display` | block, inline, inline-block, none, flex, grid |
-| `float` | left, right, none |
+| `display` | block, inline, inline-block, none, flex, grid, table |
+| `float` | left, right, none (Full wrapping support) |
 | `clear` | left, right, both, none |
-| `position` | **relative only** — absolute/fixed not supported |
-| Flexbox | `flex-direction`, `justify-content`, `align-items`, `flex-wrap`, `flex`, `flex-grow`, `flex-shrink`, `flex-basis` |
-| CSS Grid | `display: grid`, `grid-template-columns`, `grid-template-rows`, `gap`, `grid-column`, `grid-row` |
+| `position` | **relative only** |
+| Flexbox | Full support for flex containers and items |
+| CSS Grid | Full support including fr-units and gap (v1.2.0) |
 
 ### Background
 
 | Property | Support |
 |----------|---------|
 | `background-color` | Full color support |
-| `background-image` | `url()`, `linear-gradient()` |
+| `background-image` | `url()`, `linear-gradient()` (v1.2.0) |
 | `background-size` | cover, contain, fill |
-| `background-position` | Not supported |
 
 ### Effects
 
 | Property | Support |
 |----------|---------|
 | `opacity` | Full (0.0–1.0) |
-| `box-shadow` | x y blur spread color (multiple shadows) |
-| `text-shadow` | x y blur color (multiple shadows) |
+| `box-shadow` | Full support for multiple shadows (v1.2.0) |
 | `filter` | blur, brightness, contrast |
 | `backdrop-filter` | blur (Glassmorphism) |
-| `transform` | Not supported |
-| `clip-path` | Not supported |
 
 ### Advanced
 
 | Property | Support |
 |----------|---------|
-| CSS Variables (`--prop: value`) | Full — `var()` with fallback |
-| `calc()` | px/em/rem arithmetic |
+| CSS Variables (`--prop: value`) | Full inheritance and resolution |
+| `calc()` | Arithmetic expressions |
 | `!important` | Respected in cascade |
-| CSS specificity | Full — inline > id > class > element |
-| `@media` queries | Not supported |
-| `@keyframes` | Not directly — use `HyperAnimatedWidget` |
+| `@keyframes` | Parsed from `<style>` tags automatically (v1.2.0) |
 
 ---
 
@@ -151,32 +145,21 @@ parameter to delegate to a WebView or other renderer — see
 |-----------|----------|-------|
 | `id`, `class` | All | Used for CSS selectors |
 | `style` | All | Inline CSS |
-| `lang`, `dir` | All | Language and text direction |
-| `href` | `<a>` | Absolute or relative (resolved via `baseUrl`) |
-| `src`, `alt`, `width`, `height` | `<img>`, `<video>`, `<audio>` | Media attributes |
+| `href` | `<a>` | Absolute or relative |
+| `src`, `alt`, `width`, `height` | `<img>` | Media attributes |
 | `colspan`, `rowspan` | `<td>`, `<th>` | Table spanning |
-| `open` | `<details>` | Default expanded state |
-| `controls`, `autoplay`, `loop`, `muted`, `poster` | `<video>`, `<audio>` | Media controls |
-| `aria-label`, `aria-labelledby` | All | Accessibility labels |
-| `role` | All | ARIA role (`button`, `region`, `heading`) |
+| `aria-label` | All | Accessibility label (v1.2.0) |
 
 ---
 
 ## Unsupported
 
-The following will **not** render correctly in hyper_render.  Use
-`fallbackBuilder` to delegate to a WebView when the content requires these:
-
-- `position: absolute` / `position: fixed` — overlapping layouts
-- `z-index` — stacking contexts
-- `clip-path` — non-rectangular masks
-- `@media` queries — responsive breakpoints
-- `@keyframes` / CSS animations (use `HyperAnimatedWidget` instead)
-- `<canvas>` — requires JavaScript 2D/WebGL
-- `<form>`, `<input>`, `<select>`, `<textarea>` — interactive form controls
-- `<script>` — JavaScript execution is not supported
-- `<iframe>`, `<embed>`, `<object>`, `<applet>` — embedded content
+- `position: absolute` / `position: fixed`
+- `z-index`
+- `clip-path`
+- `<form>`, `<input>`, `<select>`, `<textarea>` (Use Plugin API for these)
+- `<script>` — JavaScript execution
 
 ---
 
-*Last updated: March 17, 2026*
+*Last updated: March 30, 2026 — HyperRender v1.2.0*

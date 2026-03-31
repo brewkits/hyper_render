@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../model/node.dart';
 
-/// Callback for building custom media widgets
+/// Callback for building custom media widgets.
 ///
-/// This allows users to plug in their own video/audio player implementations
-/// (video_player, chewie, just_audio, etc.)
+/// Use this to plug in your own video/audio player implementations
+/// (like video_player, chewie, or just_audio).
 typedef MediaWidgetBuilder = Widget Function(
   BuildContext context,
   MediaInfo mediaInfo,
@@ -101,11 +101,10 @@ extension AtomicNodeMediaExtension on AtomicNode {
   MediaInfo get mediaInfo => MediaInfo.fromNode(this);
 }
 
-/// Default media widget - shows a placeholder with play button
+/// Default placeholder for media elements.
 ///
-/// This is used when no custom MediaWidgetBuilder is provided.
-/// For actual video/audio playback, users should provide their own
-/// implementation using video_player, chewie, just_audio, etc.
+/// This shows a simple box with a play button. For actual playback,
+/// provide your own builder using a package like video_player or just_audio.
 class DefaultMediaWidget extends StatefulWidget {
   final MediaInfo mediaInfo;
   final VoidCallback? onTap;

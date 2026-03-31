@@ -586,6 +586,16 @@ MyWidget()        // Not as good</code></pre>
                                 'TalkBack/VoiceOver users can swipe between headings.',
                           ),
                           _buildBestPractice(
+                            '🖼️ Image alt-text (v1.2.0)',
+                            '<img> tags with alt="…" produce discrete semantic nodes. '
+                                'Screen readers can now navigate to images directly.',
+                          ),
+                          _buildBestPractice(
+                            '🔗 aria-label on links (v1.2.0)',
+                            '<a aria-label="…"> overrides text content for screen readers. '
+                                'Useful for "Read more" links that need more context.',
+                          ),
+                          _buildBestPractice(
                             '🔗 Link activation (isLink + onTap)',
                             '<a href> elements produce isLink:true nodes. '
                                 'The screen reader "activate" action calls onLinkTap.',

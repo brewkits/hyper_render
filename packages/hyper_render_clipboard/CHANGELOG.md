@@ -1,5 +1,10 @@
 # Changelog — hyper_render_clipboard
 
+## [1.2.0] - 2026-03-30
+
+- Version bump to stay in sync with `hyper_render` 1.2.0.
+- No API changes in this package.
+
 ## [1.1.4] - 2026-03-28
 
 - Version bump to stay in sync with `hyper_render` 1.1.4.

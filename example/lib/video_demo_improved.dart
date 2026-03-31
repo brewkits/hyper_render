@@ -93,21 +93,21 @@ class ImprovedVideoDemo extends StatelessWidget {
                 <p style="margin:0 0 10px 0;">
                   <video
                     src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
-                    poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg"
+                    poster="https://picsum.photos/seed/elephants/640/360"
                     width="640" height="360" controls>
                   </video>
                 </p>
                 <p style="margin:0 0 10px 0;">
                   <video
                     src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-                    poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg"
+                    poster="https://picsum.photos/seed/blazes/640/360"
                     width="640" height="360" controls>
                   </video>
                 </p>
                 <p style="margin:0;">
                   <video
                     src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
-                    poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg"
+                    poster="https://picsum.photos/seed/sintel/640/360"
                     width="640" height="360" controls>
                   </video>
                 </p>
@@ -136,7 +136,7 @@ class ImprovedVideoDemo extends StatelessWidget {
 
                 <video
                   src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4"
-                  poster="https://storage.googleapis.com/gtv-videos-bucket/sample/images/WeAreGoingOnBullrun.jpg"
+                  poster="https://picsum.photos/seed/bullrun/320/180"
                   width="320"
                   height="180"
                   style="float: left; margin-right: 16px; margin-bottom: 8px;"
@@ -310,7 +310,7 @@ class ImprovedVideoDemo extends StatelessWidget {
         if (shouldOpen == true) {
           try {
             final uri = Uri.parse(mediaInfo.src);
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
+            await launchUrl(uri, mode: LaunchMode.platformDefault);
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(

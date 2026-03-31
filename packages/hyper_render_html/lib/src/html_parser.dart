@@ -29,7 +29,12 @@ class DefaultHtmlParser implements ContentParser {
   }
 
   @override
-  List<DocumentNode> parseToSections(String content, {int chunkSize = 3000}) {
-    return _adapter.parseToSections(content, chunkSize: chunkSize);
+  List<DocumentNode> parseToSections(
+    String content, {
+    int chunkSize = 3000,
+    String? baseUrl,
+  }) {
+    return _adapter.parseToSections(content,
+        chunkSize: chunkSize, baseUrl: baseUrl);
   }
 }

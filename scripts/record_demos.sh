@@ -35,11 +35,11 @@ SINGLE_DEMO="${2:-}"
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 
-info()    { echo -e "${BLUE}ℹ${NC}  $*"; }
-success() { echo -e "${GREEN}✓${NC}  $*"; }
-warn()    { echo -e "${YELLOW}⚠${NC}  $*"; }
-error()   { echo -e "${RED}✗${NC}  $*"; exit 1; }
-step()    { echo -e "\n${BOLD}${CYAN}══ $* ══${NC}"; }
+info()    { echo -e "${BLUE}ℹ${NC}  $*" >&2; }
+success() { echo -e "${GREEN}✓${NC}  $*" >&2; }
+warn()    { echo -e "${YELLOW}⚠${NC}  $*" >&2; }
+error()   { echo -e "${RED}✗${NC}  $*" >&2; exit 1; }
+step()    { echo -e "\n${BOLD}${CYAN}══ $* ══${NC}" >&2; }
 
 # ── Kiểm tra ffmpeg ───────────────────────────────────────────────────────────
 if ! command -v ffmpeg &>/dev/null; then
@@ -94,7 +94,7 @@ for runtime in d.get('devices', {}).values():
 
   info "Bắt đầu record iOS Simulator (${duration}s)..."
   info "→ Điều hướng đến màn hình demo BÂY GIỜ, rồi tương tác trong ${duration}s."
-  echo ""
+  echo "" >&2
 
   # Record trong background
   xcrun simctl io "$UDID" recordVideo --codec=h264 "$outfile" &
@@ -102,10 +102,10 @@ for runtime in d.get('devices', {}).values():
 
   # Countdown
   for ((i=duration; i>0; i--)); do
-    printf "\r  ⏺  Recording... ${i}s còn lại   "
+    printf "\r  ⏺  Recording... ${i}s còn lại   " >&2
     sleep 1
   done
-  printf "\r  ⏹  Dừng recording...              \n"
+  printf "\r  ⏹  Dừng recording...              \n" >&2
 
   # Stop recording
   kill -SIGINT "$REC_PID" 2>/dev/null || true
@@ -131,16 +131,16 @@ record_android() {
 
   info "Bắt đầu record Android (${duration}s)..."
   info "→ Điều hướng đến màn hình demo BÂY GIỜ, rồi tương tác trong ${duration}s."
-  echo ""
+  echo "" >&2
 
   adb shell screenrecord --time-limit "$duration" "$device_path" &
   local REC_PID=$!
 
   for ((i=duration; i>0; i--)); do
-    printf "\r  ⏺  Recording... ${i}s còn lại   "
+    printf "\r  ⏺  Recording... ${i}s còn lại   " >&2
     sleep 1
   done
-  printf "\r  ⏹  Pulling video...              \n"
+  printf "\r  ⏹  Pulling video...              \n" >&2
 
   wait "$REC_PID" 2>/dev/null || true
   adb pull "$device_path" "$outfile"

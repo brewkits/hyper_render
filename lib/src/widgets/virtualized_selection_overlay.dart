@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // ignore: unnecessary_import
+import 'package:flutter/services.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 
 import 'virtualized_selection_controller.dart';
@@ -28,6 +28,7 @@ class VirtualizedChunk extends StatefulWidget {
     this.onAnchorLayout,
     this.initialFloats = const [],
     this.onFloatCarryover,
+    this.pluginRegistry,
   });
 
   final int chunkIndex;
@@ -48,6 +49,7 @@ class VirtualizedChunk extends StatefulWidget {
   )? onAnchorLayout;
   final List<FloatCarryover> initialFloats;
   final void Function(List<FloatCarryover>)? onFloatCarryover;
+  final HyperPluginRegistry? pluginRegistry;
 
   @override
   State<VirtualizedChunk> createState() => _VirtualizedChunkState();
@@ -56,6 +58,10 @@ class VirtualizedChunk extends StatefulWidget {
 class _VirtualizedChunkState extends State<VirtualizedChunk> {
   final GlobalKey _renderKey = GlobalKey();
   bool _registered = false;
+
+  /// Holds the parent scroll position while the user is drag-selecting inside
+  /// this chunk, preventing the ListView from stealing the gesture.
+  ScrollHoldController? _scrollHold;
 
   @override
   void initState() {
@@ -77,10 +83,17 @@ class _VirtualizedChunkState extends State<VirtualizedChunk> {
 
   @override
   void dispose() {
+    _releaseScrollHold();
     if (_registered) {
       widget.selectionController.unregisterChunk(widget.chunkIndex);
     }
     super.dispose();
+  }
+
+  void _releaseScrollHold() {
+    final hold = _scrollHold;
+    _scrollHold = null;
+    hold?.cancel();
   }
 
   void _tryRegister() {
@@ -103,9 +116,35 @@ class _VirtualizedChunkState extends State<VirtualizedChunk> {
     widget.selectionController.notifyHandleRectsChanged();
   }
 
+  // ── Long-press driven selection ────────────────────────────────────────────
+
+  void _onLongPressStart(LongPressStartDetails details) {
+    if (!widget.selectable) return;
+    final box = _renderKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final local = box.globalToLocal(details.globalPosition);
+    widget.selectionController.startSelection(widget.chunkIndex, local);
+    // Freeze the ListView so drag-selection doesn't fight the scroll view.
+    _releaseScrollHold();
+    _scrollHold =
+        Scrollable.maybeOf(context)?.position.hold(_releaseScrollHold);
+  }
+
+  void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
+    if (!widget.selectable) return;
+    // Extend the END anchor while keeping start fixed — reuses the same path
+    // as handle-dragging so cross-chunk selection works automatically.
+    widget.selectionController
+        .updateSelectionFromHandle(false, details.globalPosition);
+  }
+
+  void _onLongPressEnd(LongPressEndDetails details) {
+    _releaseScrollHold();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return KeyedSubtree(
+    final content = KeyedSubtree(
       key: _renderKey,
       child: HyperRenderWidget(
         document: widget.document,
@@ -122,7 +161,22 @@ class _VirtualizedChunkState extends State<VirtualizedChunk> {
         onAnchorLayout: widget.onAnchorLayout,
         initialFloats: widget.initialFloats,
         onFloatCarryover: widget.onFloatCarryover,
+        pluginRegistry: widget.pluginRegistry,
       ),
+    );
+
+    if (!widget.selectable) return content;
+
+    // Wrap with a LongPressGestureDetector so selection competes in the gesture
+    // arena against the ListView's VerticalDragGestureRecognizer.  A quick
+    // touch-move → scroll wins and long-press is cancelled (no selection).
+    // Only holding for ~500 ms starts selection and freezes the scroll.
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onLongPressStart: _onLongPressStart,
+      onLongPressMoveUpdate: _onLongPressMoveUpdate,
+      onLongPressEnd: _onLongPressEnd,
+      child: content,
     );
   }
 }
@@ -264,7 +318,13 @@ class _VirtualizedSelectionOverlayState
           // The virtualised list content.
           Listener(
             onPointerDown: (_) {
-              if (_showMenu) ctrl.clearSelection();
+              // Guard: when the Copy menu is visible, pointer-down fires for
+              // every tap in the Stack (including taps ON the menu buttons)
+              // because the Listener is translucent and the menu overlaps the
+              // content area.  Clearing selection here would nullify the text
+              // before the button's onPressed fires, making copy silently fail.
+              if (_showMenu) return;
+              if (ctrl.hasSelection) ctrl.clearSelection();
             },
             behavior: HitTestBehavior.translucent,
             child: widget.child,
@@ -335,7 +395,10 @@ class _VirtualizedSelectionOverlayState
   }
 
   Widget _buildMenu(BuildContext context, Rect topmostRect) {
-    final menuTop = topmostRect.top - 8 - 56;
+    // Clamp to 0 so the menu never goes above the Stack's bounds.
+    // Flutter hit-testing does not follow Clip.none — children outside parent
+    // bounds are unreachable even when visually rendered.
+    final menuTop = (topmostRect.top - 8 - 56).clamp(0.0, double.infinity);
 
     return Positioned(
       left: 0,

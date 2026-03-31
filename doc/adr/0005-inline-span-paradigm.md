@@ -606,7 +606,7 @@ fontFamilyFallback: ['Roboto', 'Noto Sans', 'Arial']
 
 ## References
 
-- Implementation: `lib/src/core/render_hyper_box.dart` (lines 800-1200)
+- Implementation: `packages/hyper_render_core/lib/src/core/render_hyper_box.dart` (lines 800-1200)
 - Flutter TextPainter: https://api.flutter.dev/flutter/painting/TextPainter-class.html
 - InlineSpan: https://api.flutter.dev/flutter/painting/InlineSpan-class.html
 - Tests: `test/text_rendering_test.dart`
