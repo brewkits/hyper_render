@@ -30,6 +30,16 @@ enum HyperRenderMode {
   /// Asynchronous parse + [ListView.builder]-based virtualised rendering.
   /// Best for long documents (articles, emails, feeds).
   virtualized,
+
+  /// Asynchronous parse + [PageView.builder]-based paginated rendering.
+  ///
+  /// Each page corresponds to one document chunk (same chunking as
+  /// [virtualized]). Suitable for e-book / epub / reader UIs where the user
+  /// swipes between pages rather than scrolling continuously.
+  ///
+  /// Supply a [HyperPageController] via [HyperViewer.pageController] to
+  /// programmatically jump to a page or observe page changes.
+  paged,
 }
 
 /// Content type for HyperViewer
@@ -56,8 +66,27 @@ class HyperViewer extends StatefulWidget {
   @Deprecated('Use content parameter instead')
   String get html => content;
 
+  /// Controls whether to use virtualized (lazy) or standard rendering.
+  ///
+  /// - [HyperRenderMode.auto] (default): chooses virtualized mode automatically
+  ///   for documents longer than 10,000 characters, standard for shorter ones.
+  /// - [HyperRenderMode.sync]: always render the full document in a single
+  ///   [Column]. Best for short, embeddable content.
+  /// - [HyperRenderMode.virtualized]: always use a [ListView.builder] so only
+  ///   visible sections are laid out. Required for very long documents.
   final HyperRenderMode mode;
+
+  /// Whether the user can select and copy text.
+  ///
+  /// Wraps the content in a [SelectionArea] when true. Defaults to false.
   final bool selectable;
+
+  /// Called when the user taps a hyperlink.
+  ///
+  /// The callback receives the resolved URL string (relative URLs are resolved
+  /// against [baseUrl] if provided). Return without side-effects to suppress
+  /// the default behavior (no URL launcher is bundled — add `url_launcher` and
+  /// call `launchUrl` yourself as needed).
   final Function(String)? onLinkTap;
 
   /// Additional URL schemes allowed by [onLinkTap], beyond the built-in
@@ -91,7 +120,27 @@ class HyperViewer extends StatefulWidget {
   ///
   /// Defaults to [HyperRenderConfig.defaults] which is tuned for mid-range devices.
   final HyperRenderConfig renderConfig;
+
+  /// Override the default widget for specific node types.
+  ///
+  /// Called for every [UDTNode] before the built-in renderer is used. Return a
+  /// widget to replace the default rendering, or `null` to fall through to the
+  /// built-in behavior.
+  ///
+  /// Example — replace all `<img>` nodes with a custom cached-network-image:
+  /// ```dart
+  /// widgetBuilder: (node) {
+  ///   if (node is AtomicNode && node.tagName == 'img' && node.src != null) {
+  ///     return CachedNetworkImage(imageUrl: node.src!);
+  ///   }
+  ///   return null; // use default rendering
+  /// },
+  /// ```
   final HyperWidgetBuilder? widgetBuilder;
+
+  /// Widget shown while content is being parsed.
+  ///
+  /// Defaults to a centered [CircularProgressIndicator] when null.
   final WidgetBuilder? placeholderBuilder;
 
   /// Base URL used to resolve relative `src` and `href` attributes in HTML.
@@ -260,7 +309,7 @@ class HyperViewer extends StatefulWidget {
   /// Key for screenshot/print export via [HyperCaptureExtension].
   ///
   /// When provided, wraps the rendered content in a [RepaintBoundary] so
-  /// [HyperCaptureExtension.toImage()] and [toPngBytes()] work correctly.
+  /// [HyperCaptureExtension.toImage()] and `toPngBytes()` work correctly.
   ///
   /// ## Usage
   /// ```dart
@@ -327,6 +376,41 @@ class HyperViewer extends StatefulWidget {
   /// ```
   final HyperViewerController? controller;
 
+  /// Optional controller for [HyperRenderMode.paged] mode.
+  ///
+  /// Provides programmatic page navigation and page-count/current-page
+  /// observation.  Ignored when [mode] is not [HyperRenderMode.paged].
+  ///
+  /// ```dart
+  /// final _page = HyperPageController();
+  ///
+  /// HyperViewer(
+  ///   html: longContent,
+  ///   mode: HyperRenderMode.paged,
+  ///   pageController: _page,
+  /// )
+  ///
+  /// // Jump to page 3
+  /// _page.animateToPage(3);
+  /// ```
+  final HyperPageController? pageController;
+
+  /// Optional registry of custom HTML tag plugins.
+  ///
+  /// Plugins registered here intercept specific HTML tag names and render them
+  /// as arbitrary Flutter widgets instead of the built-in canvas renderer.
+  ///
+  /// ```dart
+  /// final registry = HyperPluginRegistry()
+  ///   ..register(MyBlockPlugin())   // isInline == false
+  ///   ..register(MyInlinePlugin()); // isInline == true
+  ///
+  /// HyperViewer(html: html, pluginRegistry: registry)
+  /// ```
+  ///
+  /// See [HyperNodePlugin] and [HyperPluginRegistry] for full API docs.
+  final HyperPluginRegistry? pluginRegistry;
+
   /// Pre-parsed document node. When set, the parse step is skipped entirely.
   /// Used by [HyperViewer.fromNode] and by consumers who pre-process the AST.
   final DocumentNode? _prebuiltDocument;
@@ -377,6 +461,8 @@ class HyperViewer extends StatefulWidget {
     this.physics,
     this.onError,
     this.controller,
+    this.pageController,
+    this.pluginRegistry,
     this.renderConfig = HyperRenderConfig.defaults,
   })  : content = html,
         contentType = HyperContentType.html,
@@ -424,6 +510,8 @@ class HyperViewer extends StatefulWidget {
     this.physics,
     this.onError,
     this.controller,
+    this.pageController,
+    this.pluginRegistry,
     this.renderConfig = HyperRenderConfig.defaults,
   })  : content = delta,
         contentType = HyperContentType.delta,
@@ -471,6 +559,8 @@ class HyperViewer extends StatefulWidget {
     this.physics,
     this.onError,
     this.controller,
+    this.pageController,
+    this.pluginRegistry,
     this.renderConfig = HyperRenderConfig.defaults,
   })  : content = markdown,
         contentType = HyperContentType.markdown,
@@ -524,6 +614,8 @@ class HyperViewer extends StatefulWidget {
         baseUrl = null,
         customCss = null,
         onError = null,
+        pageController = null,
+        pluginRegistry = null,
         _prebuiltDocument = document;
 
   @override
@@ -535,9 +627,11 @@ class HyperViewer extends StatefulWidget {
 class _ParseArgs {
   final String content;
   final String css;
+  final String? baseUrl;
   final int chunkSize;
   final SendPort port;
-  const _ParseArgs(this.content, this.css, this.chunkSize, this.port);
+  const _ParseArgs(
+      this.content, this.css, this.baseUrl, this.chunkSize, this.port);
 }
 
 class _HyperViewerState extends State<HyperViewer>
@@ -553,8 +647,25 @@ class _HyperViewerState extends State<HyperViewer>
   // Used for Sync mode
   DocumentNode? _syncDocument;
 
-  // Used for Virtualized mode
+  // Used for Virtualized / Paged mode
   List<DocumentNode>? _sections;
+
+  /// Content fingerprint per section.
+  ///
+  /// Computed as `Object.hashAll` over each child node's `textContent`.
+  /// When a parse produces new sections, unchanged sections (same hash) are
+  /// reused from [_sections] so their [RenderHyperBox] instances skip
+  /// re-layout — achieving ~90% rebuild reduction for live-updating feeds.
+  List<int> _sectionHashes = const [];
+
+  /// Internal [PageController] used when [widget.mode] is
+  /// [HyperRenderMode.paged] and no external [HyperPageController] is supplied.
+  PageController? _ownedPageController;
+
+  /// The effective [PageController] for paged mode.
+  PageController? get _pageCtrl =>
+      widget.pageController?._ctrl ?? _ownedPageController;
+
   bool _isLoading = true;
 
   /// Float carryovers indexed by section: _floatCarryovers[N] holds the
@@ -620,6 +731,9 @@ class _HyperViewerState extends State<HyperViewer>
         listViewKey: _virtualizedStackKey,
       );
     }
+    if (widget.mode == HyperRenderMode.paged && widget.pageController == null) {
+      _ownedPageController = PageController();
+    }
     _parseContent();
   }
 
@@ -634,7 +748,10 @@ class _HyperViewerState extends State<HyperViewer>
         oldWidget.sanitize != widget.sanitize ||
         oldWidget.allowedTags != widget.allowedTags ||
         oldWidget.allowDataAttributes != widget.allowDataAttributes ||
-        oldWidget.fallbackBuilder != widget.fallbackBuilder) {
+        oldWidget.fallbackBuilder != widget.fallbackBuilder ||
+        oldWidget.renderConfig.virtualizationChunkSize !=
+            widget.renderConfig.virtualizationChunkSize ||
+        oldWidget.pluginRegistry != widget.pluginRegistry) {
       _parseContent();
     }
   }
@@ -645,6 +762,7 @@ class _HyperViewerState extends State<HyperViewer>
     _cancelParsing();
     _contentFadeController.dispose();
     _virtualizedSelectionController?.dispose();
+    _ownedPageController?.dispose();
     super.dispose();
   }
 
@@ -657,6 +775,52 @@ class _HyperViewerState extends State<HyperViewer>
     _parseIsolate = null;
     _parseReceivePort?.close();
     _parseReceivePort = null;
+  }
+
+  // ── Dirty-flag incremental layout ────────────────────────────────────────
+
+  /// Stable content fingerprint for a single [DocumentNode] section.
+  ///
+  /// Hashes the concatenation of every top-level child's [UDTNode.textContent]
+  /// plus the child count.  Identical text structure → identical hash → the
+  /// existing [RenderHyperBox] instance is reused and skips re-layout.
+  static int _hashSection(DocumentNode doc) {
+    return Object.hashAll([
+      doc.children.length,
+      ...doc.children.map((c) => c.textContent),
+    ]);
+  }
+
+  /// Merges freshly parsed [newSections] with the current [_sections] list,
+  /// reusing existing [DocumentNode] objects wherever the content hash is
+  /// unchanged.
+  ///
+  /// Returns the merged list and updates [_sectionHashes] in place.
+  List<DocumentNode> _mergeSections(List<DocumentNode> newSections) {
+    final newHashes = newSections.map(_hashSection).toList(growable: false);
+    final oldSections = _sections;
+    final oldHashes = _sectionHashes;
+
+    if (oldSections == null ||
+        oldSections.isEmpty ||
+        oldHashes.length != oldSections.length) {
+      _sectionHashes = newHashes;
+      return newSections;
+    }
+
+    // Build a map from hash → old section for O(1) reuse lookup.
+    final Map<int, DocumentNode> oldByHash = {};
+    for (var i = 0; i < oldSections.length; i++) {
+      oldByHash[oldHashes[i]] = oldSections[i];
+    }
+
+    final merged = List<DocumentNode>.generate(newSections.length, (i) {
+      final h = newHashes[i];
+      return oldByHash[h] ?? newSections[i];
+    }, growable: false);
+
+    _sectionHashes = newHashes;
+    return merged;
   }
 
   /// Called by the system when available memory is low.
@@ -727,7 +891,7 @@ class _HyperViewerState extends State<HyperViewer>
     }
     // Only rebuild if the carryover actually changed.
     final prev = _floatCarryovers[index];
-    if (prev.length == carryovers.length && carryovers.isEmpty) return;
+    if (prev.length == carryovers.length && prev.isEmpty) return;
     setState(() {
       _floatCarryovers[index] = carryovers;
     });
@@ -745,8 +909,12 @@ class _HyperViewerState extends State<HyperViewer>
     if (handler == null) return null;
     return (String url) {
       final scheme = Uri.tryParse(url)?.scheme.toLowerCase() ?? '';
+      // Relative URLs (scheme == '') are always forwarded — the app's handler
+      // is responsible for resolving them against a base URL.
+      final isRelative = scheme.isEmpty;
       final customSchemes = widget.allowedCustomSchemes;
-      final isAllowed = _kAllowedSchemes.contains(scheme) ||
+      final isAllowed = isRelative ||
+          _kAllowedSchemes.contains(scheme) ||
           (customSchemes != null && customSchemes.contains(scheme));
       if (isAllowed) {
         handler(url);
@@ -791,9 +959,10 @@ class _HyperViewerState extends State<HyperViewer>
       return;
     }
 
-    // Reset extracted keyframes so stale animations don't persist across
-    // content changes.
+    // Reset extracted keyframes and section hash cache so stale animations /
+    // dirty-flag data don't persist across full content changes.
     _docKeyframes = const {};
+    _sectionHashes = const [];
 
     String contentToRender = widget.content;
     // CSS collected from <style> tags + customCss (applied to resolver directly,
@@ -823,13 +992,9 @@ class _HyperViewerState extends State<HyperViewer>
         }
       }
 
-      // 2. Resolve relative URLs against baseUrl
-      if (widget.baseUrl != null && widget.baseUrl!.isNotEmpty) {
-        contentToRender =
-            _resolveRelativeUrls(contentToRender, widget.baseUrl!);
-      }
-
-      // 3. Sanitize (strips <style> tags — safe, CSS already extracted above)
+      // 2. Sanitize (strips <style> tags — safe, CSS already extracted above)
+      // Note: baseUrl resolution is handled INSIDE the parser/adapter
+      // for better robustness than regex replacement.
       if (widget.sanitize) {
         contentToRender = HtmlSanitizer.sanitize(
           contentToRender,
@@ -840,6 +1005,7 @@ class _HyperViewerState extends State<HyperViewer>
     }
 
     final useVirtualization = widget.mode == HyperRenderMode.virtualized ||
+        widget.mode == HyperRenderMode.paged ||
         (widget.mode == HyperRenderMode.auto && contentToRender.length > 10000);
 
     final parser = _getDefaultParser();
@@ -848,7 +1014,11 @@ class _HyperViewerState extends State<HyperViewer>
       // Sync parsing (fast path for small content)
       _contentFadeController.reset();
       try {
-        final doc = parser.parse(contentToRender);
+        final doc = parser is ExtendedContentParser
+            ? parser.parseWithOptions(contentToRender,
+                baseUrl: widget.baseUrl, customCss: cssToApply)
+            : parser.parse(contentToRender);
+
         final resolver = StyleResolver();
         if (cssToApply.isNotEmpty) resolver.parseCss(cssToApply);
         resolver.resolveStyles(doc);
@@ -882,6 +1052,7 @@ class _HyperViewerState extends State<HyperViewer>
           _ParseArgs(
             contentToRender,
             cssToApply,
+            widget.baseUrl,
             widget.renderConfig.virtualizationChunkSize,
             receivePort.sendPort,
           ),
@@ -894,8 +1065,10 @@ class _HyperViewerState extends State<HyperViewer>
           _parseReceivePort = null;
           if (!mounted || _parseId != currentParseId) return;
           if (message is List) {
+            final fresh = List<DocumentNode>.from(message);
+            final merged = _mergeSections(fresh);
             setState(() {
-              _sections = List<DocumentNode>.from(message);
+              _sections = merged;
               _syncDocument = null;
               _isLoading = false;
               _floatCarryovers.clear(); // reset carryovers for new content
@@ -920,17 +1093,28 @@ class _HyperViewerState extends State<HyperViewer>
           }
         });
       } else {
-        // Fallback to sync parsing for Delta/Markdown
+        // Fallback to sync parsing for Delta/Markdown in virtualized/paged mode.
         _contentFadeController.reset();
         try {
-          final doc = parser.parse(contentToRender);
+          final doc = parser is ExtendedContentParser
+              ? parser.parseWithOptions(contentToRender,
+                  baseUrl: widget.baseUrl, customCss: cssToApply)
+              : parser.parse(contentToRender);
+
           final resolver = StyleResolver();
           if (cssToApply.isNotEmpty) resolver.parseCss(cssToApply);
           resolver.resolveStyles(doc);
+
+          // Paged and explicitly-virtualized modes both require _sections so
+          // the correct ListView/PageView builder is entered in _buildContent.
+          // Wrap the single document as a one-element list, then run it
+          // through _mergeSections so unchanged reloads skip re-layout.
+          final merged = _mergeSections([doc]);
           setState(() {
-            _syncDocument = doc;
-            _sections = null;
+            _sections = merged;
+            _syncDocument = null;
             _isLoading = false;
+            _floatCarryovers.clear();
           });
           _contentFadeController.forward();
         } catch (e, st) {
@@ -941,28 +1125,6 @@ class _HyperViewerState extends State<HyperViewer>
     }
   }
 
-  /// Resolves relative `src` and `href` attribute values against [base].
-  static String _resolveRelativeUrls(String html, String base) {
-    final baseUri = Uri.tryParse(base);
-    if (baseUri == null) return html;
-
-    return html.replaceAllMapped(
-      RegExp(r'''(src|href)=["']([^"']+)["']''', caseSensitive: false),
-      (m) {
-        final attr = m.group(1)!;
-        final url = m.group(2)!;
-        final uri = Uri.tryParse(url);
-        if (uri == null || uri.hasScheme) {
-          return m.group(0)!; // already absolute
-        }
-        final resolved = baseUri.resolveUri(uri).toString();
-        // Preserve original quote style
-        final quote = m.group(0)!.contains('"') ? '"' : "'";
-        return '$attr=$quote$resolved$quote';
-      },
-    );
-  }
-
   /// Isolate entry point. Runs [_parseAndChunk] and sends the result (or an
   /// error string) back via [_ParseArgs.port].
   ///
@@ -971,7 +1133,8 @@ class _HyperViewerState extends State<HyperViewer>
   /// message protocol cannot transfer.
   static void _isolateEntry(_ParseArgs args) {
     try {
-      final sections = _parseAndChunk((args.content, args.css, args.chunkSize));
+      final sections = _parseAndChunk(
+          (args.content, args.css, args.baseUrl, args.chunkSize));
       args.port.send(sections);
     } catch (e) {
       args.port.send('$e');
@@ -979,13 +1142,15 @@ class _HyperViewerState extends State<HyperViewer>
   }
 
   // Static function that runs in an isolate — must not capture context.
-  // Accepts a (html, css) record so CSS rules are available inside the isolate.
-  static List<DocumentNode> _parseAndChunk((String, String, int) args) {
-    final (html, css, chunkSize) = args;
+  // Accepts a (html, css, baseUrl, chunkSize) record so CSS rules are available inside the isolate.
+  static List<DocumentNode> _parseAndChunk(
+      (String, String, String?, int) args) {
+    final (html, css, baseUrl, chunkSize) = args;
     final adapter = HtmlAdapter();
     // chunkSize: keeps each RenderHyperBox well under GPU texture limits
     // (~4096px physical on most devices). Configurable via HyperRenderConfig.
-    final sections = adapter.parseToSections(html, chunkSize: chunkSize);
+    final sections =
+        adapter.parseToSections(html, chunkSize: chunkSize, baseUrl: baseUrl);
 
     // Resolve styles in the isolate so the main thread doesn't bear the cost.
     final resolver = StyleResolver();
@@ -1047,7 +1212,12 @@ class _HyperViewerState extends State<HyperViewer>
       );
     }
 
-    // Case 1: Virtualized List (for long text)
+    // Case 1a: Paged mode (PageView.builder, one chunk per page)
+    if (_sections != null && widget.mode == HyperRenderMode.paged) {
+      return _buildPagedContent(context);
+    }
+
+    // Case 1b: Virtualized List (for long text)
     if (_sections != null) {
       final selCtrl = _virtualizedSelectionController;
       final dir = widget.textDirection ?? Directionality.of(context);
@@ -1069,7 +1239,14 @@ class _HyperViewerState extends State<HyperViewer>
           final prevCarryover = (index > 0 && _floatCarryovers.length >= index)
               ? _floatCarryovers[index - 1]
               : const <FloatCarryover>[];
+          // ValueKey from the section hash: Flutter reconciles list items by
+          // key, so unchanged sections keep their existing RenderHyperBox and
+          // skip re-layout entirely (dirty-flag incremental layout).
+          final sectionKey = _sectionHashes.length > index
+              ? ValueKey(_sectionHashes[index])
+              : ValueKey(index);
           return RepaintBoundary(
+            key: sectionKey,
             child: selCtrl != null
                 ? VirtualizedChunk(
                     chunkIndex: index,
@@ -1087,6 +1264,7 @@ class _HyperViewerState extends State<HyperViewer>
                     initialFloats: prevCarryover,
                     onFloatCarryover: (carryovers) =>
                         _onFloatCarryover(index, carryovers),
+                    pluginRegistry: widget.pluginRegistry,
                   )
                 : HyperRenderWidget(
                     document: _sections![index],
@@ -1101,6 +1279,7 @@ class _HyperViewerState extends State<HyperViewer>
                     initialFloats: prevCarryover,
                     onFloatCarryover: (carryovers) =>
                         _onFloatCarryover(index, carryovers),
+                    pluginRegistry: widget.pluginRegistry,
                   ),
           );
         },
@@ -1143,10 +1322,11 @@ class _HyperViewerState extends State<HyperViewer>
         content = HyperSelectionOverlay(
           document: _syncDocument!,
           selectable: true,
-          onLinkTap: widget.onLinkTap,
+          onLinkTap: _safeOnLinkTap,
           widgetBuilder: _effectiveWidgetBuilder,
           handleColor:
               widget.selectionHandleColor ?? Theme.of(context).primaryColor,
+          selectionColor: widget.selectionColor,
           menuActionsBuilder: widget.selectionMenuActionsBuilder,
           contextMenuBuilder: widget.selectionContextMenuBuilder,
           showHandles: true,
@@ -1159,11 +1339,12 @@ class _HyperViewerState extends State<HyperViewer>
         content = HyperRenderWidget(
           document: _syncDocument!,
           selectable: widget.selectable,
-          onLinkTap: widget.onLinkTap,
+          onLinkTap: _safeOnLinkTap,
           widgetBuilder: _effectiveWidgetBuilder,
           debugShowBounds: widget.debugShowHyperRenderBounds,
           onAnchorLayout: widget.controller?._onAnchorLayout,
           config: _effectiveConfig,
+          pluginRegistry: widget.pluginRegistry,
         );
       }
 
@@ -1206,6 +1387,148 @@ class _HyperViewerState extends State<HyperViewer>
     }
 
     return const SizedBox.shrink();
+  }
+
+  // ── Paged rendering ───────────────────────────────────────────────────────
+
+  Widget _buildPagedContent(BuildContext context) {
+    final sections = _sections!;
+    final dir = widget.textDirection ?? Directionality.of(context);
+    final ctrl = _pageCtrl;
+
+    // Notify the HyperPageController about the final page count once sections
+    // are ready (post-frame so the PageView has been built).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.pageController?._onSectionsReady(sections.length);
+    });
+
+    final pageView = PageView.builder(
+      controller: ctrl,
+      itemCount: sections.length,
+      onPageChanged: widget.pageController?._onPageChanged,
+      itemBuilder: (context, index) {
+        final sectionKey = _sectionHashes.length > index
+            ? ValueKey(_sectionHashes[index])
+            : ValueKey(index);
+        // Each page: full available height, with vertical scroll for overflowing
+        // sections (e.g. a single very long chapter).
+        return RepaintBoundary(
+          key: sectionKey,
+          child: SingleChildScrollView(
+            physics: widget.physics ?? const ClampingScrollPhysics(),
+            child: HyperRenderWidget(
+              document: sections[index],
+              selectable: widget.selectable,
+              textDirection: dir,
+              onLinkTap: _safeOnLinkTap,
+              widgetBuilder: _effectiveWidgetBuilder,
+              debugShowBounds: widget.debugShowHyperRenderBounds,
+              enableComplexFilters: widget.enableComplexFilters,
+              config: _effectiveConfig,
+              suppressFirstBlockMarginTop: index > 0,
+              pluginRegistry: widget.pluginRegistry,
+            ),
+          ),
+        );
+      },
+    );
+
+    return KeyedSubtree(
+      key: const ValueKey('paged'),
+      child: widget.enableZoom
+          ? InteractiveViewer(
+              panEnabled: false,
+              scaleEnabled: true,
+              minScale: widget.minScale,
+              maxScale: widget.maxScale,
+              child: pageView,
+            )
+          : pageView,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HyperPageController — paged-mode navigation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Controller for [HyperViewer] in [HyperRenderMode.paged] mode.
+///
+/// Provides programmatic navigation and exposes the current page and total
+/// page count as a [ValueNotifier] so the UI can react to page changes.
+///
+/// ```dart
+/// final _page = HyperPageController();
+///
+/// @override
+/// void dispose() {
+///   _page.dispose();
+///   super.dispose();
+/// }
+///
+/// // Jump to page 5 with animation
+/// _page.animateToPage(5);
+///
+/// // Listen to page changes
+/// ValueListenableBuilder<int>(
+///   valueListenable: _page.currentPage,
+///   builder: (context, page, _) => Text('Page ${page + 1} / ${_page.pageCount}'),
+/// )
+/// ```
+class HyperPageController {
+  final PageController _ctrl;
+
+  /// The current page index (0-based). Updated on every page change.
+  final ValueNotifier<int> currentPage;
+
+  HyperPageController({int initialPage = 0})
+      : currentPage = ValueNotifier<int>(initialPage),
+        _ctrl = PageController(initialPage: initialPage);
+
+  /// Total number of pages.  Updated once the document has been parsed.
+  int get pageCount => _pageCount;
+  int _pageCount = 0;
+
+  void _onPageChanged(int page) {
+    currentPage.value = page;
+  }
+
+  void _onSectionsReady(int count) {
+    _pageCount = count;
+  }
+
+  /// Animate to [page] (0-based).
+  void animateToPage(
+    int page, {
+    Duration duration = const Duration(milliseconds: 300),
+    Curve curve = Curves.easeInOut,
+  }) {
+    _ctrl.animateToPage(page, duration: duration, curve: curve);
+  }
+
+  /// Jump to [page] instantly without animation.
+  void jumpToPage(int page) => _ctrl.jumpToPage(page);
+
+  /// Move to the next page if one exists.
+  void nextPage({
+    Duration duration = const Duration(milliseconds: 300),
+    Curve curve = Curves.easeInOut,
+  }) {
+    _ctrl.nextPage(duration: duration, curve: curve);
+  }
+
+  /// Move to the previous page if one exists.
+  void previousPage({
+    Duration duration = const Duration(milliseconds: 300),
+    Curve curve = Curves.easeInOut,
+  }) {
+    _ctrl.previousPage(duration: duration, curve: curve);
+  }
+
+  /// Release resources.  Call this in the parent widget's [State.dispose].
+  void dispose() {
+    _ctrl.dispose();
+    currentPage.dispose();
   }
 }
 

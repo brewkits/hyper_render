@@ -462,9 +462,8 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
 
       try {
         // Share using share_plus package
-        final result = await Share.share(
-          text,
-          subject: 'Shared from HyperRender',
+        final result = await SharePlus.instance.share(
+          ShareParams(text: text, subject: 'Shared from HyperRender'),
         );
 
         if (result.status == ShareResultStatus.success) {

@@ -1,6 +1,6 @@
 # HyperRender v1.0 - Detailed Comparison Matrix
 
-**Comprehensive feature-by-feature comparison with competitors**
+**Feature-by-feature comparison with other libraries**
 
 Last Updated: February 2026
 

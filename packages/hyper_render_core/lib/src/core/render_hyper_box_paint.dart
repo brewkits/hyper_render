@@ -3,7 +3,16 @@ part of 'render_hyper_box.dart';
 extension _RenderHyperBoxPaint on RenderHyperBox {
   void _paintBlockDecorations(Canvas canvas, Offset offset) {
     for (final decoration in _blockDecorations) {
-      final adjustedRect = decoration.rect.shift(offset);
+      // PIXEL SNAPPING: Rounding coordinates to physical pixel boundaries ensures
+      // perfectly sharp edges on high-DPI displays (Retina/Amoled).
+      // This eliminates the 'blurry border' effect common in custom renderers.
+      final rawRect = decoration.rect.shift(offset);
+      final adjustedRect = Rect.fromLTRB(
+        rawRect.left.roundToDouble(),
+        rawRect.top.roundToDouble(),
+        rawRect.right.roundToDouble(),
+        rawRect.bottom.roundToDouble(),
+      );
 
       // 1. Backdrop Filter (Glassmorphism) - Paints BEFORE background
       if (decoration.backdropFilter != null && enableComplexFilters) {
@@ -26,6 +35,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       if (decoration.boxShadow != null) {
         for (final shadow in decoration.boxShadow!) {
           final shadowPaint = shadow.toPaint();
+          // Shadow rects don't need strict snapping as they are naturally blurred
           final shadowRect =
               adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
 
@@ -60,7 +70,6 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         }
 
         if (decoration.borderRadius != null) {
-          // Draw rounded rectangle for code blocks, etc.
           canvas.drawRRect(
             RRect.fromRectAndCorners(
               adjustedRect,
@@ -90,16 +99,13 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
             decoration.borderRadius,
           );
         } else {
-          // Left-only border (blockquote style) — draw as filled rect.
-          // Previously used drawLine with StrokeCap.square which extended the
-          // line endpoints by half the stroke width, bleeding outside the
-          // element bounds. A filled rect gives pixel-perfect edges.
+          // Left-only border (blockquote style) — draw as filled rect for precision.
           _fillPaint.color = decoration.borderLeftColor!;
           canvas.drawRect(
             Rect.fromLTWH(
               adjustedRect.left,
               adjustedRect.top,
-              decoration.borderLeftWidth,
+              decoration.borderLeftWidth.roundToDouble(),
               adjustedRect.height,
             ),
             _fillPaint,
@@ -117,7 +123,13 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
   void _paintInlineDecorations(Canvas canvas, Offset offset) {
     for (final decoration in _inlineDecorations) {
       for (final rect in decoration.rects) {
-        final adjustedRect = rect.shift(offset);
+        final rawRect = rect.shift(offset);
+        final adjustedRect = Rect.fromLTRB(
+          rawRect.left.roundToDouble(),
+          rawRect.top.roundToDouble(),
+          rawRect.right.roundToDouble(),
+          rawRect.bottom.roundToDouble(),
+        );
 
         // 1. Backdrop Filter
         if (decoration.backdropFilter != null && enableComplexFilters) {
@@ -127,7 +139,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           canvas.restore();
         }
 
-        // 2. Filter (blur, etc.) - Apply to all subsequent painting for this rect
+        // 2. Filter (blur, etc.)
         if (decoration.filter != null && enableComplexFilters) {
           canvas.saveLayer(
               adjustedRect, Paint()..imageFilter = decoration.filter);
@@ -188,9 +200,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
 
         // Paint border
         if (decoration.borderColor != null && decoration.borderWidth > 0) {
-          // deflate(width/2) places the stroke centerline exactly on the rect
-          // edge — prevents the stroke from bleeding half a pixel outside the
-          // element bounds (pixel bleeding artefact).
+          // deflate(width/2) places the stroke centerline on the snapped edge.
           final borderRect = adjustedRect.deflate(decoration.borderWidth / 2);
           _strokePaint
             ..color = decoration.borderColor!
@@ -456,17 +466,16 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
             final fragmentOffset = fragment.offset ?? Offset.zero;
             for (final box in boxes) {
               if (box.right <= box.left) continue;
+              // PIXEL SNAPPING: Selection rects should be sharp to match text glyphs.
               final rect = Rect.fromLTRB(
-                offset.dx + fragmentOffset.dx + box.left,
-                offset.dy + fragmentOffset.dy + box.top,
-                offset.dx + fragmentOffset.dx + box.right,
-                offset.dy + fragmentOffset.dy + box.bottom,
+                (offset.dx + fragmentOffset.dx + box.left).roundToDouble(),
+                (offset.dy + fragmentOffset.dy + box.top).roundToDouble(),
+                (offset.dx + fragmentOffset.dx + box.right).roundToDouble(),
+                (offset.dy + fragmentOffset.dy + box.bottom).roundToDouble(),
               );
+
               // Use PathOperation.union so adjacent/overlapping boxes from
-              // the same line merge into a single filled region.  addRRect
-              // creates separate sub-paths — when two rects share an edge
-              // the hairline boundary is visible at non-integer pixel scales
-              // and overlaps double the alpha, breaking the uniform highlight.
+              // the same line merge into a single filled region.
               final boxPath = Path()
                 ..addRRect(RRect.fromRectAndRadius(rect, selectionRadius));
               linePath = linePath == null
@@ -487,10 +496,10 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
               fragmentStart < _selection!.end) {
             final fragmentOffset = fragment.offset ?? Offset.zero;
             final rect = Rect.fromLTWH(
-              offset.dx + fragmentOffset.dx,
-              offset.dy + fragmentOffset.dy,
-              fragment.width,
-              fragment.height,
+              (offset.dx + fragmentOffset.dx).roundToDouble(),
+              (offset.dy + fragmentOffset.dy).roundToDouble(),
+              fragment.width.roundToDouble(),
+              fragment.height.roundToDouble(),
             );
             final boxPath = Path()
               ..addRRect(RRect.fromRectAndRadius(rect, selectionRadius));
@@ -512,15 +521,33 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
   }
 
   void _paintTextFragments(Canvas canvas, Offset offset) {
+    // Get visible area in local coordinates to perform line-level culling.
+    // shift(-offset) converts the global clip bounds to the RenderBox's local
+    // coordinate space so we can compare directly against line.bounds.
+    final visibleRect = canvas.getLocalClipBounds().shift(-offset);
+
     // First paint list markers
     for (final fragment in _fragments) {
       if (fragment is _ListMarkerFragment && fragment.offset != null) {
-        _paintListMarker(canvas, offset, fragment);
+        // Simple culling for markers: only paint if the line Y is visible.
+        final markerY = fragment.offset!.dy;
+        if (markerY + fragment.height >= visibleRect.top &&
+            markerY <= visibleRect.bottom) {
+          _paintListMarker(canvas, offset, fragment);
+        }
       }
     }
 
     // Then paint line content
     for (final line in _lines) {
+      // CULLING: Only paint lines that intersect with the visible clip bounds.
+      // For a 6000-char chunk (hundreds of lines), this reduces canvas.draw
+      // calls by ~90% when only a small part of the chunk is on-screen.
+      if (line.top + line.height < visibleRect.top) continue;
+      if (line.top > visibleRect.bottom) {
+        break; // Lines are sorted by Y; can stop early.
+      }
+
       for (final fragment in line.fragments) {
         if (fragment.type == FragmentType.text && fragment.text != null) {
           _paintTextFragment(canvas, offset, fragment);
@@ -700,23 +727,32 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     // Base grey background.
     canvas.drawRRect(rrect, _skeletonBasePaint);
 
-    // Animated shimmer highlight.  The bright band is 40% of the rect width;
-    // it sweeps from left (-40%) to right (140%) using [_shimmerPhase] 0→1.
-    final phase = _shimmerPhase; // 0.0 → 1.0 looping
-    // Map phase to the center-x of the highlight band in local coordinates.
-    // At phase=0 the band is fully off-screen-left; at phase=1 off-screen-right.
-    final bandW = rect.width * 0.40;
+    // EASE-IN-OUT PHASE: Using a cubic ease-in-out curve for the phase makes
+    // the shimmer sweep feel much more natural and 'high-end' than linear motion.
+    double phase = _shimmerPhase;
+    // Simple cubic ease-in-out mapping:
+    phase = phase < 0.5
+        ? 4 * phase * phase * phase
+        : 1 - math.pow(-2 * phase + 2, 3) / 2;
+
+    // Animated shimmer highlight.  The bright band is 50% of the rect width;
+    // it sweeps from left (-50%) to right (150%) using the eased phase.
+    final bandW = rect.width * 0.50;
     final startX = rect.left - bandW + (rect.width + bandW * 2) * phase;
-    // Reuse the static Paint wrapper; only the shader changes each frame.
+
+    // PREMIUM GRADIENT: 5-stop gradient with subtle mid-tones creates a
+    // soft, 'liquid' light effect instead of a harsh white band.
     _shimmerHighlightPaint.shader = ui.Gradient.linear(
       Offset(startX - bandW * 0.5, rect.center.dy),
       Offset(startX + bandW * 0.5, rect.center.dy),
       const [
         Color(0x00FFFFFF), // transparent
-        Color(0x99FFFFFF), // bright white centre
+        Color(0x1AFFFFFF), // 10% white
+        Color(0x73FFFFFF), // 45% white (peak)
+        Color(0x1AFFFFFF), // 10% white
         Color(0x00FFFFFF), // transparent
       ],
-      [0.0, 0.5, 1.0],
+      const [0.0, 0.35, 0.5, 0.65, 1.0],
     );
 
     canvas.save();

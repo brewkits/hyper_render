@@ -22,9 +22,11 @@ class KinsokuProcessor {
       // ── Closing brackets (all CJK scripts) ─────────────────────────────
       '）」』】〉》〕〗〙〛'
       '｣' // U+FF63 halfwidth right corner bracket (Japanese/Korean)
-      '〞〟' // U+301E/301F Traditional Chinese double-prime closing quotes
+      '〟' // U+301F Traditional Chinese double-prime closing quotes
+      '｠' // U+FF60 fullwidth double parenthesis closing
+      '］｝' // fullwidth closing brackets
       // ── Punctuation (Japanese / Chinese shared) ──────────────────────
-      '、。，．！？：；'
+      '、。，．！？ : ；'
       // ── Small kana — cannot lead a syllable (Japanese) ───────────────
       'ぁぃぅぇぉっゃゅょゎ' // small Hiragana
       'ァィゥェォッャュョヮ' // small Katakana
@@ -38,24 +40,29 @@ class KinsokuProcessor {
       '‐―' // hyphen, horizontal bar
       '…‥' // ellipsis, two-dot leader
       // ── Chinese (Simplified — GB/T 15834) ────────────────────────────
-      '"\'' // U+201D " U+2019 ' — right smart quotes
-      '·' // U+00B7 middle dot (name interpunct: 巴拉克·奥巴马)
-      '—' // U+2014 em dash (must not open a line in Chinese)
+      '”’' // U+201D ” U+2019 ’ — right smart quotes
+      '·' // U+00B7 middle dot
+      '—' // U+2014 em dash
       // ── Korean ────────────────────────────────────────────────────────
-      '〃'; // U+3003 ditto mark (used in Korean/Japanese tables)
+      '〃'; // U+3003 ditto mark
 
   /// Characters that cannot end a line (行末禁則文字).
-  ///
-  /// Sources: JIS X 4051, GB/T 15834, KS X 1001.
   static const String kinsokuEnd =
       // ── Opening brackets (all CJK scripts) ──────────────────────────
       '（「『【〈《〔〖〘〚'
-      '｢' // U+FF62 halfwidth left corner bracket (Japanese/Korean)
+      '｢' // U+FF62 halfwidth left corner bracket
       '〝' // U+301D Traditional Chinese left double-prime quotation mark
-      '［｛' // U+FF3B fullwidth [ , U+FF5B fullwidth {
+      '｟' // U+FF5E fullwidth double parenthesis opening
+      '［｛' // fullwidth opening brackets
       // ── Chinese smart-quote opens ────────────────────────────────────
-      '"\'' // U+201C " U+2018 '
+      '“‘' // U+201C “ U+2018 ‘
       ;
+
+  /// Characters eligible for Hanging Punctuation (ぶら下がり).
+  static const String hangable = '、。，．';
+
+  /// Characters that must not be split if they appear consecutively (分離禁止).
+  static const String inseparable = '—…ー'; // em dash, ellipsis, prolonged mark
 
   /// Matching bracket/quote pairs that must not be split across lines (分離禁止).
   ///
@@ -103,8 +110,10 @@ class KinsokuProcessor {
   // pair handling required, and the index is always within [0, 0xFFFF].
   static const int _kStart = 1 << 0; // bit 0 — cannot start a line
   static const int _kEnd = 1 << 1; // bit 1 — cannot end a line
+  static const int _kHang = 1 << 2; // bit 2 — can hang in margin
+  static const int _kInseparable = 1 << 3; // bit 3 — cannot be split from same
 
-  /// 64 KB bitmask table: `_table[codeUnit] & _kStart != 0` → kinsoku start.
+  /// 64 KB bitmask table
   static final Uint8List _table = _buildTable();
 
   static Uint8List _buildTable() {
@@ -114,6 +123,12 @@ class KinsokuProcessor {
     }
     for (int i = 0; i < kinsokuEnd.length; i++) {
       t[kinsokuEnd.codeUnitAt(i)] |= _kEnd;
+    }
+    for (int i = 0; i < hangable.length; i++) {
+      t[hangable.codeUnitAt(i)] |= _kHang;
+    }
+    for (int i = 0; i < inseparable.length; i++) {
+      t[inseparable.codeUnitAt(i)] |= _kInseparable;
     }
     return t;
   }
@@ -130,27 +145,48 @@ class KinsokuProcessor {
     return (_table[char.codeUnitAt(0)] & _kEnd) != 0;
   }
 
+  /// Check if a character is eligible for hanging punctuation
+  static bool isHangable(String char) {
+    if (char.isEmpty) return false;
+    return (_table[char.codeUnitAt(0)] & _kHang) != 0;
+  }
+
   /// Check if a break is allowed between two characters.
-  ///
-  /// Returns false if the next character cannot start a line (kinsoku start)
-  /// or the current character cannot end a line (kinsoku end).
   static bool canBreakBetween(String current, String next) {
     if (current.isEmpty || next.isEmpty) return true;
-    if ((_table[next.codeUnitAt(0)] & _kStart) != 0) return false;
-    if ((_table[current.codeUnitAt(current.length - 1)] & _kEnd) != 0) {
+    final c1 = current.codeUnitAt(current.length - 1);
+    final c2 = next.codeUnitAt(0);
+
+    // Kinsoku rules
+    if ((_table[c2] & _kStart) != 0) return false;
+    if ((_table[c1] & _kEnd) != 0) return false;
+
+    // Inseparable characters (—, …, etc.) must not be split if they are the same
+    if (c1 == c2 && (_table[c1] & _kInseparable) != 0) return false;
+
+    // Special case for Japanese punctuation pairs that shouldn't be split
+    if ((c1 == 0xFF01 || c1 == 0xFF1F) && (c2 == 0xFF01 || c2 == 0xFF1F)) {
+      // Don't split ！！, ！？, ？！ or ？？
       return false;
     }
+
     return true;
   }
 
   /// Returns true if a line break is allowed between [text[i-1]] and [text[i]].
-  ///
-  /// Hot-path used inside the scan loops of [findBreakPoint].
-  /// Single [_table] lookup per position — no hash, no allocation.
   static bool _canBreakAt(String text, int i) {
-    // Read both categories with a single table lookup per position.
-    if ((_table[text.codeUnitAt(i - 1)] & _kEnd) != 0) return false;
-    if ((_table[text.codeUnitAt(i)] & _kStart) != 0) return false;
+    final c1 = text.codeUnitAt(i - 1);
+    final c2 = text.codeUnitAt(i);
+
+    if ((_table[c2] & _kStart) != 0) return false;
+    if ((_table[c1] & _kEnd) != 0) return false;
+
+    if (c1 == c2 && (_table[c1] & _kInseparable) != 0) return false;
+
+    if ((c1 == 0xFF01 || c1 == 0xFF1F) && (c2 == 0xFF01 || c2 == 0xFF1F)) {
+      return false;
+    }
+
     return true;
   }
 

@@ -28,7 +28,11 @@ class DefaultMarkdownParser implements ContentParser {
   }
 
   @override
-  List<DocumentNode> parseToSections(String content, {int chunkSize = 3000}) {
+  List<DocumentNode> parseToSections(
+    String content, {
+    int chunkSize = 3000,
+    String? baseUrl,
+  }) {
     // Parse entire document, then return as single section
     // Future: could implement section splitting for large documents
     return [parse(content)];

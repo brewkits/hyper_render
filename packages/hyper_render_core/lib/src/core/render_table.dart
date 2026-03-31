@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -155,7 +156,7 @@ class SmartTableWrapper extends StatelessWidget {
 /// that performs W3C-inspired table layout without [IntrinsicHeight] or
 /// [LayoutBuilder].  This makes it compatible with nested tables (where an
 /// outer [IntrinsicHeight] must query intrinsic dimensions of this widget).
-class HyperTable extends StatelessWidget {
+class HyperTable extends StatefulWidget {
   final TableNode tableNode;
   final TextStyle? baseStyle;
   final void Function(String url)? onLinkTap;
@@ -178,14 +179,36 @@ class HyperTable extends StatelessWidget {
   });
 
   @override
+  State<HyperTable> createState() => _HyperTableState();
+}
+
+class _HyperTableState extends State<HyperTable> {
+  final List<GestureRecognizer> _recognizers = [];
+
+  @override
+  void dispose() {
+    for (final r in _recognizers) {
+      r.dispose();
+    }
+    _recognizers.clear();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Clear old recognizers before rebuilding spans
+    for (final r in _recognizers) {
+      r.dispose();
+    }
+    _recognizers.clear();
+
     // Guard against exponential 2-pass layout complexity in deeply nested tables.
     final depth = _TableNestingDepth.of(context);
     if (depth >= _kMaxTableNestingDepth) {
       return const _TableDepthExceededPlaceholder();
     }
 
-    final grid = _TableGrid.fromTableNode(tableNode);
+    final grid = _TableGrid.fromTableNode(widget.tableNode);
     if (grid.isEmpty) return const SizedBox.shrink();
 
     // Only primary cells become children of _HyperTableWidget.
@@ -214,7 +237,7 @@ class HyperTable extends StatelessWidget {
                   ? rowVAlign
                   : HyperVerticalAlign.top;
           final cellContent = Container(
-            padding: cellPadding,
+            padding: widget.cellPadding,
             color: cellBg,
             child: _buildCellContent(cell.cellNode),
           );
@@ -235,15 +258,16 @@ class HyperTable extends StatelessWidget {
     final tableWidget = _HyperTableWidget(
       columnCount: grid.columnCount,
       rowCount: grid.rowCount,
-      borderColor: borderColor,
-      borderWidth: borderWidth,
+      borderColor: widget.borderColor,
+      borderWidth: widget.borderWidth,
       children: children,
     );
 
     // Increment depth for any nested tables inside cells.
     final depthWrapped = _TableNestingDepth(
       depth: depth + 1,
-      child: selectable ? SelectionArea(child: tableWidget) : tableWidget,
+      child:
+          widget.selectable ? SelectionArea(child: tableWidget) : tableWidget,
     );
 
     // Announce the table structure to screen readers: "Table, N rows, M columns".
@@ -268,8 +292,8 @@ class HyperTable extends StatelessWidget {
       }
     }
 
-    if (hasNonInline && cellContentBuilder != null) {
-      return cellContentBuilder!(cellNode);
+    if (hasNonInline && widget.cellContentBuilder != null) {
+      return widget.cellContentBuilder!(cellNode);
     }
 
     if (spans.isEmpty) return const SizedBox.shrink();
@@ -310,7 +334,22 @@ class HyperTable extends StatelessWidget {
         final span = _buildSpan(child);
         if (span != null) children.add(span);
       }
-      return TextSpan(children: children, style: node.style.toTextStyle());
+
+      TapGestureRecognizer? recognizer;
+      if (node.tagName == 'a') {
+        final href = node.attributes['href'];
+        if (href != null && widget.onLinkTap != null) {
+          recognizer = TapGestureRecognizer()
+            ..onTap = () => widget.onLinkTap!(href);
+          _recognizers.add(recognizer);
+        }
+      }
+
+      return TextSpan(
+        children: children,
+        style: node.style.toTextStyle(),
+        recognizer: recognizer,
+      );
     }
     if (node.type == NodeType.lineBreak) return const TextSpan(text: '\n');
     return null;
@@ -605,6 +644,12 @@ class _RenderHyperTable extends RenderBox
   double? _intrinsicCacheWidth;
   List<double>? _intrinsicColWidthsCache;
 
+  // -- intrinsic dimension cache --
+  double? _lastMinIntrinsicWidthHeight;
+  double? _minIntrinsicWidthCache;
+  double? _lastMaxIntrinsicWidthHeight;
+  double? _maxIntrinsicWidthCache;
+
   _RenderHyperTable({
     required int columnCount,
     required int rowCount,
@@ -648,6 +693,10 @@ class _RenderHyperTable extends RenderBox
     _childList = null;
     _intrinsicColWidthsCache = null;
     _intrinsicCacheWidth = null;
+    _lastMinIntrinsicWidthHeight = null;
+    _minIntrinsicWidthCache = null;
+    _lastMaxIntrinsicWidthHeight = null;
+    _maxIntrinsicWidthCache = null;
     super.markNeedsLayout();
   }
 
@@ -665,6 +714,11 @@ class _RenderHyperTable extends RenderBox
   @override
   double computeMinIntrinsicWidth(double height) {
     if (_columnCount == 0) return 0;
+    if (_lastMinIntrinsicWidthHeight == height &&
+        _minIntrinsicWidthCache != null) {
+      return _minIntrinsicWidthCache!;
+    }
+
     final minW = List<double>.filled(_columnCount, 0.0);
     _walkChildren((child, pd) {
       final span = pd.colspan.clamp(1, _columnCount - pd.col);
@@ -674,12 +728,22 @@ class _RenderHyperTable extends RenderBox
         if (perCol > minW[c]) minW[c] = perCol;
       }
     });
-    return minW.fold(0.0, (s, v) => s + v) + _borderWidth * (_columnCount + 1);
+
+    final result =
+        minW.fold(0.0, (s, v) => s + v) + _borderWidth * (_columnCount + 1);
+    _lastMinIntrinsicWidthHeight = height;
+    _minIntrinsicWidthCache = result;
+    return result;
   }
 
   @override
   double computeMaxIntrinsicWidth(double height) {
     if (_columnCount == 0) return 0;
+    if (_lastMaxIntrinsicWidthHeight == height &&
+        _maxIntrinsicWidthCache != null) {
+      return _maxIntrinsicWidthCache!;
+    }
+
     final maxW = List<double>.filled(_columnCount, 0.0);
     _walkChildren((child, pd) {
       final span = pd.colspan.clamp(1, _columnCount - pd.col);
@@ -689,7 +753,12 @@ class _RenderHyperTable extends RenderBox
         if (perCol > maxW[c]) maxW[c] = perCol;
       }
     });
-    return maxW.fold(0.0, (s, v) => s + v) + _borderWidth * (_columnCount + 1);
+
+    final result =
+        maxW.fold(0.0, (s, v) => s + v) + _borderWidth * (_columnCount + 1);
+    _lastMaxIntrinsicWidthHeight = height;
+    _maxIntrinsicWidthCache = result;
+    return result;
   }
 
   /// Called when THIS table is a child of [IntrinsicHeight] (i.e. it is nested

@@ -8,10 +8,89 @@ HyperRender provides several interfaces for extending functionality:
 
 | Interface | Purpose | Example Plugin |
 |-----------|---------|----------------|
+| `HyperNodePlugin` | Render custom HTML tags as Flutter widgets | v1.2.0+ |
 | `ContentParser` | Parse content formats | HTML, Markdown, Delta |
 | `CodeHighlighter` | Syntax highlighting | flutter_highlight, Prism |
 | `CssParserInterface` | CSS parsing | csslib, custom parser |
 | `ImageClipboardHandler` | Image clipboard operations | super_clipboard |
+
+---
+
+## Creating an HTML Tag Plugin (v1.2.0+)
+
+`HyperNodePlugin` lets you render arbitrary HTML tags as custom Flutter widgets. There are two tiers:
+
+- **Block tier** (`isInline == false`, default): widget occupies full available width with CSS margins applied.
+- **Inline tier** (`isInline == true`): widget flows inside text lines; intrinsic size is measured via `getMaxIntrinsicWidth` / `getMinIntrinsicHeight`.
+
+### Step 1: Implement `HyperNodePlugin`
+
+```dart
+import 'package:hyper_render/hyper_render.dart';
+
+/// Renders <my-card title="…"> as a Material card (block-level).
+class MyCardPlugin implements HyperNodePlugin {
+  @override
+  String get tagName => 'my-card';
+
+  @override
+  bool get isInline => false;  // block-level (default)
+
+  @override
+  Widget? build(HyperPluginBuildContext ctx) {
+    final title = ctx.node.attributes['title'] ?? '';
+    final body = ctx.node.textContent;
+    return Card(
+      child: ListTile(
+        title: Text(title),
+        subtitle: Text(body),
+      ),
+    );
+    // Return null to fall through to the default renderer.
+  }
+}
+```
+
+### Step 2: Register and Pass to `HyperViewer`
+
+```dart
+final registry = HyperPluginRegistry()
+  ..register(MyCardPlugin());
+
+HyperViewer(
+  html: '<my-card title="Hello">World</my-card>',
+  pluginRegistry: registry,
+)
+```
+
+### Inline Plugin Example
+
+```dart
+/// Renders <badge color="red"> as a colored badge that flows with text.
+class BadgePlugin implements HyperNodePlugin {
+  @override
+  String get tagName => 'badge';
+
+  @override
+  bool get isInline => true;  // flows inside text lines
+
+  @override
+  Widget? build(HyperPluginBuildContext ctx) {
+    final color = ctx.node.attributes['color'] ?? '#2196F3';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Color(int.parse(color.replaceFirst('#', '0xFF'))),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(ctx.node.textContent,
+          style: const TextStyle(color: Colors.white, fontSize: 11)),
+    );
+  }
+}
+```
+
+---
 
 ## Creating a Content Parser Plugin
 
@@ -256,7 +335,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  hyper_render_core: ^1.0.0
+  hyper_render_core: ^1.2.0
 
 dev_dependencies:
   flutter_test:

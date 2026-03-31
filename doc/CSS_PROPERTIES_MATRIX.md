@@ -1,7 +1,7 @@
 # CSS Properties Support Matrix
 
-Last Updated: February 2026
-Version: 1.0.0
+Last Updated: March 30, 2026
+Version: 1.2.0
 
 This document lists CSS property support in HyperRender.
 
@@ -45,7 +45,7 @@ This document lists CSS property support in HyperRender.
 | `border-style` | ✅ | solid, dashed, dotted, double, none | Custom styles beyond Flutter defaults |
 | `border-color` | ✅ | All color formats | |
 | `border-radius` | ✅ | px, % | All 4 corners + shorthand |
-| `box-sizing` | ⚠️ | border-box | content-box assumed by default |
+| `box-sizing` | ✅ | border-box, content-box | Full support |
 
 ---
 
@@ -59,8 +59,8 @@ This document lists CSS property support in HyperRender.
 | `overflow` | ⚠️ | hidden, visible | No scroll support |
 | `position: static` | ✅ | static | Default |
 | `position: relative` | ✅ | relative | Supported |
-| `position: absolute` | ❌ | — | Not supported; elements stay in normal flow |
-| `position: fixed` | ❌ | — | Not supported |
+| `position: absolute` | ❌ | — | Use `pluginRegistry` for overlay widgets |
+| `position: fixed` | ❌ | — | Use `pluginRegistry` for overlay widgets |
 | `top` / `right` / `bottom` / `left` | ❌ | — | Requires absolute/fixed; not supported |
 | `z-index` | ❌ | — | Stacking contexts not implemented |
 
@@ -84,6 +84,22 @@ This document lists CSS property support in HyperRender.
 | `row-gap` | ✅ | px | |
 | `column-gap` | ✅ | px | |
 | `order` | ⚠️ | integer | Basic support |
+
+---
+
+## Grid Layout
+
+| Property | Status | Supported Values | Notes |
+|----------|--------|------------------|-------|
+| `display: grid` | ✅ | grid | Supported in v1.2.0 |
+| `grid-template-columns` | ✅ | px, fr, auto, repeat(N, size) | Fractional units resolved via LayoutBuilder |
+| `grid-template-rows` | ✅ | px, fr, auto | Supported in v1.2.0 |
+| `grid-column` | ✅ | span N, start / end | Auto-placement with span support |
+| `grid-row` | ✅ | span N, start / end | |
+| `gap` / `row-gap` / `column-gap` | ✅ | px | Full support |
+| `grid-auto-flow` | ⚠️ | row | Column/dense not yet implemented |
+| `justify-items` | ✅ | flex-start, center, flex-end, stretch | |
+| `align-content` | ✅ | flex-start, center, flex-end, stretch | |
 
 ---
 
@@ -111,29 +127,31 @@ This document lists CSS property support in HyperRender.
 | `white-space` | ✅ | normal, nowrap, pre, pre-wrap | |
 | `word-break` | ✅ | normal, break-all, keep-all | |
 | `vertical-align` | ⚠️ | baseline, sub, super | Limited support |
-| `text-shadow` | ❌ | — | Not rendered (see Filters & Effects) |
+| `text-shadow` | ✅ | x y blur color | Multiple shadows supported in v1.2.0 |
 
 ---
 
-## Float & Clear (Unique Feature!)
+## Float & Clear
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `float` | ✅ | left, right, none | **HyperRender exclusive!** |
+| `float` | ✅ | left, right, none | Proper float wrapping around text |
 | `clear` | ✅ | left, right, both, none | Proper float clearing |
 
 ---
 
-## Background
+## Background & Effects
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
 | `background-color` | ✅ | All CSS colors | |
-| `background-image` | ⚠️ | url() only | Only `url()` for network/asset images; gradients not rendered |
-| `background-size` | ❌ | — | Not supported |
+| `background-image` | ✅ | url(), linear-gradient() | Network/asset images + linear gradients |
+| `background-size` | ✅ | cover, contain, fill | |
 | `background-position` | ❌ | — | Not supported |
 | `background-repeat` | ❌ | — | Not supported |
-| `background` | ⚠️ | color or url() | Shorthand: color supported; image = url() only |
+| `box-shadow` | ✅ | x y blur spread color | Full box-shadow support in v1.2.0 |
+| `filter` | ✅ | blur, brightness, contrast | Native image processing effects |
+| `backdrop-filter` | ✅ | blur | Glassmorphism support |
 
 ---
 
@@ -162,30 +180,11 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `transform` | ❌ | — | Not supported; use Flutter's `Transform` widget via `widgetBuilder` |
+| `transform` | ❌ | — | Use Flutter's `Transform` widget via `pluginRegistry` |
 | `transform-origin` | ❌ | — | Not supported |
-| `transition` | ❌ | — | Planned v1.1 |
-| `transition-property` | ❌ | — | Planned v1.1 |
-| `transition-duration` | ❌ | — | Planned v1.1 |
-| `transition-timing-function` | ❌ | — | Planned v1.1 |
-| `animation` | ❌ | — | Use `HyperAnimatedWidget` instead; CSS `@keyframes` planned |
-| `@keyframes` | ❌ | — | Not parsed; use `HyperAnimatedWidget` |
-
----
-
-## Grid Layout
-
-| Property | Status | Supported Values | Notes |
-|----------|--------|------------------|-------|
-| `display: grid` | ✅ | grid | Supported in v1.0.0 |
-| `grid-template-columns` | ✅ | px, fr, auto, repeat(N, size) | Fractional units resolved via LayoutBuilder |
-| `grid-template-rows` | ⚠️ | Parsed, auto height per row | Explicit row sizing pending |
-| `grid-column` | ✅ | span N, start / end | Auto-placement with span support |
-| `grid-row` | ⚠️ | start / end | Basic parsing; explicit row placement pending |
-| `gap` / `row-gap` / `column-gap` | ✅ | px | Full support |
-| `grid-auto-flow` | ⚠️ | row | Column/dense not yet implemented |
-| `justify-items` | ⚠️ | Parsed | Layout pending |
-| `align-content` | ⚠️ | Parsed | Layout pending |
+| `transition` | ❌ | — | Planned v4.0 |
+| `animation` | ✅ | name duration timing | Requires `@keyframes` in style tags |
+| `@keyframes` | ✅ | from/to, % | Parsed from `<style>` tags automatically |
 
 ---
 
@@ -208,80 +207,6 @@ This document lists CSS property support in HyperRender.
 | `direction: ltr` | ✅ | Default |
 | `direction: rtl` | ✅ | Applied per-fragment in TextPainter. |
 | `dir=` HTML attribute | ✅ | Parsed on any element, including `<html dir="rtl">` |
-| Bi-directional text mixing | ⚠️ | Relies on Flutter's Unicode BiDi algorithm; complex cases may vary |
-
----
-
-## SVG
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Inline `<svg>` elements | ✅ | Serialized and rendered as placeholder (flutter_svg integration optional) |
-| `<img src="*.svg">` | ⚠️ | Treated as network image; SVG-specific rendering requires flutter_svg |
-| SVG width / height attributes | ✅ | Used for intrinsic sizing |
-
----
-
-## Screenshot / Export
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| `captureKey` on HyperViewer | ✅ | Pass a `GlobalKey` to enable capture. |
-| `captureKey.toImage()` | ✅ | Returns `ui.Image` at given pixel ratio |
-| `captureKey.toPngBytes()` | ✅ | Returns `Uint8List` PNG bytes |
-
----
-
-## Filters & Effects
-
-| Property | Status | Supported Values | Notes |
-|----------|--------|------------------|-------|
-| `filter` | ✅ | blur, brightness, contrast | Native image processing effects |
-| `backdrop-filter` | ✅ | blur | Glassmorphism / Backdrop blurring |
-| `box-shadow` | ✅ | x y blur spread color | Full box-shadow support |
-| `text-shadow` | ✅ | x y blur color | Multiple text shadows supported |
-
----
-
-## Other Properties
-
-| Property | Status | Supported Values | Notes |
-|----------|--------|------------------|-------|
-| `cursor` | ❌ | - | Not applicable in Flutter |
-| `user-select` | ✅ | Controlled by `selectable` param | |
-| `pointer-events` | ❌ | - | Not applicable |
-| `content` | ⚠️ | For pseudo-elements | Limited ::before/::after |
-
----
-
-## Pseudo-Classes & Pseudo-Elements
-
-| Selector | Status | Notes |
-|----------|--------|-------|
-| `:hover` | ⚠️ | Limited to link hover |
-| `:active` | ⚠️ | Limited to link active |
-| `:focus` | ❌ | Not supported |
-| `:first-child` | ❌ | Not supported |
-| `:last-child` | ❌ | Not supported |
-| `:nth-child()` | ❌ | Not supported |
-| `::before` | ❌ | Not supported |
-| `::after` | ❌ | Not supported |
-
----
-
-## CSS Selectors Support
-
-| Selector Type | Status | Examples |
-|---------------|--------|----------|
-| Type selector | ✅ | `p`, `div`, `span` |
-| Class selector | ✅ | `.classname` |
-| ID selector | ✅ | `#idname` |
-| Descendant combinator | ✅ | `div p` |
-| Child combinator | ✅ | `div > p` |
-| Attribute selector | ⚠️ | `[attr]` (basic) |
-| Universal selector | ✅ | `*` |
-| Multiple selectors | ✅ | `h1, h2, h3` |
-| Specificity calculation | ✅ | Proper CSS cascade |
 
 ---
 
@@ -293,83 +218,30 @@ This document lists CSS property support in HyperRender.
 | `%` | ✅ | Percentage of parent |
 | `em` | ✅ | Relative to font-size |
 | `rem` | ✅ | Relative to root font-size |
-| `vh` | ❌ | Not supported |
-| `vw` | ❌ | Not supported |
-| `pt` | ⚠️ | Converted to px |
-| `calc()` | ✅ | Arithmetic expressions with px/em/rem/unitless |
-| `var()` | ✅ | CSS custom properties (--name) |
-
----
-
-## Color Formats
-
-| Format | Status | Example |
-|--------|--------|---------|
-| Named colors | ✅ | `red`, `blue`, `transparent` |
-| Hex | ✅ | `#FF5733`, `#F57` |
-| RGB | ✅ | `rgb(255, 87, 51)` |
-| RGBA | ✅ | `rgba(255, 87, 51, 0.5)` |
-| HSL | ⚠️ | Converted to RGB |
-| HSLA | ⚠️ | Converted to RGBA |
+| `vh` / `vw` | ❌ | Not supported |
+| `calc()` | ✅ | Arithmetic expressions |
+| `var()` | ✅ | CSS custom properties |
 
 ---
 
 ## Notes
 
 ### Unique Features
-- CSS Float Layout: HyperRender is the only Flutter HTML library with proper float/clear support
+- CSS Float Layout: Proper float/clear support around text
 - Kinsoku Line-Breaking: Professional CJK typography rules
 - Ruby Annotations: Furigana rendering for Japanese
-- CSS Grid: fr-unit layout with repeat() and column-span support
+- CSS Grid: fr-unit layout with repeat() support
 - CSS Variables: `--custom-property` / `var()` with full inheritance chain
 - CSS calc(): arithmetic expressions with correct operator precedence
-- RTL/BiDi: per-fragment text direction from `direction` property or `dir=` attribute
-- Screenshot export: `GlobalKey.toPngBytes()` via `HyperCaptureExtension`
-- DevTools extension: UDT tree inspector at `packages/hyper_render_devtools/`
-
-### Performance Considerations
-- CSS rule matching uses indexed lookup for better performance
-- Style resolution cached during layout
-- Computed styles memoized per node
-- TextPainter cache uses 9-tuple composite key (no XOR collisions)
-- Image loading uses priority queue (viewport-first)
-- Incremental layout with dirty checking
+- RTL/BiDi: per-fragment text direction support
+- Screenshot export: `GlobalKey.toPngBytes()` support
+- DevTools extension: UDT tree inspector
+- Plugin API (v1.2.0): Extend tags via custom Flutter widgets
 
 ### Roadmap
-- **v3.x**: Background images, Gradient backgrounds, CSS filters
-- **v4.0**: Pseudo-elements (::before, ::after), More pseudo-classes, `vh`/`vw` units
+- **v3.x**: Better pseudo-element support (::before/::after)
+- **v4.0**: Transitions, Transform support, `vh`/`vw` units
 
 ---
 
-## Testing Your CSS
-
-Use the comparison demo to test CSS properties:
-
-```dart
-HyperViewer(
-  html: '''
-    <div style="
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      padding: 16px;
-      background-color: #f5f5f5;
-      border-radius: 8px;
-    ">
-      <span style="color: #1976D2; font-weight: bold;">Test</span>
-    </div>
-  ''',
-)
-```
-
----
-
-## Contributing
-
-Found a CSS property that's not working? Please report:
-1. Property name
-2. Expected behavior
-3. Actual behavior
-4. Minimal reproduction HTML
-
-File an issue at: https://github.com/your-repo/hyper_render/issues
+*Last updated: March 30, 2026 — HyperRender v1.2.0*

@@ -1,5 +1,11 @@
 # Changelog — hyper_render_devtools
 
+## [1.2.0] - 2026-03-30
+
+- Version bump to stay in sync with `hyper_render` 1.2.0.
+- Updated `hyper_render_core` dependency to `^1.2.0`.
+- No UI changes in this version.
+
 ## [1.1.5] - 2026-03-25
 
 ### 🔧 Improvements

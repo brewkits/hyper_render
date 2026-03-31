@@ -52,6 +52,7 @@ export 'src/interfaces/content_parser.dart';
 export 'src/interfaces/css_parser.dart';
 export 'src/interfaces/code_highlighter.dart';
 export 'src/interfaces/image_clipboard.dart';
+export 'src/interfaces/node_plugin.dart';
 
 // Style
 export 'src/style/resolver.dart';

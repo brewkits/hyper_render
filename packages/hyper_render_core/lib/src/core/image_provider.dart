@@ -22,10 +22,10 @@ class CachedImage {
   });
 }
 
-/// Callback for loading images
+/// Callback for loading images.
 ///
-/// This allows users to provide custom image loading implementations
-/// (e.g., using cached_network_image, custom caching, etc.)
+/// Use this to customize how images are fetched (e.g. using
+/// cached_network_image, or a local asset loader).
 ///
 /// Parameters:
 /// - src: The image URL
@@ -57,7 +57,7 @@ void defaultImageLoader(
     ),
   );
 
-  // BUG-A FIX: Listener must be stored and removed after first invocation.
+  // Store the listener so it can be removed after first invocation.
   // Without removal the ImageStream holds a strong ref to the listener forever,
   // leaking onLoad/onError closures (and any RenderBox state they close over).
   late final ImageStreamListener listener;

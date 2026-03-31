@@ -57,7 +57,11 @@ class DefaultDeltaParser implements ContentParser {
   }
 
   @override
-  List<DocumentNode> parseToSections(String content, {int chunkSize = 3000}) {
+  List<DocumentNode> parseToSections(
+    String content, {
+    int chunkSize = 3000,
+    String? baseUrl,
+  }) {
     // Delta format doesn't support chunking easily
     return [parse(content)];
   }

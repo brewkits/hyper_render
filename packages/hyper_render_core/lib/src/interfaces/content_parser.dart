@@ -61,8 +61,13 @@ abstract class ContentParser {
   ///
   /// [content] - The raw input content
   /// [chunkSize] - Approximate character count per section
+  /// [baseUrl] - Base URL for resolving relative URLs
   /// Returns a list of DocumentNodes, each representing a section
-  List<DocumentNode> parseToSections(String content, {int chunkSize = 3000}) {
+  List<DocumentNode> parseToSections(
+    String content, {
+    int chunkSize = 3000,
+    String? baseUrl,
+  }) {
     return [parse(content)];
   }
 }
@@ -133,7 +138,11 @@ class PlainTextParser implements ContentParser {
   }
 
   @override
-  List<DocumentNode> parseToSections(String content, {int chunkSize = 3000}) {
+  List<DocumentNode> parseToSections(
+    String content, {
+    int chunkSize = 3000,
+    String? baseUrl,
+  }) {
     return [parse(content)];
   }
 }

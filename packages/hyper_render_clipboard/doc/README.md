@@ -4,7 +4,7 @@ Complete documentation for the `hyper_render_clipboard` package.
 
 ## 📚 Documentation Overview
 
-Welcome to the comprehensive documentation for HyperRender Clipboard! This package provides full-featured image clipboard operations for HyperRender, including copying images to clipboard, saving to device storage, and sharing via system dialogs.
+Everything you need to know about image clipboard support in HyperRender. This package handles copying images, saving to device storage, and sharing via system dialogs.
 
 ### Quick Links
 

@@ -1,10 +1,36 @@
 # Changelog — hyper_render_core
 
+## [1.2.0] - 2026-03-29
+
+### ✨ New Features
+
+- **`HyperNodePlugin` / `HyperPluginRegistry`** (`src/interfaces/node_plugin.dart`): Plugin API for custom widget rendering of arbitrary HTML tag names. Block tier (full-width, CSS margins) and inline tier (flows with text, intrinsic-measured) supported.
+- **Plugin layout wiring** (`render_hyper_box.dart`, `render_hyper_box_layout.dart`): `blockPluginTags` / `inlinePluginTags` sets added to `RenderHyperBox` with layout-invalidating setters. `_tokenizeNode` intercepts plugin tags; Step 1.7 `_measureInlinePluginFragments()` queries child intrinsic dimensions before line layout runs.
+- **Plugin widget wiring** (`hyper_render_widget.dart`): `pluginRegistry` field added; `_collectAtomicChildren` checks plugin registry first; `createRenderObject` / `updateRenderObject` sync tag sets to the render object.
+
+### ♿ Accessibility (WCAG 2.1 AA)
+
+- **`<img alt>` → discrete `SemanticsNode`** (`render_hyper_box_accessibility.dart`): Images with non-empty `alt` text now generate an individual `SemanticsNode` at the image's layout rect. VoiceOver/TalkBack users can navigate to images element-by-element. Previously `alt` only appeared in the flat document-level label (WCAG 1.1.1).
+- **`aria-label` honored on `<a>` elements** (`render_hyper_box_accessibility.dart`): Anchor elements with `aria-label` now use that attribute as the link's accessible label instead of accumulated text content (WCAG 4.1.2).
+
+### 🐛 Bug Fixes
+
+- **Scroll vs. text-selection conflict** (`render_hyper_box.dart`): Removed `PointerMoveEvent` selection tracking from `handleEvent` — raw pointer events bypass the gesture arena and caused accidental selection during scrolling. Selection is now initiated via `startSelectionAt(Offset)` / `extendSelectionTo(Offset)` public methods, called from a `LongPressGestureRecognizer` at the widget layer.
+
+- **Context menu outside hit-testable bounds** (`hyper_selection_overlay.dart`): `Positioned(top: menuY - 56)` went negative when a selection was near the top of the widget. Clamped to `0.0` so the Copy button is always reachable.
+
+- **`prefer_const_constructors`** (`hyper_render_widget.dart`): `HyperPluginBuildContext` construction changed to `const`.
+
+---
+
 ## [1.1.4] - 2026-03-28
 
 ### 🐛 Bug Fixes
 - **`display:none` not respected**: Added guard in `_tokenizeNode` — elements with `display:none` produce no layout fragments.
 - **`_TextPainterKey` hash collision**: Replaced `Object.hash()` int key with full value-equality struct — eliminates subtle layout glitches on large documents with many distinct text styles.
+
+- **Inline images not loaded after async parse**: `document` setter now calls `_loadImages()` when the render box is attached, ensuring images are queued even when the document arrives after the initial `attach()`.
+- **Image loading spinner invisible**: `frameBuilder` no longer wraps the `loadingBuilder` placeholder in `AnimatedOpacity(opacity:0)` — loading indicator is now visible, and a `TweenAnimationBuilder` fade-in is applied on the first decoded frame instead.
 
 ### 🏗️ Code Quality
 - `dart fix` applied to test files: 73 `prefer_const` issues resolved — 0 analyzer issues.
