@@ -544,7 +544,7 @@ KinsokuMode.loose;   // Allow some breaks for narrow layouts
 
 ## References
 
-- Implementation: `lib/src/core/kinsoku_processor.dart`
+- Implementation: `packages/hyper_render_core/lib/src/core/kinsoku_processor.dart`
 - JIS X 4051: Japanese typesetting standard
 - GB/T 15834: Chinese typesetting standard
 - Tests: `test/kinsoku_test.dart`

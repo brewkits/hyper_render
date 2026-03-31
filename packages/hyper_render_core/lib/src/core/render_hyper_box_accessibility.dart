@@ -11,7 +11,7 @@ const int _kMaxSemanticAnchors = 200;
 
 // ── Semantic anchor data ───────────────────────────────────────────────────
 
-/// Describes one semantic anchor — either a heading block or a link span.
+/// Describes one semantic anchor: a heading block, a link span, or an image.
 class _SemanticAnchor {
   const _SemanticAnchor({
     required this.rect,
@@ -19,6 +19,7 @@ class _SemanticAnchor {
     required this.isHeading,
     this.headingLevel = 0,
     this.href,
+    this.isImage = false,
   });
 
   /// Bounding rect in the local coordinate system of [RenderHyperBox].
@@ -27,14 +28,21 @@ class _SemanticAnchor {
   /// Accessible label announced by TalkBack / VoiceOver.
   final String label;
 
-  /// `true` for h1–h6 blocks, `false` for `<a href>` spans.
+  /// `true` for h1–h6 blocks, `false` for `<a href>` spans or images.
   final bool isHeading;
 
-  /// Heading level (1–6). 0 for links.
+  /// Heading level (1–6). 0 for links and images.
   final int headingLevel;
 
-  /// Link URL. `null` for headings.
+  /// Link URL. `null` for headings and images.
   final String? href;
+
+  /// `true` when this anchor represents an `<img>` with non-empty `alt` text.
+  ///
+  /// Image nodes get a discrete [SemanticsNode] at the image's layout rect so
+  /// screen-reader users can navigate to them element-by-element (WCAG 1.1.1
+  /// Non-text Content).  They are NOT marked as links — just informational.
+  final bool isImage;
 }
 
 // ── Accessibility extension ────────────────────────────────────────────────
@@ -122,10 +130,24 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
     Rect? currentRect;
     final linkTextBuffer = StringBuffer();
 
+    // anchorNode lookup cache: nodeId → UDTNode for aria-label reads.
+    final Map<String, UDTNode> anchorNodeById = {};
+
     void flushLink() {
       if (currentAnchorId == null || currentRect == null) return;
-      final label = linkTextBuffer.toString().trim();
-      if (label.isNotEmpty && currentHref != null) {
+      if (currentHref == null) {
+        currentAnchorId = null;
+        currentRect = null;
+        linkTextBuffer.clear();
+        return;
+      }
+      // Honor aria-label if present on the <a> element (WCAG 4.1.2).
+      final anchorNode = anchorNodeById[currentAnchorId];
+      final ariaLabel = anchorNode?.attributes['aria-label']?.trim();
+      final label = (ariaLabel != null && ariaLabel.isNotEmpty)
+          ? ariaLabel
+          : linkTextBuffer.toString().trim();
+      if (label.isNotEmpty) {
         anchors.add(_SemanticAnchor(
           rect: currentRect!,
           label: label,
@@ -150,6 +172,30 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
         continue;
       }
 
+      // ── Image alt-text semantic nodes (WCAG 1.1.1) ──────────────────────
+      // Atomic fragments whose source is an <img> with non-empty alt get a
+      // discrete SemanticsNode at their layout rect so screen-reader users can
+      // navigate to images element-by-element.
+      if (fragment.type == FragmentType.atomic) {
+        final srcNode = fragment.sourceNode;
+        if (srcNode is AtomicNode &&
+            srcNode.tagName == 'img' &&
+            srcNode.alt != null &&
+            srcNode.alt!.isNotEmpty) {
+          final fRect = fragment.rect;
+          if (fRect != null && anchors.length < _kMaxSemanticAnchors) {
+            anchors.add(_SemanticAnchor(
+              rect: fRect,
+              label: srcNode.alt!,
+              isHeading: false,
+              isImage: true,
+            ));
+          }
+        }
+        flushLink();
+        continue;
+      }
+
       // Walk the source node's parent chain looking for an <a href> ancestor.
       String? href;
       String? anchorNodeId;
@@ -160,6 +206,7 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
           if (h != null && h.isNotEmpty) {
             href = h;
             anchorNodeId = node.id;
+            anchorNodeById[node.id] = node;
           }
           break;
         }

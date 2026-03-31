@@ -1,51 +1,27 @@
-# HyperRender Core
+# hyper_render_core
 
-Zero-dependency core rendering engine for HyperRender.
+Core rendering engine for [HyperRender](https://pub.dev/packages/hyper_render) — the single `RenderObject` that drives CSS float layout, crash-free text selection, and CJK/Furigana typography in Flutter.
 
-## Features
+Most apps should depend on [`hyper_render`](https://pub.dev/packages/hyper_render) instead, which bundles everything. Use this package directly if you need the engine without the HTML/Markdown parsers, or if you are building a parser plugin.
 
-### Core Rendering
-- **Universal Document Tree (UDT)** - Unified data model for all content types
-- **Custom RenderObject Layout Engine** - High-performance rendering
-- **Fragment-based Inline Layout** - Advanced text layout with float support
-- **CJK Line-breaking (Kinsoku)** - Proper Japanese/Chinese/Korean typography
-- **Ruby/Furigana Support** - Japanese reading annotations
-- **Text Selection** - Native-feeling selection with handles
-- **CSS Cascade Resolution** - Full CSS specificity and inheritance with 10x faster rule indexing
-
-### Features 🎉
-- **Error Boundaries** - ErrorBoundaryNode for graceful error handling
-- **Performance Monitoring** - PerformanceMonitor with P95/P99 percentile tracking
-- **Layout Cache** - Separate layout storage for efficient invalidation
-- **CSS Rule Indexing** - O(1) rule lookup instead of O(n×m) linear scan
-- **Design Tokens** - Material Design 3 compliant design system with dark mode
-- **Loading Skeletons** - Beautiful shimmer animations
-- **Error UI Components** - HyperErrorWidget with Material Design 3 styling
+---
 
 ## Installation
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.1.3
+  hyper_render_core: ^1.2.0
 ```
 
-## Minimal Dependencies
-
-This package has a small, stable set of dependencies: `vector_math`, `csslib`, `flutter_highlight`, and `highlight`. Parsing (HTML, Markdown) and higher-level rendering are provided by separate plugin packages:
-
-- `hyper_render_html` - HTML parsing with CSS support
-- `hyper_render_markdown` - Markdown parsing (GFM)
-- `hyper_render_highlight` - Syntax highlighting for code blocks
-- `hyper_render_clipboard` - Advanced image clipboard operations
+---
 
 ## Usage
 
-### Direct Document Creation
+### Build a document and render it
 
 ```dart
 import 'package:hyper_render_core/hyper_render_core.dart';
 
-// Create document manually
 final document = DocumentNode(children: [
   BlockNode(tagName: 'h1', children: [TextNode(text: 'Hello World')]),
   BlockNode(tagName: 'p', children: [
@@ -55,203 +31,72 @@ final document = DocumentNode(children: [
   ]),
 ]);
 
-// Render with HyperRenderWidget
 HyperRenderWidget(document: document)
 ```
 
-### With Content Parser Plugin
+### Plug in an HTML parser
 
 ```dart
 import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:hyper_render_html/hyper_render_html.dart';
 
-// Parse HTML to UDT
-final parser = HtmlContentParser();
-final document = parser.parse('<h1>Hello</h1><p>World</p>');
+final document = HtmlContentParser().parse('<h1>Hello</h1><p>World</p>');
 
-// Render
 HyperRenderWidget(document: document)
 ```
 
-### With Performance Monitoring (v1.0)
+### Custom tag plugins
+
+Register a `HyperNodePlugin` to render arbitrary HTML tags as Flutter widgets:
 
 ```dart
-import 'package:hyper_render_core/hyper_render_core.dart';
+class MyCardPlugin implements HyperNodePlugin {
+  @override String get tagName => 'my-card';
+  @override bool get isInline => false; // true = flows with text
 
-final monitor = PerformanceMonitor();
-
-// Measure operations
-final doc = monitor.measure('parse', () {
-  return HtmlContentParser().parse(html);
-});
-
-// Build report
-final report = monitor.buildReport();
-print('Average: ${report.averageDuration.inMilliseconds}ms');
-print('P95: ${report.p95Duration.inMilliseconds}ms');
-print('Rating: ${report.rating}'); // Excellent, Good, Acceptable, Slow, Poor
-
-// Export to JSON for analytics
-final json = report.toJson();
-```
-
-### With Error Boundaries (v1.0)
-
-```dart
-import 'package:hyper_render_core/hyper_render_core.dart';
-
-// Create document with error handling
-final document = DocumentNode(children: [
-  try {
-    parseUntrustedContent(html),
-  } catch (e, stack) {
-    ErrorBoundaryNode(
-      error: e,
-      stackTrace: stack,
-      friendlyMessage: 'Failed to parse content',
-      originalContent: html,
-    ),
+  @override
+  Widget? build(HyperPluginBuildContext ctx) {
+    return Card(child: Text(ctx.node.textContent));
   }
-]);
+}
 
-// Render with automatic error UI
-HyperRenderWidget(document: document)
-```
-
-### With Design Tokens (v1.0)
-
-```dart
-import 'package:hyper_render_core/hyper_render_core.dart';
-
-// Use design tokens for consistent styling
-Container(
-  padding: EdgeInsets.all(DesignTokens.space2), // 16px
-  decoration: BoxDecoration(
-    color: DesignTokens.getBackgroundColor(context),
-    borderRadius: BorderRadius.circular(DesignTokens.radiusMedium),
-    boxShadow: DesignTokens.shadow(2),
-  ),
-  child: Text(
-    'Hello',
-    style: DesignTokens.headingStyle(1).copyWith(
-      color: DesignTokens.getTextPrimary(context),
-    ),
-  ),
-)
-
-// Spacing, typography, colors automatically adapt to dark mode
-```
-
-### With Loading Skeletons (v1.0)
-
-```dart
-import 'package:hyper_render_core/hyper_render_core.dart';
-
-// Show loading skeleton while content loads
-FutureBuilder<DocumentNode>(
-  future: fetchDocument(),
-  builder: (context, snapshot) {
-    if (snapshot.hasData) {
-      return HyperRenderWidget(document: snapshot.data!);
-    }
-
-    // Beautiful loading skeleton with shimmer animation
-    return SkeletonCard(
-      lines: 5,
-      showImage: true,
-      showAvatar: true,
-    );
-  },
+HyperRenderWidget(
+  document: document,
+  pluginRegistry: HyperPluginRegistry()..register(MyCardPlugin()),
 )
 ```
 
-## Plugin Interfaces
-
-HyperRender Core provides interfaces for extending functionality:
-
-### ContentParser
-
-For content parsing (HTML, Markdown, Delta):
-
-```dart
-abstract class ContentParser {
-  ContentType get contentType;
-  DocumentNode parse(String content);
-  DocumentNode parseWithOptions(String content, {String? baseUrl, String? customCss});
-  List<DocumentNode> parseToSections(String content, {int chunkSize = 3000});
-}
-```
-
-### CodeHighlighter
-
-For code syntax highlighting:
-
-```dart
-abstract class CodeHighlighter {
-  List<TextSpan> highlight(String code, String language);
-  Set<String> get supportedLanguages;
-  bool isLanguageSupported(String language);
-  TextStyle get defaultStyle;
-  Color get backgroundColor;
-}
-```
-
-### CssParserInterface
-
-For CSS stylesheet parsing:
-
-```dart
-abstract class CssParserInterface {
-  List<ParsedCssRule> parseStylesheet(String css);
-  Map<String, String> parseInlineStyle(String style);
-}
-```
-
-### ImageClipboardHandler
-
-For image clipboard operations:
-
-```dart
-abstract class ImageClipboardHandler {
-  Future<bool> copyImageFromUrl(String imageUrl);
-  Future<bool> copyImageBytes(Uint8List bytes, {String? mimeType});
-  Future<String?> saveImageFromUrl(String imageUrl, {String? filename});
-  // ... more methods
-}
-```
+---
 
 ## UDT Node Types
 
-| Node Type | Description | Example Tags |
-|-----------|-------------|--------------|
-| `DocumentNode` | Root container | - |
-| `BlockNode` | Block-level element | div, p, h1-h6, ul, ol |
-| `InlineNode` | Inline element | span, a, strong, em |
-| `TextNode` | Text content | - |
-| `LineBreakNode` | Line break | br |
-| `AtomicNode` | Non-text inline | img, video |
-| `RubyNode` | Ruby annotation | ruby |
-| `TableNode` | Table structure | table |
-| `TableRowNode` | Table row | tr |
-| `TableCellNode` | Table cell | td, th |
-| `DetailsNode` | Interactive disclosure | details |
-| `ErrorBoundaryNode` | Error handling (v1.0) | error-boundary |
+| Type | Description |
+|------|-------------|
+| `DocumentNode` | Root container |
+| `BlockNode` | Block-level element (`div`, `p`, `h1`–`h6`, `ul`, `ol`, …) |
+| `InlineNode` | Inline element (`span`, `a`, `strong`, `em`, …) |
+| `TextNode` | Text content |
+| `AtomicNode` | Non-text inline (`img`, `video`) |
+| `RubyNode` | Ruby / Furigana annotation |
+| `TableNode` / `TableRowNode` / `TableCellNode` | Table structure |
+| `DetailsNode` | Interactive `<details>`/`<summary>` |
+| `LineBreakNode` | `<br>` |
 
-## ComputedStyle
+---
 
-All CSS properties are resolved into `ComputedStyle`:
+## Plugin Interfaces
 
-```dart
-final style = ComputedStyle(
-  fontSize: 16.0,
-  fontWeight: FontWeight.bold,
-  color: Color(0xFF333333),
-  margin: EdgeInsets.all(8),
-  padding: EdgeInsets.symmetric(horizontal: 16),
-  display: DisplayType.block,
-);
-```
+Implement these to extend the engine:
+
+| Interface | Purpose |
+|-----------|---------|
+| `ContentParser` | HTML, Markdown, or Delta parsing |
+| `CodeHighlighter` | Syntax highlighting for `<code>` / `<pre>` |
+| `CssParserInterface` | CSS stylesheet parsing |
+| `ImageClipboardHandler` | Image copy / share |
+
+---
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT — see [LICENSE](LICENSE).

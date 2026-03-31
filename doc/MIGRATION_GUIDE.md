@@ -1,24 +1,86 @@
 # Migration Guide
 
-> **Note**: HyperRender is currently at **v1.0.0**, the initial stable release. This migration guide is preserved for future reference when breaking changes occur in v2.0.
+> **Current version: v1.2.0** — All v1.x releases are additive and backward-compatible. No breaking API changes.
 
-## Current Version: 1.0.0
+## Current Version: 1.2.0
 
-**No migration needed!** If you're starting fresh with HyperRender v1.0.0:
+**No migration needed!** If you're starting fresh with HyperRender v1.2.0:
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.0.0
-  hyper_render_clipboard: ^1.0.0  # Optional: for image clipboard features
+  hyper_render: ^1.2.0
+  # or use individual packages:
+  hyper_render_core: ^1.2.0
+  hyper_render_clipboard: ^1.2.0
 ```
 
 ```dart
-import 'package:hyper_render_core/hyper_render_core.dart';
+import 'package:hyper_render/hyper_render.dart';
+
+HyperViewer(html: '<p>Hello World</p>')
+HyperViewer.markdown(markdown: '# Hello')
+HyperViewer(html: '...', mode: HyperRenderMode.paged, pageController: HyperPageController())
+```
+
+---
+
+## v1.2.0 — What's New (March 2026)
+
+### ✨ Plugin API, Paged Mode, Incremental Layout, A11y
+
+#### New: Multi-tier Plugin API
+
+Register custom HTML tag renderers at startup:
+
+```dart
+final registry = HyperPluginRegistry()
+  ..register(MyBlockPlugin())   // isInline == false (full-width)
+  ..register(MyInlinePlugin()); // isInline == true (flows with text)
+
+HyperViewer(html: html, pluginRegistry: registry)
+```
+
+#### New: Paged Mode
+
+```dart
+final ctrl = HyperPageController();
 
 HyperViewer(
-  html: '<p>Hello World</p>',
+  html: longHtml,
+  mode: HyperRenderMode.paged,
+  pageController: ctrl,
+)
+
+// Navigate programmatically:
+ctrl.nextPage();
+ctrl.animateToPage(3, duration: Duration(milliseconds: 300), curve: Curves.easeInOut);
+
+// Reactive page indicator:
+ValueListenableBuilder<int>(
+  valueListenable: ctrl.currentPage,
+  builder: (_, page, __) => Text('Page ${page + 1} of ${ctrl.pageCount}'),
 )
 ```
+
+#### New: Incremental Layout
+
+Sections whose content hasn't changed are automatically reused — no API changes required.
+Flutter skips re-layout and repaint for unchanged `RepaintBoundary` sections.
+Approximately 90% layout rebuild reduction for live-updating feeds.
+
+#### New: Accessibility (WCAG 2.1 AA)
+
+- `<img alt="…">` now produces a discrete `SemanticsNode` at the image's layout rect (WCAG 1.1.1).
+- `<a aria-label="…">` uses the `aria-label` value as the semantic label (WCAG 4.1.2).
+
+### 🏗️ Internal Refactor — Dead-code elimination
+
+- **No API changes.** Internal cleanup for better performance.
+- Root `lib/src/` had 31 stale duplicate files shadowing `hyper_render_core`. All deleted.
+- `LazyImageQueue` singleton is now the single shared instance from `hyper_render_core`.
+- All v1.2.0 symbols (`HyperRenderConfig`, `LazyImageQueue`, `HyperNodePlugin`, `HyperPluginRegistry`,
+  `HyperPluginBuildContext`, `LoadingSkeleton`, `HyperErrorWidget`, `FloatCarryover`) are now
+  accessible from `package:hyper_render` directly.
 
 ---
 
@@ -62,24 +124,33 @@ These APIs are stable and will remain backward-compatible in v2.0:
 
 ## Version History
 
-### v1.0.0 (Current - February 2026)
+### v1.2.0 (March 2026)
+- Multi-tier Plugin API (`HyperNodePlugin` / `HyperPluginRegistry`)
+- `HyperRenderMode.paged` + `HyperPageController`
+- Dirty-flag incremental layout (~90% rebuild reduction)
+- WCAG 2.1 AA: img alt SemanticsNode + aria-label on links
+- Dead-code elimination — 31 duplicate root files removed
+- `LazyImageQueue` singleton unified (single shared instance)
+- All v1.2.0 symbols now accessible from `package:hyper_render`
+
+### v1.1.x (March 2026)
+- CSS @keyframes / animation support
+- Ruby/furigana selection fixes
+- Wikipedia / rich HTML display fixes (`display:none`, `<pre>`, `<hr>`)
+- Over 800 automated tests for production reliability
+
+### v1.0.0 (February 2026)
 - Initial stable release
 - Full HTML rendering support
 - CSS styling with design tokens
 - Plugin architecture with clipboard support
 - Cross-platform (iOS, Android, Web, Desktop)
 
-### v2.0.0 (Future - Planned)
-- Modular parser system
-- Enhanced performance optimizations
-- Additional plugin ecosystem
-- Breaking API improvements based on community feedback
-
 ---
 
 ## Getting Help
 
-For the current v1.0.0 release:
+For the current v1.2.0 release:
 - See [README](../README.md) for usage
 - Check [CHANGELOG](../CHANGELOG.md) for version history
 - Review [Plugin Development Guide](PLUGIN_DEVELOPMENT.md) for extending
@@ -87,4 +158,4 @@ For the current v1.0.0 release:
 
 ---
 
-*Last Updated: February 2026 for v1.0.0*
+*Last Updated: March 30, 2026 for v1.2.0*

@@ -64,6 +64,8 @@ export 'package:hyper_render_core/hyper_render_core.dart'
         // Style
         StyleResolver,
         CssRule,
+        // Config
+        HyperRenderConfig,
         // Core rendering
         RenderHyperBox,
         RenderHyperBoxSelection,
@@ -76,6 +78,7 @@ export 'package:hyper_render_core/hyper_render_core.dart'
         ImageLoadState,
         CachedImage,
         defaultImageLoader,
+        LazyImageQueue,
         HyperRenderWidget,
         HyperImage,
         ImageAction,
@@ -131,19 +134,28 @@ export 'package:hyper_render_core/hyper_render_core.dart'
         PlainTextHighlighter,
         ImageClipboardHandler,
         DefaultImageClipboardHandler,
-        ImageOperationResult;
+        ImageOperationResult,
+        // Plugin API (v1.2.0)
+        HyperNodePlugin,
+        HyperPluginRegistry,
+        HyperPluginBuildContext,
+        // Loading / error UI
+        LoadingSkeleton,
+        HyperErrorWidget,
+        FloatCarryover;
 
 // ============================================
 // Unique to hyper_render — viewer & utilities
 // ============================================
 
 export 'src/widgets/hyper_viewer.dart'
-    show HyperViewer, HyperRenderMode, HyperContentType;
-
-export 'package:hyper_render_core/hyper_render_core.dart'
-    show HyperRenderConfig;
-
-export 'src/core/lazy_image_queue.dart' show LazyImageQueue;
+    show
+        HyperViewer,
+        HyperRenderMode,
+        HyperContentType,
+        HyperViewerController,
+        HyperPageController,
+        HeadingAnchor;
 
 export 'src/core/capture_extension.dart' show HyperCaptureExtension;
 
@@ -182,9 +194,8 @@ export 'src/plugins/default_code_highlighter.dart'
     show DefaultCodeHighlighter, HighlightTheme;
 
 // ============================================
-// Clipboard plugin (optional — add hyper_render_clipboard separately)
+// Clipboard plugin
 // ============================================
 
-// import 'package:hyper_render_clipboard/hyper_render_clipboard.dart';
-// export 'package:hyper_render_clipboard/hyper_render_clipboard.dart'
-//     show SuperClipboardHandler;
+export 'package:hyper_render_clipboard/hyper_render_clipboard.dart'
+    show SuperClipboardHandler;

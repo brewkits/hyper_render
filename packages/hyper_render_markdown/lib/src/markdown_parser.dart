@@ -58,9 +58,11 @@ class MarkdownContentParser implements ContentParser {
   }
 
   @override
-  List<DocumentNode> parseToSections(String content, {int chunkSize = 3000}) {
-    // For now, parse as single document
-    // Could be enhanced to split at heading boundaries for better virtualization
+  List<DocumentNode> parseToSections(
+    String content, {
+    String? baseUrl,
+    int chunkSize = 3000,
+  }) {
     return [parse(content)];
   }
 }

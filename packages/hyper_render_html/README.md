@@ -1,37 +1,28 @@
-# HyperRender HTML
+# hyper_render_html
 
-HTML parsing plugin for HyperRender with full CSS support.
+HTML parsing plugin for [HyperRender](https://pub.dev/packages/hyper_render). Converts HTML + CSS into the Universal Document Tree consumed by `hyper_render_core`.
 
-## Features
-
-- **Full HTML Parsing** - Complete DOM parsing via `html` package
-- **CSS Stylesheet Parsing** - Full CSS cascade via `csslib` package
-- **Inline Style Support** - Parse style attributes
-- **CSS Specificity** - Proper cascade resolution
-- **Custom CSS** - Add your own stylesheets
-- **Base URL Support** - Resolve relative URLs
+---
 
 ## Installation
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.1.3
-  hyper_render_html: ^1.1.3
+  hyper_render_core: ^1.2.0
+  hyper_render_html: ^1.2.0
 ```
+
+---
 
 ## Usage
 
-### Basic HTML Parsing
+### Parse HTML
 
 ```dart
 import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:hyper_render_html/hyper_render_html.dart';
 
-// Create parser
-final parser = HtmlContentParser();
-
-// Parse HTML to UDT
-final document = parser.parse('''
+final document = HtmlContentParser().parse('''
   <h1>Welcome</h1>
   <p>This is <strong>bold</strong> and <em>italic</em> text.</p>
   <ul>
@@ -40,105 +31,57 @@ final document = parser.parse('''
   </ul>
 ''');
 
-// Render
 HyperRenderWidget(document: document)
 ```
 
-### With Custom CSS
+### Custom CSS
 
 ```dart
-final document = parser.parseWithOptions(
+final document = HtmlContentParser().parseWithOptions(
   '<div class="card"><h2>Title</h2><p>Content</p></div>',
   customCss: '''
-    .card {
-      background: #f5f5f5;
-      padding: 16px;
-      border-radius: 8px;
-    }
-    .card h2 {
-      color: #333;
-      margin-bottom: 8px;
-    }
+    .card { background: #f5f5f5; padding: 16px; border-radius: 8px; }
+    .card h2 { color: #333; margin-bottom: 8px; }
   ''',
 );
 ```
 
-### With Base URL
+### Base URL (resolves relative paths)
 
 ```dart
-final document = parser.parseWithOptions(
+final document = HtmlContentParser().parseWithOptions(
   '<img src="/images/photo.jpg">',
   baseUrl: 'https://example.com',
 );
-// Image src resolves to: https://example.com/images/photo.jpg
+// <img> src resolved to: https://example.com/images/photo.jpg
 ```
 
-### CSS Parser Standalone
+---
 
-```dart
-import 'package:hyper_render_html/hyper_render_html.dart';
+## Supported HTML
 
-final cssParser = CsslibCssParser();
+**Block**: `h1`–`h6`, `p`, `div`, `article`, `section`, `blockquote`, `pre`, `ul`, `ol`, `li`, `table`, `tr`, `td`, `th`, `details`, `summary`, `hr`, `dl`, `dt`, `dd`
 
-// Parse stylesheet
-final rules = cssParser.parseStylesheet('''
-  body { font-size: 16px; }
-  .highlight { background: yellow; }
-  #header { font-weight: bold; }
-''');
+**Inline**: `a`, `strong`, `b`, `em`, `i`, `u`, `s`, `del`, `ins`, `code`, `kbd`, `sup`, `sub`, `ruby`, `rt`, `span`, `br`
 
-// Parse inline style
-final props = cssParser.parseInlineStyle('color: red; margin: 10px');
-// {'color': 'red', 'margin': '10px'}
-```
+**Media**: `img`, `video` (poster placeholder), `audio` (placeholder)
 
-## Supported HTML Elements
+---
 
-### Block Elements
-- Headings: `h1`, `h2`, `h3`, `h4`, `h5`, `h6`
-- Paragraphs: `p`, `div`, `article`, `section`
-- Lists: `ul`, `ol`, `li`
-- Blockquote: `blockquote`
-- Pre/Code: `pre`, `code`
-- Tables: `table`, `tr`, `td`, `th`, `thead`, `tbody`
+## Supported CSS
 
-### Inline Elements
-- Text formatting: `strong`, `b`, `em`, `i`, `u`, `s`, `del`, `ins`
-- Links: `a`
-- Code: `code`, `kbd`, `samp`
-- Ruby: `ruby`, `rt`, `rp`
-- Misc: `span`, `br`, `sup`, `sub`
+**Box model**: `width`, `height`, `min/max-width`, `min/max-height`, `margin`, `padding`, `border`, `border-radius`, `box-shadow`
 
-### Media Elements
-- Images: `img`
-- Video: `video` (placeholder)
-- Audio: `audio` (placeholder)
+**Typography**: `color`, `font-size`, `font-weight`, `font-style`, `font-family`, `line-height`, `letter-spacing`, `text-align`, `text-decoration`, `text-transform`, `vertical-align`
 
-## Supported CSS Properties
+**Layout**: `display` (block, inline, inline-block, flex, grid, none), `float`, `clear`, `overflow`, `position` (static, relative)
 
-### Box Model
-- `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`
-- `margin`, `margin-top`, `margin-right`, `margin-bottom`, `margin-left`
-- `padding`, `padding-top`, `padding-right`, `padding-bottom`, `padding-left`
-- `border`, `border-width`, `border-color`, `border-radius`
+**Visual**: `background-color`, `background-image`, `opacity`, `transform`, `filter`, `backdrop-filter`
 
-### Typography
-- `color`, `font-size`, `font-weight`, `font-style`, `font-family`
-- `line-height`, `letter-spacing`, `word-spacing`
-- `text-align`, `text-decoration`, `text-transform`
-- `white-space`, `vertical-align`
+**CSS features**: custom properties (`var()`), `calc()`, `@keyframes`, specificity cascade, inheritance
 
-### Layout
-- `display` (block, inline, inline-block, flex, none)
-- `float`, `clear`
-- `overflow`, `overflow-x`, `overflow-y`
-- `position` (static, relative)
-
-### Visual
-- `background-color`, `background-image`
-- `opacity`
-- `transform`
+---
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT — see [LICENSE](LICENSE).

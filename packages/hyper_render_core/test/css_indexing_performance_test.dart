@@ -101,18 +101,20 @@ void main() {
       // Common resets and base styles
       rules.add(const ParsedCssRule(
           selector: '*', declarations: {'box-sizing': 'border-box'}));
-      rules.add(const ParsedCssRule(selector: 'body', declarations: {'margin': '0'}));
       rules.add(
-          const ParsedCssRule(selector: 'html', declarations: {'font-size': '16px'}));
+          const ParsedCssRule(selector: 'body', declarations: {'margin': '0'}));
+      rules.add(const ParsedCssRule(
+          selector: 'html', declarations: {'font-size': '16px'}));
 
       // Typography
       for (var i = 1; i <= 6; i++) {
         rules.add(ParsedCssRule(
             selector: 'h$i', declarations: {'font-weight': 'bold'}));
       }
-      rules
-          .add(const ParsedCssRule(selector: 'p', declarations: {'margin': '1em 0'}));
-      rules.add(const ParsedCssRule(selector: 'a', declarations: {'color': 'blue'}));
+      rules.add(const ParsedCssRule(
+          selector: 'p', declarations: {'margin': '1em 0'}));
+      rules.add(
+          const ParsedCssRule(selector: 'a', declarations: {'color': 'blue'}));
       rules.add(const ParsedCssRule(
           selector: 'strong', declarations: {'font-weight': 'bold'}));
       rules.add(const ParsedCssRule(

@@ -10,6 +10,7 @@ import '../core/render_media.dart';
 import '../core/render_table.dart';
 import '../interfaces/code_highlighter.dart';
 import '../interfaces/image_clipboard.dart';
+import '../interfaces/node_plugin.dart';
 import '../model/computed_style.dart';
 import '../model/node.dart';
 import 'code_block_widget.dart';
@@ -140,6 +141,15 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// section N-1 has completed layout, and pass it here for section N.
   final List<FloatCarryover> initialFloats;
 
+  /// Custom plugin registry for overriding the rendering of specific HTML tags.
+  ///
+  /// Plugins are checked **before** any built-in rendering logic, so they can
+  /// intercept built-in tags (e.g. replace `<table>` with a custom widget) or
+  /// handle custom/unknown tags (e.g. `<math>`, `<figure>`, `<badge>`).
+  ///
+  /// See [HyperNodePlugin] for the block vs inline distinction.
+  final HyperPluginRegistry? pluginRegistry;
+
   /// Creates a HyperRenderWidget
   ///
   /// The [document] parameter is required and contains the parsed UDT tree.
@@ -162,25 +172,32 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.onFloatCarryover,
     this.config = HyperRenderConfig.defaults,
     this.initialFloats = const [],
+    this.pluginRegistry,
   }) : super(
             children: _buildChildren(document, widgetBuilder,
                 selectable: selectable,
+                onLinkTap: onLinkTap,
                 codeHighlighter: config.codeHighlighter,
-                keyframeRegistry: config.keyframeRegistry));
+                keyframeRegistry: config.keyframeRegistry,
+                pluginRegistry: pluginRegistry));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
   static List<Widget> _buildChildren(
     DocumentNode document,
     HyperWidgetBuilder? widgetBuilder, {
     bool selectable = true,
+    void Function(String)? onLinkTap,
     CodeHighlighter? codeHighlighter,
     Map<String, HyperKeyframes> keyframeRegistry = const {},
+    HyperPluginRegistry? pluginRegistry,
   }) {
     final children = <Widget>[];
     _collectAtomicChildren(document, children, widgetBuilder,
         selectable: selectable,
+        onLinkTap: onLinkTap,
         codeHighlighter: codeHighlighter,
-        keyframeRegistry: keyframeRegistry);
+        keyframeRegistry: keyframeRegistry,
+        pluginRegistry: pluginRegistry);
     return children;
   }
 
@@ -189,10 +206,28 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     List<Widget> children,
     HyperWidgetBuilder? widgetBuilder, {
     bool selectable = true,
+    void Function(String)? onLinkTap,
     CodeHighlighter? codeHighlighter,
     Map<String, HyperKeyframes> keyframeRegistry = const {},
+    HyperPluginRegistry? pluginRegistry,
   }) {
     Widget? childWidget;
+
+    // Plugin registry check: highest priority, fires before all built-in logic.
+    // Covers both block-tier (full-width) and inline-tier (flows with text) plugins.
+    if (pluginRegistry != null && pluginRegistry.hasPlugin(node.tagName)) {
+      final plugin = pluginRegistry.pluginFor(node.tagName)!;
+      const baseStyle = TextStyle(fontSize: 16, color: Color(0xFF1F2937));
+      const ctx = HyperPluginBuildContext(baseStyle: baseStyle);
+      childWidget = plugin.buildWidget(node, ctx);
+      if (childWidget != null) {
+        children.add(_HyperChildWidget(
+            node: node,
+            child: _maybeAnimate(node, childWidget, keyframeRegistry)));
+        return; // Plugin owns this node — do not recurse into children.
+      }
+      // Plugin returned null → fall through to built-in rendering.
+    }
 
     // Is it a flex container?
     if (node.style.display == DisplayType.flex) {
@@ -279,8 +314,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     } else if (node.type == NodeType.table) {
       final tableNode = node as TableNode;
       childWidget = widgetBuilder?.call(tableNode);
-      childWidget ??=
-          _buildDefaultTableWidget(tableNode, selectable: selectable);
+      childWidget ??= _buildDefaultTableWidget(tableNode,
+          selectable: selectable, onLinkTap: onLinkTap);
       if (childWidget != null) {
         children.add(_HyperChildWidget(
             node: node,
@@ -294,8 +329,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       for (final child in node.children) {
         _collectAtomicChildren(child, children, widgetBuilder,
             selectable: selectable,
+            onLinkTap: onLinkTap,
             codeHighlighter: codeHighlighter,
-            keyframeRegistry: keyframeRegistry);
+            keyframeRegistry: keyframeRegistry,
+            pluginRegistry: pluginRegistry);
       }
     }
   }
@@ -481,7 +518,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   }
 
   static Widget? _buildDefaultTableWidget(TableNode node,
-      {bool selectable = true}) {
+      {bool selectable = true, void Function(String)? onLinkTap}) {
     // Use horizontalScroll by default — it works correctly inside IntrinsicHeight
     // rows (LayoutBuilder blocks intrinsic dimension queries, so autoScale/fitWidth
     // can only be used for top-level tables that are never measured intrinsically).
@@ -506,6 +543,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       strategy: strategy,
       minScaleFactor: 0.6,
       selectable: selectable,
+      onLinkTap: onLinkTap,
       // Supply a cell builder so that cells containing block-level content
       // (nested tables, paragraphs, images, …) are rendered via
       // HyperRenderWidget instead of being silently dropped.
@@ -513,6 +551,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       cellContentBuilder: (cellNode) => HyperRenderWidget(
         document: DocumentNode(children: cellNode.children),
         selectable: false,
+        onLinkTap: onLinkTap,
       ),
     );
   }
@@ -713,7 +752,9 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       ..suppressFirstBlockMarginTop = suppressFirstBlockMarginTop
       ..onAnchorLayout = onAnchorLayout
       ..initialFloats = initialFloats
-      ..onFloatCarryover = onFloatCarryover;
+      ..onFloatCarryover = onFloatCarryover
+      ..blockPluginTags = pluginRegistry?.blockPluginTags ?? const {}
+      ..inlinePluginTags = pluginRegistry?.inlinePluginTags ?? const {};
   }
 
   @override
@@ -761,7 +802,23 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     }
     renderObject.initialFloats = initialFloats;
     renderObject.onFloatCarryover = onFloatCarryover;
+
+    // Plugin registry — update tag sets when the registry changes.
+    final newBlockTags = pluginRegistry?.blockPluginTags ?? const <String>{};
+    final newInlineTags = pluginRegistry?.inlinePluginTags ?? const <String>{};
+    if (!_setEquals(renderObject.blockPluginTags, newBlockTags)) {
+      renderObject.blockPluginTags = newBlockTags;
+    }
+    if (!_setEquals(renderObject.inlinePluginTags, newInlineTags)) {
+      renderObject.inlinePluginTags = newInlineTags;
+    }
   }
+}
+
+bool _setEquals<T>(Set<T> a, Set<T> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  return a.containsAll(b);
 }
 
 /// Internal widget to wrap atomic children
@@ -905,11 +962,16 @@ class HyperImage extends StatelessWidget {
           );
         },
         frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-          if (wasSynchronouslyLoaded) return child;
-          return AnimatedOpacity(
-            opacity: frame == null ? 0 : 1,
+          // When frame == null the image is still downloading; loadingBuilder
+          // already provides the placeholder, so return child unchanged to
+          // avoid hiding it behind opacity:0.  Once the first frame arrives,
+          // animate in from transparent to fully opaque.
+          if (wasSynchronouslyLoaded || frame == null) return child;
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
+            builder: (_, value, child) => Opacity(opacity: value, child: child),
             child: child,
           );
         },

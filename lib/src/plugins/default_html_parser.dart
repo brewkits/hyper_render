@@ -24,13 +24,16 @@ class DefaultHtmlParser implements ContentParser {
     String? baseUrl,
     String? customCss,
   }) {
-    // HtmlAdapter doesn't currently support these options
-    // Future: could be extended to support base URL resolution
-    return parse(content);
+    return _adapter.parse(content, baseUrl: baseUrl);
   }
 
   @override
-  List<DocumentNode> parseToSections(String content, {int chunkSize = 3000}) {
-    return _adapter.parseToSections(content, chunkSize: chunkSize);
+  List<DocumentNode> parseToSections(
+    String content, {
+    int chunkSize = 3000,
+    String? baseUrl,
+  }) {
+    return _adapter.parseToSections(content,
+        chunkSize: chunkSize, baseUrl: baseUrl);
   }
 }

@@ -85,9 +85,9 @@ class HtmlAdapter {
     'tfoot': ComputedStyle(display: DisplayType.block),
   };
 
-  DocumentNode parse(String html) {
+  DocumentNode parse(String html, {String? baseUrl}) {
     final document = html_parser.parse(html);
-    return _parseDocument(document);
+    return _parseDocument(document, baseUrl);
   }
 
   /// Extracts the concatenated text of all `<style>` elements in [html].
@@ -121,7 +121,11 @@ class HtmlAdapter {
     return cssParser.parseKeyframes(css);
   }
 
-  List<DocumentNode> parseToSections(String html, {int chunkSize = 3000}) {
+  List<DocumentNode> parseToSections(
+    String html, {
+    int chunkSize = 3000,
+    String? baseUrl,
+  }) {
     final document = html_parser.parse(html);
     final body = document.body;
 
@@ -137,7 +141,7 @@ class HtmlAdapter {
 
     for (int i = 0; i < nodesToProcess.length; i++) {
       final child = nodesToProcess[i];
-      final UDTNode? udtNode = _parseNode(child);
+      final UDTNode? udtNode = _parseNode(child, baseUrl);
 
       if (udtNode != null) {
         currentSection.children.add(udtNode);
@@ -248,11 +252,11 @@ class HtmlAdapter {
     return 50; // Default estimate for unknown nodes
   }
 
-  DocumentNode _parseDocument(dom.Document document) {
+  DocumentNode _parseDocument(dom.Document document, [String? baseUrl]) {
     final root = DocumentNode(children: []);
     if (document.body != null) {
       for (var child in document.body!.nodes) {
-        final node = _parseNode(child);
+        final node = _parseNode(child, baseUrl);
         if (node != null) {
           root.children.add(node);
         }
@@ -261,11 +265,15 @@ class HtmlAdapter {
     return root;
   }
 
-  UDTNode? _parseNode(dom.Node node) {
+  UDTNode? _parseNode(dom.Node node, [String? baseUrl]) {
     if (node.nodeType == dom.Node.TEXT_NODE) {
       // Drop structural whitespace (contains newlines — pure indentation) but
       // preserve space-only nodes (e.g. " ") that separate inline elements.
-      if (node.text == null || (node.text!.trim().isEmpty && !RegExp(r'^[ \t]+$').hasMatch(node.text!))) return null;
+      if (node.text == null ||
+          (node.text!.trim().isEmpty &&
+              !RegExp(r'^[ \t]+$').hasMatch(node.text!))) {
+        return null;
+      }
       return TextNode(node.text!);
     }
 
@@ -293,7 +301,8 @@ class HtmlAdapter {
         if (tagName == 'hr') {
           return BlockNode(
             tagName: 'hr',
-            attributes: element.attributes.map((k, v) => MapEntry(k.toString(), v)),
+            attributes:
+                element.attributes.map((k, v) => MapEntry(k.toString(), v)),
             style: ComputedStyle(
               display: DisplayType.block,
               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -303,12 +312,19 @@ class HtmlAdapter {
             children: const [],
           );
         }
+
+        // Resolve src attribute for media elements (img, video, audio, iframe)
+        String? src = element.attributes['src'];
+        if (src != null) {
+          src = _resolveUrl(src, baseUrl);
+        }
+
         return AtomicNode(
           tagName: tagName,
           attributes:
               element.attributes.map((k, v) => MapEntry(k.toString(), v)),
           style: defaultStyle,
-          src: element.attributes['src'],
+          src: src,
           alt: element.attributes['alt'],
           intrinsicWidth: double.tryParse(element.attributes['width'] ?? ''),
           intrinsicHeight: double.tryParse(element.attributes['height'] ?? ''),
@@ -333,8 +349,21 @@ class HtmlAdapter {
         );
       }
 
-      final children =
-          element.nodes.map(_parseNode).whereType<UDTNode>().toList();
+      // Resolve href attribute for link elements
+      if (tagName == 'a') {
+        String? href = element.attributes['href'];
+        if (href != null) {
+          final resolvedHref = _resolveUrl(href, baseUrl);
+          if (resolvedHref != null) {
+            element.attributes['href'] = resolvedHref;
+          }
+        }
+      }
+
+      final children = element.nodes
+          .map((n) => _parseNode(n, baseUrl))
+          .whereType<UDTNode>()
+          .toList();
 
       UDTNode result;
       if (tagName == 'table') {
@@ -391,6 +420,20 @@ class HtmlAdapter {
   bool _isAtomic(dom.Element element) {
     return const ['img', 'video', 'audio', 'iframe', 'br', 'hr', 'input']
         .contains(element.localName);
+  }
+
+  /// Resolve relative URLs with base URL
+  String? _resolveUrl(String? url, String? baseUrl) {
+    if (url == null || url.isEmpty) return null;
+    if (baseUrl == null || baseUrl.isEmpty) return url;
+
+    try {
+      // Resolve relative URL with base
+      return Uri.parse(baseUrl).resolve(url).toString();
+    } catch (_) {
+      // If parsing fails, return original URL
+      return url;
+    }
   }
 
   /// Returns `true` if [node] or any of its descendants is an element with

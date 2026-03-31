@@ -144,13 +144,12 @@ class RenderHyperBox extends RenderBox
 
   /// Text painters cache. Size driven by [HyperRenderConfig.textPainterCacheSize].
   /// The LRU eviction calls [TextPainter.dispose] so native resources are freed.
-  late final _LruCache<int, TextPainter> _textPainters = _LruCache(
+  /// Keyed by [_TextPainterKey] (full value-equality) to eliminate the
+  /// birthday-paradox hash collision that [Object.hash] → int had.
+  late final _LruCache<_TextPainterKey, TextPainter> _textPainters = _LruCache(
     maxSize: _config.textPainterCacheSize,
     onEvict: (painter) => painter.dispose(),
   );
-
-  /// Gesture recognizers for links
-  final Map<String, TapGestureRecognizer> _linkRecognizers = {};
 
   /// Last collapsed margin (for margin collapsing between blocks)
   double _lastBlockMarginBottom = 0;
@@ -231,6 +230,35 @@ class RenderHyperBox extends RenderBox
   /// When true, draws colored outlines over each fragment/line for debugging.
   /// Equivalent to Flutter's [debugPaintSizeEnabled] but scoped to this widget.
   bool debugShowBounds = false;
+
+  // ── Plugin registry tag sets ───────────────────────────────────────────────
+  //
+  // Copied from [HyperPluginRegistry] when a registry is provided.  Stored as
+  // plain [Set<String>] so the render object has no direct dependency on the
+  // plugin registry class (avoids circular imports with the interfaces layer).
+  //
+  // Empty const sets are shared singletons — no allocation cost when no
+  // plugins are registered.
+
+  /// Tag names handled by **block-tier** plugins (full-width widget).
+  Set<String> _blockPluginTags = const {};
+  Set<String> get blockPluginTags => _blockPluginTags;
+  set blockPluginTags(Set<String> value) {
+    if (_blockPluginTags == value) return;
+    _blockPluginTags = value;
+    _invalidateLayout();
+    markNeedsLayout();
+  }
+
+  /// Tag names handled by **inline-tier** plugins (inline widget).
+  Set<String> _inlinePluginTags = const {};
+  Set<String> get inlinePluginTags => _inlinePluginTags;
+  set inlinePluginTags(Set<String> value) {
+    if (_inlinePluginTags == value) return;
+    _inlinePluginTags = value;
+    _invalidateLayout();
+    markNeedsLayout();
+  }
 
   /// When false, skips `canvas.saveLayer` for `backdrop-filter` and CSS
   /// `filter` effects. Disable on low-end devices or when profiling shows
@@ -447,11 +475,12 @@ class RenderHyperBox extends RenderBox
   set document(DocumentNode? value) {
     if (_document == value) return;
     _document = value;
-    // Dispose old link recognizers immediately so they don't accumulate in
-    // memory until the widget is destroyed (e.g. feed apps that swap documents
-    // frequently). New recognizers are created lazily in _performLineLayout.
-    _disposeLinkRecognizers();
     _invalidateLayout();
+    // Trigger image loading when a document arrives after initial attach.
+    // Required for the async-parse path: attach() fires _loadImages() while
+    // _document is still null; when the parsed document arrives via
+    // updateRenderObject we must retry so images are actually queued.
+    if (attached) _loadImages();
     markNeedsLayout();
   }
 
@@ -478,9 +507,9 @@ class RenderHyperBox extends RenderBox
   set imageLoader(HyperImageLoader? value) {
     if (_imageLoader == value) return;
     _imageLoader = value;
-    // BUG-C+E FIX: dispose GPU resources before clearing, then re-trigger
-    // loading with the new loader so images are not left in a permanent
-    // "loading" state after the loader is swapped at runtime.
+    // Dispose GPU resources before clearing, then re-trigger loading with the
+    // new loader so images are not left in a permanent "loading" state after
+    // the loader is swapped at runtime.
     _disposeImages();
     if (attached) _loadImages();
     markNeedsLayout();
@@ -571,7 +600,6 @@ class RenderHyperBox extends RenderBox
       _shimmerCallbackId = null;
     }
     _disposeTextPainters();
-    _disposeLinkRecognizers();
     _disposeImages();
     // Do NOT call detach() on cached semantic anchor nodes here.
     // Flutter's semantics teardown already detaches them during widget
@@ -603,13 +631,6 @@ class RenderHyperBox extends RenderBox
   void _disposeTextPainters() {
     // LRU cache will call dispose on each painter via onEvict callback
     _textPainters.clear();
-  }
-
-  void _disposeLinkRecognizers() {
-    for (final recognizer in _linkRecognizers.values) {
-      recognizer.dispose();
-    }
-    _linkRecognizers.clear();
   }
 
   void _disposeImages() {
@@ -672,10 +693,10 @@ class RenderHyperBox extends RenderBox
   }
 
   void _notifySelectionChanged() {
-    // BUG-B FIX: Guard with attached check. The selection setter and handleEvent
-    // can fire during the dispose sequence (e.g., an ongoing pointer gesture
-    // that completes after the widget is removed from the tree). Calling
-    // onSelectionChanged after detach can invoke state on a disposed widget.
+    // Guard with attached check: selection events can fire during the dispose
+    // sequence (e.g., a pointer gesture that completes after the widget is
+    // removed from the tree). Calling onSelectionChanged after detach can
+    // invoke state on a disposed widget.
     if (!attached) return;
     onSelectionChanged?.call();
   }
@@ -759,10 +780,15 @@ class RenderHyperBox extends RenderBox
 
     final loader = _imageLoader ?? defaultImageLoader;
 
-    // late allows the closures below to reference `token` before it is
-    // assigned; they only execute asynchronously, after enqueue() returns.
-    late final int token;
-    token = LazyImageQueue.instance.enqueue(
+    // Use a nullable variable rather than `late final` to handle the case where
+    // the image is already in Flutter's image cache: defaultImageLoader calls
+    // addListener() which may deliver the onLoad callback **synchronously**,
+    // before enqueue() returns and the token value is known.  When that happens
+    // pendingToken is still null, so the remove() call is skipped — which is
+    // correct because the token hasn't been added to _imageTokens yet.
+    int? pendingToken;
+
+    final token = LazyImageQueue.instance.enqueue(
       url: src,
       priority: priority,
       loader: loader,
@@ -775,7 +801,7 @@ class RenderHyperBox extends RenderBox
           image.dispose();
           return;
         }
-        _imageTokens.remove(token);
+        _imageTokens.remove(pendingToken);
         _imageCache.put(
             src,
             CachedImage(
@@ -790,7 +816,7 @@ class RenderHyperBox extends RenderBox
       },
       onError: (Object error) {
         if (!attached) return;
-        _imageTokens.remove(token);
+        _imageTokens.remove(pendingToken);
         _imageCache.put(
             src,
             CachedImage(
@@ -800,6 +826,7 @@ class RenderHyperBox extends RenderBox
         markNeedsPaint();
       },
     );
+    pendingToken = token;
     _imageTokens.add(token);
   }
 
@@ -943,10 +970,20 @@ class RenderHyperBox extends RenderBox
     _ensureFragments();
     _performLineLayout(intrinsicMode: true);
 
-    if (_lines.isEmpty) return 0;
+    final result = _lines.isEmpty ? 0.0 : _lines.last.top + _lines.last.height;
 
-    final lastLine = _lines.last;
-    return lastLine.top + lastLine.height;
+    // Invalidate the layout-version cache so that the next performLayout()
+    // always re-runs _performLineLayout at the real constraint width.
+    // Without this, _performLineLayout overwrites _lines at the intrinsic
+    // width but leaves _linesMaxWidth / _linesFragmentsVersion pointing at
+    // that intrinsic run.  If the real constraint width happens to equal the
+    // intrinsic width, performLayout() sees "already up-to-date" and skips
+    // the full layout — leaving _lines built in intrinsicMode (no child
+    // layout calls), which causes all child widgets to be mispositioned.
+    _linesMaxWidth = double.nan;
+    _linesFragmentsVersion = -1;
+
+    return result;
   }
 
   // ============================================
@@ -974,6 +1011,14 @@ class RenderHyperBox extends RenderBox
       // table/image lookup during line layout to scan the full child list.
       _linkFragmentsToChildrenByOrder();
       _buildFragmentChildMap();
+
+      // Step 1.7: For inline-plugin fragments the widget size is unknown at
+      // tokenization time.  Now that children are linked we can query each
+      // child's intrinsic dimensions and store them on the fragment so that
+      // Step 2 (_measureFragments) skips them (measuredSize != null).
+      if (_inlinePluginTags.isNotEmpty) {
+        _measureInlinePluginFragments();
+      }
 
       // Steps 2–6: Measure + line layout.
       // Run full line layout (including text measurement) only when document
@@ -1170,7 +1215,7 @@ class RenderHyperBox extends RenderBox
       );
       textPainter.layout();
       textPainter.paint(context.canvas, offset + const Offset(8, 8));
-      textPainter.dispose(); // BUG-14: must dispose to free native resources
+      textPainter.dispose(); // dispose to free native Skia/Impeller resources
     }
   }
 
@@ -1211,38 +1256,54 @@ class RenderHyperBox extends RenderBox
     return false;
   }
 
+  // ── Public selection API (driven by widget-layer gesture recognizers) ─────────
+  //
+  // Selection is no longer tracked via raw PointerMove events in handleEvent
+  // because handleEvent bypasses the gesture arena — it fired during parent
+  // ScrollView scrolls, creating unwanted selections on every scroll attempt.
+  //
+  // Instead, HyperSelectionOverlay / VirtualizedChunk use a
+  // LongPressGestureRecognizer (arena-based) so the OS correctly arbitrates:
+  //   • quick touch + move  → scroll wins, long-press cancelled → no selection
+  //   • hold 500 ms + drag  → long-press wins, scroll frozen    → selection
+  //
+  // These two methods are the only entry points for selection from gestures.
+
+  /// Anchors the selection at [localPosition].  Call from `onLongPressStart`.
+  void startSelectionAt(Offset localPosition) {
+    if (!_selectable) return;
+    final charPos = _getCharacterPositionAtOffset(localPosition);
+    if (charPos < 0) return;
+    _selectionStartPosition = charPos;
+    _selection = HyperTextSelection(start: charPos, end: charPos);
+    markNeedsPaint();
+  }
+
+  /// Extends the selection end to [localPosition].  Call from
+  /// `onLongPressMoveUpdate` and handle `onPanUpdate`.
+  void extendSelectionTo(Offset localPosition) {
+    if (!_selectable || _selectionStartPosition == null) return;
+    final charPos = _getCharacterPositionAtOffset(localPosition);
+    if (charPos < 0) return;
+    final start = math.min(_selectionStartPosition!, charPos);
+    final end = math.max(_selectionStartPosition!, charPos);
+    final hadSelection = _selection != null && !_selection!.isCollapsed;
+    _selection = HyperTextSelection(start: start, end: end);
+    if (!hadSelection && !_selection!.isCollapsed) {
+      HapticFeedback.selectionClick();
+    }
+    markNeedsPaint();
+  }
+
   @override
   void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
     if (event is PointerDownEvent) {
       final position = event.localPosition;
       _pointerDownPosition = position;
-
-      // Start selection on PointerDown so drag tracking works immediately.
-      if (_selectable) {
-        final charPos = _getCharacterPositionAtOffset(position);
-        if (charPos >= 0) {
-          _selectionStartPosition = charPos;
-          _selection = HyperTextSelection(start: charPos, end: charPos);
-          markNeedsPaint();
-        }
-      }
-    } else if (event is PointerMoveEvent && _selectable) {
-      if (_selectionStartPosition != null) {
-        final charPos = _getCharacterPositionAtOffset(event.localPosition);
-        if (charPos >= 0) {
-          final start = math.min(_selectionStartPosition!, charPos);
-          final end = math.max(_selectionStartPosition!, charPos);
-          final hadSelection = _selection != null && !_selection!.isCollapsed;
-          _selection = HyperTextSelection(start: start, end: end);
-          // Trigger selection haptic on the first frame a non-collapsed
-          // selection appears — matches iOS "selection click" and Android
-          // vibration patterns for text selection initiation.
-          if (!hadSelection && !_selection!.isCollapsed) {
-            HapticFeedback.selectionClick();
-          }
-          markNeedsPaint();
-        }
-      }
+      // Selection is now initiated via LongPressGestureRecognizer at the widget
+      // layer (see HyperSelectionOverlay / VirtualizedChunk).  Raw PointerDown
+      // no longer starts selection so that quick touch-moves go to the scroll
+      // view without accidentally extending selection.
     } else if (event is PointerUpEvent) {
       final upPosition = event.localPosition;
       final downPosition = _pointerDownPosition;
@@ -1362,6 +1423,10 @@ class RenderHyperBox extends RenderBox
 
       if (anchor.isHeading) {
         cfg.isHeader = true;
+      } else if (anchor.isImage) {
+        // Image with alt text: informational node — no role flags, just label.
+        // Screen readers announce the label at the image's rect position so
+        // users can navigate element-by-element (WCAG 1.1.1).
       } else {
         cfg.isLink = true;
         final href = anchor.href;

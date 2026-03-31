@@ -1,6 +1,6 @@
 name: hyper_render
 description: "Render HTML/Markdown/Delta at 60 FPS. The only Flutter renderer with CSS float layout, crash-free text selection, and CJK Ruby typography. Drop-in flutter_html alternative."
-version: 1.1.4
+version: 1.2.1
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render
 issue_tracker: https://github.com/brewkits/hyper_render/issues
@@ -34,10 +34,11 @@ dependencies:
   flutter:
     sdk: flutter
 
-  hyper_render_core: ^1.1.4
-  hyper_render_html: ^1.1.4
-  hyper_render_markdown: ^1.1.4
-  hyper_render_highlight: ^1.1.4
+  hyper_render_core: ^1.2.0
+  hyper_render_html: ^1.2.0
+  hyper_render_markdown: ^1.2.0
+  hyper_render_highlight: ^1.2.0
+  hyper_render_clipboard: ^1.2.0
 
   flutter_highlight: ^0.7.0
   highlight: ^0.7.0

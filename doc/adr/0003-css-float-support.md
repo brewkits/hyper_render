@@ -487,7 +487,7 @@ try {
 
 ## References
 
-- Implementation: `lib/src/core/render_hyper_box.dart` (lines 1200-1700)
+- Implementation: `packages/hyper_render_core/lib/src/core/render_hyper_box.dart` (lines 1200-1700)
 - CSS spec: [CSS 2.1 Float](https://www.w3.org/TR/CSS21/visuren.html#floats)
 - Tests: `test/float_layout_test.dart`
 - Demo: `example/lib/float_demo.dart`

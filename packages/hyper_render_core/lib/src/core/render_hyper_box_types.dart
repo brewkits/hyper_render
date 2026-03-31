@@ -125,6 +125,67 @@ class _BlockDecoration {
   });
 }
 
+/// Cache key for [TextPainter] instances stored in [RenderHyperBox._textPainters].
+///
+/// Uses full value-equality across all style properties so that two fragments
+/// with different visual styles never collide to the same cache slot.
+/// Previously the cache used [Object.hash] → `int`, which has birthday-paradox
+/// collision risk on documents with many distinct text styles (probability
+/// reaches ~1% around √(2^32) ≈ 65K entries).  A struct key eliminates the
+/// risk entirely at negligible memory cost (one object per distinct style).
+@immutable
+class _TextPainterKey {
+  final String text;
+  final double fontSize;
+  final FontWeight? fontWeight;
+  final FontStyle? fontStyle;
+  final Color? color;
+  final String? fontFamily;
+  final double? lineHeight;
+  final double? letterSpacing;
+  final ui.TextDirection textDirection;
+
+  const _TextPainterKey({
+    required this.text,
+    required this.fontSize,
+    required this.fontWeight,
+    required this.fontStyle,
+    required this.color,
+    required this.fontFamily,
+    required this.lineHeight,
+    required this.letterSpacing,
+    required this.textDirection,
+  });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is _TextPainterKey &&
+        other.text == text &&
+        other.fontSize == fontSize &&
+        other.fontWeight == fontWeight &&
+        other.fontStyle == fontStyle &&
+        other.color == color &&
+        other.fontFamily == fontFamily &&
+        other.lineHeight == lineHeight &&
+        other.letterSpacing == letterSpacing &&
+        other.textDirection == textDirection;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        text,
+        fontSize,
+        fontWeight,
+        fontStyle,
+        color,
+        fontFamily,
+        lineHeight,
+        letterSpacing,
+        textDirection,
+      );
+}
+
 /// LRU Cache for TextPainter to prevent memory leak
 ///
 /// Uses LinkedHashMap with access-order to automatically track LRU entries.
