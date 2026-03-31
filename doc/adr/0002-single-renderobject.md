@@ -353,7 +353,7 @@ class RenderHyperBox extends RenderBox
 
 ## References
 
-- Implementation: `lib/src/core/render_hyper_box.dart` (2000+ lines)
+- Implementation: `packages/hyper_render_core/lib/src/core/render_hyper_box.dart` (2000+ lines)
 - Flutter RenderObject docs: https://api.flutter.dev/flutter/rendering/RenderObject-class.html
 - Performance benchmarks: `docs/PERFORMANCE_TUNING.md`
 
@@ -361,4 +361,23 @@ class RenderHyperBox extends RenderBox
 
 **Decision makers**: vietnguyen (Lead Developer)
 
-**Last updated**: February 2026
+**Last updated**: March 2026
+
+---
+
+## Future Consideration: LayoutStrategy decomposition
+
+`render_hyper_box.dart` is split into `part` files (layout, paint, accessibility, selection, types) but all share the same `_RenderHyperBoxLayout` mixin. As CSS feature count grows, consider extracting layout algorithms into dedicated `LayoutStrategy` classes:
+
+```
+LayoutStrategy (abstract)
+  ├── BlockFormattingContext    — block stacking, margin collapse
+  ├── InlineFormattingContext   — fragment placement, line breaking
+  ├── FloatLayoutStrategy       — float box placement, clearance
+  ├── FlexLayoutStrategy        — flex container + item sizing
+  └── GridLayoutStrategy        — grid track + area placement
+```
+
+**Trigger**: Refactor when any single strategy exceeds ~600 lines or when adding a new layout mode (e.g. multi-column) requires touching all existing strategies.
+
+**Risk**: All strategies share the same coordinate system and `_lineRows` state. Splitting prematurely forces complex cross-strategy callbacks for float/inline interaction. Only split when the boundary is genuinely clean.

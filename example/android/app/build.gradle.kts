@@ -37,6 +37,15 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    // Required for Android 15 (API 35) 16KB page size support.
+    // Stores native libs uncompressed so the OS can mmap them directly
+    // with correct page alignment (4KB on older devices, 16KB on newer).
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
 }
 
 flutter {

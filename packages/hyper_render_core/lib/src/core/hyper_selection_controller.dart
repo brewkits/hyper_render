@@ -7,7 +7,7 @@ import 'render_hyper_box.dart';
 /// When content is split into chunks (virtualized mode, multiple
 /// [HyperSelectionOverlay] widgets on one screen), only one chunk should hold
 /// an active selection at a time. Passing the same controller to every
-/// [HyperRenderWidget] / [HyperSelectionOverlay] ensures that selecting text
+/// [HyperRenderWidget] / [HyperSelectionOverlay] makes sure that selecting text
 /// in chunk B automatically clears any previous selection in chunk A.
 ///
 /// ## Usage

@@ -93,29 +93,31 @@ extension RenderHyperBoxSelection on RenderHyperBox {
     bool pendingNewline = false;
 
     for (final fragment in _fragments) {
-      // Structural markers (block start/end) have no visible text.
-      if (fragment is _BlockStartFragment) continue;
+      // Every fragment that was counted during layout MUST contribute to
+      // currentOffset here to keep indices in sync.
+      final fragmentLength = fragment.text?.length ?? 0;
+      final fragmentStart = currentOffset;
+      final fragmentEnd = currentOffset + fragmentLength;
 
+      // Update currentOffset BEFORE the continue/skip logic for next iteration
+      currentOffset = fragmentEnd;
+
+      if (fragment is _BlockStartFragment) continue;
       if (fragment is _BlockEndFragment) {
         if (buffer.isNotEmpty) pendingNewline = true;
         continue;
       }
-
-      final isText =
-          fragment.type == FragmentType.text && fragment.text != null;
-      final isRuby =
-          fragment.type == FragmentType.ruby && fragment.text != null;
-      if (!isText && !isRuby) continue;
-
-      final fragmentStart = currentOffset;
-      final fragmentEnd = currentOffset + fragment.text!.length;
-      currentOffset = fragmentEnd;
 
       // Outside selection range — skip.
       if (fragmentEnd <= _selection!.start ||
           fragmentStart >= _selection!.end) {
         continue;
       }
+
+      final isText = (fragment.type == FragmentType.text ||
+              fragment.type == FragmentType.ruby) &&
+          fragment.text != null;
+      if (!isText) continue;
 
       // Flush the pending newline now that we have real text to follow it.
       if (pendingNewline) {
@@ -125,24 +127,48 @@ extension RenderHyperBoxSelection on RenderHyperBox {
 
       final selectStart = math.max(0, _selection!.start - fragmentStart);
       final selectEnd =
-          math.min(fragment.text!.length, _selection!.end - fragmentStart);
+          math.min(fragmentLength, _selection!.end - fragmentStart);
 
-      if (isRuby) {
-        final base = fragment.text!.substring(selectStart, selectEnd);
-        // Include furigana annotation when the *full* base text is selected,
-        // formatted as "base(annotation)" — e.g. "東京(とうきょう)".
-        // Partial ruby selections copy only the base text so that the
-        // character count remains consistent with _selection offsets.
-        if (selectStart == 0 &&
-            selectEnd == fragment.text!.length &&
+      if (selectStart >= selectEnd) continue;
+
+      final fragmentText = fragment.text!;
+      // SAFETY: Ensure we don't split Unicode surrogate pairs by snapping
+      // to valid character boundaries if the selection offsets fall in the middle.
+      int safeStart = selectStart;
+      if (safeStart > 0 && safeStart < fragmentText.length) {
+        final codeUnit = fragmentText.codeUnitAt(safeStart);
+        if (codeUnit >= 0xDC00 && codeUnit <= 0xDFFF) {
+          safeStart--; // Move back to lead surrogate
+        }
+      }
+      int safeEnd = selectEnd;
+      if (safeEnd > 0 && safeEnd < fragmentText.length) {
+        final codeUnit = fragmentText.codeUnitAt(safeEnd);
+        if (codeUnit >= 0xDC00 && codeUnit <= 0xDFFF) {
+          safeEnd--; // Exclude the split trailing surrogate
+        }
+      }
+
+      if (fragment.type == FragmentType.ruby) {
+        // For Ruby, we only include the furigana in brackets if the
+        // ENTIRE base text is within the selection range.
+        // Otherwise, we only include the selected portion of the base text.
+        final isFullRubySelected =
+            selectStart == 0 && selectEnd == fragmentLength;
+        final base = fragmentText.substring(safeStart, safeEnd);
+
+        if (isFullRubySelected &&
             fragment.rubyText != null &&
             fragment.rubyText!.isNotEmpty) {
           buffer.write('$base(${fragment.rubyText})');
         } else {
           buffer.write(base);
         }
+        // IMPORTANT: We do NOT increment currentOffset by the length of
+        // brackets or rubyText here, because currentOffset must stay in
+        // sync with the layout engine's totalCharacterCount.
       } else {
-        buffer.write(fragment.text!.substring(selectStart, selectEnd));
+        buffer.write(fragmentText.substring(safeStart, safeEnd));
       }
     }
 
@@ -184,15 +210,19 @@ extension RenderHyperBoxSelection on RenderHyperBox {
 
     for (final line in _lines) {
       for (final fragment in line.fragments) {
-        if (fragment.type == FragmentType.text && fragment.text != null) {
-          final fragmentStart = currentOffset;
-          final fragmentEnd = currentOffset + fragment.text!.length;
+        final fragmentLength = fragment.text?.length ?? 0;
+        final fragmentStart = currentOffset;
+        final fragmentEnd = currentOffset + fragmentLength;
 
-          if (fragmentEnd > _selection!.start &&
-              fragmentStart < _selection!.end) {
+        // Check if this fragment overlaps with selection
+        if (fragmentEnd > _selection!.start &&
+            fragmentStart < _selection!.end) {
+          if ((fragment.type == FragmentType.text ||
+                  fragment.type == FragmentType.ruby) &&
+              fragment.text != null) {
             final selectStart = math.max(0, _selection!.start - fragmentStart);
-            final selectEnd = math.min(
-                fragment.text!.length, _selection!.end - fragmentStart);
+            final selectEnd =
+                math.min(fragmentLength, _selection!.end - fragmentStart);
 
             // Trim whitespace for visual bounds (same as _paintSelection)
             final text = fragment.text!;
@@ -204,48 +234,43 @@ extension RenderHyperBoxSelection on RenderHyperBox {
             while (visualEnd > visualStart && text[visualEnd - 1] == ' ') {
               visualEnd--;
             }
-            if (visualStart >= visualEnd) {
-              currentOffset = fragmentEnd;
-              continue;
-            }
 
-            final painter = _getTextPainter(text, fragment.style);
-            final boxes = painter.getBoxesForSelection(
-              TextSelection(baseOffset: visualStart, extentOffset: visualEnd),
-              boxHeightStyle: ui.BoxHeightStyle.tight,
-            );
+            if (visualStart < visualEnd) {
+              if (fragment.type == FragmentType.ruby) {
+                // Ruby selection highlight covers the whole fragment rect
+                final fragmentOffset = fragment.offset ?? Offset.zero;
+                rects.add(Rect.fromLTWH(
+                  fragmentOffset.dx,
+                  fragmentOffset.dy,
+                  fragment.width,
+                  fragment.height,
+                ));
+              } else {
+                final painter = _getTextPainter(text, fragment.style);
+                final boxes = painter.getBoxesForSelection(
+                  TextSelection(
+                      baseOffset: visualStart, extentOffset: visualEnd),
+                  boxHeightStyle: ui.BoxHeightStyle.tight,
+                );
 
-            final fragmentOffset = fragment.offset ?? Offset.zero;
-            for (final box in boxes) {
-              if (box.right <= box.left) continue;
-              rects.add(Rect.fromLTRB(
-                fragmentOffset.dx + box.left,
-                fragmentOffset.dy + box.top,
-                fragmentOffset.dx + box.right,
-                fragmentOffset.dy + box.bottom,
-              ));
+                final fragmentOffset = fragment.offset ?? Offset.zero;
+                for (final box in boxes) {
+                  if (box.right <= box.left) continue;
+                  rects.add(Rect.fromLTRB(
+                    fragmentOffset.dx + box.left,
+                    fragmentOffset.dy + box.top,
+                    fragmentOffset.dx + box.right,
+                    fragmentOffset.dy + box.bottom,
+                  ));
+                }
+              }
             }
           }
-
-          currentOffset = fragmentEnd;
-        } else if (fragment.type == FragmentType.ruby &&
-            fragment.text != null) {
-          final fragmentStart = currentOffset;
-          final fragmentEnd = currentOffset + fragment.text!.length;
-
-          if (fragmentEnd > _selection!.start &&
-              fragmentStart < _selection!.end) {
-            final fragmentOffset = fragment.offset ?? Offset.zero;
-            rects.add(Rect.fromLTWH(
-              fragmentOffset.dx,
-              fragmentOffset.dy,
-              fragment.width,
-              fragment.height,
-            ));
-          }
-
-          currentOffset = fragmentEnd;
         }
+
+        // ALWAYS increment currentOffset for every fragment in the line
+        // to stay in sync with the global character count.
+        currentOffset = fragmentEnd;
       }
     }
 

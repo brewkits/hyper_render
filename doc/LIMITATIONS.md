@@ -8,30 +8,38 @@ workarounds where available.
 ## CSS Coverage Gaps
 
 hyper_render implements the **essential** CSS subset needed for typical
-article/document rendering (~40 properties).  Properties outside that subset
+article/document rendering (~50 properties). Properties outside that subset
 are silently ignored.
 
 ### Not supported
 
 | Property / Feature | Impact | Workaround |
 |--------------------|--------|------------|
-| `position: absolute` / `fixed` | Elements won't be positioned outside normal flow | Use `widgetBuilder` to inject a custom Flutter overlay |
+| `position: absolute` / `fixed` | Elements won't be positioned outside normal flow | Use `pluginRegistry` to inject a custom Flutter overlay |
 | `z-index` | Stacking order not respected | Structure HTML so elements appear in the desired paint order |
 | `clip-path` | Non-rectangular masks not applied | Pre-clip images server-side |
-| `box-shadow` / `text-shadow` | Shadows not rendered | Apply Flutter `BoxDecoration` via `customCss` background workaround |
 | `@media` queries | Responsive breakpoints ignored | Serve device-appropriate HTML, or use `customCss` for overrides |
-| `@keyframes` CSS animations | Keyframe animations ignored | Use `HyperAnimatedWidget` — see the animation API docs |
-| `transform` | 2D/3D transforms not applied | Use Flutter's built-in `Transform` widget via `widgetBuilder` |
-| `background-size` / `background-position` | Not parsed | Use inline `<img>` instead of CSS backgrounds |
+| `background-position` | Not parsed | Use inline `<img>` instead of CSS backgrounds |
+| `background-repeat` | Not parsed | N/A |
 | `columns` / `column-count` | Multi-column layout not rendered | Use a CSS Grid layout (supported) |
-| `filter` | CSS filters (blur, grayscale …) not applied | N/A |
+
+### Supported in v1.2.0
+
+| Property | Status |
+|----------|--------|
+| `box-shadow` | ✅ Multiple shadows, blur, spread supported |
+| `text-shadow` | ✅ Multiple shadows, blur supported |
+| `filter` / `backdrop-filter` | ✅ blur, brightness, contrast supported |
+| `@keyframes` | ✅ Parsed from `<style>` tags automatically |
+| `background-image` | ✅ url() and `linear-gradient()` supported |
+| `background-size` | ✅ cover, contain, fill supported |
+| `display: grid` | ✅ full auto-placement, fr-units, and gap support |
 
 ### Partial support
 
 | Property | Limitation |
 |----------|------------|
 | `opacity` | Applied per-element; stacking context opacity not propagated |
-| `background-image` | Only basic `url()` supported; gradients not rendered |
 | `position: relative` | Supported but child `absolute` positioning is not |
 | `calc()` | Arithmetic on px/em/rem only; `%` in calc not resolved |
 | `sub` / `sup` | Basic font-size reduction; vertical-align positioning is approximate |
@@ -55,10 +63,6 @@ hyper_render implements a **2-pass W3C-inspired** column width algorithm:
 - `table-layout: fixed` is not implemented.
 - Percentage widths on cells (`width: 40%`) are not currently propagated.
 - Nested tables are supported but may accumulate layout inaccuracies.
-
-**Detection**: `HtmlHeuristics.hasComplexTables(html)` returns `true` when
-`colspan` or `rowspan` ≥ 3, which is a reasonable proxy for tables that might
-look different from a browser render.
 
 ---
 
@@ -107,17 +111,6 @@ HyperViewer(
 - `<canvas>`, `<form>`, `<input>`, `<select>`, `<textarea>`, `<script>`
 - Streaming media URLs (HLS `.m3u8`, `rtsp:`, `rtmp:`)
 
-You can also call the individual methods for finer control:
-
-```dart
-if (HtmlHeuristics.hasComplexTables(html)) {
-  // render with a full-featured table widget
-}
-if (HtmlHeuristics.hasUnsupportedElements(html)) {
-  // delegate to WebView
-}
-```
-
 ---
 
 ## Performance
@@ -133,15 +126,13 @@ if (HtmlHeuristics.hasUnsupportedElements(html)) {
 
 ## Interactive Elements
 
-hyper_render is a **viewer**, not an editor:
+hyper_render is a **viewer**, not an editor. However, you can use the
+**Plugin API (v1.2.0)** to render interactive Flutter widgets for custom tags:
 
-- `<button>`, `<input type="button">` — rendered as styled text; semantics
-  are exposed to screen readers but there is no tap interaction.
-- `<input>`, `<select>`, `<textarea>` — stripped by the sanitizer by default.
-- `<form>` — stripped.
-
-For interactive forms, provide a custom widget via `widgetBuilder` or
-delegate to a WebView.
+```dart
+final registry = HyperPluginRegistry()
+  ..register(MyInteractivePlugin()); // Renders <my-form> as a Flutter Form
+```
 
 ---
 
@@ -156,4 +147,4 @@ delegate to a WebView.
 
 ---
 
-*Last updated: 2026-02-26*
+*Last updated: March 30, 2026 — HyperRender v1.2.0*

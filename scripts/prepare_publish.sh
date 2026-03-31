@@ -74,26 +74,44 @@ else
   ok "pubspec.yaml already has version deps"
 fi
 
+# Swap path: ../hyper_render_core → hyper_render_core: ^1.2.0 in sub-packages
+# BSD sed (macOS) requires '' after -i; GNU sed does not
+_sed() { sed -i '' "$@" 2>/dev/null || sed -i "$@"; }
+
+for f in packages/hyper_render_html/pubspec.yaml \
+          packages/hyper_render_markdown/pubspec.yaml \
+          packages/hyper_render_highlight/pubspec.yaml \
+          packages/hyper_render_clipboard/pubspec.yaml \
+          packages/hyper_render_devtools/pubspec.yaml; do
+  if [ -f "$f" ] && grep -q "path: \.\./hyper_render_core" "$f"; then
+    _sed '/hyper_render_core:/{n;/path: \.\.\/hyper_render_core/d;}' "$f"
+    _sed 's|hyper_render_core:$|hyper_render_core: ^1.2.0|' "$f"
+    ok "Swapped path dep → version dep in $f"
+  fi
+done
+
 # Remove publish_to: none from root and all sub-packages
 for f in pubspec.yaml \
           packages/hyper_render_core/pubspec.yaml \
           packages/hyper_render_html/pubspec.yaml \
           packages/hyper_render_markdown/pubspec.yaml \
           packages/hyper_render_highlight/pubspec.yaml \
-          packages/hyper_render_clipboard/pubspec.yaml; do
+          packages/hyper_render_clipboard/pubspec.yaml \
+          packages/hyper_render_devtools/pubspec.yaml; do
   if [ -f "$f" ] && grep -q "^publish_to: none" "$f"; then
-    # BSD sed (macOS) needs '' after -i; GNU sed does not
-    sed -i '' '/^publish_to: none/d' "$f" 2>/dev/null || sed -i '/^publish_to: none/d' "$f"
+    _sed '/^publish_to: none/d' "$f"
     ok "Removed 'publish_to: none' from $f"
   fi
 done
 
 # ── 6. Verify no path: deps remain ──────────────────────────────────────────
 step "Verifying path: dependencies removed..."
-if grep -qE "^\s+path:\s+packages/|path:\s+\.\." pubspec.yaml; then
-  fail "pubspec.yaml still has path: deps. Check manually."
+remaining=$(grep -rE "path:\s+\.\.\/" packages/*/pubspec.yaml pubspec.yaml 2>/dev/null || true)
+if [ -n "$remaining" ]; then
+  echo "$remaining"
+  fail "Path deps still present. Fix before publishing."
 fi
-ok "No path: dependencies in root pubspec"
+ok "No path: dependencies in any pubspec"
 
 # ── 7. dart pub publish --dry-run ────────────────────────────────────────────
 step "Running dart pub publish --dry-run..."
@@ -118,8 +136,11 @@ echo "    1. cd packages/hyper_render_core      && dart pub publish"
 echo "    2. cd packages/hyper_render_html      && dart pub publish"
 echo "    3. cd packages/hyper_render_markdown  && dart pub publish"
 echo "    4. cd packages/hyper_render_highlight && dart pub publish"
-echo "    5. dart pub publish    (from repo root)"
+echo "    5. cd packages/hyper_render_clipboard && dart pub publish"
+echo "    6. cd packages/hyper_render_devtools  && dart pub publish"
+echo "    7. dart pub publish    (from repo root)"
 echo ""
-echo -e "${YELLOW}  After publishing, restore dev pubspec:${NC}"
+echo -e "${YELLOW}  After publishing, restore dev pubspecs:${NC}"
 echo "    cp pubspec.yaml.backup pubspec.yaml"
+echo "    git checkout packages/*/pubspec.yaml"
 echo ""

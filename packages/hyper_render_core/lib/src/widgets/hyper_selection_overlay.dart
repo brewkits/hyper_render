@@ -228,6 +228,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
   /// Clear selection
   void clearSelection() {
     _renderBox?.clearSelection();
+    _focusNode.unfocus();
     setState(() {
       _startHandleRect = null;
       _endHandleRect = null;
@@ -239,6 +240,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
   void selectAll() {
     _renderBox?.selectAll();
     _updateHandlePositions();
+    _focusNode.requestFocus();
   }
 
   void _showCopiedSnackBar() {
@@ -249,6 +251,43 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  // ── Long-press driven selection (arena-safe) ─────────────────────────────
+  //
+  // Selection is initiated by a LongPressGestureRecognizer which competes in
+  // the gesture arena.  The parent ScrollView uses a VerticalDragRecognizer
+  // that wins on quick-move → scroll works normally.  Only when the finger
+  // holds for ~500 ms does the long-press win and freeze the scroll.
+  //
+  // This replaces the old RenderHyperBox.handleEvent(PointerMove) approach
+  // that bypassed the arena and started selection on every scroll attempt.
+
+  void _onLongPressStart(LongPressStartDetails details) {
+    if (!widget.selectable) return;
+    final box = _renderKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final local = box.globalToLocal(details.globalPosition);
+    _renderBox?.startSelectionAt(local);
+    _focusNode.requestFocus();
+    // Freeze the ancestor scroll view for the duration of the selection drag.
+    _releaseScrollHold();
+    _scrollHold =
+        Scrollable.maybeOf(context)?.position.hold(_releaseScrollHold);
+  }
+
+  void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
+    if (!widget.selectable) return;
+    final box = _renderKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final local = box.globalToLocal(details.globalPosition);
+    _renderBox?.extendSelectionTo(local);
+    _updateHandlePositions();
+  }
+
+  void _onLongPressEnd(LongPressEndDetails details) {
+    _releaseScrollHold();
+    _onSelectionChanged();
   }
 
   void _updateHandlePositions() {
@@ -342,21 +381,29 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // Main content
-              KeyedSubtree(
-                key: _renderKey,
-                child: HyperRenderWidget(
-                  document: widget.document,
-                  baseStyle: widget.baseStyle,
-                  onLinkTap: widget.onLinkTap,
-                  widgetBuilder: widget.widgetBuilder,
-                  selectable: widget.selectable,
-                  selectionColor: widget.selectionColor,
-                  textDirection:
-                      widget.textDirection ?? Directionality.of(context),
-                  onSelectionChanged: _onSelectionChanged,
-                  debugShowBounds: widget.debugShowBounds,
-                  onAnchorLayout: widget.onAnchorLayout,
+              // Main content — wrapped with LongPressGestureDetector so that
+              // text selection competes in the gesture arena against the parent
+              // ScrollView's VerticalDragGestureRecognizer.
+              GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onLongPressStart: _onLongPressStart,
+                onLongPressMoveUpdate: _onLongPressMoveUpdate,
+                onLongPressEnd: _onLongPressEnd,
+                child: KeyedSubtree(
+                  key: _renderKey,
+                  child: HyperRenderWidget(
+                    document: widget.document,
+                    baseStyle: widget.baseStyle,
+                    onLinkTap: widget.onLinkTap,
+                    widgetBuilder: widget.widgetBuilder,
+                    selectable: widget.selectable,
+                    selectionColor: widget.selectionColor,
+                    textDirection:
+                        widget.textDirection ?? Directionality.of(context),
+                    onSelectionChanged: _onSelectionChanged,
+                    debugShowBounds: widget.debugShowBounds,
+                    onAnchorLayout: widget.onAnchorLayout,
+                  ),
                 ),
               ),
 
@@ -381,11 +428,13 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
   Widget _buildAnimatedContextMenu(BuildContext context) {
     final menuPosition = _calculateMenuPosition();
 
+    // Clamp to 0: Flutter hit-testing does not follow Clip.none — a Positioned
+    // child above the Stack's origin (negative top) is visually rendered but
+    // unreachable via pointer events.
     return Positioned(
       left: 0,
       right: 0,
-      top: menuPosition.dy -
-          56, // Dynamic menu height (adjusted for Material buttons)
+      top: (menuPosition.dy - 56).clamp(0.0, double.infinity),
       child: AnimatedBuilder(
         animation: _menuAnimController,
         builder: (context, child) {

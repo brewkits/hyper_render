@@ -426,8 +426,10 @@ void main() {
       test('provides accurate statistics', () {
         index.addRule(const ParsedCssRule(selector: 'div', declarations: {}));
         index.addRule(const ParsedCssRule(selector: 'p', declarations: {}));
-        index.addRule(const ParsedCssRule(selector: '.button', declarations: {}));
-        index.addRule(const ParsedCssRule(selector: '#header', declarations: {}));
+        index.addRule(
+            const ParsedCssRule(selector: '.button', declarations: {}));
+        index.addRule(
+            const ParsedCssRule(selector: '#header', declarations: {}));
         index.addRule(const ParsedCssRule(selector: '*', declarations: {}));
 
         final stats = index.getStats();
@@ -451,8 +453,10 @@ void main() {
       });
 
       test('handles zero average when no tag rules', () {
-        index.addRule(const ParsedCssRule(selector: '.button', declarations: {}));
-        index.addRule(const ParsedCssRule(selector: '#header', declarations: {}));
+        index.addRule(
+            const ParsedCssRule(selector: '.button', declarations: {}));
+        index.addRule(
+            const ParsedCssRule(selector: '#header', declarations: {}));
 
         final stats = index.getStats();
 
@@ -461,7 +465,8 @@ void main() {
 
       test('toString() provides readable output', () {
         index.addRule(const ParsedCssRule(selector: 'div', declarations: {}));
-        index.addRule(const ParsedCssRule(selector: '.button', declarations: {}));
+        index.addRule(
+            const ParsedCssRule(selector: '.button', declarations: {}));
 
         final stats = index.getStats();
         final output = stats.toString();

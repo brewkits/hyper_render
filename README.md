@@ -4,7 +4,7 @@
 
 # HyperRender
 
-### The Flutter HTML renderer that actually works.
+### Fast, robust HTML rendering for Flutter.
 
 [![pub.dev](https://img.shields.io/pub/v/hyper_render.svg?label=pub.dev&color=0175C2)](https://pub.dev/packages/hyper_render)
 [![pub points](https://img.shields.io/pub/points/hyper_render?label=pub%20points&color=00b4ab)](https://pub.dev/packages/hyper_render/score)
@@ -13,12 +13,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.10+-54C5F8.svg?logo=flutter)](https://flutter.dev)
 
-**60 FPS · 8 MB RAM · CSS float · Ruby typography · XSS-safe by default**
+**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · Flexbox/Grid · XSS-safe**
 
-CSS float layout · crash-free text selection · CJK/Furigana · `@keyframes` · Flexbox/Grid<br>
-Drop-in replacement for `flutter_html` and `flutter_widget_from_html`.
-
-[**Quick Start**](#-quick-start) · [**Why Switch?**](#-why-switch-the-architecture-argument) · [**API**](#-api-reference) · [**Packages**](#-packages)
+[**Quick Start**](#-quick-start) · [**Why Switch?**](#️-why-switch-the-architecture-argument) · [**API**](#-api-reference) · [**Packages**](#-packages)
 
 </div>
 
@@ -42,7 +39,7 @@ Drop-in replacement for `flutter_html` and `flutter_widget_from_html`.
 
 ```yaml
 dependencies:
-  hyper_render: ^1.1.4
+  hyper_render: ^1.2.0
 ```
 
 ```dart
@@ -55,7 +52,6 @@ HyperViewer(
 ```
 
 Zero configuration. XSS sanitization is **on by default**.
-Works for articles, emails, docs, newsletters, and CJK content.
 
 ---
 
@@ -81,8 +77,6 @@ HyperRender renders the whole document inside **one custom `RenderObject`**. Flo
 | Flexbox / Grid | ⚠️ Partial | ⚠️ Partial | ✅ Full |
 | Box shadow · `filter` | ❌ | ❌ | ✅ |
 | SVG `<img src="*.svg">` | ⚠️ | ⚠️ | ✅ |
-| Scroll FPS (25 K-char doc) | ~35 | ~45 | **60** |
-| RAM (same doc) | 28 MB | 15 MB | **8 MB** |
 
 ### Benchmarks
 
@@ -188,6 +182,8 @@ HyperViewer(html: userContent, allowedTags: ['p', 'a', 'img', 'strong', 'em'])
 HyperViewer(html: trustedCmsHtml, sanitize: false)
 ```
 
+> **Inline SVG note**: `<svg>` and `<math>` are stripped by default because inline SVG can embed `<script>` payloads. External SVG via `<img src="*.svg">` is fully supported. Add `'svg'` to `allowedTags` only for content you fully control.
+
 ### Multi-Format Input
 
 ```dart
@@ -204,9 +200,7 @@ HyperViewer(html: articleHtml, captureKey: captureKey)
 
 // Export to PNG bytes
 final png = await captureKey.toPngBytes();
-
-// Export with custom pixel ratio
-final hd = await captureKey.toPngBytes(pixelRatio: 3.0);
+final hd  = await captureKey.toPngBytes(pixelRatio: 3.0);
 ```
 
 ### Hybrid WebView Fallback
@@ -232,7 +226,8 @@ HyperViewer({
   bool selectable = true,
   bool sanitize = true,
   List<String>? allowedTags,
-  HyperRenderMode mode = HyperRenderMode.auto, // sync | virtualized | auto
+  HyperRenderMode mode = HyperRenderMode.auto, // sync | virtualized | paged | auto
+  bool enableZoom = false,
   void Function(String)? onLinkTap,
   HyperWidgetBuilder? widgetBuilder,           // custom widget injection
   WidgetBuilder? fallbackBuilder,
@@ -241,11 +236,63 @@ HyperViewer({
   bool showSelectionMenu = true,
   String? semanticLabel,
   HyperViewerController? controller,
+  HyperPageController? pageController,         // paged mode only
+  HyperPluginRegistry? pluginRegistry,         // custom tag plugins
   void Function(Object, StackTrace)? onError,
 })
 
 HyperViewer.delta(delta: jsonString, ...)
 HyperViewer.markdown(markdown: markdownString, ...)
+```
+
+### `HyperRenderMode`
+
+| Value | Behaviour |
+|---|---|
+| `auto` | Sync for ≤ 10 000 chars, async virtualized otherwise |
+| `sync` | Always render synchronously in a single scroll view |
+| `virtualized` | `ListView.builder` — only visible sections built/painted |
+| `paged` | `PageView.builder` — one section per page (e-book / reader UI) |
+
+### `HyperPageController` (paged mode)
+
+```dart
+final ctrl = HyperPageController();
+
+HyperViewer(html: html, mode: HyperRenderMode.paged, pageController: ctrl)
+
+ctrl.nextPage(duration: Duration(milliseconds: 300), curve: Curves.easeInOut);
+ctrl.animateToPage(2, duration: Duration(milliseconds: 300), curve: Curves.easeInOut);
+ctrl.jumpToPage(0);
+
+// Reactive page indicator:
+ValueListenableBuilder<int>(
+  valueListenable: ctrl.currentPage,
+  builder: (_, page, __) => Text('Page ${page + 1} of ${ctrl.pageCount}'),
+)
+```
+
+### Plugin API — Custom HTML Tags
+
+Register custom tag renderers via `HyperPluginRegistry`. Two tiers:
+
+- **Block** (`isInline == false`): full-width widget with CSS margins
+- **Inline** (`isInline == true`): flows with text; intrinsic size measured automatically
+
+```dart
+class MyCardPlugin implements HyperNodePlugin {
+  @override String get tagName => 'my-card';
+  @override bool get isInline => false;
+
+  @override
+  Widget? build(HyperPluginBuildContext ctx) {
+    return Card(child: Text(ctx.node.textContent));
+    // Return null to fall through to default rendering.
+  }
+}
+
+final registry = HyperPluginRegistry()..register(MyCardPlugin());
+HyperViewer(html: '<my-card>Hello</my-card>', pluginRegistry: registry)
 ```
 
 ### `HyperViewerController`
@@ -259,8 +306,6 @@ ctrl.scrollToOffset(1200);        // absolute pixel offset
 ```
 
 ### Custom Widget Injection
-
-Replace any HTML element with an arbitrary Flutter widget:
 
 ```dart
 HyperViewer(
@@ -308,12 +353,10 @@ HTML / Markdown / Quill Delta
                           Kinsoku · O(log N) binary-search selection
 ```
 
-Key engineering decisions:
-
-- **Single RenderObject** — float layout and crash-free selection require one shared coordinate system; no widget-tree library can provide this
-- **O(1) CSS rule lookup** — rules are indexed by tag / class / ID; constant time regardless of stylesheet size
-- **O(log N) hit-testing** — `_lineStartOffsets[]` precomputed at layout time; each touch is a binary search, not a linear scan
-- **RepaintBoundary per chunk** — each `ListView.builder` chunk gets its own GPU layer; unmodified chunks are composited, not repainted
+- **Single RenderObject** — float layout and crash-free selection require one shared coordinate system
+- **O(1) CSS rule lookup** — rules indexed by tag / class / ID; constant time regardless of stylesheet size
+- **O(log N) hit-testing** — `_lineStartOffsets[]` precomputed at layout time; each touch is a binary search
+- **RepaintBoundary per chunk** — unmodified chunks are composited, not repainted
 
 ---
 
@@ -329,17 +372,29 @@ Key engineering decisions:
 
 ---
 
+## ♿ Accessibility (WCAG 2.1 AA)
+
+- **Image alt text** (WCAG 1.1.1): `<img alt="…">` elements produce a discrete `SemanticsNode` at the image's layout rect — screen-reader users can navigate to images element-by-element.
+- **`aria-label` on links** (WCAG 4.1.2): `<a aria-label="…">` uses the attribute value as the accessible label instead of text content.
+
+```html
+<img src="chart.png" alt="Q3 revenue chart — $2.4M, up 18% YoY">
+<a href="/privacy" aria-label="Privacy policy (opens in new tab)">Privacy</a>
+```
+
+---
+
 ## 📦 Packages
 
 | Package | pub.dev | Description |
 |---------|---------|-------------|
 | [`hyper_render`](https://pub.dev/packages/hyper_render) | [![pub](https://img.shields.io/pub/v/hyper_render.svg)](https://pub.dev/packages/hyper_render) | Convenience wrapper — one dependency, everything included |
-| [`hyper_render_core`](https://pub.dev/packages/hyper_render_core) | [![pub](https://img.shields.io/pub/v/hyper_render_core.svg)](https://pub.dev/packages/hyper_render_core) | Core engine — UDT model, CSS resolver, RenderObject, design tokens |
+| [`hyper_render_core`](https://pub.dev/packages/hyper_render_core) | [![pub](https://img.shields.io/pub/v/hyper_render_core.svg)](https://pub.dev/packages/hyper_render_core) | Core engine — UDT model, CSS resolver, RenderObject |
 | [`hyper_render_html`](https://pub.dev/packages/hyper_render_html) | [![pub](https://img.shields.io/pub/v/hyper_render_html.svg)](https://pub.dev/packages/hyper_render_html) | HTML + CSS parser |
-| [`hyper_render_markdown`](https://pub.dev/packages/hyper_render_markdown) | [![pub](https://img.shields.io/pub/v/hyper_render_markdown.svg)](https://pub.dev/packages/hyper_render_markdown) | Markdown adapter |
+| [`hyper_render_markdown`](https://pub.dev/packages/hyper_render_markdown) | [![pub](https://img.shields.io/pub/v/hyper_render_markdown.svg)](https://pub.dev/packages/hyper_render_markdown) | Markdown adapter (GFM) |
 | [`hyper_render_highlight`](https://pub.dev/packages/hyper_render_highlight) | [![pub](https://img.shields.io/pub/v/hyper_render_highlight.svg)](https://pub.dev/packages/hyper_render_highlight) | Syntax highlighting for `<code>` / `<pre>` blocks |
-| [`hyper_render_clipboard`](https://pub.dev/packages/hyper_render_clipboard) | [![pub](https://img.shields.io/pub/v/hyper_render_clipboard.svg)](https://pub.dev/packages/hyper_render_clipboard) | Image copy / share via `super_clipboard` |
-| [`hyper_render_devtools`](https://pub.dev/packages/hyper_render_devtools) | [![pub](https://img.shields.io/pub/v/hyper_render_devtools.svg)](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools extension — UDT inspector, computed styles, demo mode |
+| [`hyper_render_clipboard`](https://pub.dev/packages/hyper_render_clipboard) | [![pub](https://img.shields.io/pub/v/hyper_render_clipboard.svg)](https://pub.dev/packages/hyper_render_clipboard) | Image copy / share |
+| [`hyper_render_devtools`](https://pub.dev/packages/hyper_render_devtools) | [![pub](https://img.shields.io/pub/v/hyper_render_devtools.svg)](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools extension — UDT inspector, computed styles |
 
 ---
 
@@ -354,7 +409,7 @@ dart format --set-exit-if-changed .
 flutter analyze --fatal-infos
 ```
 
-Read the [Architecture Decision Records](doc/adr/) and [Contributing Guide](doc/CONTRIBUTING.md) before submitting a PR.
+See [Architecture Decision Records](doc/adr/) and [Contributing Guide](doc/CONTRIBUTING.md) before submitting a PR.
 
 ---
 
@@ -366,18 +421,8 @@ MIT — see [LICENSE](LICENSE).
 
 <div align="center">
 
-**Built with ❤️ for the Flutter community**
-
-If HyperRender saves you time, a ⭐ **[star on GitHub](https://github.com/brewkits/hyper_render)** helps other developers discover it.
-
 [![GitHub stars](https://img.shields.io/github/stars/brewkits/hyper_render?style=social)](https://github.com/brewkits/hyper_render)
 
----
-
-[🚀 Get Started](#-quick-start) · [📦 Example App](example/) · [📋 Changelog](CHANGELOG.md) · [🗺️ Roadmap](doc/ROADMAP.md)
-
-[🐛 Report a Bug](https://github.com/brewkits/hyper_render/issues/new?template=bug_report.md) · [💡 Request a Feature](https://github.com/brewkits/hyper_render/issues/new?template=feature_request.md) · [💬 Discussions](https://github.com/brewkits/hyper_render/discussions)
-
-[pub.dev](https://pub.dev/packages/hyper_render) · [API docs](https://pub.dev/documentation/hyper_render/latest/)
+[pub.dev](https://pub.dev/packages/hyper_render) · [API docs](https://pub.dev/documentation/hyper_render/latest/) · [Changelog](CHANGELOG.md) · [Roadmap](doc/ROADMAP.md)
 
 </div>

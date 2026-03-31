@@ -5,7 +5,7 @@ import '../model/node.dart';
 
 /// Widget that renders a flex container (display: flex)
 ///
-/// Leverages Flutter's Row/Column/Flex/Wrap widgets for the flex algorithm.
+/// Uses Flutter's Row/Column/Flex/Wrap widgets for the flex algorithm.
 /// Similar to how tables use Row/Column for layout.
 class FlexContainerWidget extends StatelessWidget {
   final UDTNode node;

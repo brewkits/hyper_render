@@ -11,20 +11,20 @@ Flutter DevTools extension for [HyperRender](https://github.com/brewkits/hyper_r
 - **Auto-discovery** — all `HyperViewer` / `HyperRenderWidget` instances register automatically; no per-widget setup needed
 - **Demo Mode** — open the panel without a running app to explore the inspector UI with sample data
 
-## Getting started
+## Getting Started
 
 Add the package to your app's `dev_dependencies` (debug-only usage):
 
 ```yaml
 dev_dependencies:
-  hyper_render_devtools: ^1.1.3
+  hyper_render_devtools: ^1.2.0
 ```
 
 Or add to `dependencies` if you want it available in profile builds:
 
 ```yaml
 dependencies:
-  hyper_render_devtools: ^1.1.3
+  hyper_render_devtools: ^1.2.0
 ```
 
 ## Usage
@@ -106,8 +106,6 @@ hyper_render_devtools (this package)
 
 The `devtools_ui` sub-directory contains the Flutter Web source for the panel UI. It is pre-compiled and included in `extension/devtools/build/` so no extra build step is required for package consumers.
 
-## Additional information
+---
 
-- [HyperRender main package](https://pub.dev/packages/hyper_render)
-- [Issue tracker](https://github.com/brewkits/hyper_render/issues)
-- [Source code](https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_devtools)
+[hyper_render](https://pub.dev/packages/hyper_render) · [Issue tracker](https://github.com/brewkits/hyper_render/issues) · [Source](https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_devtools)

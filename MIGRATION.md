@@ -15,6 +15,7 @@ This guide helps you migrate from `flutter_html` (v3.x) and `flutter_widget_from
 | `<ruby>/<rt>` Furigana | ❌ Raw text | ❌ Not supported | ✅ |
 | `<details>/<summary>` | ❌ | ❌ | ✅ Interactive |
 | CSS Variables + `calc()` | ❌ | ❌ | ✅ |
+| CSS Grid / Flexbox | ⚠️ Partial | ⚠️ Partial | ✅ Full |
 
 If you need `float`, CJK typography, or crash-free selection — this migration
 pays for itself immediately. If you need maximum CSS decoration coverage
@@ -70,7 +71,29 @@ HyperViewer(
 )
 ```
 
-### Custom widget for specific tags
+### Plugin API — Custom HTML Tags (New in v1.2.0)
+
+HyperRender now supports a modular plugin system for rendering custom tags as
+Flutter widgets. This is more robust than `widgetBuilder` for complex elements.
+
+```dart
+// flutter_html
+Html(
+  data: html,
+  extensions: [TagExtension(tagsToExtend: {'my-card'}, builder: (ctx) => ...)],
+)
+
+// HyperRender
+final registry = HyperPluginRegistry()
+  ..register(MyCardPlugin()); // Implements HyperNodePlugin
+
+HyperViewer(
+  html: html,
+  pluginRegistry: registry,
+)
+```
+
+### Custom widget for specific tags (Legacy method)
 
 ```dart
 // flutter_html
@@ -213,7 +236,7 @@ HyperViewer(
 
 ---
 
-## HyperViewer v1.0.0 stable API
+## HyperViewer v1.2.0 stable API
 
 ```dart
 HyperViewer({
@@ -232,44 +255,16 @@ HyperViewer({
   bool showSelectionMenu = true,
   WidgetBuilder? placeholderBuilder,
   String? semanticLabel,
-  bool debugShowHyperRenderBounds = false,
+  HyperViewerController? controller,
+  HyperPageController? pageController, // Paged mode only
+  HyperPluginRegistry? pluginRegistry, // Custom tag plugins
+  void Function(Object, StackTrace)? onError,
 })
 
 HyperViewer.markdown(markdown: '# Hello', ...)
 HyperViewer.delta(delta: jsonString, ...)
 ```
 
-> **Note:** Named constructors are `.markdown()` and `.delta()` — NOT `.fromMarkdown()` /
-> `.fromDelta()` (those never existed in stable).
-
 ---
 
-## Pre-release → v1.0.0 API stabilizations
-
-If you used an unreleased/dev build, note these changes:
-
-| Old (pre-release) | Stable (v1.0.0) |
-|-------------------|-----------------|
-| `HyperViewer(content: ...)` | `HyperViewer(html: ...)` |
-| `HyperAnimatedWidget(keyframes: ...)` | `HyperAnimatedWidget(animationName: ...)` |
-| `HyperViewer.fromMarkdown(...)` | `HyperViewer.markdown(...)` |
-| `HyperViewer.fromDelta(...)` | `HyperViewer.delta(...)` |
-| `PerformanceMonitor` from main pkg | Only in `hyper_render_core` |
-
----
-
-## Planned future versions
-
-| Area | Planned change |
-|------|----------------|
-| `position: absolute/fixed` | v4.0 PositioningContext |
-| Vanilla JS (show/hide, form validation) | v4.0 QuickJS via Dart FFI |
-| `clip-path` polygon / circle | v4.0 |
-| `::before` / `::after` pseudo-elements | Planned |
-| `filter` / `backdrop-filter` | Planned |
-| `vh` / `vw` viewport units | Planned |
-| Full SVG renderer | In progress |
-
----
-
-*Last updated: February 2026 — HyperRender v1.0.0*
+*Last updated: March 2026 — HyperRender v1.2.0*

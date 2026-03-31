@@ -1,12 +1,5 @@
 part of 'render_hyper_box.dart';
 
-// TODO(refactor): This file is ~2 100 lines / 80 KB.  The Table and Flex
-// sub-layouts (_tokenizeTable, _layoutTableFragment, _FlexFragment handling)
-// are good candidates for extraction into dedicated Strategy/Delegate classes
-// (e.g. _TableLayoutStrategy, _FlexLayoutStrategy) so each is independently
-// testable.  Tracking issue: github.com/brewkits/hyper_render/issues — file a
-// ticket before the v1.2 milestone to prevent further growth.
-
 // Layout spacing constants — single source of truth for all magic numbers
 const double _kImageMargin =
     32.0; // horizontal margin subtracted from maxWidth for images
@@ -41,10 +34,32 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         break;
 
       case NodeType.block:
+        // Block-tier plugin: treat as a full-width child widget (_FlexFragment).
+        // CSS margins from the node style are still applied via _BlockStart/End.
+        if (_blockPluginTags.isNotEmpty &&
+            _blockPluginTags.contains(node.tagName?.toLowerCase())) {
+          _tokenizeBlockPlugin(node);
+          break;
+        }
         _tokenizeBlock(node, parentBlock);
         break;
 
       case NodeType.inline:
+        // Inline-tier plugin: treat as an atomic (inline) child widget.
+        // Fragment size is set later in _measureInlinePluginFragments().
+        if (_inlinePluginTags.isNotEmpty &&
+            _inlinePluginTags.contains(node.tagName?.toLowerCase())) {
+          _fragments.add(Fragment.atomic(
+            sourceNode: node,
+            style: node.style,
+            // Placeholder size — updated in _measureInlinePluginFragments().
+            size: Size(
+              node.style.width ?? 50.0,
+              node.style.height ?? 24.0,
+            ),
+          ));
+          break;
+        }
         _tokenizeInline(node);
         break;
 
@@ -82,6 +97,39 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           _tokenizeNode(child, parentBlock);
         }
     }
+  }
+
+  /// Emit fragments for a block-plugin node (full-width child widget).
+  ///
+  /// Mirrors the margin/padding handling of flex-container blocks so CSS
+  /// spacing is preserved even though the node's children are not recursed.
+  void _tokenizeBlockPlugin(UDTNode node) {
+    final style = node.style;
+    final rawMarginTop = style.margin.top;
+    final marginTop = (_suppressFirstBlockMarginTop && _fragments.isEmpty)
+        ? 0.0
+        : rawMarginTop;
+    final collapsedMargin = math.max(marginTop, _lastBlockMarginBottom);
+    final effectiveMarginTop = collapsedMargin - _lastBlockMarginBottom;
+
+    if (effectiveMarginTop > 0 || _fragments.isNotEmpty) {
+      _fragments.add(_BlockStartFragment(
+        sourceNode: node,
+        style: style,
+        marginTop: effectiveMarginTop,
+        paddingTop: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+      ));
+    }
+    _fragments.add(_FlexFragment(sourceNode: node, style: style));
+    _fragments.add(_BlockEndFragment(
+      sourceNode: node,
+      style: style,
+      marginBottom: style.margin.bottom,
+      paddingBottom: 0,
+    ));
+    _lastBlockMarginBottom = style.margin.bottom;
   }
 
   void _tokenizeBlock(UDTNode node, UDTNode? parentBlock) {
@@ -449,6 +497,31 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     ));
   }
 
+  /// Step 1.7: Update inline-plugin fragment sizes from child widget intrinsics.
+  ///
+  /// Called after [_buildFragmentChildMap] so [_fragmentChildMap] is populated.
+  /// For each [Fragment.atomic] whose sourceNode tag is in [_inlinePluginTags],
+  /// ask the linked [RenderBox] for its intrinsic dimensions and store them on
+  /// [Fragment.measuredSize] before [_measureFragments] (Step 2) runs.
+  /// [_measureFragments] skips fragments that already have a [measuredSize].
+  void _measureInlinePluginFragments() {
+    for (final fragment in _fragments) {
+      if (fragment.type != FragmentType.atomic) continue;
+      final tag = fragment.sourceNode.tagName?.toLowerCase();
+      if (tag == null || !_inlinePluginTags.contains(tag)) continue;
+
+      final child = _fragmentChildMap[fragment];
+      if (child == null) continue;
+
+      // Dry-layout: getMaxIntrinsicWidth/Height never triggers a full layout
+      // pass — safe to call before child.layout().
+      final w =
+          child.getMaxIntrinsicWidth(double.infinity).clamp(1.0, _maxWidth);
+      final h = child.getMinIntrinsicHeight(w);
+      fragment.measuredSize = Size(w, h > 0 ? h : 24.0);
+    }
+  }
+
   /// Step 2: Measure all fragments
   void _measureFragments() {
     for (final fragment in _fragments) {
@@ -518,17 +591,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     final fragmentDirection =
         style.isRtl ? ui.TextDirection.rtl : textDirection;
 
-    // Composite key using Object.hash to avoid XOR collision (a^b == b^a)
-    final key = Object.hash(
-      text,
-      style.fontSize,
-      style.fontWeight,
-      style.fontStyle,
-      style.color,
-      style.fontFamily,
-      style.lineHeight,
-      style.letterSpacing,
-      fragmentDirection,
+    final key = _TextPainterKey(
+      text: text,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      fontStyle: style.fontStyle,
+      color: style.color,
+      fontFamily: style.fontFamily,
+      lineHeight: style.lineHeight,
+      letterSpacing: style.letterSpacing,
+      textDirection: fragmentDirection,
     );
 
     final cached = _textPainters.get(key);
@@ -703,10 +775,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       for (final frag in currentLineFragments) {
         lineInfo.add(frag);
       }
-      // BUG-F FIX: Guard against zero lineHeight. This happens when all
-      // fragments on the line have measuredSize == null (e.g., zero-dimension
-      // images) or a height of 0. A zero-height bounds rect causes the next
-      // line to paint at the same Y, producing overlapping content.
+      // Guard against zero lineHeight: when all fragments have measuredSize ==
+      // null (e.g. zero-dimension images) the computed height is 0. A
+      // zero-height bounds rect would place the next line at the same Y,
+      // producing overlapping content.
       final safeLineHeight = lineHeight > 0 ? lineHeight : 1.0;
       // Set bounds after adding fragments
       lineInfo.bounds =
@@ -833,8 +905,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       if (fragment is _ListMarkerFragment) {
         final painter = _getTextPainter(fragment.marker, fragment.style);
         fragment.measuredSize = Size(painter.width, painter.height);
-        // Position marker in the left margin (before the content)
-        fragment.offset = Offset(leftInset - painter.width - 4, currentY);
+        // Position marker in the margin before the list content.
+        // For LTR: left of the content indent.
+        // For RTL: right of the content indent (mirror to right edge).
+        if (isRTL) {
+          fragment.offset = Offset(
+            _maxWidth - rightInset + 4,
+            currentY,
+          );
+        } else {
+          fragment.offset = Offset(leftInset - painter.width - 4, currentY);
+        }
         return;
       }
 
@@ -998,7 +1079,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
             blockHeight = detailsChild.getMaxIntrinsicHeight(detailsMaxWidth);
           } else {
             detailsChild.layout(
-              BoxConstraints(maxWidth: detailsMaxWidth),
+              BoxConstraints(
+                  minWidth: detailsMaxWidth, maxWidth: detailsMaxWidth),
               parentUsesSize: true,
             );
             blockHeight = detailsChild.size.height;
@@ -1435,8 +1517,18 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
     // Snap off any low surrogate — same reason as in _splitTextFragment.
     if ((text.codeUnitAt(breakIndex) & 0xFC00) == 0xDC00) {
-      breakIndex -= 1;
-      if (breakIndex <= 0) return null;
+      if (breakIndex > 1) {
+        breakIndex -= 1;
+      } else if (text.length > 2) {
+        // If we're at index 1 and it's a low surrogate, but there's more text,
+        // snap forward to index 2 to include the whole surrogate pair in the
+        // first fragment rather than returning null.
+        breakIndex = 2;
+      } else {
+        // Single surrogate pair (Emoji) — cannot split.
+        // Return null to signal "cannot split", which results in overflow.
+        return null;
+      }
     }
 
     final firstPart = text.substring(0, breakIndex);
@@ -1631,12 +1723,13 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
 
       if (!foundPosition) {
-        // BUG-D FIX: assert() is erased in release builds — the bad floatY
-        // value was silently used, causing content overlap in production.
-        // Fall back to currentY (place float at the current line position)
-        // and always log so developers see it regardless of build mode.
-        debugPrint('HyperRender: left float exceeded maxIterations — '
-            'falling back to currentY. Reduce float density to avoid this.');
+        // Fall back to currentY when the iteration limit is exceeded (e.g.
+        // extreme float density).
+        assert(() {
+          debugPrint('HyperRender: left float exceeded maxIterations — '
+              'falling back to currentY. Reduce float density to avoid this.');
+          return true;
+        }());
         floatY = currentY;
       }
 
@@ -1705,9 +1798,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
 
       if (!foundPosition) {
-        // BUG-D FIX (right float): same fix as left float above.
-        debugPrint('HyperRender: right float exceeded maxIterations — '
-            'falling back to currentY. Reduce float density to avoid this.');
+        // Same fallback as left float: use currentY when iteration limit hit.
+        assert(() {
+          debugPrint('HyperRender: right float exceeded maxIterations — '
+              'falling back to currentY. Reduce float density to avoid this.');
+          return true;
+        }());
         floatY = currentY;
       }
 
