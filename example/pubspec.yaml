@@ -40,6 +40,14 @@ dependencies:
   # For sharing content
   share_plus: ^12.0.0
 
+dependency_overrides:
+  hyper_render:
+    path: ../
+  hyper_render_core:
+    path: ../packages/hyper_render_core
+  hyper_render_clipboard:
+    path: ../packages/hyper_render_clipboard
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

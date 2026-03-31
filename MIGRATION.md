@@ -71,7 +71,7 @@ HyperViewer(
 )
 ```
 
-### Plugin API — Custom HTML Tags (New in v1.2.0)
+### Plugin API — Custom HTML Tags (New in v1.2.1)
 
 HyperRender now supports a modular plugin system for rendering custom tags as
 Flutter widgets. This is more robust than `widgetBuilder` for complex elements.
@@ -236,7 +236,7 @@ HyperViewer(
 
 ---
 
-## HyperViewer v1.2.0 stable API
+## HyperViewer v1.2.1 stable API
 
 ```dart
 HyperViewer({
@@ -267,4 +267,4 @@ HyperViewer.delta(delta: jsonString, ...)
 
 ---
 
-*Last updated: March 2026 — HyperRender v1.2.0*
+*Last updated: March 2026 — HyperRender v1.2.1*
