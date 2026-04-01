@@ -39,7 +39,7 @@
 
 ```yaml
 dependencies:
-  hyper_render: ^1.2.1
+  hyper_render: ^1.2.2
 ```
 
 ```dart
@@ -52,6 +52,21 @@ HyperViewer(
 ```
 
 Zero configuration. XSS sanitization is **on by default**.
+
+> **Android note:** `hyper_render` depends on `super_clipboard` which transitively pulls in `irondash_engine_context`. That library was compiled against Android SDK 31, but its `androidx.fragment:1.7.1` dependency requires `compileSdk ≥ 34`. Add this one-time workaround to your `android/build.gradle.kts`:
+>
+> ```kotlin
+> // android/build.gradle.kts  (root — not app/build.gradle.kts)
+> subprojects {
+>     afterEvaluate {
+>         extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)?.apply {
+>             compileSdk = 35
+>         }
+>     }
+> }
+> ```
+>
+> This overrides `compileSdk` for all library sub-projects so AGP's `checkAarMetadata` passes. Tracked in [#5](https://github.com/brewkits/hyper_render/issues/5).
 
 ---
 

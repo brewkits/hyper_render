@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.2] - 2026-04-01
+
+### 🐛 Bug Fixes
+
+- **Android build failure with modern compileSdk** (`example/android/build.gradle.kts`): `irondash_engine_context 0.5.5` was compiled against android-31 but its transitive `androidx.fragment:1.7.1` dependency has `minCompileSdk=34`, causing AGP 8's `checkAarMetadata` to block the build. Added a `subprojects { afterEvaluate { compileSdk = 35 } }` override in the example's root Gradle file. README now documents the same one-line workaround for app-level projects. ([#5](https://github.com/brewkits/hyper_render/issues/5))
+
 ## [1.2.1] - 2026-03-31
 
 ### 🏗️ Maintenance
