@@ -32,6 +32,8 @@ jobs:
     runs-on: ubuntu-22.04
     # Skip on the weekly schedule — that's for the full-benchmark job only
     if: github.event_name != 'schedule'
+    permissions:
+      pull-requests: write
 
     steps:
       - name: Checkout
