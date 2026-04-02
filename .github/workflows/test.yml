@@ -169,12 +169,12 @@ jobs:
       fail-fast: false   # let all matrix legs complete so we see the full picture
       matrix:
         include:
-          # Stable: all 3 OS
-          - os: ubuntu-22.04    flutter-channel: stable
-          - os: macos-latest    flutter-channel: stable
-          - os: windows-latest  flutter-channel: stable
-          # Beta: ubuntu only — avoids pinned-version conflict on other runners
-          - os: ubuntu-22.04    flutter-channel: beta
+          # Stable: all 3 OS — pinned Flutter version
+          - { os: ubuntu-22.04,   flutter-channel: stable, flutter-version: "3.41.5" }
+          - { os: macos-latest,   flutter-channel: stable, flutter-version: "3.41.5" }
+          - { os: windows-latest, flutter-channel: stable, flutter-version: "3.41.5" }
+          # Beta: ubuntu only, no version pin (use latest beta build)
+          - { os: ubuntu-22.04,   flutter-channel: beta,   flutter-version: "" }
 
     steps:
       - uses: actions/checkout@v4
@@ -182,8 +182,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          # Pin version for stable only; let beta float to latest beta build.
-          flutter-version: ${{ matrix.flutter-channel == 'stable' && env.FLUTTER_VERSION || '' }}
+          flutter-version: ${{ matrix.flutter-version }}
           channel: ${{ matrix.flutter-channel }}
           cache: true
 
