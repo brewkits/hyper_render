@@ -132,34 +132,34 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         );
 
         // 1. Backdrop Filter
-        if (decoration.backdropFilter != null && enableComplexFilters) {
+        if (decoration.style.backdropFilter != null && enableComplexFilters) {
           canvas.saveLayer(adjustedRect, _sLayerPaint);
-          canvas.drawRect(
-              adjustedRect, Paint()..imageFilter = decoration.backdropFilter);
+          canvas.drawRect(adjustedRect,
+              Paint()..imageFilter = decoration.style.backdropFilter);
           canvas.restore();
         }
 
         // 2. Filter (blur, etc.)
-        if (decoration.filter != null && enableComplexFilters) {
+        if (decoration.style.filter != null && enableComplexFilters) {
           canvas.saveLayer(
-              adjustedRect, Paint()..imageFilter = decoration.filter);
+              adjustedRect, Paint()..imageFilter = decoration.style.filter);
         }
 
         // 3. Box shadows
-        if (decoration.boxShadow != null) {
-          for (final shadow in decoration.boxShadow!) {
+        if (decoration.style.boxShadow != null) {
+          for (final shadow in decoration.style.boxShadow!) {
             final shadowPaint = shadow.toPaint();
             final shadowRect =
                 adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
 
-            if (decoration.borderRadius != null) {
+            if (decoration.style.borderRadius != null) {
               canvas.drawRRect(
                 RRect.fromRectAndCorners(
                   shadowRect,
-                  topLeft: decoration.borderRadius!.topLeft,
-                  topRight: decoration.borderRadius!.topRight,
-                  bottomLeft: decoration.borderRadius!.bottomLeft,
-                  bottomRight: decoration.borderRadius!.bottomRight,
+                  topLeft: decoration.style.borderRadius!.topLeft,
+                  topRight: decoration.style.borderRadius!.topRight,
+                  bottomLeft: decoration.style.borderRadius!.bottomLeft,
+                  bottomRight: decoration.style.borderRadius!.bottomRight,
                 ),
                 shadowPaint,
               );
@@ -170,25 +170,25 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         }
 
         // Paint background or gradient
-        if (decoration.backgroundColor != null ||
-            decoration.backgroundGradient != null) {
-          if (decoration.backgroundGradient != null) {
+        if (decoration.style.backgroundColor != null ||
+            decoration.style.backgroundGradient != null) {
+          if (decoration.style.backgroundGradient != null) {
             _fillPaint.shader =
-                decoration.backgroundGradient!.createShader(adjustedRect);
+                decoration.style.backgroundGradient!.createShader(adjustedRect);
             _fillPaint.color = const Color(0x00000000);
           } else {
             _fillPaint.shader = null;
-            _fillPaint.color = decoration.backgroundColor!;
+            _fillPaint.color = decoration.style.backgroundColor!;
           }
 
-          if (decoration.borderRadius != null) {
+          if (decoration.style.borderRadius != null) {
             canvas.drawRRect(
               RRect.fromRectAndCorners(
                 adjustedRect,
-                topLeft: decoration.borderRadius!.topLeft,
-                topRight: decoration.borderRadius!.topRight,
-                bottomLeft: decoration.borderRadius!.bottomLeft,
-                bottomRight: decoration.borderRadius!.bottomRight,
+                topLeft: decoration.style.borderRadius!.topLeft,
+                topRight: decoration.style.borderRadius!.topRight,
+                bottomLeft: decoration.style.borderRadius!.bottomLeft,
+                bottomRight: decoration.style.borderRadius!.bottomRight,
               ),
               _fillPaint,
             );
@@ -199,22 +199,24 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         }
 
         // Paint border
-        if (decoration.borderColor != null && decoration.borderWidth > 0) {
+        if (decoration.style.borderColor != null &&
+            decoration.style.borderWidth > 0) {
           // deflate(width/2) places the stroke centerline on the snapped edge.
-          final borderRect = adjustedRect.deflate(decoration.borderWidth / 2);
+          final borderRect =
+              adjustedRect.deflate(decoration.style.borderWidth / 2);
           _strokePaint
-            ..color = decoration.borderColor!
-            ..strokeWidth = decoration.borderWidth
+            ..color = decoration.style.borderColor!
+            ..strokeWidth = decoration.style.borderWidth
             ..strokeCap = StrokeCap.square;
 
-          if (decoration.borderRadius != null) {
+          if (decoration.style.borderRadius != null) {
             canvas.drawRRect(
               RRect.fromRectAndCorners(
                 borderRect,
-                topLeft: decoration.borderRadius!.topLeft,
-                topRight: decoration.borderRadius!.topRight,
-                bottomLeft: decoration.borderRadius!.bottomLeft,
-                bottomRight: decoration.borderRadius!.bottomRight,
+                topLeft: decoration.style.borderRadius!.topLeft,
+                topRight: decoration.style.borderRadius!.topRight,
+                bottomLeft: decoration.style.borderRadius!.bottomLeft,
+                bottomRight: decoration.style.borderRadius!.bottomRight,
               ),
               _strokePaint,
             );
@@ -224,7 +226,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         }
 
         // Restore layer if filter was applied
-        if (decoration.filter != null && enableComplexFilters) {
+        if (decoration.style.filter != null && enableComplexFilters) {
           canvas.restore();
         }
       }

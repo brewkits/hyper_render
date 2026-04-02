@@ -61,11 +61,6 @@ class HyperViewer extends StatefulWidget {
   /// Type of content (html, delta, markdown)
   final HyperContentType contentType;
 
-  /// Legacy parameter - use [content] instead
-  /// Kept for backward compatibility
-  @Deprecated('Use content parameter instead')
-  String get html => content;
-
   /// Controls whether to use virtualized (lazy) or standard rendering.
   ///
   /// - [HyperRenderMode.auto] (default): chooses virtualized mode automatically
@@ -740,6 +735,26 @@ class _HyperViewerState extends State<HyperViewer>
   @override
   void didUpdateWidget(covariant HyperViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    // BUG-02: Handle selectable toggle — create/dispose controller as needed.
+    if (oldWidget.selectable != widget.selectable) {
+      if (widget.selectable) {
+        _virtualizedSelectionController = VirtualizedSelectionController(
+          sectionsGetter: () => _sections ?? const [],
+          listViewKey: _virtualizedStackKey,
+        );
+      } else {
+        _virtualizedSelectionController?.dispose();
+        _virtualizedSelectionController = null;
+      }
+    }
+
+    // BUG-05: When customCss changes the section hashes are stale (they only
+    // cover text, not styles). Reset them so every section re-layouts.
+    if (oldWidget.customCss != widget.customCss) {
+      _sectionHashes = const [];
+    }
+
     if (oldWidget.content != widget.content ||
         oldWidget.contentType != widget.contentType ||
         oldWidget.mode != widget.mode ||
@@ -749,8 +764,8 @@ class _HyperViewerState extends State<HyperViewer>
         oldWidget.allowedTags != widget.allowedTags ||
         oldWidget.allowDataAttributes != widget.allowDataAttributes ||
         oldWidget.fallbackBuilder != widget.fallbackBuilder ||
-        oldWidget.renderConfig.virtualizationChunkSize !=
-            widget.renderConfig.virtualizationChunkSize ||
+        // BUG-08: Compare full renderConfig (value equality now available).
+        oldWidget.renderConfig != widget.renderConfig ||
         oldWidget.pluginRegistry != widget.pluginRegistry) {
       _parseContent();
     }
@@ -823,6 +838,35 @@ class _HyperViewerState extends State<HyperViewer>
     return merged;
   }
 
+  /// Splits a [DocumentNode] into sections of approximately [chunkSize]
+  /// characters for Markdown/Delta content in virtualized/paged mode.
+  ///
+  /// Splits only on block boundaries so inline elements are never torn apart.
+  static List<DocumentNode> _splitIntoSections(
+      DocumentNode doc, int chunkSize) {
+    if (doc.children.isEmpty) return [doc];
+
+    final sections = <DocumentNode>[];
+    var current = DocumentNode(children: []);
+    var currentSize = 0;
+
+    for (final child in doc.children) {
+      current.children.add(child);
+      child.parent = current;
+      currentSize += child.textContent.length;
+
+      if (currentSize >= chunkSize && child.isBlock) {
+        sections.add(current);
+        current = DocumentNode(children: []);
+        currentSize = 0;
+      }
+    }
+
+    if (current.children.isNotEmpty) sections.add(current);
+    if (sections.isEmpty) sections.add(DocumentNode(children: []));
+    return sections;
+  }
+
   /// Called by the system when available memory is low.
   ///
   /// Releases memory on three fronts:
@@ -892,8 +936,15 @@ class _HyperViewerState extends State<HyperViewer>
     // Only rebuild if the carryover actually changed.
     final prev = _floatCarryovers[index];
     if (prev.length == carryovers.length && prev.isEmpty) return;
-    setState(() {
-      _floatCarryovers[index] = carryovers;
+
+    // FIX: setState called during layout.
+    // Carryovers are often detected during a RenderBox layout pass.
+    // We must schedule the update to the next frame to avoid Flutter errors.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _floatCarryovers[index] = carryovers;
+      });
     });
   }
 
@@ -912,10 +963,15 @@ class _HyperViewerState extends State<HyperViewer>
       // Relative URLs (scheme == '') are always forwarded — the app's handler
       // is responsible for resolving them against a base URL.
       final isRelative = scheme.isEmpty;
+      // BUG-03/09: Check BOTH allowedCustomSchemes (legacy widget param) AND
+      // renderConfig.extraLinkSchemes so neither registration path silently
+      // drops deep-link taps.
       final customSchemes = widget.allowedCustomSchemes;
+      final configSchemes = widget.renderConfig.extraLinkSchemes;
       final isAllowed = isRelative ||
           _kAllowedSchemes.contains(scheme) ||
-          (customSchemes != null && customSchemes.contains(scheme));
+          (customSchemes != null && customSchemes.contains(scheme)) ||
+          configSchemes.contains(scheme);
       if (isAllowed) {
         handler(url);
       } else {
@@ -1064,7 +1120,10 @@ class _HyperViewerState extends State<HyperViewer>
           _parseIsolate = null;
           _parseReceivePort = null;
           if (!mounted || _parseId != currentParseId) return;
-          if (message is List) {
+
+          if (message is List &&
+              message.isNotEmpty &&
+              message[0] is DocumentNode) {
             final fresh = List<DocumentNode>.from(message);
             final merged = _mergeSections(fresh);
             setState(() {
@@ -1074,6 +1133,22 @@ class _HyperViewerState extends State<HyperViewer>
               _floatCarryovers.clear(); // reset carryovers for new content
             });
             _contentFadeController.forward();
+          } else if (message is List &&
+              message.length == 2 &&
+              message[0] is String) {
+            // FIX: Reconstruct error with StackTrace from isolate
+            final err = FormatException(message[0] as String);
+            final st = StackTrace.fromString(message[1] as String);
+            _reportError(err, st);
+            setState(() => _isLoading = false);
+          } else if (message is List && message.isEmpty) {
+            // Empty content case
+            setState(() {
+              _sections = [];
+              _syncDocument = null;
+              _isLoading = false;
+              _floatCarryovers.clear();
+            });
           } else {
             // _isolateEntry sent an error string.
             final err = FormatException(
@@ -1084,9 +1159,12 @@ class _HyperViewerState extends State<HyperViewer>
           }
         }).catchError((Object e, StackTrace st) {
           _cancelParsing();
-          // Suppress the 'No element' StateError caused by closing the ReceivePort
-          // during an active wait (e.g. widget disposed or parsing cancelled).
-          if (e is StateError && e.message == 'No element') return;
+          // Improved check: only ignore StateError if we explicitly closed the port
+          if (e is StateError &&
+              e.message == 'No element' &&
+              _parseReceivePort == null) {
+            return;
+          }
           if (mounted && _parseId == currentParseId) {
             _reportError(e, st);
             setState(() => _isLoading = false);
@@ -1105,11 +1183,13 @@ class _HyperViewerState extends State<HyperViewer>
           if (cssToApply.isNotEmpty) resolver.parseCss(cssToApply);
           resolver.resolveStyles(doc);
 
-          // Paged and explicitly-virtualized modes both require _sections so
-          // the correct ListView/PageView builder is entered in _buildContent.
-          // Wrap the single document as a one-element list, then run it
-          // through _mergeSections so unchanged reloads skip re-layout.
-          final merged = _mergeSections([doc]);
+          // BUG-06: Markdown/Delta in virtualized/paged mode was wrapped as a
+          // single section, defeating the virtualization entirely for large docs.
+          // Split the document into chunkSize-bounded sections so the correct
+          // ListView/PageView builder gets multiple sections to work with.
+          final chunkSize = widget.renderConfig.virtualizationChunkSize;
+          final rawSections = _splitIntoSections(doc, chunkSize);
+          final merged = _mergeSections(rawSections);
           setState(() {
             _sections = merged;
             _syncDocument = null;
@@ -1136,8 +1216,8 @@ class _HyperViewerState extends State<HyperViewer>
       final sections = _parseAndChunk(
           (args.content, args.css, args.baseUrl, args.chunkSize));
       args.port.send(sections);
-    } catch (e) {
-      args.port.send('$e');
+    } catch (e, st) {
+      args.port.send([e.toString(), st.toString()]);
     }
   }
 

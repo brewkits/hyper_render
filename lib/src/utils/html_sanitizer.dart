@@ -145,6 +145,12 @@ class HtmlSanitizer {
         if (dangerousTags.contains(tag)) {
           // Drop the element AND all its children.
           child.remove();
+        } else if (tag == 'svg') {
+          // SVG: keep structure intact but strip scripts + dangerous attrs.
+          // Do NOT use the normal allowed/unwrap path — SVG child elements
+          // (path, circle, use, …) are not in allowedTags and would be
+          // unwrapped, destroying the SVG. Handle atomically.
+          _sanitizeSvgElement(child);
         } else if (!allowed.contains(tag)) {
           // Unwrap: replace element with its own (already-processed) children.
           // First recurse into children, then lift them up.
@@ -169,6 +175,49 @@ class HtmlSanitizer {
         }
       }
       // Text / Comment nodes are left untouched.
+    }
+  }
+
+  /// Sanitizes an SVG element in-place: removes dangerous children (script,
+  /// use with javascript: href) and strips dangerous attributes, but preserves
+  /// all SVG structural elements (path, circle, g, defs, …) so the SVG renders.
+  static void _sanitizeSvgElement(dom.Element svgElement) {
+    _sanitizeSvgAttributes(svgElement);
+    for (int i = svgElement.nodes.length - 1; i >= 0; i--) {
+      final child = svgElement.nodes[i];
+      if (child is dom.Element) {
+        final tag = child.localName?.toLowerCase() ?? '';
+        if (dangerousTags.contains(tag)) {
+          child.remove();
+        } else {
+          _sanitizeSvgElement(child);
+        }
+      }
+    }
+  }
+
+  /// Strips event handlers and dangerous URL attributes from an SVG element.
+  static void _sanitizeSvgAttributes(dom.Element element) {
+    final toRemove = <Object>[];
+    for (final entry in element.attributes.entries) {
+      final name = (entry.key is String)
+          ? (entry.key as String).toLowerCase()
+          : entry.key.toString().toLowerCase();
+      if (name.startsWith('on')) {
+        toRemove.add(entry.key);
+        continue;
+      }
+      if (dangerousAttributes.contains(name)) {
+        toRemove.add(entry.key);
+        continue;
+      }
+      // xlink:href and plain href may carry javascript: URLs inside <use>/<a>
+      if (name == 'href' || name == 'xlink:href') {
+        if (!isSafeUrl(entry.value)) toRemove.add(entry.key);
+      }
+    }
+    for (final key in toRemove) {
+      element.attributes.remove(key);
     }
   }
 
