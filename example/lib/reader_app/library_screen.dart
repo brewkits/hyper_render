@@ -15,8 +15,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   List<Book> get _filteredBooks {
     return MockLibrary.books.where((book) {
-      final matchesSearch = book.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          book.author.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesSearch =
+          book.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              book.author.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesBookmark = !_showOnlyBookmarked || book.isBookmarked;
       return matchesSearch && matchesBookmark;
     }).toList();
@@ -31,11 +32,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar.large(
-            title: const Text('My Library', style: TextStyle(fontWeight: FontWeight.bold)),
+            title: const Text('My Library',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             actions: [
               IconButton(
-                icon: Icon(_showOnlyBookmarked ? Icons.bookmark : Icons.bookmark_border),
-                onPressed: () => setState(() => _showOnlyBookmarked = !_showOnlyBookmarked),
+                icon: Icon(_showOnlyBookmarked
+                    ? Icons.bookmark
+                    : Icons.bookmark_border),
+                onPressed: () =>
+                    setState(() => _showOnlyBookmarked = !_showOnlyBookmarked),
               ),
             ],
           ),
@@ -58,13 +63,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
             ),
           ),
-          
-          if (recentBooks.isNotEmpty && _searchQuery.isEmpty && !_showOnlyBookmarked) ...[
+
+          if (recentBooks.isNotEmpty &&
+              _searchQuery.isEmpty &&
+              !_showOnlyBookmarked) ...[
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Text('Continue Reading', 
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Text('Continue Reading',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
             SliverToBoxAdapter(
@@ -86,8 +94,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
           const SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Text('All Books', 
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              child: Text('All Books',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           ),
 
@@ -99,7 +107,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   children: [
                     Icon(Icons.library_books, size: 64, color: Colors.grey),
                     SizedBox(height: 16),
-                    Text('No books found', style: TextStyle(color: Colors.grey)),
+                    Text('No books found',
+                        style: TextStyle(color: Colors.grey)),
                   ],
                 ),
               ),
@@ -140,14 +149,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
           ],
         ),
         child: Row(
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(book.coverUrl, width: 80, height: 120, fit: BoxFit.cover),
+              child: Image.network(book.coverUrl,
+                  width: 80, height: 120, fit: BoxFit.cover),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -155,12 +166,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(book.title, 
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                    maxLines: 2, overflow: TextOverflow.ellipsis),
-                  Text(book.author, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(book.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
+                  Text(book.author,
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const Spacer(),
-                  const Text('Last read: 2 hours ago', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  const Text('Last read: 2 hours ago',
+                      style: TextStyle(fontSize: 10, color: Colors.grey)),
                   const SizedBox(height: 4),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(2),
@@ -206,7 +220,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ),
                 if (book.isBookmarked)
                   const Positioned(
-                    top: 8, right: 8,
+                    top: 8,
+                    right: 8,
                     child: Icon(Icons.bookmark, color: Colors.amber, size: 28),
                   ),
               ],

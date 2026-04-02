@@ -8,7 +8,7 @@ class Book {
   final String content;
   final BookType type;
   final String? description;
-  
+
   // Persistent fields - marked as final for immutability where possible
   final int lastPage;
   final bool isBookmarked;

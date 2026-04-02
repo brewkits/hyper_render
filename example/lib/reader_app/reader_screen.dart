@@ -32,7 +32,8 @@ class ReaderSettings {
   }
 
   String toCss() {
-    final hexColor = '#${textColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
+    final hexColor =
+        '#${textColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
     return '''
       body { 
         font-size: ${fontSize}px; 
@@ -56,10 +57,12 @@ class ReaderScreen extends StatefulWidget {
 class _ReaderScreenState extends State<ReaderScreen> {
   late HyperPageController _pageController;
   late Book _currentBook; // Local state for the book to handle updates
-  final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
-  
+  final GlobalKey<ScaffoldMessengerState> _messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
   // Settings grouped into a single ValueNotifier
-  final ValueNotifier<ReaderSettings> _settings = ValueNotifier(const ReaderSettings());
+  final ValueNotifier<ReaderSettings> _settings =
+      ValueNotifier(const ReaderSettings());
 
   static const double _fontSizeMin = 12.0;
   static const double _fontSizeMax = 36.0;
@@ -76,18 +79,21 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void _onPageChanged() {
     // Only update progress if the page actually changed to avoid redundant writes
     if (_currentBook.lastPage != _pageController.currentPage.value) {
-      _currentBook = _currentBook.copyWith(lastPage: _pageController.currentPage.value);
+      _currentBook =
+          _currentBook.copyWith(lastPage: _pageController.currentPage.value);
     }
   }
 
   void _toggleBookmark() {
     setState(() {
-      _currentBook = _currentBook.copyWith(isBookmarked: !_currentBook.isBookmarked);
+      _currentBook =
+          _currentBook.copyWith(isBookmarked: !_currentBook.isBookmarked);
     });
   }
 
   void _updateFontSize(double delta) {
-    final newSize = (_settings.value.fontSize + delta).clamp(_fontSizeMin, _fontSizeMax);
+    final newSize =
+        (_settings.value.fontSize + delta).clamp(_fontSizeMin, _fontSizeMax);
     _settings.value = _settings.value.copyWith(fontSize: newSize);
   }
 
@@ -103,7 +109,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
@@ -114,26 +121,45 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
+                  Center(
+                      child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 20),
-                  const Text('Typography', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  const Text('Typography',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                   const SizedBox(height: 15),
-                  _buildSlider('Font Size: ${settings.fontSize.toInt()}px', settings.fontSize, 14, 32, Icons.format_size, (v) {
+                  _buildSlider('Font Size: ${settings.fontSize.toInt()}px',
+                      settings.fontSize, 14, 32, Icons.format_size, (v) {
                     _settings.value = settings.copyWith(fontSize: v);
                   }),
                   const SizedBox(height: 15),
-                  _buildSlider('Line Height: ${settings.lineHeight.toStringAsFixed(1)}', settings.lineHeight, 1.2, 2.4, Icons.format_line_spacing, (v) {
+                  _buildSlider(
+                      'Line Height: ${settings.lineHeight.toStringAsFixed(1)}',
+                      settings.lineHeight,
+                      1.2,
+                      2.4,
+                      Icons.format_line_spacing, (v) {
                     _settings.value = settings.copyWith(lineHeight: v);
                   }, divisions: 12),
                   const Divider(height: 40),
-                  const Text('Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  const Text('Theme',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                   const SizedBox(height: 15),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _themeOption(const Color(0xFFFFFFFF), Colors.black, 'Light', settings),
-                      _themeOption(const Color(0xFFFDF6E3), const Color(0xFF5B4636), 'Sepia', settings),
-                      _themeOption(const Color(0xFF121212), Colors.white70, 'Dark', settings),
+                      _themeOption(const Color(0xFFFFFFFF), Colors.black,
+                          'Light', settings),
+                      _themeOption(const Color(0xFFFDF6E3),
+                          const Color(0xFF5B4636), 'Sepia', settings),
+                      _themeOption(const Color(0xFF121212), Colors.white70,
+                          'Dark', settings),
                     ],
                   ),
                 ],
@@ -145,7 +171,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
-  Widget _buildSlider(String label, double value, double min, double max, IconData icon, ValueChanged<double> onChanged, {int? divisions}) {
+  Widget _buildSlider(String label, double value, double min, double max,
+      IconData icon, ValueChanged<double> onChanged,
+      {int? divisions}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -169,11 +197,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
-  Widget _themeOption(Color bg, Color text, String label, ReaderSettings current) {
+  Widget _themeOption(
+      Color bg, Color text, String label, ReaderSettings current) {
     final isSelected = current.backgroundColor == bg;
     return GestureDetector(
       onTap: () {
-        _settings.value = current.copyWith(backgroundColor: bg, textColor: text);
+        _settings.value =
+            current.copyWith(backgroundColor: bg, textColor: text);
       },
       child: Column(
         children: [
@@ -188,10 +218,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
               ),
               shape: BoxShape.circle,
             ),
-            child: Center(child: Text('Aa', style: TextStyle(color: text, fontWeight: FontWeight.bold))),
+            child: Center(
+                child: Text('Aa',
+                    style:
+                        TextStyle(color: text, fontWeight: FontWeight.bold))),
           ),
           const SizedBox(height: 6),
-          Text(label, style: TextStyle(fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight:
+                      isSelected ? FontWeight.bold : FontWeight.normal)),
         ],
       ),
     );
@@ -205,7 +242,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
         return Scaffold(
           backgroundColor: settings.backgroundColor,
           appBar: AppBar(
-            title: Text(_currentBook.title, style: const TextStyle(fontSize: 16)),
+            title:
+                Text(_currentBook.title, style: const TextStyle(fontSize: 16)),
             backgroundColor: Colors.transparent,
             elevation: 0,
             foregroundColor: settings.textColor,
@@ -216,14 +254,20 @@ class _ReaderScreenState extends State<ReaderScreen> {
             actions: [
               IconButton(
                 icon: const Icon(Icons.text_decrease),
-                onPressed: settings.fontSize > _fontSizeMin ? () => _updateFontSize(-_fontSizeStep) : null,
+                onPressed: settings.fontSize > _fontSizeMin
+                    ? () => _updateFontSize(-_fontSizeStep)
+                    : null,
               ),
               IconButton(
                 icon: const Icon(Icons.text_increase),
-                onPressed: settings.fontSize < _fontSizeMax ? () => _updateFontSize(_fontSizeStep) : null,
+                onPressed: settings.fontSize < _fontSizeMax
+                    ? () => _updateFontSize(_fontSizeStep)
+                    : null,
               ),
               IconButton(
-                icon: Icon(_currentBook.isBookmarked ? Icons.bookmark : Icons.bookmark_border),
+                icon: Icon(_currentBook.isBookmarked
+                    ? Icons.bookmark
+                    : Icons.bookmark_border),
                 onPressed: _toggleBookmark,
               ),
               Builder(
@@ -272,22 +316,30 @@ class _ReaderScreenState extends State<ReaderScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: settings.textColor.withValues(alpha: 0.1))),
+        border: Border(
+            top: BorderSide(color: settings.textColor.withValues(alpha: 0.1))),
       ),
       child: ValueListenableBuilder<int>(
         valueListenable: _pageController.currentPage,
         builder: (context, page, _) {
           final pageCount = _pageController.pageCount;
           final progress = pageCount > 0 ? (page + 1) / pageCount : 0.0;
-          
+
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${(progress * 100).toInt()}% read', style: TextStyle(color: settings.textColor.withValues(alpha: 0.5), fontSize: 10)),
-                  Text('Page ${page + 1} of $pageCount', style: TextStyle(color: settings.textColor.withValues(alpha: 0.7), fontSize: 11, fontWeight: FontWeight.w500)),
+                  Text('${(progress * 100).toInt()}% read',
+                      style: TextStyle(
+                          color: settings.textColor.withValues(alpha: 0.5),
+                          fontSize: 10)),
+                  Text('Page ${page + 1} of $pageCount',
+                      style: TextStyle(
+                          color: settings.textColor.withValues(alpha: 0.7),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500)),
                 ],
               ),
               const SizedBox(height: 8),
@@ -308,7 +360,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   Widget? _videoWidgetBuilder(UDTNode node) {
-    if (node is AtomicNode && (node.tagName == 'video' || node.tagName == 'audio')) {
+    if (node is AtomicNode &&
+        (node.tagName == 'video' || node.tagName == 'audio')) {
       final mediaInfo = MediaInfo.fromNode(node);
       final src = mediaInfo.src;
       final poster = mediaInfo.poster;
@@ -321,14 +374,19 @@ class _ReaderScreenState extends State<ReaderScreen> {
           onTap: () => _handleMediaTap(src),
           child: Container(
             constraints: const BoxConstraints(maxHeight: 220),
-            decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+                color: Colors.black87, borderRadius: BorderRadius.circular(8)),
             child: Stack(
               alignment: Alignment.center,
               children: [
                 if (poster != null && !isAudio)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(poster, width: double.infinity, height: 220, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                    child: Image.network(poster,
+                        width: double.infinity,
+                        height: 220,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink()),
                   ),
                 _buildPlayIcon(isAudio),
                 _buildPlayOverlay(),
@@ -345,8 +403,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
     return Container(
       width: 64,
       height: 64,
-      decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-      child: Icon(isAudio ? Icons.headphones : Icons.play_arrow, color: Colors.white, size: 36),
+      decoration:
+          const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+      child: Icon(isAudio ? Icons.headphones : Icons.play_arrow,
+          color: Colors.white, size: 36),
     );
   }
 
@@ -358,8 +418,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
       child: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(4)),
-          child: const Text('Tap to play in external player', style: TextStyle(color: Colors.white70, fontSize: 11)),
+          decoration: BoxDecoration(
+              color: Colors.black54, borderRadius: BorderRadius.circular(4)),
+          child: const Text('Tap to play in external player',
+              style: TextStyle(color: Colors.white70, fontSize: 11)),
         ),
       ),
     );
@@ -386,7 +448,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating),
+      SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -404,7 +469,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   const SizedBox(height: 12),
                   Text(
                     _currentBook.title,
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                     maxLines: 2,
                   ),
@@ -414,7 +482,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
           ),
           const Padding(
             padding: EdgeInsets.all(16.0),
-            child: Text('Table of Contents', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text('Table of Contents',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
           Expanded(
             child: ListView(
@@ -434,7 +503,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   Widget _tocItem(String title, int page) {
     return ListTile(
       title: Text(title),
-      trailing: Text('p. ${page + 1}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+      trailing: Text('p. ${page + 1}',
+          style: const TextStyle(color: Colors.grey, fontSize: 12)),
       onTap: () {
         _pageController.jumpToPage(page);
         Navigator.pop(context);
@@ -442,4 +512,3 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 }
-
