@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.2] - 2026-04-02
+
+### 🐛 Bug Fixes
+
+- **Android build failure with modern compileSdk** (`example/android/build.gradle.kts`): `irondash_engine_context 0.5.5` was compiled against android-31 but its transitive `androidx.fragment:1.7.1` dependency has `minCompileSdk=34`, causing AGP 8's `checkAarMetadata` to block the build. Added a `subprojects { afterEvaluate { compileSdk = 35 } }` override in the example's root Gradle file. README now documents the same one-line workaround for app-level projects. ([#5](https://github.com/brewkits/hyper_render/issues/5))
+- **SVG invisible with `sanitize: true`** (`html_sanitizer.dart`): `<svg>` was not in `defaultAllowedTags` so the sanitizer unwrapped it, destroying the SVG structure. Added an atomic SVG sanitization path that strips `<script>` and dangerous attributes while preserving all structural SVG elements (`path`, `circle`, `g`, `use`, etc.).
+- **`selectable` toggle ignored after build** (`hyper_viewer.dart`): Toggling `selectable` from `false` → `true` never created `VirtualizedSelectionController`, and `true` → `false` never disposed it. Fixed in `didUpdateWidget`.
+- **Deep-link tap silently blocked** (`hyper_viewer.dart`): `_safeOnLinkTap` only checked `widget.allowedCustomSchemes` but ignored `renderConfig.extraLinkSchemes`, causing deep-links registered via `HyperRenderConfig` to be silently dropped. Both sources are now consulted.
+- **CSS change didn't invalidate section cache** (`hyper_viewer.dart`): `_hashSection` hashes only text content, so a `customCss` change that alters layout/appearance would incorrectly reuse cached sections. `_sectionHashes` is now reset whenever `customCss` changes in `didUpdateWidget`.
+- **Markdown/Delta virtualized/paged mode rendered as single section** (`hyper_viewer.dart`): The sync fallback path wrapped the entire parsed document as one section, defeating virtualization. Added `_splitIntoSections()` to chunk Markdown/Delta documents at block boundaries, matching the HTML isolate path.
+- **`renderConfig` change only partially detected** (`hyper_viewer.dart`): `didUpdateWidget` compared only `virtualizationChunkSize` instead of the full `HyperRenderConfig`. Now uses full value equality (available since the `operator==` fix) so any config change triggers a re-parse.
+- **CSS float class names not detected** (`html_adapter.dart`): `_containsFloatChild` missed Bootstrap/Tailwind float class names (`float-left`, `pull-right`, `alignleft`, etc.), causing premature section splits after float-containing blocks. Common class patterns are now detected heuristically.
+
 ## [1.2.1] - 2026-03-31
 
 ### 🏗️ Maintenance

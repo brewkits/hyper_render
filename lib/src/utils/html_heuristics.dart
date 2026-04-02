@@ -114,11 +114,16 @@ class HtmlHeuristics {
   static bool hasUnsupportedCss(String html) {
     final lower = html.toLowerCase();
 
-    // position: absolute or fixed
-    if (_containsPositionAbsoluteOrFixed(lower)) return true;
+    // position: absolute or fixed (more targeted check for CSS property)
+    if (RegExp(r'position\s*:\s*(absolute|fixed)', caseSensitive: false)
+        .hasMatch(lower)) {
+      return true;
+    }
 
-    // z-index
-    if (lower.contains('z-index')) return true;
+    // z-index (specifically looking for CSS property signature)
+    if (RegExp(r'z-index\s*:', caseSensitive: false).hasMatch(lower)) {
+      return true;
+    }
 
     // clip-path
     if (lower.contains('clip-path')) return true;
@@ -168,14 +173,11 @@ class HtmlHeuristics {
   /// ```
   static bool hasForms(String html) {
     final lower = html.toLowerCase();
-    return _tagPresent(lower, 'form') ||
-        _tagPresent(lower, 'input') ||
-        _tagPresent(lower, 'select') ||
-        _tagPresent(lower, 'textarea') ||
-        // <button type="submit"> without a parent <form> still signals
-        // interactive intent — flag it so the team can decide.
+    // Improved checks using word boundaries and tag patterns to avoid false positives in text content.
+    return RegExp(r'<(form|input|select|textarea)\b', caseSensitive: false)
+            .hasMatch(lower) ||
         RegExp(r'<button[^>]+type\s*=\s*["\x27]?submit', caseSensitive: false)
-            .hasMatch(html);
+            .hasMatch(lower);
   }
 
   /// Returns `true` if the HTML contains interactive or scripted elements
@@ -210,14 +212,7 @@ class HtmlHeuristics {
   // ---------------------------------------------------------------------------
 
   static bool _tagPresent(String lower, String tag) =>
-      lower.contains('<$tag') || lower.contains('<$tag>');
-
-  static bool _containsPositionAbsoluteOrFixed(String lower) {
-    // Match "position" followed (loosely) by "absolute" or "fixed".
-    // Handles inline styles and <style> blocks.
-    return RegExp(r'position\s*:\s*(absolute|fixed)', caseSensitive: false)
-        .hasMatch(lower);
-  }
+      RegExp('<$tag\\b', caseSensitive: false).hasMatch(lower);
 
   static bool _hasStreamingMedia(String lower) {
     return lower.contains('.m3u8') ||

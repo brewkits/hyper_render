@@ -455,6 +455,20 @@ class HtmlAdapter {
     // Check float attribute (legacy HTML)
     final floatAttr = node.attributes['float'] ?? '';
     if (floatAttr == 'left' || floatAttr == 'right') return true;
+    // Check common CSS framework float class names (Bootstrap, Tailwind, etc.)
+    // This is heuristic — class-based floats cannot be resolved without running
+    // the full CSS cascade, but common patterns are detectable by name.
+    final cls = (node.attributes['class'] ?? '').toLowerCase();
+    if (cls.contains('float-left') ||
+        cls.contains('float-right') ||
+        cls.contains('pull-left') ||
+        cls.contains('pull-right') ||
+        cls.contains('align-left') ||
+        cls.contains('align-right') ||
+        cls.contains('alignleft') ||
+        cls.contains('alignright')) {
+      return true;
+    }
     // Recurse into children
     for (final child in node.nodes) {
       if (_containsFloatChild(child)) return true;

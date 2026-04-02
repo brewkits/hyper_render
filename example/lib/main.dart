@@ -130,8 +130,8 @@ class DemoHomePage extends StatelessWidget {
             subtitle:
                 'Full e-book solution with paged mode, themes, and library management',
             color: Colors.deepPurple,
-            onTap: () => Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const LibraryScreen())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const LibraryScreen())),
           ),
           // ── Layout ────────────────────────────────────────────────────────
           _buildSectionHeader(context, 'Layout'),
@@ -3110,7 +3110,6 @@ class VideoDemo extends StatelessWidget {
               </video>
             ''',
             onLinkTap: (url) async {
-              
               final uri = Uri.tryParse(url);
               if (uri != null && await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.platformDefault);
@@ -3133,7 +3132,6 @@ class VideoDemo extends StatelessWidget {
               </video>
             ''',
             onLinkTap: (url) async {
-              
               final uri = Uri.tryParse(url);
               if (uri != null && await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.platformDefault);
@@ -3175,7 +3173,6 @@ class VideoDemo extends StatelessWidget {
               </div>
             ''',
             onLinkTap: (url) async {
-              
               final uri = Uri.tryParse(url);
               if (uri != null && await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.platformDefault);
@@ -3218,7 +3215,6 @@ class VideoDemo extends StatelessWidget {
             ''',
             selectable: true,
             onLinkTap: (url) async {
-              
               final uri = Uri.tryParse(url);
               if (uri != null && await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.platformDefault);

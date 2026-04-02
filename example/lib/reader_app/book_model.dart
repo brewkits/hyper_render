@@ -8,10 +8,10 @@ class Book {
   final String content;
   final BookType type;
   final String? description;
-  
-  // New persistent fields
-  int lastPage;
-  bool isBookmarked;
+
+  // Persistent fields - marked as final for immutability where possible
+  final int lastPage;
+  final bool isBookmarked;
 
   Book({
     required this.id,
@@ -24,6 +24,23 @@ class Book {
     this.lastPage = 0,
     this.isBookmarked = false,
   });
+
+  Book copyWith({
+    int? lastPage,
+    bool? isBookmarked,
+  }) {
+    return Book(
+      id: id,
+      title: title,
+      author: author,
+      coverUrl: coverUrl,
+      content: content,
+      type: type,
+      description: description,
+      lastPage: lastPage ?? this.lastPage,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
+    );
+  }
 }
 
 class MockLibrary {
