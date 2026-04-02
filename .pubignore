@@ -43,6 +43,16 @@ scripts/
 # Internal publish helpers
 pubspec.yaml.backup
 pubspec_publish_ready.yaml
+pubspec_dev.yaml
+
+# Flutter .metadata files (auto-generated, not useful to consumers)
+.metadata
+
+# Internal archive / historical comparison docs
+archive/
+
+# Coverage artifacts
+coverage/
 
 # IDE files
 *.iml

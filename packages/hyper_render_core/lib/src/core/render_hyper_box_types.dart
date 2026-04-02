@@ -64,9 +64,8 @@ class FloatCarryover {
 }
 
 /// Inline decoration info for painting background/border across line breaks
-class _InlineDecoration {
-  final UDTNode node;
-  final List<Rect> rects;
+@immutable
+class _InlineDecorationStyle {
   final Color? backgroundColor;
   final Gradient? backgroundGradient;
   final Color? borderColor;
@@ -76,9 +75,7 @@ class _InlineDecoration {
   final ui.ImageFilter? filter;
   final ui.ImageFilter? backdropFilter;
 
-  _InlineDecoration({
-    required this.node,
-    required this.rects,
+  const _InlineDecorationStyle({
     this.backgroundColor,
     this.backgroundGradient,
     this.borderColor,
@@ -87,6 +84,45 @@ class _InlineDecoration {
     this.boxShadow,
     this.filter,
     this.backdropFilter,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _InlineDecorationStyle &&
+          runtimeType == other.runtimeType &&
+          backgroundColor == other.backgroundColor &&
+          backgroundGradient == other.backgroundGradient &&
+          borderColor == other.borderColor &&
+          borderWidth == other.borderWidth &&
+          borderRadius == other.borderRadius &&
+          listEquals(boxShadow, other.boxShadow) &&
+          filter == other.filter &&
+          backdropFilter == other.backdropFilter;
+
+  @override
+  int get hashCode => Object.hash(
+        backgroundColor,
+        backgroundGradient,
+        borderColor,
+        borderWidth,
+        borderRadius,
+        Object.hashAll(boxShadow ?? []),
+        filter,
+        backdropFilter,
+      );
+}
+
+/// Inline decoration info for painting background/border across line breaks
+class _InlineDecoration {
+  final UDTNode node;
+  final List<Rect> rects;
+  final _InlineDecorationStyle style;
+
+  _InlineDecoration({
+    required this.node,
+    required this.rects,
+    required this.style,
   });
 }
 

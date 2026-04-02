@@ -161,4 +161,38 @@ class HyperRenderConfig {
 
   /// Production-ready defaults, tuned against real-world documents.
   static const HyperRenderConfig defaults = HyperRenderConfig();
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is HyperRenderConfig &&
+        other.textPainterCacheSize == textPainterCacheSize &&
+        other.imageCacheSize == imageCacheSize &&
+        other.defaultImagePlaceholderWidth == defaultImagePlaceholderWidth &&
+        other.imageConcurrency == imageConcurrency &&
+        other.virtualizationChunkSize == virtualizationChunkSize &&
+        other.codeHighlighter == codeHighlighter &&
+        other.extraLinkSchemes == extraLinkSchemes &&
+        _mapsEqual(other.keyframeRegistry, keyframeRegistry);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        textPainterCacheSize,
+        imageCacheSize,
+        defaultImagePlaceholderWidth,
+        imageConcurrency,
+        virtualizationChunkSize,
+        codeHighlighter,
+        Object.hashAll(extraLinkSchemes),
+        Object.hashAll(keyframeRegistry.keys),
+      );
+
+  static bool _mapsEqual(Map<String, dynamic> a, Map<String, dynamic> b) {
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (a[key] != b[key]) return false;
+    }
+    return true;
+  }
 }

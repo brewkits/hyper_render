@@ -38,6 +38,8 @@ jobs:
   golden:
     name: Golden Tests
     runs-on: ubuntu-22.04   # pinned — do NOT change to ubuntu-latest
+    permissions:
+      pull-requests: write
 
     steps:
       - name: Checkout code

@@ -1,6 +1,11 @@
 part of 'render_hyper_box.dart';
 
 // Layout spacing constants — single source of truth for all magic numbers
+const double _kDefaultInlinePluginWidth = 50.0;
+const double _kDefaultInlinePluginHeight = 24.0;
+const double _kDefaultFloatMargin = 8.0;
+
+const double _kMinFloatYStep = 1.0;
 const double _kImageMargin =
     32.0; // horizontal margin subtracted from maxWidth for images
 const double _kDefaultFlexFallbackHeight = 50.0;
@@ -32,70 +37,59 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           _tokenizeNode(child, null);
         }
         break;
-
       case NodeType.block:
-        // Block-tier plugin: treat as a full-width child widget (_FlexFragment).
-        // CSS margins from the node style are still applied via _BlockStart/End.
-        if (_blockPluginTags.isNotEmpty &&
-            _blockPluginTags.contains(node.tagName?.toLowerCase())) {
-          _tokenizeBlockPlugin(node);
-          break;
-        }
-        _tokenizeBlock(node, parentBlock);
+        _handleBlockNode(node, parentBlock);
         break;
-
       case NodeType.inline:
-        // Inline-tier plugin: treat as an atomic (inline) child widget.
-        // Fragment size is set later in _measureInlinePluginFragments().
-        if (_inlinePluginTags.isNotEmpty &&
-            _inlinePluginTags.contains(node.tagName?.toLowerCase())) {
-          _fragments.add(Fragment.atomic(
-            sourceNode: node,
-            style: node.style,
-            // Placeholder size — updated in _measureInlinePluginFragments().
-            size: Size(
-              node.style.width ?? 50.0,
-              node.style.height ?? 24.0,
-            ),
-          ));
-          break;
-        }
-        _tokenizeInline(node);
+        _handleInlineNode(node);
         break;
-
       case NodeType.text:
         _tokenizeText(node as TextNode);
         break;
-
       case NodeType.atomic:
         _tokenizeAtomic(node as AtomicNode);
         break;
-
       case NodeType.lineBreak:
-        _fragments.add(Fragment.lineBreak(
-          sourceNode: node,
-          style: node.style,
-        ));
+        _fragments.add(Fragment.lineBreak(sourceNode: node, style: node.style));
         break;
-
       case NodeType.ruby:
         _tokenizeRuby(node as RubyNode);
         break;
-
       case NodeType.table:
         _tokenizeTable(node as TableNode);
         break;
-
       case NodeType.errorBoundary:
-        // Rendered as a full-width child widget (ErrorBoundaryWidget),
-        // same layout semantics as a flex container.
         _fragments.add(_FlexFragment(sourceNode: node, style: node.style));
         break;
-
       default:
         for (final child in node.children) {
           _tokenizeNode(child, parentBlock);
         }
+    }
+  }
+
+  void _handleBlockNode(UDTNode node, UDTNode? parentBlock) {
+    if (_blockPluginTags.isNotEmpty &&
+        _blockPluginTags.contains(node.tagName?.toLowerCase())) {
+      _tokenizeBlockPlugin(node);
+    } else {
+      _tokenizeBlock(node, parentBlock);
+    }
+  }
+
+  void _handleInlineNode(UDTNode node) {
+    if (_inlinePluginTags.isNotEmpty &&
+        _inlinePluginTags.contains(node.tagName?.toLowerCase())) {
+      _fragments.add(Fragment.atomic(
+        sourceNode: node,
+        style: node.style,
+        size: Size(
+          node.style.width ?? _kDefaultInlinePluginWidth,
+          node.style.height ?? _kDefaultInlinePluginHeight,
+        ),
+      ));
+    } else {
+      _tokenizeInline(node);
     }
   }
 
@@ -1526,8 +1520,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         breakIndex = 2;
       } else {
         // Single surrogate pair (Emoji) — cannot split.
-        // Return null to signal "cannot split", which results in overflow.
-        return null;
+        // FIX: Force include it in the first part rather than dropping it.
+        breakIndex = text.length;
       }
     }
 
@@ -1571,7 +1565,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
     // Compute margins FIRST so we can leave room when laying out the child.
     final margin = fragment.style.margin;
-    const defaultFloatMargin = 8.0;
+    const defaultFloatMargin = _kDefaultFloatMargin;
     final rightMargin = margin.right > 0 ? margin.right : defaultFloatMargin;
     final leftMargin = margin.left > 0 ? margin.left : defaultFloatMargin;
     final bottomMargin = margin.bottom > 0 ? margin.bottom : defaultFloatMargin;
@@ -1706,7 +1700,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           // Not enough space — advance floatY past the lowest active float.
           // Avoid the spread [..._leftFloats, ..._rightFloats] allocation
           // inside the loop by iterating both lists separately.
-          double lowestBottom = floatY + 1;
+          double lowestBottom = floatY + _kMinFloatYStep;
           for (final existing in _leftFloats) {
             if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
               lowestBottom = math.max(lowestBottom, existing.rect.bottom);
@@ -1781,7 +1775,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           foundPosition = true;
         } else {
           // Not enough space — advance floatY without list spread allocation.
-          double lowestBottom = floatY + 1;
+          double lowestBottom = floatY + _kMinFloatYStep;
           for (final existing in _leftFloats) {
             if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
               lowestBottom = math.max(lowestBottom, existing.rect.bottom);
@@ -1953,7 +1947,20 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
             visualRect.width + padding.left + padding.right,
             visualRect.height + padding.top + padding.bottom,
           );
-          rectsMap[decoratedNode]?.add(expandedRect);
+
+          final list = rectsMap[decoratedNode]!;
+          if (list.isNotEmpty) {
+            final last = list.last;
+            // OPTIMIZATION: Merge rects on the same line if they are adjacent or overlapping.
+            // This drastically reduces the number of Rect objects and draw calls.
+            if ((last.top - expandedRect.top).abs() < 0.1 &&
+                (last.bottom - expandedRect.bottom).abs() < 0.1 &&
+                expandedRect.left <= last.right + 1.0) {
+              list[list.length - 1] = last.expandToInclude(expandedRect);
+              continue;
+            }
+          }
+          list.add(expandedRect);
         }
       }
     }
@@ -1967,14 +1974,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         _inlineDecorations.add(_InlineDecoration(
           node: node,
           rects: rects,
-          backgroundColor: style.backgroundColor,
-          backgroundGradient: style.backgroundGradient,
-          borderColor: style.borderColor,
-          borderWidth: style.borderWidth.top,
-          borderRadius: style.borderRadius,
-          boxShadow: style.boxShadow,
-          filter: style.filter,
-          backdropFilter: style.backdropFilter,
+          style: _InlineDecorationStyle(
+            backgroundColor: style.backgroundColor,
+            backgroundGradient: style.backgroundGradient,
+            borderColor: style.borderColor,
+            borderWidth: style.borderWidth.top,
+            borderRadius: style.borderRadius,
+            boxShadow: style.boxShadow,
+            filter: style.filter,
+            backdropFilter: style.backdropFilter,
+          ),
         ));
       }
     }
@@ -2228,32 +2237,42 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     while (child != null) {
       final parentData = child.parentData as HyperBoxParentData;
 
-      // Skip children that are already linked by sourceNode (Step 2).
       if (parentData.fragment != null) {
         child = parentData.nextSibling;
         continue;
       }
 
-      // Link remaining children using the order of unlinked fragments.
-      // This is the critical fallback.
       if (unlinkedFragmentIndex < unlinkedFragments.length) {
         final fragment = unlinkedFragments[unlinkedFragmentIndex];
         parentData.fragment = fragment;
 
-        // Set float info if applicable
         if (fragment is _FloatFragment) {
           parentData.isFloat = true;
           parentData.floatDirection = fragment.floatDirection;
         }
         unlinkedFragmentIndex++;
       } else {
-        // No unlinked fragment available for this child — leave it unlinked.
-        // _layoutChildren will fall through to the Size.zero fallback for any
-        // child whose parentData.fragment is still null after this pass.
+        // FIX: Log mismatch instead of silent failure
+        assert(() {
+          debugPrint(
+              '[HyperRender] Layout Warning: More child widgets than fragments. '
+              'Node: ${parentData.sourceNode?.tagName}');
+          return true;
+        }());
       }
 
       child = parentData.nextSibling;
     }
+
+    // Check for the opposite case: more fragments than widgets
+    assert(() {
+      if (unlinkedFragmentIndex < unlinkedFragments.length) {
+        debugPrint(
+            '[HyperRender] Layout Warning: More fragments than child widgets. '
+            'Remaining fragments: ${unlinkedFragments.length - unlinkedFragmentIndex}');
+      }
+      return true;
+    }());
   }
 
   /// Find child RenderBox for a given fragment

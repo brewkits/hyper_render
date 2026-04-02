@@ -127,21 +127,24 @@ jobs:
           needs.path-filter.outputs.changed_markdown == 'true' ||
           needs.path-filter.outputs.changed_core == 'true'
         working-directory: packages/hyper_render_markdown
-        run: flutter test --no-pub
+        run: |
+          if [ -d test ]; then flutter test --no-pub; else echo "No tests in this package — skipping."; fi
 
       - name: Test hyper_render_highlight
         if: >-
           needs.path-filter.outputs.changed_highlight == 'true' ||
           needs.path-filter.outputs.changed_core == 'true'
         working-directory: packages/hyper_render_highlight
-        run: flutter test --no-pub
+        run: |
+          if [ -d test ]; then flutter test --no-pub; else echo "No tests in this package — skipping."; fi
 
       - name: Test hyper_render_clipboard
         if: >-
           needs.path-filter.outputs.changed_clipboard == 'true' ||
           needs.path-filter.outputs.changed_core == 'true'
         working-directory: packages/hyper_render_clipboard
-        run: flutter test --no-pub
+        run: |
+          if [ -d test ]; then flutter test --no-pub; else echo "No tests in this package — skipping."; fi
 
       - name: Upload test results
         if: failure()
