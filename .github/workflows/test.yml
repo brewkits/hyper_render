@@ -168,8 +168,13 @@ jobs:
     strategy:
       fail-fast: false   # let all matrix legs complete so we see the full picture
       matrix:
-        os: [ubuntu-22.04, macos-latest, windows-latest]
-        flutter-channel: [stable, beta]
+        include:
+          # Stable: all 3 OS
+          - os: ubuntu-22.04    flutter-channel: stable
+          - os: macos-latest    flutter-channel: stable
+          - os: windows-latest  flutter-channel: stable
+          # Beta: ubuntu only — avoids pinned-version conflict on other runners
+          - os: ubuntu-22.04    flutter-channel: beta
 
     steps:
       - uses: actions/checkout@v4
@@ -177,15 +182,48 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          # Pin version for stable only; let beta float to latest beta build.
+          flutter-version: ${{ matrix.flutter-channel == 'stable' && env.FLUTTER_VERSION || '' }}
           channel: ${{ matrix.flutter-channel }}
           cache: true
 
       - name: flutter pub get
         run: flutter pub get
 
-      - name: Run all tests
-        run: flutter test --no-pub
+      - name: Run all tests (exclude golden — pixel refs are ubuntu-22.04 only)
+        # Golden tests are pinned to ubuntu-22.04 in golden.yml.
+        # Running them on macOS/Windows would always fail due to font/subpixel differences.
+        run: >-
+          flutter test --no-pub
+          test/accessibility_test.dart
+          test/css_keyframes_test.dart
+          test/fragment_test.dart
+          test/giant_div_test.dart
+          test/html_heuristics_test.dart
+          test/html_sanitizer_test.dart
+          test/hyper_render_test.dart
+          test/hyper_render_widget_test.dart
+          test/hyper_selection_overlay_test.dart
+          test/hyper_viewer_animated_switcher_test.dart
+          test/integration/
+          test/integration_test.dart
+          test/integration_test_all.dart
+          test/integration_test_extended.dart
+          test/layout_logic_test.dart
+          test/lru_cache_test.dart
+          test/media_test.dart
+          test/memory/
+          test/model/
+          test/render_hyper_box_test.dart
+          test/reproduce_semantics_error_test.dart
+          test/ruby_selection_test.dart
+          test/security_edge_cases_test.dart
+          test/style/
+          test/svg_builder_test.dart
+          test/system_test.dart
+          test/table_layout_test.dart
+          test/v120/
+          test/widget/
 
       - name: Upload test results
         if: failure()
