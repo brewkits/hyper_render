@@ -205,7 +205,7 @@ class VirtualizedSelectionOverlay extends StatefulWidget {
   /// Overrides the default [Copy / Select All] menu. Receives the controller
   /// so custom actions can call [controller.getSelectedText()].
   // ignore: library_private_types_in_public_api
-  final List<_SelectionMenuAction> Function(VirtualizedSelectionController)?
+  final List<SelectionMenuAction> Function(VirtualizedSelectionController)?
       selectionMenuActionsBuilder;
 
   @override
@@ -450,13 +450,13 @@ class _VirtualizedSelectionOverlayState
     );
   }
 
-  List<_SelectionMenuAction> get _defaultActions => [
-        _SelectionMenuAction(
+  List<SelectionMenuAction> get _defaultActions => [
+        SelectionMenuAction(
           icon: Icons.copy_rounded,
           label: 'Copy',
           onPressed: _copySelection,
         ),
-        _SelectionMenuAction(
+        SelectionMenuAction(
           icon: Icons.select_all_rounded,
           label: 'All',
           onPressed: widget.controller.selectAll,
@@ -467,18 +467,6 @@ class _VirtualizedSelectionOverlayState
 // ──────────────────────────────────────────────────────────────────────────────
 // Supporting types
 // ──────────────────────────────────────────────────────────────────────────────
-
-/// A menu action for the virtualised selection Copy popup.
-class _SelectionMenuAction {
-  const _SelectionMenuAction({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-}
 
 class _MenuButton extends StatelessWidget {
   const _MenuButton(

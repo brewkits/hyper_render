@@ -1,6 +1,7 @@
 import 'dart:isolate';
 
 import 'package:hyper_render_core/hyper_render_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../parser/html/html_adapter.dart';
 import '../plugins/default_css_parser.dart';
@@ -617,18 +618,6 @@ class HyperViewer extends StatefulWidget {
   State<HyperViewer> createState() => _HyperViewerState();
 }
 
-/// Argument bundle sent into the parse isolate.
-/// All fields must be sendable (primitives + SendPort).
-class _ParseArgs {
-  final String content;
-  final String css;
-  final String? baseUrl;
-  final int chunkSize;
-  final SendPort port;
-  const _ParseArgs(
-      this.content, this.css, this.baseUrl, this.chunkSize, this.port);
-}
-
 class _HyperViewerState extends State<HyperViewer>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _contentFadeController;
@@ -1097,74 +1086,32 @@ class _HyperViewerState extends State<HyperViewer>
         // Capture parse ID before async gap to detect stale results.
         final currentParseId = ++_parseId;
 
-        // Cancel any in-flight isolate from a previous parse before spawning a
-        // new one, so we don't burn CPU on an abandoned parse.
-        _cancelParsing();
-        final receivePort = ReceivePort();
-        _parseReceivePort = receivePort;
+        // Use Future.microtask in tests, compute() in production
+        final args = (
+          contentToRender,
+          cssToApply,
+          widget.baseUrl,
+          widget.renderConfig.virtualizationChunkSize,
+        );
 
-        Isolate.spawn(
-          _isolateEntry,
-          _ParseArgs(
-            contentToRender,
-            cssToApply,
-            widget.baseUrl,
-            widget.renderConfig.virtualizationChunkSize,
-            receivePort.sendPort,
-          ),
-        ).then((isolate) {
-          _parseIsolate = isolate;
-          return receivePort.first;
-        }).then((dynamic message) {
-          // Isolate finished — release references.
-          _parseIsolate = null;
-          _parseReceivePort = null;
+        Future<List<DocumentNode>> parseFuture;
+        if (widget.renderConfig.useMicrotaskParsing) {
+          parseFuture = Future.microtask(() => _parseAndChunk(args));
+        } else {
+          parseFuture = compute(_parseAndChunk, args);
+        }
+
+        parseFuture.then((fresh) {
           if (!mounted || _parseId != currentParseId) return;
-
-          if (message is List &&
-              message.isNotEmpty &&
-              message[0] is DocumentNode) {
-            final fresh = List<DocumentNode>.from(message);
-            final merged = _mergeSections(fresh);
-            setState(() {
-              _sections = merged;
-              _syncDocument = null;
-              _isLoading = false;
-              _floatCarryovers.clear(); // reset carryovers for new content
-            });
-            _contentFadeController.forward();
-          } else if (message is List &&
-              message.length == 2 &&
-              message[0] is String) {
-            // FIX: Reconstruct error with StackTrace from isolate
-            final err = FormatException(message[0] as String);
-            final st = StackTrace.fromString(message[1] as String);
-            _reportError(err, st);
-            setState(() => _isLoading = false);
-          } else if (message is List && message.isEmpty) {
-            // Empty content case
-            setState(() {
-              _sections = [];
-              _syncDocument = null;
-              _isLoading = false;
-              _floatCarryovers.clear();
-            });
-          } else {
-            // _isolateEntry sent an error string.
-            final err = FormatException(
-              message is String ? message : 'Content parsing failed',
-            );
-            _reportError(err, StackTrace.empty);
-            setState(() => _isLoading = false);
-          }
+          final merged = _mergeSections(fresh);
+          setState(() {
+            _sections = merged;
+            _syncDocument = null;
+            _isLoading = false;
+            _floatCarryovers.clear(); // reset carryovers for new content
+          });
+          _contentFadeController.forward();
         }).catchError((Object e, StackTrace st) {
-          _cancelParsing();
-          // Improved check: only ignore StateError if we explicitly closed the port
-          if (e is StateError &&
-              e.message == 'No element' &&
-              _parseReceivePort == null) {
-            return;
-          }
           if (mounted && _parseId == currentParseId) {
             _reportError(e, st);
             setState(() => _isLoading = false);
@@ -1202,22 +1149,6 @@ class _HyperViewerState extends State<HyperViewer>
           setState(() => _isLoading = false);
         }
       }
-    }
-  }
-
-  /// Isolate entry point. Runs [_parseAndChunk] and sends the result (or an
-  /// error string) back via [_ParseArgs.port].
-  ///
-  /// Sending a plain `String` on error keeps the message always sendable —
-  /// exception objects can hold closures or native resources that the isolate
-  /// message protocol cannot transfer.
-  static void _isolateEntry(_ParseArgs args) {
-    try {
-      final sections = _parseAndChunk(
-          (args.content, args.css, args.baseUrl, args.chunkSize));
-      args.port.send(sections);
-    } catch (e, st) {
-      args.port.send([e.toString(), st.toString()]);
     }
   }
 
