@@ -72,6 +72,72 @@ jobs:
               - '**/analysis_options.yaml'
 
   # ── PR: fast single-OS run — only changed packages ─────────────────────────
+  android-compile:
+    name: Compile (Android)
+    runs-on: ubuntu-22.04
+    needs: path-filter
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.path-filter.outputs.changed_any_dart == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: flutter pub get
+        run: flutter pub get
+      - name: Check Android compileSdk
+        working-directory: example/android
+        run: ./gradlew assembleDebug
+
+  emulator-tests:
+    name: Integration Tests (Emulator)
+    runs-on: macos-latest
+    needs: path-filter
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.path-filter.outputs.changed_any_dart == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [android, ios]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        if: matrix.platform == 'android'
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: flutter pub get
+        run: flutter pub get
+      - name: Run Android Emulator Tests
+        if: matrix.platform == 'android'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          script: flutter test test/integration/
+      - name: Run iOS Simulator Tests
+        if: matrix.platform == 'ios'
+        run: |
+          xcrun simctl list devicetypes
+          flutter test test/integration/ -d "iPhone 15" || flutter test test/integration/
+
   test-pr:
     name: Tests (PR · ubuntu-22.04 · stable)
     runs-on: ubuntu-22.04

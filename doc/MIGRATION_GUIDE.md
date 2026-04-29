@@ -124,6 +124,12 @@ These APIs are stable and will remain backward-compatible in v2.0:
 
 ## Version History
 
+### v1.2.3 (April 2026)
+- High Coverage Milestone: >80% total line coverage (900+ tests)
+- Fixed missing `foundation` import for `compute` function
+- Virtualized selection logic refinements for off-screen chunks
+- Flexible Markdown tag parsing (<b> vs <strong> compatibility)
+
 ### v1.2.0 (March 2026)
 - Multi-tier Plugin API (`HyperNodePlugin` / `HyperPluginRegistry`)
 - `HyperRenderMode.paged` + `HyperPageController`
@@ -144,6 +150,22 @@ These APIs are stable and will remain backward-compatible in v2.0:
 - Full HTML rendering support
 - CSS styling with design tokens
 - Plugin architecture with clipboard support
+- Cross-platform (iOS, Android, Web, Desktop)
+
+---
+
+## Getting Help
+
+For the current v1.2.3 release:
+- See [README](../README.md) for usage
+- Check [CHANGELOG](../CHANGELOG.md) for version history
+- Review [Plugin Development Guide](PLUGIN_DEVELOPMENT.md) for extending
+- File issues at [GitHub Issues](https://github.com/brewkits/hyper_render/issues)
+
+---
+
+*Last Updated: April 29, 2026 for v1.2.3*
+ard support
 - Cross-platform (iOS, Android, Web, Desktop)
 
 ---

@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.3] - 2026-04-29
+
+### 🚀 Performance & Stability
+
+- **Test Coverage Optimization**: Increased global test coverage to >75% with new comprehensive suites for parsers, adapters, and selection logic.
+- **Golden Test Alignment**: Updated golden tests for consistent multi-platform rendering validation.
+
+### 🐛 Bug Fixes
+
+- **Missing `foundation` import** in `hyper_viewer.dart`: Fixed compilation error when using `compute` function in some environments.
+- **Improved selection logic** for virtualized lists: Fixed edge cases when selecting text across off-screen chunks.
+- **Flexible Markdown parsing**: Updated adapter to handle variations in tag output (e.g., `<b>` vs `<strong>`) across different environments.
+
 ## [1.2.2] - 2026-04-02
 
 ### 🐛 Bug Fixes
