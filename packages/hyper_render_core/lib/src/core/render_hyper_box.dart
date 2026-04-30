@@ -136,19 +136,19 @@ class RenderHyperBox extends RenderBox
   final List<_FloatArea> _leftFloats = [];
   final List<_FloatArea> _rightFloats = [];
 
-  /// Engine configuration — tunable cache sizes, concurrency, chunk size.
-  /// Defaults to [HyperRenderConfig.defaults] (5000 TextPainters, 3 concurrent
-  /// image loads, 6000-char virtualization chunks).
+  /// Tunable cache sizes, concurrency, chunk size.
   HyperRenderConfig _config;
 
-  /// Text painters cache. Size driven by [HyperRenderConfig.textPainterCacheSize].
-  /// The LRU eviction calls [TextPainter.dispose] so native resources are freed.
-  /// Keyed by [_TextPainterKey] (full value-equality) to eliminate the
-  /// birthday-paradox hash collision that [Object.hash] → int had.
-  late final _LruCache<_TextPainterKey, TextPainter> _textPainters = _LruCache(
-    maxSize: _config.textPainterCacheSize,
+  /// Internal cache for TextPainters shared across instances to minimize memory usage.
+  static final _LruCache<_TextPainterKey, TextPainter> _globalTextPainters =
+      _LruCache(
+    maxSize: 500, // Fixed global cap
     onEvict: (painter) => painter.dispose(),
   );
+
+  /// Reference to the cache being used.
+  _LruCache<_TextPainterKey, TextPainter> get _textPainters =>
+      _globalTextPainters;
 
   /// Last collapsed margin (for margin collapsing between blocks)
   double _lastBlockMarginBottom = 0;
@@ -161,12 +161,12 @@ class RenderHyperBox extends RenderBox
 
   /// LRU image cache — bounded by [HyperRenderConfig.imageCacheSize].
   ///
-  /// Evicting an entry calls [ui.Image.dispose] to release the GPU texture.
-  /// If a paint pass requests a URL that was evicted, [_paintImage] shows a
-  /// shimmer and schedules a re-fetch via [addPostFrameCallback].
+  /// Evicting an entry removes it from the local cache without manually 
+  /// disposing the `ui.Image`. Disposing an image that is currently in 
+  /// the engine's rendering queue causes a fatal native crash. 
+  /// The Dart GC and Flutter's ImageCache handle actual cleanup.
   late final _LruCache<String, CachedImage> _imageCache = _LruCache(
     maxSize: _config.imageCacheSize,
-    onEvict: (ci) => ci.image?.dispose(),
   );
 
   /// Subscription tokens returned by [LazyImageQueue.enqueue].
@@ -305,8 +305,9 @@ class RenderHyperBox extends RenderBox
   /// Returns an empty list when no floats dangle past the section boundary.
   /// Only valid to call after layout has completed.
   List<FloatCarryover> get danglingFloats {
-    if (_lines.isEmpty) return const [];
     // Natural height = bottom of last line (before float extension).
+    // If no lines were laid out (e.g. chunk only contained a float),
+    // natural height is 0 and the entire float overhangs.
     final naturalHeight =
         _lines.isEmpty ? 0.0 : (_lines.last.bounds?.bottom ?? 0.0);
     final result = <FloatCarryover>[];
@@ -459,12 +460,7 @@ class RenderHyperBox extends RenderBox
         _selectable = selectable,
         _textDirection = textDirection,
         _selectionColor = selectionColor,
-        _config = config {
-    // Apply image concurrency from config to the global queue.
-    // The queue is a singleton; last writer wins — set once per widget tree
-    // via HyperViewer.renderConfig to avoid conflicts.
-    LazyImageQueue.instance.maxConcurrent = config.imageConcurrency;
-  }
+        _config = config;
 
   // ============================================
   // Properties
@@ -495,7 +491,6 @@ class RenderHyperBox extends RenderBox
   set config(HyperRenderConfig value) {
     if (_config == value) return;
     _config = value;
-    LazyImageQueue.instance.maxConcurrent = value.imageConcurrency;
     // TextPainter cache size cannot be changed on an existing LRU instance
     // (the late-final field is already initialized). Changing cache size
     // requires a full layout invalidation so the cache is rebuilt next frame.
@@ -598,7 +593,6 @@ class RenderHyperBox extends RenderBox
       SchedulerBinding.instance.cancelFrameCallbackWithId(_shimmerCallbackId!);
       _shimmerCallbackId = null;
     }
-    _disposeTextPainters();
     _disposeImages();
     // Do NOT call detach() on cached semantic anchor nodes here.
     // Flutter's semantics teardown already detaches them during widget
@@ -867,14 +861,36 @@ class RenderHyperBox extends RenderBox
     for (final fragment in _fragments) {
       if (fragment.type == FragmentType.text && fragment.text != null) {
         final text = fragment.text!;
-        // Find the single longest word by character count.  This is a
-        // simple O(W) scan with no allocations beyond the split list itself,
-        // far cheaper than W TextPainter.layout() calls.
-        final words = text.split(_kWhitespaceSplitter);
         String longestWord = '';
-        for (final w in words) {
-          if (w.length > longestWord.length) longestWord = w;
+
+        if (KinsokuProcessor.containsCjk(text)) {
+          // CJK characters can break anywhere. The minimum intrinsic width is
+          // the width of the widest single character, or the longest non-CJK word.
+          final words = text.split(_kWhitespaceSplitter);
+          for (final w in words) {
+            if (KinsokuProcessor.containsCjk(w)) {
+              if (longestWord.isEmpty && w.isNotEmpty) {
+                longestWord = w[0];
+              }
+              // Extract the longest non-CJK sequence including punctuation and fullwidth forms
+              final nonCjkParts = w.split(RegExp(r'[\u4E00-\u9FFF\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7A3\uFF00-\uFFEF]'));
+              for (final part in nonCjkParts) {
+                 if (part.length > longestWord.length) longestWord = part;
+              }
+            } else {
+              if (w.length > longestWord.length) longestWord = w;
+            }
+          }
+          if (longestWord.isEmpty && text.isNotEmpty) {
+            longestWord = text[0]; // fallback
+          }
+        } else {
+          final words = text.split(_kWhitespaceSplitter);
+          for (final w in words) {
+            if (w.length > longestWord.length) longestWord = w;
+          }
         }
+        
         if (longestWord.isEmpty) continue;
 
         final isRtl = fragment.style.isRtl;

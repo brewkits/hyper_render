@@ -261,6 +261,19 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       // Fall back to default atomic widget for any unhandled atomic node
       if (childWidget == null && node is AtomicNode) {
         childWidget = _buildDefaultAtomicWidget(node);
+      } else if (childWidget == null) {
+        childWidget = HyperRenderWidget(
+          document: DocumentNode(children: node.children),
+          selectable: selectable,
+          onLinkTap: onLinkTap,
+          // Propagate builder options:
+          widgetBuilder: widgetBuilder,
+          config: HyperRenderConfig(
+            codeHighlighter: codeHighlighter,
+            keyframeRegistry: keyframeRegistry,
+          ),
+          pluginRegistry: pluginRegistry,
+        );
       }
 
       if (childWidget != null) {
@@ -270,6 +283,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
           child: _maybeAnimate(node, childWidget, keyframeRegistry),
         ));
       }
+      return;
     }
     // Is it an error boundary?
     else if (node.type == NodeType.errorBoundary) {

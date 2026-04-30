@@ -455,6 +455,34 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     );
   }
 
+  void _autoScrollIfNearEdge(Offset globalPosition) {
+    final scrollable = Scrollable.maybeOf(context);
+    if (scrollable == null) return;
+
+    final RenderBox? scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
+    if (scrollableBox == null) return;
+
+    final localPosition = scrollableBox.globalToLocal(globalPosition);
+    final size = scrollableBox.size;
+    
+    const threshold = 50.0;
+    double dy = 0.0;
+    
+    if (localPosition.dy < threshold) {
+      dy = -15.0; 
+    } else if (localPosition.dy > size.height - threshold) {
+      dy = 15.0; 
+    }
+    
+    if (dy != 0.0) {
+      final position = scrollable.position;
+      final target = (position.pixels + dy).clamp(position.minScrollExtent, position.maxScrollExtent);
+      if (target != position.pixels) {
+        position.jumpTo(target);
+      }
+    }
+  }
+
   Widget _buildHandle(_HandlePosition position, Rect rect) {
     final isStart = position == _HandlePosition.start;
 
@@ -486,6 +514,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
           final localPosition = box.globalToLocal(details.globalPosition);
           renderBox.updateSelectionFromHandle(isStart, localPosition);
           _updateHandlePositions();
+          _autoScrollIfNearEdge(details.globalPosition);
         },
         onPanEnd: (_) {
           _draggingHandle = null;

@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/src/plugins/default_css_parser.dart';
-import 'package:hyper_render_core/hyper_render_core.dart';
 
 void main() {
   group('DefaultCssParser', () {
     const parser = DefaultCssParser();
 
     test('parseStylesheet returns list of rules', () {
-      const css = 'div { color: red; } .btn { font-size: 16px; } #main { padding: 10px; }';
+      const css =
+          'div { color: red; } .btn { font-size: 16px; } #main { padding: 10px; }';
       final rules = parser.parseStylesheet(css);
-      
+
       expect(rules, hasLength(3));
       // Sorted by specificity
       expect(rules[0].selector, contains('div')); // Lowest specificity
@@ -25,13 +25,14 @@ void main() {
     });
 
     test('specificity calculation', () {
-      final stylesheet = parser.parseStylesheet('div { color: red; } .class { color: blue; } #id { color: green; }');
-      
+      final stylesheet = parser.parseStylesheet(
+          'div { color: red; } .class { color: blue; } #id { color: green; }');
+
       // We know #id has highest specificity
       final idRule = stylesheet.firstWhere((r) => r.selector == '#id');
       final classRule = stylesheet.firstWhere((r) => r.selector == '.class');
       final elementRule = stylesheet.firstWhere((r) => r.selector == 'div');
-      
+
       expect(idRule.specificity, greaterThan(classRule.specificity));
       expect(classRule.specificity, greaterThan(elementRule.specificity));
     });
@@ -39,7 +40,7 @@ void main() {
     test('parseInlineStyle parses multiple declarations', () {
       const style = 'color: red; font-size: 16px; margin: 10px 5px;';
       final result = parser.parseInlineStyle(style);
-      
+
       expect(result['color'], 'red');
       expect(result['font-size'], '16px');
       expect(result['margin'], '10px 5px');
@@ -53,7 +54,7 @@ void main() {
         }
       ''';
       final keyframes = parser.parseKeyframes(css);
-      
+
       expect(keyframes, contains('slideIn'));
       final anim = keyframes['slideIn']!;
       expect(anim.keyframes, hasLength(2));
@@ -70,7 +71,7 @@ void main() {
         }
       ''';
       final keyframes = parser.parseKeyframes(css);
-      
+
       expect(keyframes, contains('fadeInOut'));
       final anim = keyframes['fadeInOut']!;
       expect(anim.keyframes, hasLength(3));
@@ -88,13 +89,13 @@ void main() {
       ''';
       final keyframes = parser.parseKeyframes(css);
       final anim = keyframes['complex']!;
-      
+
       final kf1 = anim.keyframes[0];
       expect(kf1.translateX, 10.0);
       expect(kf1.translateY, 20.0);
       expect(kf1.scale, 1.5);
       expect(kf1.rotation, 45.0);
-      
+
       final kf2 = anim.keyframes[1];
       expect(kf2.translateX, 50.0);
       expect(kf2.translateY, 100.0);

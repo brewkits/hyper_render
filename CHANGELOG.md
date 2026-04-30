@@ -1,14 +1,18 @@
 # Changelog
 
-## [1.2.3] - 2026-04-29
+## [1.2.3] - 2026-04-30
 
 ### 🚀 Performance & Stability
 
 - **Test Coverage Optimization**: Increased global test coverage to >75% with new comprehensive suites for parsers, adapters, and selection logic.
 - **Golden Test Alignment**: Updated golden tests for consistent multi-platform rendering validation.
+- **Improved Widget Test Robustness**: Updated `find.byType(HyperRenderWidget)` assertions to handle multiple instances in the tree caused by virtualization and float nesting.
 
 ### 🐛 Bug Fixes
 
+- **Fixed `HyperRenderWidget` compilation error**: Resolved a signature mismatch in recursive widget construction where `codeHighlighter` was passed outside of `config` and `pluginRegistry` was missing.
+- **Fixed Float Layout logic**: Explicit CSS `width` and `height` properties are now correctly respected for non-image float elements, rather than always falling back to intrinsic text dimensions.
+- **Fixed Plugin Propagation**: Ensured `pluginRegistry` is correctly passed to nested renderers, allowing custom tags to work inside floated containers.
 - **Missing `foundation` import** in `hyper_viewer.dart`: Fixed compilation error when using `compute` function in some environments.
 - **Improved selection logic** for virtualized lists: Fixed edge cases when selecting text across off-screen chunks.
 - **Flexible Markdown parsing**: Updated adapter to handle variations in tag output (e.g., `<b>` vs `<strong>`) across different environments.

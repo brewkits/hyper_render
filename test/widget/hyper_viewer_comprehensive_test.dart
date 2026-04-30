@@ -4,7 +4,8 @@ import 'package:hyper_render/hyper_render.dart';
 
 void main() {
   group('HyperViewer Comprehensive', () {
-    testWidgets('HyperViewer.markdown constructor', (WidgetTester tester) async {
+    testWidgets('HyperViewer.markdown constructor',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -47,7 +48,8 @@ void main() {
       expect(find.byType(InteractiveViewer), findsOneWidget);
     });
 
-    testWidgets('HyperViewer with custom scroll physics', (WidgetTester tester) async {
+    testWidgets('HyperViewer with custom scroll physics',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -68,19 +70,21 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<p id="top">Top</p><div style="height: 1000px"></div><p id="bottom">Bottom</p>',
+              html:
+                  '<p id="top">Top</p><div style="height: 1000px"></div><p id="bottom">Bottom</p>',
               controller: controller,
             ),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      
+
       controller.jumpToId('bottom');
       await tester.pumpAndSettle();
     });
 
-    testWidgets('HyperViewer handles re-parsing when content changes', (WidgetTester tester) async {
+    testWidgets('HyperViewer handles re-parsing when content changes',
+        (WidgetTester tester) async {
       String htmlContent = '<p>Old</p>';
       await tester.pumpWidget(
         MaterialApp(
@@ -108,7 +112,8 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('HyperViewer handles config changes', (WidgetTester tester) async {
+    testWidgets('HyperViewer handles config changes',
+        (WidgetTester tester) async {
       HyperRenderConfig config = const HyperRenderConfig(imageCacheSize: 10);
       await tester.pumpWidget(
         MaterialApp(

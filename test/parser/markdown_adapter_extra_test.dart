@@ -20,10 +20,20 @@ void main() {
       final result = adapter.parseExtended(md);
       final p = result.document.children[0] as BlockNode;
       // markdown package might use 'strong' or 'b', 'em' or 'i'
-      expect(p.children.any((n) => n is InlineNode && (n.tagName == 'strong' || n.tagName == 'b')), isTrue);
-      expect(p.children.any((n) => n is InlineNode && (n.tagName == 'em' || n.tagName == 'i')), isTrue);
-      expect(p.children.any((n) => n is InlineNode && (n.tagName == 'del' || n.tagName == 's')), isTrue);
-      expect(p.children.any((n) => n is InlineNode && n.tagName == 'code'), isTrue);
+      expect(
+          p.children.any((n) =>
+              n is InlineNode && (n.tagName == 'strong' || n.tagName == 'b')),
+          isTrue);
+      expect(
+          p.children.any((n) =>
+              n is InlineNode && (n.tagName == 'em' || n.tagName == 'i')),
+          isTrue);
+      expect(
+          p.children.any((n) =>
+              n is InlineNode && (n.tagName == 'del' || n.tagName == 's')),
+          isTrue);
+      expect(p.children.any((n) => n is InlineNode && n.tagName == 'code'),
+          isTrue);
     });
 
     test('parse code block', () {

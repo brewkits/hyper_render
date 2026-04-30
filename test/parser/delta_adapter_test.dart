@@ -49,7 +49,8 @@ void main() {
     });
 
     test('parse text with inline attributes', () {
-      const delta = '{"ops": [{"insert": "Bold", "attributes": {"bold": true}}, {"insert": " Italic", "attributes": {"italic": true}}, {"insert": "\\n"}]}';
+      const delta =
+          '{"ops": [{"insert": "Bold", "attributes": {"bold": true}}, {"insert": " Italic", "attributes": {"italic": true}}, {"insert": "\\n"}]}';
       final result = adapter.parseExtended(delta);
       final p = result.document.children[0] as BlockNode;
       expect(p.children, hasLength(2));
@@ -59,7 +60,8 @@ void main() {
 
     test('parse headings', () {
       for (int i = 1; i <= 6; i++) {
-        final delta = '{"ops": [{"insert": "Header $i"}, {"insert": "\\n", "attributes": {"header": $i}}]}';
+        final delta =
+            '{"ops": [{"insert": "Header $i"}, {"insert": "\\n", "attributes": {"header": $i}}]}';
         final result = adapter.parseExtended(delta);
         final h = result.document.children[0] as BlockNode;
         expect(h.tagName, 'h$i');
@@ -98,7 +100,8 @@ void main() {
     });
 
     test('parse alignment and indent', () {
-      const delta = '{"ops": [{"insert": "Aligned"}, {"insert": "\\n", "attributes": {"align": "center", "indent": 2}}]}';
+      const delta =
+          '{"ops": [{"insert": "Aligned"}, {"insert": "\\n", "attributes": {"align": "center", "indent": 2}}]}';
       final result = adapter.parseExtended(delta);
       final p = result.document.children[0] as BlockNode;
       expect(p.style.textAlign, HyperTextAlign.center);
@@ -106,7 +109,8 @@ void main() {
     });
 
     test('parse links', () {
-      const delta = '{"ops": [{"insert": "Google", "attributes": {"link": "https://google.com"}}, {"insert": "\\n"}]}';
+      const delta =
+          '{"ops": [{"insert": "Google", "attributes": {"link": "https://google.com"}}, {"insert": "\\n"}]}';
       final result = adapter.parseExtended(delta);
       final p = result.document.children[0] as BlockNode;
       final a = p.children[0] as InlineNode;
@@ -180,7 +184,8 @@ void main() {
     });
 
     test('parse unknown attributes does not crash', () {
-      const delta = '{"ops": [{"insert": "Text", "attributes": {"unknown": "value"}}, {"insert": "\\n"}]}';
+      const delta =
+          '{"ops": [{"insert": "Text", "attributes": {"unknown": "value"}}, {"insert": "\\n"}]}';
       final result = adapter.parseExtended(delta);
       expect(result.document.children, isNotEmpty);
     });

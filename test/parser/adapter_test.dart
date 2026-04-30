@@ -25,7 +25,7 @@ void main() {
         warnings: ['warn'],
         parseDuration: const Duration(milliseconds: 10),
       );
-      
+
       expect(result.document, doc);
       expect(result.extractedCss, 'div {}');
       expect(result.warnings, ['warn']);

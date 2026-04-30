@@ -344,7 +344,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
       'The records spoke of a time before the great silence, when the streets had been full of merchants and scholars. Now only the archives remained, patient and indifferent, indifferent as stone. She had come to understand their language over the years.',
       'Outside, rain traced slow lines down the tall windows. She did not mind the rain. It kept visitors away, and visitors, however well-intentioned, always left things out of order. Order was the only religion she practised.',
       'There are things that cannot be named without changing them. She wrote this in the margin of a book she would never finish, in an ink that would outlast the paper. Somewhere below, a clock chimed the hour no one was counting.',
-      'Tiếng mưa rơi trên mái ngói cũ, mỗi giọt như một dấu chấm trong câu chuyện dài chưa kết thúc. Bà thủ thư ngồi lặng, ngón tay lướt qua những trang sách đã vàng ố theo năm tháng.',
+      'Global knowledge belongs to everyone: Knowledge is power (English). المعرفة قوة (Arabic). 知识就是力量 (Chinese). ज्ञान ही शक्ति है (Hindi). La connaissance est le pouvoir (French).',
       'The letters she never sent were filed alphabetically under R for Regret. Beside them, the letters she had sent but never explained were filed under S for Silence. Both drawers were very full.',
     ];
 

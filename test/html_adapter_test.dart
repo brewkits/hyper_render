@@ -38,7 +38,7 @@ void main() {
       expect(doc.children.length, 1);
       final p = doc.children.first as BlockNode;
       expect(p.tagName, 'p');
-      expect(p.style.margin?.vertical, 32.0);
+      expect(p.style.margin.vertical, 32.0);
     });
 
     test('5. Parses inline formatting (b, i, strong, em)', () {
@@ -54,7 +54,7 @@ void main() {
       final doc = adapter.parse('<blockquote>quote</blockquote>');
       final blockquote = doc.children.first as BlockNode;
       expect(blockquote.tagName, 'blockquote');
-      expect(blockquote.style.padding?.left, 16);
+      expect(blockquote.style.padding.left, 16);
     });
 
     test('7. Parses pre and code blocks', () {
@@ -67,7 +67,8 @@ void main() {
     });
 
     test('8. Parses links and resolves baseUrl', () {
-      final doc = adapter.parse('<a href="/about">Link</a>', baseUrl: 'https://example.com');
+      final doc = adapter.parse('<a href="/about">Link</a>',
+          baseUrl: 'https://example.com');
       final a = doc.children.first as InlineNode;
       expect(a.tagName, 'a');
       expect(a.attributes['href'], 'https://example.com/about');
@@ -89,7 +90,8 @@ void main() {
     });
 
     test('11. Parses tables structure (table, tr, td, th)', () {
-      final doc = adapter.parse('<table><tr><th>Header</th></tr><tr><td>Data</td></tr></table>');
+      final doc = adapter.parse(
+          '<table><tr><th>Header</th></tr><tr><td>Data</td></tr></table>');
       final table = doc.children.first as TableNode;
       final tbody = table.children[0] as BlockNode;
       expect(tbody.tagName, 'tbody');
@@ -113,7 +115,8 @@ void main() {
     });
 
     test('14. Parses img as AtomicNode with baseUrl', () {
-      final doc = adapter.parse('<img src="/img.png" alt="An image">', baseUrl: 'https://test.com');
+      final doc = adapter.parse('<img src="/img.png" alt="An image">',
+          baseUrl: 'https://test.com');
       final img = doc.children.first as AtomicNode;
       expect(img.tagName, 'img');
       expect(img.src, 'https://test.com/img.png');
@@ -121,7 +124,8 @@ void main() {
     });
 
     test('15. Parses video, audio, iframe as AtomicNode', () {
-      final doc = adapter.parse('<video src="v.mp4"></video><audio src="a.mp3"></audio><iframe src="i.html"></iframe>');
+      final doc = adapter.parse(
+          '<video src="v.mp4"></video><audio src="a.mp3"></audio><iframe src="i.html"></iframe>');
       expect((doc.children[0] as AtomicNode).tagName, 'video');
       expect((doc.children[1] as AtomicNode).tagName, 'audio');
       expect((doc.children[2] as AtomicNode).tagName, 'iframe');
@@ -135,25 +139,30 @@ void main() {
     });
 
     test('17. Parses details and summary', () {
-      final doc = adapter.parse('<details><summary>Title</summary>Content</details>');
+      final doc =
+          adapter.parse('<details><summary>Title</summary>Content</details>');
       final details = doc.children.first as BlockNode;
       expect(details.tagName, 'details');
       expect((details.children[0] as BlockNode).tagName, 'summary');
     });
 
     test('18. Extracts CSS from style tags', () {
-      final css = adapter.extractCss('<style>.cls { color: red; }</style><div></div>');
+      final css =
+          adapter.extractCss('<style>.cls { color: red; }</style><div></div>');
       expect(css.contains('.cls { color: red; }'), true);
     });
 
     test('19. Extracts keyframes from style tags', () {
       final parser = DefaultCssParser();
-      final keyframes = adapter.extractKeyframes('<style>@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }</style>', parser);
+      final keyframes = adapter.extractKeyframes(
+          '<style>@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }</style>',
+          parser);
       expect(keyframes.containsKey('fadeIn'), true);
     });
 
     test('20. Parses inline SVG as AtomicNode', () {
-      final doc = adapter.parse('<svg width="100" height="100"><circle cx="50" cy="50" r="40" /></svg>');
+      final doc = adapter.parse(
+          '<svg width="100" height="100"><circle cx="50" cy="50" r="40" /></svg>');
       final svg = doc.children.first as AtomicNode;
       expect(svg.tagName, 'svg');
       expect(svg.intrinsicWidth, 100);
@@ -162,14 +171,14 @@ void main() {
     });
 
     test('21. parseToSections chunks large documents', () {
-      final largeHtml = '<div>' + '<p>Long text</p>' * 100 + '</div>';
+      final largeHtml = '<div>${'<p>Long text</p>' * 100}</div>';
       // Default chunk size is 3000
       final sections = adapter.parseToSections(largeHtml, chunkSize: 1000);
       expect(sections.length > 1, true);
     });
 
     test('22. parseToSections keeps headings with content', () {
-      final html = '<div>' + '<p>P</p>' * 50 + '<h2>Heading</h2><p>Content</p>' + '</div>';
+      final html = '<div>${'<p>P</p>' * 50}<h2>Heading</h2><p>Content</p></div>';
       final sections = adapter.parseToSections(html, chunkSize: 500);
       // The heading h2 should not be the last element of a section if possible
       for (final section in sections) {
@@ -180,8 +189,10 @@ void main() {
       }
     });
 
-    test('23. parseToSections prevents splitting after float-containing block', () {
-      final html = '<div><div style="float: left;">Float</div><p>Wrapped text</p></div>';
+    test('23. parseToSections prevents splitting after float-containing block',
+        () {
+      final html =
+          '<div><div style="float: left;">Float</div><p>Wrapped text</p></div>';
       final sections = adapter.parseToSections(html, chunkSize: 10);
       expect(sections.length, 1);
     });

@@ -32,10 +32,11 @@ dependencies:
   # ============================================
 
   # NOTE: For publishing to pub.dev, replace path dependencies with versions:
-  #   hyper_render_core: ^1.2.0
-  #   hyper_render_html: ^1.2.0
-  #   hyper_render_markdown: ^1.2.0
-  #   hyper_render_highlight: ^1.2.0
+  #   hyper_render_core: ^1.2.3
+  #   hyper_render_html: ^1.2.3
+  #   hyper_render_markdown: ^1.2.3
+  #   hyper_render_highlight: ^1.2.3
+  #   hyper_render_clipboard: ^1.2.3
 
   hyper_render_core:
     path: packages/hyper_render_core

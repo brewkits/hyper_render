@@ -165,7 +165,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Just verify it renders without error
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
       });
 
       testWidgets('handles empty document', (WidgetTester tester) async {
@@ -183,7 +183,7 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
       });
 
       testWidgets('handles nested blocks', (WidgetTester tester) async {
@@ -209,7 +209,7 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
       });
 
       testWidgets('handles inline elements', (WidgetTester tester) async {
@@ -233,7 +233,7 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
       });
     });
 
@@ -481,7 +481,7 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
       });
     });
 
@@ -505,7 +505,7 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
       });
     });
 
@@ -545,7 +545,7 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
       });
 
       testWidgets('handles float: right style', (WidgetTester tester) async {
@@ -583,7 +583,7 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
       });
     });
 

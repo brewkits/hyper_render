@@ -1,7 +1,15 @@
 # Changelog — hyper_render_core
 
-## [1.2.0] - 2026-03-29
+## [1.2.3] - 2026-04-30
 
+### 🐛 Bug Fixes
+
+- **Fixed `HyperRenderWidget` compilation error**: Resolved a signature mismatch in recursive widget construction where `codeHighlighter` was passed outside of `config` and `pluginRegistry` was missing.
+- **Fixed Float Layout logic**: Explicit CSS `width` and `height` properties are now correctly respected for non-image float elements, rather than always falling back to intrinsic text dimensions.
+- **Fixed Plugin Propagation**: Ensured `pluginRegistry` is correctly passed to nested renderers, allowing custom tags to work inside floated containers.
+
+## [1.2.0] - 2026-03-29
+...
 ### ✨ New Features
 
 - **`HyperNodePlugin` / `HyperPluginRegistry`** (`src/interfaces/node_plugin.dart`): Plugin API for custom widget rendering of arbitrary HTML tag names. Block tier (full-width, CSS margins) and inline tier (flows with text, intrinsic-measured) supported.

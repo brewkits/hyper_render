@@ -130,6 +130,7 @@ class SmartTableWrapper extends StatelessWidget {
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           physics: const AlwaysScrollableScrollPhysics(),
+          dragStartBehavior: DragStartBehavior.down,
           child: table,
         );
 
