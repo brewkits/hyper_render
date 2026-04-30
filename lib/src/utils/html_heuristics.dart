@@ -172,7 +172,14 @@ class HtmlHeuristics {
   /// }
   /// ```
   static bool hasForms(String html) {
-    final lower = html.toLowerCase();
+    // Remove content inside <code> and <pre> to avoid false positives when
+    // code snippets discuss HTML tags.
+    final withoutCodeBlocks = html.replaceAll(
+        RegExp(r'<(code|pre)\b[^>]*>.*?</\1>',
+            dotAll: true, caseSensitive: false),
+        '');
+    final lower = withoutCodeBlocks.toLowerCase();
+    
     // Improved checks using word boundaries and tag patterns to avoid false positives in text content.
     return RegExp(r'<(form|input|select|textarea)\b', caseSensitive: false)
             .hasMatch(lower) ||

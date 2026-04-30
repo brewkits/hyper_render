@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';
-import 'package:hyper_render_core/hyper_render_core.dart';
 
 void main() {
   group('HyperViewer didUpdateWidget Battery Tests', () {
-    testWidgets('Updates HTML content correctly without rebuilding state entirely', (tester) async {
+    testWidgets(
+        'Updates HTML content correctly without rebuilding state entirely',
+        (tester) async {
       String htmlContent = '<div>Initial</div>';
-      
+
       await tester.pumpWidget(
         MaterialApp(
           home: StatefulBuilder(
@@ -36,7 +37,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      
+
       // HyperRender renders on Canvas, so we can't use find.text()
       // The fact that it pumps without throwing is a success
       expect(find.byType(HyperViewer), findsOneWidget);
@@ -49,9 +50,10 @@ void main() {
       expect(find.byType(HyperViewer), findsOneWidget);
     });
 
-    testWidgets('Updates configuration correctly without errors', (tester) async {
+    testWidgets('Updates configuration correctly without errors',
+        (tester) async {
       bool isSelectable = true;
-      
+
       await tester.pumpWidget(
         MaterialApp(
           home: StatefulBuilder(
@@ -81,13 +83,13 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      
+
       // The fact that it pumps without throwing is a success
       expect(find.byType(HyperViewer), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('config-btn')));
       await tester.pumpAndSettle();
-      
+
       expect(find.byType(HyperViewer), findsOneWidget);
     });
   });

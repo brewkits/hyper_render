@@ -12,8 +12,12 @@ void main() {
     setUp(() {
       listViewKey = GlobalKey();
       sections = [
-        DocumentNode(children: [BlockNode.p(children: [TextNode('Chunk 0 Text')])]),
-        DocumentNode(children: [BlockNode.p(children: [TextNode('Chunk 1 Text')])]),
+        DocumentNode(children: [
+          BlockNode.p(children: [TextNode('Chunk 0 Text')])
+        ]),
+        DocumentNode(children: [
+          BlockNode.p(children: [TextNode('Chunk 1 Text')])
+        ]),
       ];
       controller = VirtualizedSelectionController(
         sectionsGetter: () => sections,
@@ -51,7 +55,7 @@ void main() {
 
       const sel2 = CrossChunkSelection(start: start, end: ChunkAnchor(0, 6));
       expect(sel2.isCollapsed, isFalse);
-      
+
       const sel3 = CrossChunkSelection(start: start, end: ChunkAnchor(1, 5));
       expect(sel3.isCollapsed, isFalse);
     });
@@ -61,7 +65,8 @@ void main() {
       expect(controller.hasSelection, isTrue);
       expect(controller.selection!.start, const ChunkAnchor(0, 0));
       expect(controller.selection!.end.chunkIndex, 1);
-      expect(controller.selection!.end.localOffset, sections[1].textContent.length);
+      expect(controller.selection!.end.localOffset,
+          sections[1].textContent.length);
     });
 
     test('clearSelection resets state', () {
@@ -84,14 +89,14 @@ void main() {
     test('getSelectedText for partial selection', () {
       controller.selectAll();
       controller.clearSelection();
-      
+
       // Select '0 Text' from chunk 0 and 'Chunk 1' from chunk 1
       // Chunk 0 text is 'Chunk 0 Text' (length 12)
       // Chunk 1 text is 'Chunk 1 Text'
-      
+
       final start = const ChunkAnchor(0, 6); // '0 Text'
-      final end = const ChunkAnchor(1, 7);   // 'Chunk 1'
-      
+      final end = const ChunkAnchor(1, 7); // 'Chunk 1'
+
       // We need to set internal selection manually since we don't have RenderBoxes here
       // But VirtualizedSelectionController doesn't allow setting selection directly easily
       // Let's use selectAll and then check. Actually we can't easily test updateSelection without RenderBoxes.
@@ -100,7 +105,7 @@ void main() {
   });
 
   group('VirtualizedSelectionController - Widget Integration', () {
-     testWidgets('registerChunk adds chunk to map', (WidgetTester tester) async {
+    testWidgets('registerChunk adds chunk to map', (WidgetTester tester) async {
       final listViewKey = GlobalKey();
       final sections = [DocumentNode(children: [])];
       final controller = VirtualizedSelectionController(
@@ -110,7 +115,7 @@ void main() {
 
       final chunkKey = GlobalKey();
       controller.registerChunk(0, chunkKey, 100);
-      
+
       // We can't access private _chunks, but we can check if it triggers actions
       // For example, getSelectedText might try to use it.
     });

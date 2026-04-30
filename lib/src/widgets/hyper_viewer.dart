@@ -55,6 +55,21 @@ enum HyperContentType {
   markdown,
 }
 
+/// Interface for selection operations in the context menu.
+///
+/// This is passed to [HyperViewer.selectionMenuActionsBuilder] to allow
+/// custom actions (like Share or Search) to access the selected text.
+abstract class HyperSelectionState {
+  /// The currently selected text, or null if nothing is selected.
+  String? get selectedText;
+
+  /// Selects the entire document.
+  void selectAll();
+
+  /// Clears the current selection and dismisses the menu.
+  void clearSelection();
+}
+
 class HyperViewer extends StatefulWidget {
   /// The content to render
   final String content;
@@ -210,7 +225,7 @@ class HyperViewer extends StatefulWidget {
 
   /// Custom menu actions builder for the selection popup.
   /// If null, uses default Copy and Select All actions.
-  final List<SelectionMenuAction> Function(HyperSelectionOverlayState)?
+  final List<SelectionMenuAction> Function(HyperSelectionState)?
       selectionMenuActionsBuilder;
 
   /// Custom context menu builder for full customization.
@@ -618,6 +633,32 @@ class HyperViewer extends StatefulWidget {
   State<HyperViewer> createState() => _HyperViewerState();
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Selection Adapters
+// ──────────────────────────────────────────────────────────────────────────────
+
+class _SyncSelectionAdapter implements HyperSelectionState {
+  _SyncSelectionAdapter(this.state);
+  final HyperSelectionOverlayState state;
+  @override
+  String? get selectedText => state.selectedText;
+  @override
+  void selectAll() => state.selectAll();
+  @override
+  void clearSelection() => state.clearSelection();
+}
+
+class _VirtualizedSelectionAdapter implements HyperSelectionState {
+  _VirtualizedSelectionAdapter(this.controller);
+  final VirtualizedSelectionController controller;
+  @override
+  String? get selectedText => controller.getSelectedText();
+  @override
+  void selectAll() => controller.selectAll();
+  @override
+  void clearSelection() => controller.clearSelection();
+}
+
 class _HyperViewerState extends State<HyperViewer>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _contentFadeController;
@@ -925,6 +966,19 @@ class _HyperViewerState extends State<HyperViewer>
     // Only rebuild if the carryover actually changed.
     final prev = _floatCarryovers[index];
     if (prev.length == carryovers.length && prev.isEmpty) return;
+
+    bool isSame = prev.length == carryovers.length;
+    if (isSame) {
+      for (int i = 0; i < prev.length; i++) {
+        if (prev[i].direction != carryovers[i].direction ||
+            prev[i].width != carryovers[i].width ||
+            prev[i].overhangHeight != carryovers[i].overhangHeight) {
+          isSame = false;
+          break;
+        }
+      }
+    }
+    if (isSame) return;
 
     // FIX: setState called during layout.
     // Carryovers are often detected during a RenderBox layout pass.
@@ -1304,6 +1358,11 @@ class _HyperViewerState extends State<HyperViewer>
               handleColor:
                   widget.selectionHandleColor ?? Theme.of(context).primaryColor,
               menuBackgroundColor: null,
+              selectionMenuActionsBuilder:
+                  widget.selectionMenuActionsBuilder != null
+                      ? (ctrl) => widget.selectionMenuActionsBuilder!(
+                          _VirtualizedSelectionAdapter(ctrl))
+                      : null,
               child: listView,
             )
           : KeyedSubtree(key: _virtualizedStackKey, child: listView);
@@ -1338,7 +1397,10 @@ class _HyperViewerState extends State<HyperViewer>
           handleColor:
               widget.selectionHandleColor ?? Theme.of(context).primaryColor,
           selectionColor: widget.selectionColor,
-          menuActionsBuilder: widget.selectionMenuActionsBuilder,
+          menuActionsBuilder: widget.selectionMenuActionsBuilder != null
+              ? (state) => widget
+                  .selectionMenuActionsBuilder!(_SyncSelectionAdapter(state))
+              : null,
           contextMenuBuilder: widget.selectionContextMenuBuilder,
           showHandles: true,
           autoShowMenu: true,
@@ -1423,22 +1485,44 @@ class _HyperViewerState extends State<HyperViewer>
             : ValueKey(index);
         // Each page: full available height, with vertical scroll for overflowing
         // sections (e.g. a single very long chapter).
+        Widget pageContent = HyperRenderWidget(
+          document: sections[index],
+          selectable: widget.selectable,
+          textDirection: dir,
+          onLinkTap: _safeOnLinkTap,
+          widgetBuilder: _effectiveWidgetBuilder,
+          debugShowBounds: widget.debugShowHyperRenderBounds,
+          enableComplexFilters: widget.enableComplexFilters,
+          config: _effectiveConfig,
+          suppressFirstBlockMarginTop: index > 0,
+          pluginRegistry: widget.pluginRegistry,
+        );
+
+        if (widget.selectable && widget.showSelectionMenu) {
+          pageContent = HyperSelectionOverlay(
+            document: sections[index],
+            selectable: true,
+            onLinkTap: _safeOnLinkTap,
+            widgetBuilder: _effectiveWidgetBuilder,
+            handleColor:
+                widget.selectionHandleColor ?? Theme.of(context).primaryColor,
+            selectionColor: widget.selectionColor,
+            menuActionsBuilder: widget.selectionMenuActionsBuilder != null
+                ? (state) => widget
+                    .selectionMenuActionsBuilder!(_SyncSelectionAdapter(state))
+                : null,
+            contextMenuBuilder: widget.selectionContextMenuBuilder,
+            showHandles: true,
+            autoShowMenu: true,
+            debugShowBounds: widget.debugShowHyperRenderBounds,
+          );
+        }
+
         return RepaintBoundary(
           key: sectionKey,
           child: SingleChildScrollView(
             physics: widget.physics ?? const ClampingScrollPhysics(),
-            child: HyperRenderWidget(
-              document: sections[index],
-              selectable: widget.selectable,
-              textDirection: dir,
-              onLinkTap: _safeOnLinkTap,
-              widgetBuilder: _effectiveWidgetBuilder,
-              debugShowBounds: widget.debugShowHyperRenderBounds,
-              enableComplexFilters: widget.enableComplexFilters,
-              config: _effectiveConfig,
-              suppressFirstBlockMarginTop: index > 0,
-              pluginRegistry: widget.pluginRegistry,
-            ),
+            child: pageContent,
           ),
         );
       },

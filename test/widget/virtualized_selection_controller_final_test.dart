@@ -10,8 +10,12 @@ void main() {
 
     setUp(() {
       sections = [
-        DocumentNode(children: [BlockNode.p(children: [TextNode('Chunk 0')])]),
-        DocumentNode(children: [BlockNode.p(children: [TextNode('Chunk 1')])]),
+        DocumentNode(children: [
+          BlockNode.p(children: [TextNode('Chunk 0')])
+        ]),
+        DocumentNode(children: [
+          BlockNode.p(children: [TextNode('Chunk 1')])
+        ]),
       ];
       controller = VirtualizedSelectionController(
         sectionsGetter: () => sections,

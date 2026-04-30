@@ -12,8 +12,12 @@ void main() {
 
     setUp(() {
       sections = [
-        DocumentNode(children: [BlockNode.p(children: [TextNode('Chunk 0')])]),
-        DocumentNode(children: [BlockNode.p(children: [TextNode('Chunk 1')])]),
+        DocumentNode(children: [
+          BlockNode.p(children: [TextNode('Chunk 0')])
+        ]),
+        DocumentNode(children: [
+          BlockNode.p(children: [TextNode('Chunk 1')])
+        ]),
       ];
       controller = VirtualizedSelectionController(
         sectionsGetter: () => sections,
@@ -21,7 +25,8 @@ void main() {
       );
     });
 
-    testWidgets('VirtualizedChunk lifecycle and registration', (WidgetTester tester) async {
+    testWidgets('VirtualizedChunk lifecycle and registration',
+        (WidgetTester tester) async {
       final chunkKey = GlobalKey();
       await tester.pumpWidget(
         MaterialApp(
@@ -38,7 +43,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      
+
       // Update widget to trigger didUpdateWidget
       await tester.pumpWidget(
         MaterialApp(
@@ -85,11 +90,12 @@ void main() {
       controller.selectAll();
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pumpAndSettle();
-      
+
       expect(find.byType(Material), findsAtLeast(1));
     });
 
-    testWidgets('Tap outside clears selection in overlay', (WidgetTester tester) async {
+    testWidgets('Tap outside clears selection in overlay',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(

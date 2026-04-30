@@ -418,7 +418,6 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     // the "spreadsheet cell" feel of perfectly sharp corners.
     const selectionRadius = Radius.circular(2.0);
 
-    int currentOffset = 0;
     for (final line in _lines) {
       // Accumulate all highlight rects for this line into a single Path so
       // that adjacent boxes merge cleanly (no hairline gap between them) and
@@ -427,8 +426,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
 
       for (final fragment in line.fragments) {
         if (fragment.type == FragmentType.text && fragment.text != null) {
-          final fragmentStart = currentOffset;
-          final fragmentEnd = currentOffset + fragment.text!.length;
+          final fragmentStart = fragment.globalOffset;
+          final fragmentEnd = fragmentStart + fragment.text!.length;
 
           // Check if this fragment overlaps with selection
           if (fragmentEnd > _selection!.start &&
@@ -453,7 +452,6 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
             }
 
             if (visualStart >= visualEnd) {
-              currentOffset = fragmentEnd;
               continue;
             }
 
@@ -485,14 +483,12 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
                   : Path.combine(PathOperation.union, linePath, boxPath);
             }
           }
-
-          currentOffset = fragmentEnd;
         } else if (fragment.type == FragmentType.ruby &&
             fragment.text != null) {
           // Ruby fragments contribute to character offset and get a full-rect
           // highlight covering both the annotation and the base text.
-          final fragmentStart = currentOffset;
-          final fragmentEnd = currentOffset + fragment.text!.length;
+          final fragmentStart = fragment.globalOffset;
+          final fragmentEnd = fragmentStart + fragment.text!.length;
 
           if (fragmentEnd > _selection!.start &&
               fragmentStart < _selection!.end) {
@@ -509,8 +505,6 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
                 ? boxPath
                 : Path.combine(PathOperation.union, linePath, boxPath);
           }
-
-          currentOffset = fragmentEnd;
         }
       }
 

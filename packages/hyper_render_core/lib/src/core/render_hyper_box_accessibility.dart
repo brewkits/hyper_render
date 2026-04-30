@@ -161,7 +161,8 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
       linkTextBuffer.clear();
     }
 
-    for (final fragment in _fragments) {
+    for (int i = 0; i < _fragments.length; i++) {
+      final fragment = _fragments[i];
       // Block/inline markers carry no text; flush any open link.
       if (fragment is _BlockStartFragment ||
           fragment is _BlockEndFragment ||
@@ -173,9 +174,6 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
       }
 
       // ── Image alt-text semantic nodes (WCAG 1.1.1) ──────────────────────
-      // Atomic fragments whose source is an <img> with non-empty alt get a
-      // discrete SemanticsNode at their layout rect so screen-reader users can
-      // navigate to images element-by-element.
       if (fragment.type == FragmentType.atomic) {
         final srcNode = fragment.sourceNode;
         if (srcNode is AtomicNode &&
@@ -218,8 +216,13 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
         continue;
       }
 
-      // Different link → flush previous and start new.
-      if (anchorNodeId != currentAnchorId) {
+      // Different link OR Different Line → flush previous and start new.
+      // This ensures multiline links have distinct hit targets per line.
+      final currentLineIndex = fragment.lineIndex;
+      final previousLineIndex = i > 0 ? _fragments[i - 1].lineIndex : -1;
+
+      if (anchorNodeId != currentAnchorId ||
+          currentLineIndex != previousLineIndex) {
         flushLink();
         currentAnchorId = anchorNodeId;
         currentHref = href;

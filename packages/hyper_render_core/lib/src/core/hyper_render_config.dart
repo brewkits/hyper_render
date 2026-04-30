@@ -146,7 +146,7 @@ class HyperRenderConfig {
   /// separate isolate using `compute()`.
   /// This is highly recommended for unit/integration testing where isolates
   /// can cause test timeouts or synchronization issues.
-  /// 
+  ///
   /// Default: false
   final bool useMicrotaskParsing;
 

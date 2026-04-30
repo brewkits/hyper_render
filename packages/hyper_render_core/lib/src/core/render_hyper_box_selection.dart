@@ -44,9 +44,8 @@ extension RenderHyperBoxSelection on RenderHyperBox {
     final line = _lines[lineIdx];
     // O(1) lookup of cumulative char count before this line
     // (populated by _buildCharacterMapping after every layout pass).
-    int currentOffset =
+    int lastOffset =
         lineIdx < _lineStartOffsets.length ? _lineStartOffsets[lineIdx] : 0;
-    final lineStartOffset = currentOffset;
 
     for (final fragment in line.fragments) {
       if ((fragment.type == FragmentType.text && fragment.text != null) ||
@@ -60,22 +59,22 @@ extension RenderHyperBoxSelection on RenderHyperBox {
           fragment.height,
         );
 
-        // Click is before this fragment — place cursor at start of line.
-        if (position.dx < fragmentRect.left) return lineStartOffset;
+        // Click is before this fragment — place cursor at start of fragment.
+        if (position.dx < fragmentRect.left) return fragment.globalOffset;
 
         if (position.dx <= fragmentRect.right) {
           // Click is within this fragment — find exact character position.
           final painter = _getTextPainter(text, fragment.style);
           final localX = position.dx - fragmentRect.left;
           final textPosition = painter.getPositionForOffset(Offset(localX, 0));
-          return currentOffset + textPosition.offset;
+          return fragment.globalOffset + textPosition.offset;
         }
 
-        currentOffset += text.length;
+        lastOffset = fragment.globalOffset + text.length;
       }
     }
     // Click was past all fragments (right margin) — return end of line.
-    return currentOffset;
+    return lastOffset;
   }
 
   /// Get selected text
@@ -89,28 +88,12 @@ extension RenderHyperBoxSelection on RenderHyperBox {
     }
 
     final buffer = StringBuffer();
-    int currentOffset = 0;
     bool pendingNewline = false;
 
     for (final fragment in _fragments) {
-      // Every fragment that was counted during layout MUST contribute to
-      // currentOffset here to keep indices in sync.
-      final fragmentLength = fragment.text?.length ?? 0;
-      final fragmentStart = currentOffset;
-      final fragmentEnd = currentOffset + fragmentLength;
-
-      // Update currentOffset BEFORE the continue/skip logic for next iteration
-      currentOffset = fragmentEnd;
-
       if (fragment is _BlockStartFragment) continue;
       if (fragment is _BlockEndFragment) {
         if (buffer.isNotEmpty) pendingNewline = true;
-        continue;
-      }
-
-      // Outside selection range — skip.
-      if (fragmentEnd <= _selection!.start ||
-          fragmentStart >= _selection!.end) {
         continue;
       }
 
@@ -118,6 +101,16 @@ extension RenderHyperBoxSelection on RenderHyperBox {
               fragment.type == FragmentType.ruby) &&
           fragment.text != null;
       if (!isText) continue;
+
+      final fragmentLength = fragment.text!.length;
+      final fragmentStart = fragment.globalOffset;
+      final fragmentEnd = fragmentStart + fragmentLength;
+
+      // Outside selection range — skip.
+      if (fragmentEnd <= _selection!.start ||
+          fragmentStart >= _selection!.end) {
+        continue;
+      }
 
       // Flush the pending newline now that we have real text to follow it.
       if (pendingNewline) {
@@ -164,9 +157,6 @@ extension RenderHyperBoxSelection on RenderHyperBox {
         } else {
           buffer.write(base);
         }
-        // IMPORTANT: We do NOT increment currentOffset by the length of
-        // brackets or rubyText here, because currentOffset must stay in
-        // sync with the layout engine's totalCharacterCount.
       } else {
         buffer.write(fragmentText.substring(safeStart, safeEnd));
       }
@@ -206,20 +196,19 @@ extension RenderHyperBoxSelection on RenderHyperBox {
     }
 
     final rects = <Rect>[];
-    int currentOffset = 0;
 
     for (final line in _lines) {
       for (final fragment in line.fragments) {
-        final fragmentLength = fragment.text?.length ?? 0;
-        final fragmentStart = currentOffset;
-        final fragmentEnd = currentOffset + fragmentLength;
+        if ((fragment.type == FragmentType.text ||
+                fragment.type == FragmentType.ruby) &&
+            fragment.text != null) {
+          final fragmentLength = fragment.text!.length;
+          final fragmentStart = fragment.globalOffset;
+          final fragmentEnd = fragmentStart + fragmentLength;
 
-        // Check if this fragment overlaps with selection
-        if (fragmentEnd > _selection!.start &&
-            fragmentStart < _selection!.end) {
-          if ((fragment.type == FragmentType.text ||
-                  fragment.type == FragmentType.ruby) &&
-              fragment.text != null) {
+          // Check if this fragment overlaps with selection
+          if (fragmentEnd > _selection!.start &&
+              fragmentStart < _selection!.end) {
             final selectStart = math.max(0, _selection!.start - fragmentStart);
             final selectEnd =
                 math.min(fragmentLength, _selection!.end - fragmentStart);
@@ -267,10 +256,6 @@ extension RenderHyperBoxSelection on RenderHyperBox {
             }
           }
         }
-
-        // ALWAYS increment currentOffset for every fragment in the line
-        // to stay in sync with the global character count.
-        currentOffset = fragmentEnd;
       }
     }
 

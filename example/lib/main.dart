@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'html_preview_helper.dart';
 import 'v2_1_showcase.dart';
+import 'ultra_showcase_2026.dart';
 import 'security_demo.dart';
 import 'accessibility_demo.dart';
 import 'video_demo_improved.dart';
@@ -99,6 +100,18 @@ class DemoHomePage extends StatelessWidget {
           const SizedBox(height: 16),
           _buildWhyCard(context),
           const SizedBox(height: 8),
+          // ── The Ultimate Showcase ─────────────────────────────────────────
+          _buildSectionHeader(context, 'The Ultimate Showcase'),
+          _buildDemoCard(
+            context,
+            icon: Icons.auto_awesome,
+            title: 'Ultra Showcase 2026',
+            subtitle:
+                'Float + CJK Typography, Giant Div Virtualization, and Interactive Plugins',
+            color: Colors.redAccent,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const UltraShowcase2026())),
+          ),
           // ── Highlights ────────────────────────────────────────────────────
           _buildSectionHeader(context, 'Highlights'),
           _buildDemoCard(
@@ -795,12 +808,12 @@ class FloatLayoutDemo extends StatelessWidget {
     <img src="https://picsum.photos/90/90?random=20" style="float: left; width: 90px; height: 90px; margin: 0 14px 8px 0; border-radius: 8px;" />
     <img src="https://picsum.photos/90/90?random=21" style="float: right; width: 90px; height: 90px; margin: 0 0 8px 14px; border-radius: 8px;" />
     <p>
-      Hai ảnh ở <strong>hai phía</strong> — một float left, một float right. Văn bản tự động
-      lấp đầy khoảng giữa. Layout engine phải tính toán đồng thời cả hai float boundary
-      để xác định vùng hợp lệ cho từng dòng chữ.
+      Two images on <strong>opposite sides</strong> — one float left, one float right. The text
+      automatically fills the gap in between. The layout engine calculates both float boundaries
+      simultaneously to determine the valid region for each line of text.
     </p>
     <p>
-      Đây là layout kiểu <em>tạp chí</em> — ảnh ghim hai góc, nội dung chảy ở giữa.
+      This is a <em>magazine-style</em> layout — images pinned to both corners with content flowing in the middle.
     </p>
   </div>
 
@@ -811,8 +824,8 @@ class FloatLayoutDemo extends StatelessWidget {
     <img src="https://picsum.photos/80/80?random=12" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px;" />
     <img src="https://picsum.photos/80/80?random=13" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px;" />
     <p>
-      Nhiều ảnh float left xếp cạnh nhau. Văn bản wrap quanh toàn bộ cụm ảnh.
-      Đây là cách hiển thị ảnh theo hàng ngang trong bài viết.
+      Multiple images floated left side-by-side. Text wraps around the entire group.
+      This is a common way to display horizontal image galleries within an article.
     </p>
   </div>
 </div>
@@ -841,17 +854,17 @@ class SelectionDemo extends StatelessWidget {
   static const html = '''
 <div style="font-family: sans-serif; line-height: 1.8;">
   <div style="background: #E3F2FD; padding: 16px; border-radius: 12px; margin-bottom: 24px;">
-    <h3 style="margin: 0 0 8px 0; color: #1565C0;">📱 Hướng dẫn sử dụng</h3>
+    <h3 style="margin: 0 0 8px 0; color: #1565C0;">📱 How to Use</h3>
     <ul style="margin: 0; padding-left: 20px;">
-      <li><strong>Kéo</strong> trên văn bản để bôi đen</li>
-      <li><strong>Long press</strong> để hiện menu Copy</li>
-      <li><strong>Ctrl+C</strong> (hoặc Cmd+C) để copy</li>
-      <li><strong>Ctrl+A</strong> để select all</li>
-      <li>Tap ra ngoài để clear selection</li>
+      <li><strong>Drag</strong> over text to select</li>
+      <li><strong>Long press</strong> to show Copy menu</li>
+      <li><strong>Ctrl+C</strong> (or Cmd+C) to copy</li>
+      <li><strong>Ctrl+A</strong> to select all</li>
+      <li>Tap outside to clear selection</li>
     </ul>
   </div>
 
-  <h2>Đoạn văn mẫu</h2>
+  <h2>Sample Paragraph</h2>
   <p>
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
     incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
@@ -901,7 +914,7 @@ class RubyDemo extends StatelessWidget {
   static const html = '''
 <div style="font-family: sans-serif; line-height: 2;">
   <h2 style="color: #E91E63;">Ruby Annotation (振り仮名)</h2>
-  <p>Ruby annotation hiển thị reading aids (furigana) phía trên kanji.</p>
+  <p>Ruby annotations display reading aids (furigana) above Chinese or Japanese characters.</p>
 
   <div style="background: #FCE4EC; padding: 16px; border-radius: 12px; margin: 16px 0;">
     <h3 style="margin: 0 0 12px 0;">基本的な例 (Basic Examples)</h3>

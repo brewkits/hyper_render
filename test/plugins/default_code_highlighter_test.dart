@@ -24,7 +24,8 @@ void main() {
       expect(spans.map((s) => s.toPlainText()).join(), code);
     });
 
-    test('highlight returns TextSpans with auto-detection if language is null', () {
+    test('highlight returns TextSpans with auto-detection if language is null',
+        () {
       const code = 'console.log("hello");';
       final spans = highlighter.highlight(code, null);
 
@@ -42,14 +43,15 @@ void main() {
 
     test('themeName returns current theme name', () {
       expect(highlighter.themeName, 'vs2015');
-      
-      const draculaHighlighter = DefaultCodeHighlighter(theme: HighlightTheme.dracula);
+
+      const draculaHighlighter =
+          DefaultCodeHighlighter(theme: HighlightTheme.dracula);
       expect(draculaHighlighter.themeName, 'dracula');
     });
 
     test('highlighting with different themes', () {
       const code = 'var x = 1;';
-      
+
       for (final theme in HighlightTheme.values) {
         final themedHighlighter = DefaultCodeHighlighter(theme: theme);
         final spans = themedHighlighter.highlight(code, 'javascript');
@@ -62,7 +64,7 @@ void main() {
       const code = 'var x = 1;';
       const baseStyle = TextStyle(fontSize: 20);
       final styledHighlighter = DefaultCodeHighlighter(baseStyle: baseStyle);
-      
+
       final spans = styledHighlighter.highlight(code, 'javascript');
       expect(spans, isNotEmpty);
       // We check that at least some spans have the base style or merged style
