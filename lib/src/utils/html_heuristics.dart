@@ -179,7 +179,7 @@ class HtmlHeuristics {
             dotAll: true, caseSensitive: false),
         '');
     final lower = withoutCodeBlocks.toLowerCase();
-    
+
     // Improved checks using word boundaries and tag patterns to avoid false positives in text content.
     return RegExp(r'<(form|input|select|textarea)\b', caseSensitive: false)
             .hasMatch(lower) ||

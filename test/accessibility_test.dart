@@ -205,8 +205,7 @@ void main() {
       final nodes = _collectAllSemanticNodes(tester);
       expect(
         nodes.any((d) =>
-            d.label == 'Section Title' &&
-            d.hasFlag(SemanticsFlag.isHeader)),
+            d.label == 'Section Title' && d.hasFlag(SemanticsFlag.isHeader)),
         isTrue,
         reason: 'WCAG 1.3.1: <h1> must produce an isHeader semantic node',
       );
@@ -235,8 +234,7 @@ void main() {
       final nodes = _collectAllSemanticNodes(tester);
       expect(
         nodes.any((d) =>
-            d.label == 'Visit example' &&
-            d.hasFlag(SemanticsFlag.isLink)),
+            d.label == 'Visit example' && d.hasFlag(SemanticsFlag.isLink)),
         isTrue,
         reason: 'WCAG 4.1.2: <a href> must produce an isLink semantic node',
       );
@@ -286,7 +284,8 @@ void main() {
                 height: 600,
                 child: HyperViewer(
                   mode: HyperRenderMode.sync,
-                  html: '<img src="photo.jpg" alt="A red apple on a white table">',
+                  html:
+                      '<img src="photo.jpg" alt="A red apple on a white table">',
                 ),
               ),
             ),

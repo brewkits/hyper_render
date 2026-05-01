@@ -161,9 +161,9 @@ class RenderHyperBox extends RenderBox
 
   /// LRU image cache — bounded by [HyperRenderConfig.imageCacheSize].
   ///
-  /// Evicting an entry removes it from the local cache without manually 
-  /// disposing the `ui.Image`. Disposing an image that is currently in 
-  /// the engine's rendering queue causes a fatal native crash. 
+  /// Evicting an entry removes it from the local cache without manually
+  /// disposing the `ui.Image`. Disposing an image that is currently in
+  /// the engine's rendering queue causes a fatal native crash.
   /// The Dart GC and Flutter's ImageCache handle actual cleanup.
   late final _LruCache<String, CachedImage> _imageCache = _LruCache(
     maxSize: _config.imageCacheSize,
@@ -873,9 +873,10 @@ class RenderHyperBox extends RenderBox
                 longestWord = w[0];
               }
               // Extract the longest non-CJK sequence including punctuation and fullwidth forms
-              final nonCjkParts = w.split(RegExp(r'[\u4E00-\u9FFF\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7A3\uFF00-\uFFEF]'));
+              final nonCjkParts = w.split(RegExp(
+                  r'[\u4E00-\u9FFF\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7A3\uFF00-\uFFEF]'));
               for (final part in nonCjkParts) {
-                 if (part.length > longestWord.length) longestWord = part;
+                if (part.length > longestWord.length) longestWord = part;
               }
             } else {
               if (w.length > longestWord.length) longestWord = w;
@@ -890,7 +891,7 @@ class RenderHyperBox extends RenderBox
             if (w.length > longestWord.length) longestWord = w;
           }
         }
-        
+
         if (longestWord.isEmpty) continue;
 
         final isRtl = fragment.style.isRtl;

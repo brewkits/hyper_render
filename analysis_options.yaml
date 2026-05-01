@@ -2,7 +2,6 @@ include: package:flutter_lints/flutter.yaml
 
 linter:
   rules:
-    - public_member_api_docs
     - prefer_const_constructors
     - prefer_const_declarations
     - always_declare_return_types

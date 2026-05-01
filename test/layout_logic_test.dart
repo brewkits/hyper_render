@@ -253,7 +253,8 @@ void main() {
       expect(find.byType(HyperRenderWidget), findsWidgets);
     });
 
-    testWidgets('float width and height respect explicit CSS styles', (WidgetTester tester) async {
+    testWidgets('float width and height respect explicit CSS styles',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode(
           tagName: 'div',
@@ -298,7 +299,8 @@ void main() {
       expect(renderBox.size.height, greaterThanOrEqualTo(150));
     });
 
-    testWidgets('float without explicit dimensions falls back to intrinsic', (WidgetTester tester) async {
+    testWidgets('float without explicit dimensions falls back to intrinsic',
+        (WidgetTester tester) async {
       final doc = DocumentNode(children: [
         BlockNode(
           tagName: 'div',

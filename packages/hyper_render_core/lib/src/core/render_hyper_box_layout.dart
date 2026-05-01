@@ -155,7 +155,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // Flex containers and Grid containers are rendered as child widgets.
     // The widget handles its own padding/border internally, so we only inject
     // margin spacing via a zero-padding _BlockStartFragment.
-    if (style.display == DisplayType.flex || style.display == DisplayType.grid) {
+    if (style.display == DisplayType.flex ||
+        style.display == DisplayType.grid) {
       if (effectiveMarginTop > 0 || _fragments.isNotEmpty) {
         _fragments.add(_BlockStartFragment(
           sourceNode: node,
@@ -440,7 +441,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       final intrinsicW = node.intrinsicWidth;
       final intrinsicH = node.intrinsicHeight;
       if (intrinsicW != null && intrinsicH != null) {
-        final scale = (intrinsicW > maxW && intrinsicW > 0) ? maxW / intrinsicW : 1.0;
+        final scale =
+            (intrinsicW > maxW && intrinsicW > 0) ? maxW / intrinsicW : 1.0;
         width = intrinsicW * scale;
         height = intrinsicH * scale;
       } else if (intrinsicW != null) {
@@ -1619,7 +1621,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final dimW = sourceNode.intrinsicWidth ?? sourceNode.style.width;
         final dimH = sourceNode.intrinsicHeight ?? sourceNode.style.height;
         if (dimW != null && dimH != null) {
-          final scale = (dimW > availableWidth && dimW > 0) ? availableWidth / dimW : 1.0;
+          final scale =
+              (dimW > availableWidth && dimW > 0) ? availableWidth / dimW : 1.0;
           width = dimW * scale;
           height = dimH * scale;
         } else if (dimW != null) {
@@ -2062,7 +2065,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           break;
         }
       }
-      _lineStartOffsets.add(lineStart ?? (_lineStartOffsets.isNotEmpty ? _lineStartOffsets.last : 0));
+      _lineStartOffsets.add(lineStart ??
+          (_lineStartOffsets.isNotEmpty ? _lineStartOffsets.last : 0));
     }
   }
 

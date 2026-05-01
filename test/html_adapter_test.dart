@@ -178,7 +178,8 @@ void main() {
     });
 
     test('22. parseToSections keeps headings with content', () {
-      final html = '<div>${'<p>P</p>' * 50}<h2>Heading</h2><p>Content</p></div>';
+      final html =
+          '<div>${'<p>P</p>' * 50}<h2>Heading</h2><p>Content</p></div>';
       final sections = adapter.parseToSections(html, chunkSize: 500);
       // The heading h2 should not be the last element of a section if possible
       for (final section in sections) {
