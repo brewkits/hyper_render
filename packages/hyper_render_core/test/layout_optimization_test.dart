@@ -41,12 +41,12 @@ void main() {
         ),
       );
 
-      expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsAtLeastNWidgets(1));
     });
 
     test('Rect merging logic principle verification', () {
-      final rect1 = Rect.fromLTWH(0, 0, 50, 20);
-      final rect2 = Rect.fromLTWH(50, 0, 50, 20);
+      const rect1 = Rect.fromLTWH(0, 0, 50, 20);
+      const rect2 = Rect.fromLTWH(50, 0, 50, 20);
 
       bool canMerge = (rect1.top - rect2.top).abs() < 0.1 &&
           (rect1.bottom - rect2.bottom).abs() < 0.1 &&

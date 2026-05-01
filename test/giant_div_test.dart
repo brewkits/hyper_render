@@ -12,7 +12,7 @@ void main() {
     test('parseToSections handles nested div wrapper correctly', () {
       // This is the "Giant Div" edge case:
       // All content wrapped in a single <div id="container">
-      final html = '''
+      const html = '''
 <body>
   <div id="container">
     <p>Paragraph 1</p>
@@ -40,7 +40,7 @@ void main() {
 
     test('parseToSections handles deeply nested structure', () {
       // Multiple levels of nesting
-      final html = '''
+      const html = '''
 <body>
   <div class="wrapper">
     <div class="container">
@@ -66,7 +66,7 @@ void main() {
 
     test('parseToSections preserves small containers', () {
       // Small containers should NOT be flattened
-      final html = '''
+      const html = '''
 <body>
   <div class="card">
     <h3>Card Title</h3>
@@ -92,7 +92,7 @@ void main() {
 
     test('parseToSections handles real-world blog post structure', () {
       // Simulating a typical blog post wrapped in article
-      final html = '''
+      const html = '''
 <body>
   <article class="blog-post">
     <header>
@@ -134,7 +134,7 @@ void main() {
 
     test('parseToSections handles article/main/section tags', () {
       // These semantic HTML5 tags should also be flattened
-      final html = '''
+      const html = '''
 <body>
   <main>
     <section>
@@ -168,19 +168,19 @@ void main() {
     });
 
     test('handles empty body', () {
-      final html = '<body></body>';
+      const html = '<body></body>';
       final sections = adapter.parseToSections(html);
       expect(sections.length, 1); // Should have at least empty section
     });
 
     test('handles body with only whitespace', () {
-      final html = '<body>   \n\t  </body>';
+      const html = '<body>   \n\t  </body>';
       final sections = adapter.parseToSections(html);
       expect(sections.length, 1);
     });
 
     test('handles flat structure (no nesting)', () {
-      final html = '''
+      const html = '''
 <body>
   <p>Para 1</p>
   <p>Para 2</p>

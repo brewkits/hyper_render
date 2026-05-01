@@ -63,7 +63,7 @@ void main() {
     test('highlighting with baseStyle', () {
       const code = 'var x = 1;';
       const baseStyle = TextStyle(fontSize: 20);
-      final styledHighlighter = DefaultCodeHighlighter(baseStyle: baseStyle);
+      const styledHighlighter = DefaultCodeHighlighter(baseStyle: baseStyle);
 
       final spans = styledHighlighter.highlight(code, 'javascript');
       expect(spans, isNotEmpty);

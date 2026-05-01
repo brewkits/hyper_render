@@ -38,7 +38,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: html, mode: HyperRenderMode.sync),
           ),

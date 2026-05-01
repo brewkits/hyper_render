@@ -1,3 +1,4 @@
+// ignore_for_file: unused_local_variable
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';
@@ -8,7 +9,7 @@ void main() {
         (tester) async {
       String? tappedUrl;
 
-      final html = '''
+      const html = '''
 <article>
   <h1 id="top">Title</h1>
   <p>First paragraph with some text for selection.</p>

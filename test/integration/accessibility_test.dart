@@ -191,7 +191,7 @@ void main() {
 </ul>
 ''';
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -221,7 +221,7 @@ void main() {
 </ol>
 ''';
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -255,7 +255,7 @@ void main() {
 </ul>
 ''';
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -285,7 +285,7 @@ void main() {
       const html = '<p aria-label="Important notice">Read this carefully.</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -309,7 +309,7 @@ void main() {
       const html = '<span role="button" aria-label="Submit form">Submit</span>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -338,7 +338,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -362,7 +362,7 @@ void main() {
       const html = '<div role="heading">Custom Heading</div>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -400,7 +400,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -431,7 +431,7 @@ void main() {
       const html = '<p>Decorative content</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -457,7 +457,7 @@ void main() {
       const html = '<p>Some text</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -488,7 +488,7 @@ void main() {
       const html = '<a href="vbscript:msgbox(1)">Dangerous link</a>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
@@ -517,7 +517,7 @@ void main() {
           '<p style="width:expression(alert(1))">Safe text after sanitization</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,

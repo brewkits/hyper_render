@@ -91,5 +91,6 @@ dev_dependencies:
   # Build runner for mockito code generation
   build_runner: ^2.4.8
   test_cov_console: ^0.2.2
+  network_image_mock: ^2.1.1
 
 flutter:

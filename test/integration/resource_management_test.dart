@@ -54,7 +54,7 @@ void main() {
 
       try {
         await tester.pumpWidget(
-          MaterialApp(
+          const MaterialApp(
             home: Scaffold(
               body: HyperViewer(
                 html: '<p>Valid HTML — no error expected</p>',
@@ -81,7 +81,7 @@ void main() {
 
       try {
         await tester.pumpWidget(
-          MaterialApp(
+          const MaterialApp(
             home: Scaffold(
               body: HyperViewer(
                 html: '''
@@ -109,7 +109,7 @@ void main() {
   group('Resource Management — Widget Lifecycle', () {
     testWidgets('disposes cleanly without crash', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<p>Content to dispose</p>',
@@ -228,7 +228,7 @@ void main() {
   group('Resource Management — HyperRenderConfig', () {
     testWidgets('accepts default config without error', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<p>Configured render</p>',
@@ -251,7 +251,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html:
@@ -278,7 +278,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html:
@@ -296,11 +296,11 @@ void main() {
     testWidgets('config survives hot-restart (didUpdateWidget)',
         (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<p>Before config change</p>',
-              renderConfig: const HyperRenderConfig(textPainterCacheSize: 100),
+              renderConfig: HyperRenderConfig(textPainterCacheSize: 100),
             ),
           ),
         ),
@@ -309,11 +309,11 @@ void main() {
 
       // Pump with new config — triggers didUpdateWidget path.
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<p>After config change</p>',
-              renderConfig: const HyperRenderConfig(textPainterCacheSize: 500),
+              renderConfig: HyperRenderConfig(textPainterCacheSize: 500),
             ),
           ),
         ),
@@ -434,7 +434,7 @@ void main() {
 
     testWidgets('small document builds semantics normally', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<h1>Title</h1><p>Short doc.</p>',
@@ -458,7 +458,7 @@ void main() {
     testWidgets('zoom enabled in sync mode renders InteractiveViewer',
         (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<p>Zoomable content</p>',
@@ -479,7 +479,7 @@ void main() {
     testWidgets('zoom disabled in sync mode does not render InteractiveViewer',
         (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<p>Non-zoomable content</p>',
@@ -501,7 +501,7 @@ void main() {
       // without depending on real-isolate timing. The zoom wrapper is the same
       // code path for both sync and virtualized modes.
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<p>Hello zoom world</p>',
@@ -545,7 +545,7 @@ void main() {
 
     testWidgets('zoom min/max scale values are respected', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<p>Custom zoom range</p>',
@@ -576,7 +576,7 @@ void main() {
   group('Resource Management — Content Modes', () {
     testWidgets('sync mode renders immediately', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<p>Sync content</p>',
@@ -594,7 +594,7 @@ void main() {
 
     testWidgets('auto mode shows loader then content', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: '<p>Auto mode content</p>',
@@ -651,7 +651,7 @@ void main() {
 
     testWidgets('markdown mode renders correctly', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer.markdown(
               markdown: '# Heading\n\nParagraph with **bold** and _italic_.',
@@ -670,7 +670,7 @@ void main() {
           '{"ops":[{"insert":"Hello, "},{"insert":"World!","attributes":{"bold":true}},{"insert":"\\n"}]}';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer.delta(delta: deltaJson),
           ),
@@ -696,7 +696,7 @@ void main() {
 </table>
 ''';
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
+        const MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -712,7 +712,7 @@ void main() {
 </div>
 ''';
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
+        const MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -726,7 +726,7 @@ void main() {
 </p>
 ''';
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
+        const MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -745,7 +745,7 @@ void main() {
 </details>
 ''';
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
+        const MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -768,7 +768,7 @@ void main() {
 </table>
 ''';
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
+        const MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -783,7 +783,7 @@ void main() {
 <div class="box">CSS variables + calc() content</div>
 ''';
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
+        const MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -796,7 +796,7 @@ void main() {
           '<p>supercalifragilisticexpialidocious-extraordinarily-long-unbreakable-word</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 200,
@@ -815,7 +815,7 @@ void main() {
       const html = '<p>ZWJ test: 👨‍👩‍👧‍👦 👩‍💻 🏳️‍🌈 🧑‍🤝‍🧑</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 300,
@@ -836,7 +836,7 @@ void main() {
 </div>
 ''';
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
+        const MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -856,7 +856,7 @@ void main() {
 </code></pre>
 ''';
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
+        const MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);

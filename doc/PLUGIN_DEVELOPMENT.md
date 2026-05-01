@@ -453,5 +453,67 @@ void main() {
 ## Example Plugins
 
 - [hyper_render_clipboard](../packages/hyper_render_clipboard) - Image clipboard using super_clipboard
-- [hyper_render_html](../packages/hyper_render_html) - HTML parsing (stub)
-- [hyper_render_highlight](../packages/hyper_render_highlight) - Syntax highlighting (stub)
+- [hyper_render_highlight](../packages/hyper_render_highlight) - Syntax highlighting
+- [hyper_render_math](../packages/hyper_render_math) - Math/LaTeX skeleton (community template — add `flutter_math_fork` to complete)
+
+---
+
+## Community Contribution Flow
+
+HyperRender's plugin ecosystem grows through community PRs. This section describes
+the path from idea → merged plugin listing.
+
+### Step 1 — Open a Plugin Request (optional but recommended)
+
+File a [Plugin Request issue](https://github.com/brewkits/hyper_render/issues/new?template=plugin_request.yml)
+to discuss feasibility and avoid duplicate work before writing code.
+
+### Step 2 — Use the skeleton as a starting point
+
+```bash
+cp -r packages/hyper_render_math packages/hyper_render_<yourname>
+```
+
+Edit `pubspec.yaml` (name, description, deps) and replace `_Placeholder` in
+`lib/src/math_node_plugin.dart` with your rendering logic.
+
+### Step 3 — Meet the PR requirements
+
+Before opening a PR, verify every item in the checklist below.
+
+### Step 4 — Open a Plugin Submission issue
+
+File a [Plugin Submission issue](https://github.com/brewkits/hyper_render/issues/new?template=plugin_submission.yml)
+linking your pub.dev package or GitHub repo. Maintainers review and add it to
+the listing above once approved.
+
+---
+
+## PR Requirements for Plugin PRs
+
+All plugin PRs or listing requests must satisfy these requirements. Reviewers
+check each item before approving.
+
+### Required
+
+- [ ] Package name follows `hyper_render_<feature>` convention
+- [ ] Implements `HyperNodePlugin` from `hyper_render_core` (no direct `hyper_render` import in the plugin itself)
+- [ ] `build()` returns `null` for nodes the plugin doesn't own (never throws, never returns an error widget)
+- [ ] `tagName` is lowercase and does not clash with standard HTML tags without good reason
+- [ ] At least **2 widget tests**: happy path and `build()` returns null for unrelated tags
+- [ ] `README.md` includes a self-contained code example (copy-paste runnable)
+- [ ] `CHANGELOG.md` has an initial `## 0.1.0` entry
+- [ ] `pubspec.yaml` pins `hyper_render_core: ^1.2.0` or later
+
+### Strongly recommended
+
+- [ ] Handles empty / null attribute values without crashing
+- [ ] Inline plugins override `getMinIntrinsicHeight` / `getMaxIntrinsicWidth` if the child widget has non-trivial intrinsic sizes
+- [ ] Error state shown inline (never crashes the host document) — return a `Text('[math error]')` style fallback
+- [ ] Tested on at least one mobile platform
+
+### Not required
+
+- Full pub.dev publication (can list a GitHub repo link instead)
+- CI/CD setup (though encouraged)
+- Platform-specific code (pure Flutter is fine)

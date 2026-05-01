@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print, unused_local_variable
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/src/parser/html/html_adapter.dart';
 

@@ -20,7 +20,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: malformedHtml,
@@ -40,7 +40,7 @@ void main() {
 
     testWidgets('handles empty HTML', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: ''),
           ),
@@ -56,7 +56,7 @@ void main() {
 
     testWidgets('handles whitespace-only HTML', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: '   \n\n\t\t   '),
           ),
@@ -77,7 +77,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: commentsOnly),
           ),
@@ -102,7 +102,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: invalidCss),
           ),
@@ -127,7 +127,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: brokenImages),
           ),
@@ -154,7 +154,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: circularCss),
           ),
@@ -210,7 +210,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: unicodeEdgeCases),
           ),
@@ -319,7 +319,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: HyperViewer(html: problematicHtml),

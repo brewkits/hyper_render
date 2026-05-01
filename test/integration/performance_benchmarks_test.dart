@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print, unused_local_variable
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/src/parser/html/html_adapter.dart';
 import 'package:hyper_render/src/plugins/default_css_parser.dart';
@@ -5,7 +6,7 @@ import 'package:hyper_render/src/plugins/default_css_parser.dart';
 void main() {
   group('HyperRender Performance Benchmarks', () {
     test('CSS Selector Engine: 1000 rules matching performance', () {
-      final parser = DefaultCssParser();
+      const parser = DefaultCssParser();
       final styleBuffer = StringBuffer();
       for (int i = 0; i < 1000; i++) {
         styleBuffer.write('.class$i { color: red; }\n');

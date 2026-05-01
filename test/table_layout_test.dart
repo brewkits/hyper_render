@@ -295,7 +295,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 600,
@@ -333,7 +333,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 500,

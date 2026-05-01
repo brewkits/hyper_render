@@ -92,6 +92,10 @@ class HtmlSanitizer {
     // Media attributes
     'controls', 'autoplay', 'loop', 'muted', 'poster', 'preload',
     'type', 'media', 'kind', 'srclang', 'label', 'default',
+
+    // Accessibility attributes (ARIA)
+    'aria-label', 'aria-hidden', 'aria-describedby', 'aria-expanded',
+    'role', 'tabindex',
   ];
 
   /// Sanitize [html] by walking the parsed DOM tree.

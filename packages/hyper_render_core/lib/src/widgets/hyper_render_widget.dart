@@ -261,8 +261,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       // Fall back to default atomic widget for any unhandled atomic node
       if (childWidget == null && node is AtomicNode) {
         childWidget = _buildDefaultAtomicWidget(node);
-      } else if (childWidget == null) {
-        childWidget = HyperRenderWidget(
+      } else {
+        childWidget ??= HyperRenderWidget(
           document: DocumentNode(children: node.children),
           selectable: selectable,
           onLinkTap: onLinkTap,

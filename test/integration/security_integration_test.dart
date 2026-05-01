@@ -14,7 +14,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: xssHtml,
@@ -48,7 +48,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: eventHandlers,
@@ -75,7 +75,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: javascriptUrls,
@@ -103,7 +103,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: dataUrls,
@@ -130,7 +130,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: iframeHtml,
@@ -156,7 +156,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: embedHtml,
@@ -181,7 +181,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: baseHtml,
@@ -212,7 +212,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: mixedHtml,
@@ -239,7 +239,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: cssInjection,
@@ -266,7 +266,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: restrictedHtml,
@@ -288,7 +288,7 @@ void main() {
       const xssHtml = '<script>alert("XSS")</script><p>Content</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: xssHtml,
@@ -315,7 +315,7 @@ void main() {
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: trustedHtml,

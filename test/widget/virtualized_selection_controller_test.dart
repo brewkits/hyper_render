@@ -1,3 +1,4 @@
+// ignore_for_file: unused_local_variable
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/src/widgets/virtualized_selection_controller.dart';
@@ -94,8 +95,8 @@ void main() {
       // Chunk 0 text is 'Chunk 0 Text' (length 12)
       // Chunk 1 text is 'Chunk 1 Text'
 
-      final start = const ChunkAnchor(0, 6); // '0 Text'
-      final end = const ChunkAnchor(1, 7); // 'Chunk 1'
+      const start = ChunkAnchor(0, 6); // '0 Text'
+      const end = ChunkAnchor(1, 7); // 'Chunk 1'
 
       // We need to set internal selection manually since we don't have RenderBoxes here
       // But VirtualizedSelectionController doesn't allow setting selection directly easily
