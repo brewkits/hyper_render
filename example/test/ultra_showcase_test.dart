@@ -125,7 +125,9 @@ void main() {
           .descendant(
               of: find.byType(HyperViewer), matching: find.byType(Scrollable))
           .evaluate()
-          .isNotEmpty) break;
+          .isNotEmpty) {
+        break;
+      }
     }
     await tester.pump(const Duration(seconds: 1));
 
