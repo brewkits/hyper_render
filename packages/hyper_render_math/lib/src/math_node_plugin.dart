@@ -41,8 +41,7 @@ class MathNodePlugin implements HyperNodePlugin {
   Widget? buildWidget(UDTNode node, HyperPluginBuildContext ctx) {
     // The LaTeX/MathML source comes either from the `src` attribute or the
     // element's text content.
-    final src = node.attributes['src']?.trim() ??
-        _getTextContent(node).trim();
+    final src = node.attributes['src']?.trim() ?? _getTextContent(node).trim();
     if (src.isEmpty) return null;
 
     // TODO: replace _Placeholder with a real math renderer (see class docs).
@@ -59,6 +58,7 @@ class MathNodePlugin implements HyperNodePlugin {
         traverse(child);
       }
     }
+
     traverse(node);
     return buffer.toString();
   }

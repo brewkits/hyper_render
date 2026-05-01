@@ -11,7 +11,8 @@ void main() {
   <p>Safe</p>
 </div>
 ''';
-      await tester.pumpWidget(const MaterialApp(home: HyperViewer(html: svgXss)));
+      await tester
+          .pumpWidget(const MaterialApp(home: HyperViewer(html: svgXss)));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
@@ -24,7 +25,8 @@ void main() {
   <iframe src="data:text/html,<script>alert(1)</script>"></iframe>
 </div>
 ''';
-      await tester.pumpWidget(const MaterialApp(home: HyperViewer(html: dataXss)));
+      await tester
+          .pumpWidget(const MaterialApp(home: HyperViewer(html: dataXss)));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
@@ -38,14 +40,16 @@ void main() {
     testWidgets('Prevents bypass via encoded characters', (tester) async {
       const encodedXss =
           '<img src=x onerror="&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;">';
-      await tester.pumpWidget(const MaterialApp(home: HyperViewer(html: encodedXss)));
+      await tester
+          .pumpWidget(const MaterialApp(home: HyperViewer(html: encodedXss)));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
 
     testWidgets('Prevents bypass via case variations', (tester) async {
       const caseXss = '<sCrIpT>alert(1)</ScRiPt><ImG sRc=x OnErRoR=alert(1)>';
-      await tester.pumpWidget(const MaterialApp(home: HyperViewer(html: caseXss)));
+      await tester
+          .pumpWidget(const MaterialApp(home: HyperViewer(html: caseXss)));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
@@ -63,7 +67,8 @@ void main() {
   XSS in style
 </div>
 ''';
-      await tester.pumpWidget(const MaterialApp(home: HyperViewer(html: cssXss)));
+      await tester
+          .pumpWidget(const MaterialApp(home: HyperViewer(html: cssXss)));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });

@@ -4,7 +4,8 @@ import 'package:example/ultra_showcase_2026.dart';
 import 'package:hyper_render/hyper_render.dart';
 
 void main() {
-  testWidgets('UltraShowcase2026 renders and scrolls without crashing', (WidgetTester tester) async {
+  testWidgets('UltraShowcase2026 renders and scrolls without crashing',
+      (WidgetTester tester) async {
     // Build the widget
     await tester.pumpWidget(
       const MaterialApp(
@@ -19,14 +20,17 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
       await tester.pump();
-      
+
       if (tester.takeException() != null) {
         throw tester.takeException()!;
       }
-      if (find.descendant(
-        of: find.byType(HyperViewer),
-        matching: find.byType(Scrollable),
-      ).evaluate().isNotEmpty) {
+      if (find
+          .descendant(
+            of: find.byType(HyperViewer),
+            matching: find.byType(Scrollable),
+          )
+          .evaluate()
+          .isNotEmpty) {
         foundScrollable = true;
         break;
       }
@@ -42,11 +46,13 @@ void main() {
     expect(find.text('Ultra Showcase 2026'), findsOneWidget);
 
     // Find the inner scrollable
-    final scrollView = find.descendant(
-      of: find.byType(HyperViewer),
-      matching: find.byType(Scrollable),
-    ).first;
-    
+    final scrollView = find
+        .descendant(
+          of: find.byType(HyperViewer),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+
     for (int i = 0; i < 5; i++) {
       await tester.drag(scrollView, const Offset(0, -500));
       await tester.pump(const Duration(milliseconds: 100));
@@ -63,16 +69,18 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
       await tester.pump();
-      
+
       if (tester.takeException() != null) {
         throw tester.takeException()!;
       }
-      
-      final pageViews = find.descendant(
-        of: find.byType(HyperViewer),
-        matching: find.byType(Scrollable),
-      ).evaluate();
-      
+
+      final pageViews = find
+          .descendant(
+            of: find.byType(HyperViewer),
+            matching: find.byType(Scrollable),
+          )
+          .evaluate();
+
       if (pageViews.isNotEmpty) {
         foundScrollable = true;
         break;
@@ -90,7 +98,8 @@ void main() {
 
     // Scroll in Paged Mode
     final pagedView = find.byType(Scrollable).first;
-    await tester.drag(pagedView, const Offset(-500, 0)); // Horizontal swipe for PageView
+    await tester.drag(
+        pagedView, const Offset(-500, 0)); // Horizontal swipe for PageView
     await tester.pump(const Duration(milliseconds: 100));
 
     // Test selection in Paged Mode
@@ -99,7 +108,8 @@ void main() {
     expect(find.byType(CustomPaint), findsAtLeast(1));
   });
 
-  testWidgets('UltraShowcase2026 text selection works', (WidgetTester tester) async {
+  testWidgets('UltraShowcase2026 text selection works',
+      (WidgetTester tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: UltraShowcase2026(),
@@ -108,9 +118,14 @@ void main() {
 
     // Wait for load
     for (int i = 0; i < 50; i++) {
-      await tester.runAsync(() async => await Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.runAsync(() async =>
+          await Future<void>.delayed(const Duration(milliseconds: 100)));
       await tester.pump();
-      if (find.descendant(of: find.byType(HyperViewer), matching: find.byType(Scrollable)).evaluate().isNotEmpty) break;
+      if (find
+          .descendant(
+              of: find.byType(HyperViewer), matching: find.byType(Scrollable))
+          .evaluate()
+          .isNotEmpty) break;
     }
     await tester.pump(const Duration(seconds: 1));
 
