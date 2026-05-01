@@ -1,0 +1,82 @@
+name: Plugin Submission
+description: Submit a community plugin you've built for HyperRender
+title: "[Plugin Submission] hyper_render_<name>"
+labels: ["plugin", "community"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for building a HyperRender plugin!
+        Please ensure your plugin meets the requirements in [PLUGIN_DEVELOPMENT.md — PR Requirements](../blob/main/doc/PLUGIN_DEVELOPMENT.md#pr-requirements-for-plugin-prs).
+
+  - type: input
+    id: package_name
+    attributes:
+      label: pub.dev package name
+      description: The package name you plan to publish (follow the `hyper_render_*` naming convention)
+      placeholder: hyper_render_math
+    validations:
+      required: true
+
+  - type: input
+    id: pub_url
+    attributes:
+      label: pub.dev URL or GitHub repo
+      placeholder: "https://github.com/yourname/hyper_render_math"
+    validations:
+      required: true
+
+  - type: input
+    id: tag_name
+    attributes:
+      label: HTML tag(s) handled
+      placeholder: "<math>, <latex>"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Plugin tier
+      options:
+        - Block (isInline == false)
+        - Inline (isInline == true)
+        - Both
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What does it render?
+      description: One paragraph description for the plugin listing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: External dependencies
+      description: List any Flutter packages your plugin depends on (so users know the transitive deps).
+      placeholder: "flutter_math_fork ^0.7.2"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Submission checklist
+      description: All items must be checked before the plugin can be listed.
+      options:
+        - label: "Package implements `HyperNodePlugin` from `hyper_render_core`"
+          required: true
+        - label: "`build()` returns `null` for unrecognized nodes (safe fallthrough)"
+          required: true
+        - label: "At least one widget test covering the happy path"
+          required: true
+        - label: "README includes a working code example"
+          required: true
+        - label: "CHANGELOG has an initial entry"
+          required: true
+        - label: "pubspec.yaml specifies `hyper_render_core: ^1.2.0` or later"
+          required: true
+        - label: "Tested on at least one mobile platform (iOS or Android)"
+          required: true

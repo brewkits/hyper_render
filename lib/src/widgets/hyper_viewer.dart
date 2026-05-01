@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'dart:isolate';
 
 import 'package:hyper_render_core/hyper_render_core.dart';
