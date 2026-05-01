@@ -74,7 +74,7 @@ void main() {
       ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: html),
           ),
@@ -98,7 +98,7 @@ void main() {
 
       for (var cycle = 0; cycle < 10; cycle++) {
         await tester.pumpWidget(
-          MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
+          const MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
         );
         await tester.pump();
         await tester.pumpWidget(const MaterialApp(home: Scaffold()));

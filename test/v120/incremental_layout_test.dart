@@ -151,7 +151,7 @@ void main() {
   group('HyperViewer virtualized mode', () {
     testWidgets('renders ListView for markdown in virtualized mode',
         (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: HyperViewer.markdown(
             markdown: '# Title\n\nParagraph one.',
@@ -166,7 +166,7 @@ void main() {
     });
 
     testWidgets('RepaintBoundary present for each section', (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: HyperViewer.markdown(
             markdown: '# S1\n\nParagraph.',

@@ -7,13 +7,13 @@ void main() {
     testWidgets(
         'should not throw RenderBox was not laid out during content switch',
         (WidgetTester tester) async {
-      final String initialHtml = '<h1>Loading...</h1>';
-      final String loadedHtml =
+      const String initialHtml = '<h1>Loading...</h1>';
+      const String loadedHtml =
           '<h1>Loaded Content</h1><p>This is some content that is a bit longer to simulate a real document.</p>';
 
       // A simple StatefulWidget to hold and change the HyperViewer's content
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: _TestHyperViewerContainer(

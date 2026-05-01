@@ -21,7 +21,7 @@ void main() {
   group('HyperRenderMode.paged', () {
     testWidgets('renders PageView when mode is paged (markdown)',
         (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: HyperViewer.markdown(
             markdown: '# Chapter 1\n\nContent here.',
@@ -35,7 +35,7 @@ void main() {
     });
 
     testWidgets('does NOT render ListView in paged mode', (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: HyperViewer.markdown(
             markdown: 'Short content',
@@ -51,7 +51,7 @@ void main() {
 
     testWidgets('enableZoom wraps PageView in InteractiveViewer',
         (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: HyperViewer.markdown(
             markdown: 'Zoomable content',
@@ -67,7 +67,7 @@ void main() {
     });
 
     testWidgets('no error without explicit pageController', (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: HyperViewer.markdown(
             markdown: 'Hello',

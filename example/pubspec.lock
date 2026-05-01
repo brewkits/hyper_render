@@ -365,35 +365,35 @@ packages:
       path: "../packages/hyper_render_clipboard"
       relative: true
     source: path
-    version: "1.2.0"
+    version: "1.2.3"
   hyper_render_core:
     dependency: "direct main"
     description:
       path: "../packages/hyper_render_core"
       relative: true
     source: path
-    version: "1.2.0"
+    version: "1.2.3"
   hyper_render_highlight:
     dependency: transitive
     description:
       path: "../packages/hyper_render_highlight"
       relative: true
     source: path
-    version: "1.2.0"
+    version: "1.2.3"
   hyper_render_html:
     dependency: transitive
     description:
       path: "../packages/hyper_render_html"
       relative: true
     source: path
-    version: "1.2.0"
+    version: "1.2.3"
   hyper_render_markdown:
     dependency: transitive
     description:
       path: "../packages/hyper_render_markdown"
       relative: true
     source: path
-    version: "1.2.0"
+    version: "1.2.3"
   irondash_engine_context:
     dependency: transitive
     description:

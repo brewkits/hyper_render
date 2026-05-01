@@ -10,8 +10,6 @@ const double _kImageMargin =
     32.0; // horizontal margin subtracted from maxWidth for images
 const double _kDefaultFlexFallbackHeight = 50.0;
 const double _kDefaultTableFallbackHeight = 200.0;
-const double _kDefaultCodeBlockFallbackHeight = 100.0;
-const double _kDefaultDetailsFallbackHeight = 40.0;
 const double _kTableBottomMargin = 16.0;
 const double _kCodeBlockBottomMargin = 8.0;
 const double _kDetailsBottomMargin = 4.0;
@@ -2310,14 +2308,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     }
 
     // Check for the opposite case: more fragments than widgets
-    assert(() {
-      if (unlinkedFragmentIndex < unlinkedFragments.length) {
-        debugPrint(
-            '[HyperRender] Layout Warning: More fragments than child widgets. '
-            'Remaining fragments: ${unlinkedFragments.length - unlinkedFragmentIndex}');
-      }
-      return true;
-    }());
+    // It is valid for `unlinkedFragments.length > unlinkedFragmentIndex` if the
+    // Widget builder (HyperRenderWidget) intentionally dropped an invalid node
+    // (e.g., an <img> with a missing src, or an unhandled plugin node).
+    // Therefore, we no longer print a layout warning here.
   }
 
   /// Find child RenderBox for a given fragment

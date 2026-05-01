@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'dart:isolate';
 
 import 'package:hyper_render_core/hyper_render_core.dart';
@@ -1140,7 +1141,6 @@ class _HyperViewerState extends State<HyperViewer>
         // Capture parse ID before async gap to detect stale results.
         final currentParseId = ++_parseId;
 
-        // Use Future.microtask in tests, compute() in production
         final args = (
           contentToRender,
           cssToApply,
@@ -1149,7 +1149,7 @@ class _HyperViewerState extends State<HyperViewer>
         );
 
         Future<List<DocumentNode>> parseFuture;
-        if (widget.renderConfig.useMicrotaskParsing) {
+        if (widget.renderConfig.useMicrotaskParsing || kIsWeb) {
           parseFuture = Future.microtask(() => _parseAndChunk(args));
         } else {
           parseFuture = compute(_parseAndChunk, args);

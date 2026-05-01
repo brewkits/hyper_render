@@ -153,7 +153,7 @@ void main() {
     });
 
     test('19. Extracts keyframes from style tags', () {
-      final parser = DefaultCssParser();
+      const parser = DefaultCssParser();
       final keyframes = adapter.extractKeyframes(
           '<style>@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }</style>',
           parser);
@@ -191,7 +191,7 @@ void main() {
 
     test('23. parseToSections prevents splitting after float-containing block',
         () {
-      final html =
+      const html =
           '<div><div style="float: left;">Float</div><p>Wrapped text</p></div>';
       final sections = adapter.parseToSections(html, chunkSize: 10);
       expect(sections.length, 1);

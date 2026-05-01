@@ -74,7 +74,10 @@ extension _RenderHyperBoxAccessibility on RenderHyperBox {
           final atomic = node as AtomicNode;
           if (atomic.alt != null && atomic.alt!.isNotEmpty) {
             buffer.write('[Image: ${atomic.alt}] ');
-          } else if (atomic.tagName == 'img') {
+          } else if (atomic.tagName == 'img' && atomic.alt == null) {
+            // alt="" means decorative — intentionally silent per WCAG 1.1.1.
+            // Only announce when the alt attribute is absent entirely (possible
+            // accessibility gap that the author should fix).
             buffer.write('[Image] ');
           }
           break;
