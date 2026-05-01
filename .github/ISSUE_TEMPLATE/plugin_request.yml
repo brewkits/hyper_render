@@ -1,0 +1,56 @@
+name: Plugin Request
+description: Request a new HyperRender plugin (e.g. math, charts, diagrams)
+title: "[Plugin Request] <plugin name>"
+labels: ["plugin", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a plugin! Community plugins extend HyperRender without touching the core engine.
+        Read [PLUGIN_DEVELOPMENT.md](../blob/main/doc/PLUGIN_DEVELOPMENT.md) before submitting to understand what's buildable.
+
+  - type: input
+    id: tag_name
+    attributes:
+      label: HTML tag(s) to handle
+      description: Which custom or standard HTML tag(s) should this plugin render?
+      placeholder: "<math>, <latex>, <chart>, <mermaid>, ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: What content will this plugin render? Where is it used? (CMS, e-book, documentation, etc.)
+      placeholder: "Our CMS exports math equations as <latex> tags inline with article text. We need them rendered as readable formulas on mobile."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Plugin tier
+      description: Block plugins take full width (like images). Inline plugins flow inside text lines (like icons).
+      options:
+        - Block (full width, like a figure or table)
+        - Inline (flows with text, like an icon or badge)
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_package
+    attributes:
+      label: Rendering library (optional)
+      description: Any Flutter package you'd suggest for the actual rendering?
+      placeholder: "flutter_math_fork for LaTeX, fl_chart for charts, flutter_svg for SVGs, ..."
+
+  - type: checkboxes
+    id: willing_to_build
+    attributes:
+      label: Are you willing to build this?
+      options:
+        - label: "Yes — I can submit a PR (see PLUGIN_DEVELOPMENT.md for the guide)"
+        - label: "No — I'm requesting someone else builds it"
+        - label: "Partial — I can help review or test but not lead the implementation"
