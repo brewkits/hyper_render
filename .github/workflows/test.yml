@@ -131,6 +131,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
+          arch: arm64-v8a
           script: flutter test test/integration/
       - name: Run iOS Simulator Tests
         if: matrix.platform == 'ios'
@@ -174,7 +175,10 @@ jobs:
         if: >-
           needs.path-filter.outputs.changed_root == 'true' ||
           needs.path-filter.outputs.changed_core == 'true'
-        run: flutter test --no-pub
+        run: |
+          # Run root tests, excluding test/golden/ which is handled by golden.yml
+          find test -maxdepth 1 -name "*_test.dart" | xargs flutter test --no-pub
+          find test -maxdepth 1 -type d -not -path test -not -path test/golden -not -path "test/failures" -not -path "test/.*" | xargs flutter test --no-pub
 
       - name: Test hyper_render_core
         if: needs.path-filter.outputs.changed_core == 'true'
