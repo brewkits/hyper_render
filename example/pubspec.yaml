@@ -41,6 +41,7 @@ dependencies:
   share_plus: ^12.0.0
 
 dependency_overrides:
+  sqflite: 2.3.3+1
   hyper_render:
     path: ../
   hyper_render_core:
