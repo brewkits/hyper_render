@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
@@ -34,6 +35,7 @@ import 'enterprise_features_demo.dart';
 import 'paged_mode_demo.dart';
 import 'plugin_api_demo.dart';
 import 'reader_app/library_screen.dart';
+import 'float_hell_demo.dart';
 
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
@@ -69,6 +71,14 @@ class HyperRenderDemoApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
+      ),
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          ui.PointerDeviceKind.mouse,
+          ui.PointerDeviceKind.touch,
+          ui.PointerDeviceKind.stylus,
+          ui.PointerDeviceKind.trackpad,
+        },
       ),
       home: const DemoHomePage(),
     );
@@ -290,6 +300,16 @@ class DemoHomePage extends StatelessWidget {
           ),
           // ── Advanced & Quality ────────────────────────────────────────────
           _buildSectionHeader(context, 'Advanced & Quality'),
+          _buildDemoCard(
+            context,
+            icon: Icons.whatshot,
+            title: 'Sprint 1: Float Hell Stress Test',
+            subtitle:
+                '2000 blocks, randomized left/right floats, width animation, virtualization test.',
+            color: Colors.deepPurple,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const FloatHellDemo())),
+          ),
           _buildDemoCard(
             context,
             icon: Icons.compare,

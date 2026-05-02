@@ -41,15 +41,14 @@ class HtmlAdapter {
       display: DisplayType.block,
       margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
       padding: const EdgeInsets.only(left: 16),
-      borderColor: const Color(0xFFCCCCCC),
+      borderColor: const Color(0x33000000),
       borderWidth: const EdgeInsets.only(left: 4),
     ),
     'pre': ComputedStyle(
       display: DisplayType.block,
       fontFamily: 'monospace',
       whiteSpace: 'pre',
-      backgroundColor: const Color(0xFF1E1E1E), // Dark background like VS Code
-      color: const Color(0xFFD4D4D4), // Light text
+      backgroundColor: const Color(0x0D000000),
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(vertical: 12),
       borderRadius: BorderRadius.circular(8),
@@ -58,8 +57,7 @@ class HtmlAdapter {
     ),
     'code': ComputedStyle(
       fontFamily: 'monospace',
-      backgroundColor: const Color(0xFFE8E8E8), // Light gray background
-      color: const Color(0xFFE91E63), // Pink/magenta for inline code
+      backgroundColor: const Color(0x14000000),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       borderRadius: BorderRadius.circular(4),
       fontSize: 13,
@@ -267,14 +265,19 @@ class HtmlAdapter {
 
   UDTNode? _parseNode(dom.Node node, [String? baseUrl]) {
     if (node.nodeType == dom.Node.TEXT_NODE) {
-      // Drop structural whitespace (contains newlines — pure indentation) but
-      // preserve space-only nodes (e.g. " ") that separate inline elements.
-      if (node.text == null ||
-          (node.text!.trim().isEmpty &&
-              !RegExp(r'^[ \t]+$').hasMatch(node.text!))) {
-        return null;
+      final text = node.text;
+      if (text == null || text.isEmpty) return null;
+      if (text.trim().isEmpty) {
+        if (RegExp(r'^[ \t]+$').hasMatch(text)) {
+          // Pure spaces/tabs — meaningful inter-element spacing, preserve as-is.
+          return TextNode(text);
+        }
+        // Contains a newline (structural whitespace between elements).
+        // Per HTML spec §8.2.6, this collapses to a single space so that
+        // <span>A</span>\n<span>B</span> renders "A B" not "AB".
+        return TextNode(' ');
       }
-      return TextNode(node.text!);
+      return TextNode(text);
     }
 
     if (node.nodeType == dom.Node.ELEMENT_NODE) {
@@ -306,7 +309,7 @@ class HtmlAdapter {
             style: ComputedStyle(
               display: DisplayType.block,
               margin: const EdgeInsets.symmetric(vertical: 8),
-              borderColor: const Color(0xFFCCCCCC),
+              borderColor: const Color(0x33000000),
               borderWidth: const EdgeInsets.only(top: 1),
             ),
             children: const [],
@@ -335,11 +338,17 @@ class HtmlAdapter {
         String baseText = '';
         String rubyText = '';
         for (var child in element.nodes) {
-          if (child.nodeType == dom.Node.TEXT_NODE) {
+          if (child.nodeType == dom.Node.ELEMENT_NODE) {
+            final childEl = child as dom.Element;
+            if (childEl.localName == 'rt' || childEl.localName == 'rp') {
+              if (childEl.localName == 'rt') rubyText += childEl.text;
+            } else {
+              // <b>, <strong>, <span>, etc. inside ruby base — collect their
+              // text content so it is never silently dropped.
+              baseText += childEl.text;
+            }
+          } else if (child.nodeType == dom.Node.TEXT_NODE) {
             baseText += child.text ?? '';
-          } else if (child.nodeType == dom.Node.ELEMENT_NODE &&
-              (child as dom.Element).localName == 'rt') {
-            rubyText += child.text;
           }
         }
         return RubyNode(

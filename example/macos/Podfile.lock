@@ -1,7 +1,11 @@
 PODS:
   - audio_session (0.0.1):
     - FlutterMacOS
+  - device_info_plus (0.0.1):
+    - FlutterMacOS
   - FlutterMacOS (1.0.0)
+  - irondash_engine_context (0.0.1):
+    - FlutterMacOS
   - just_audio (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -9,8 +13,10 @@ PODS:
     - FlutterMacOS
   - share_plus (0.0.1):
     - FlutterMacOS
-  - sqflite_darwin (0.0.4):
+  - sqflite (0.0.3):
     - Flutter
+    - FlutterMacOS
+  - super_native_extensions (0.0.1):
     - FlutterMacOS
   - url_launcher_macos (0.0.1):
     - FlutterMacOS
@@ -25,11 +31,14 @@ PODS:
 
 DEPENDENCIES:
   - audio_session (from `Flutter/ephemeral/.symlinks/plugins/audio_session/macos`)
+  - device_info_plus (from `Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
+  - irondash_engine_context (from `Flutter/ephemeral/.symlinks/plugins/irondash_engine_context/macos`)
   - just_audio (from `Flutter/ephemeral/.symlinks/plugins/just_audio/darwin`)
   - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
   - share_plus (from `Flutter/ephemeral/.symlinks/plugins/share_plus/macos`)
-  - sqflite_darwin (from `Flutter/ephemeral/.symlinks/plugins/sqflite_darwin/darwin`)
+  - sqflite (from `Flutter/ephemeral/.symlinks/plugins/sqflite/darwin`)
+  - super_native_extensions (from `Flutter/ephemeral/.symlinks/plugins/super_native_extensions/macos`)
   - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
   - video_player_avfoundation (from `Flutter/ephemeral/.symlinks/plugins/video_player_avfoundation/darwin`)
   - wakelock_plus (from `Flutter/ephemeral/.symlinks/plugins/wakelock_plus/macos`)
@@ -38,16 +47,22 @@ DEPENDENCIES:
 EXTERNAL SOURCES:
   audio_session:
     :path: Flutter/ephemeral/.symlinks/plugins/audio_session/macos
+  device_info_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
+  irondash_engine_context:
+    :path: Flutter/ephemeral/.symlinks/plugins/irondash_engine_context/macos
   just_audio:
     :path: Flutter/ephemeral/.symlinks/plugins/just_audio/darwin
   package_info_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
   share_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/share_plus/macos
-  sqflite_darwin:
-    :path: Flutter/ephemeral/.symlinks/plugins/sqflite_darwin/darwin
+  sqflite:
+    :path: Flutter/ephemeral/.symlinks/plugins/sqflite/darwin
+  super_native_extensions:
+    :path: Flutter/ephemeral/.symlinks/plugins/super_native_extensions/macos
   url_launcher_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
   video_player_avfoundation:
@@ -59,11 +74,14 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   audio_session: eaca2512cf2b39212d724f35d11f46180ad3a33e
+  device_info_plus: 4fb280989f669696856f8b129e4a5e3cd6c48f76
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
+  irondash_engine_context: 893c7d96d20ce361d7e996f39d360c4c2f9869ba
   just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
   package_info_plus: f0052d280d17aa382b932f399edf32507174e870
   share_plus: 510bf0af1a42cd602274b4629920c9649c52f4cc
-  sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
+  sqflite: c35dad70033b8862124f8337cc994a809fcd9fa3
+  super_native_extensions: c2795d6d9aedf4a79fae25cb6160b71b50549189
   url_launcher_macos: f87a979182d112f911de6820aefddaf56ee9fbfd
   video_player_avfoundation: dd410b52df6d2466a42d28550e33e4146928280a
   wakelock_plus: 917609be14d812ddd9e9528876538b2263aaa03b

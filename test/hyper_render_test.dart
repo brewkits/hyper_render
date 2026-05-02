@@ -331,7 +331,7 @@ void main() {
       }
 
       expect(row, isNotNull);
-      final cell = row!.children.first as TableCellNode;
+      final cell = row!.children.firstWhere((n) => n is TableCellNode) as TableCellNode;
       expect(cell.rowspan, equals(2));
     });
   });

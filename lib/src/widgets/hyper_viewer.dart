@@ -1480,7 +1480,7 @@ class _HyperViewerState extends State<HyperViewer>
       onPageChanged: widget.pageController?._onPageChanged,
       itemBuilder: (context, index) {
         final sectionKey = _sectionHashes.length > index
-            ? ValueKey(_sectionHashes[index])
+            ? ValueKey('${_sectionHashes[index]}_$index')
             : ValueKey(index);
         // Each page: full available height, with vertical scroll for overflowing
         // sections (e.g. a single very long chapter).
