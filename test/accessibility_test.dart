@@ -252,8 +252,9 @@ void main() {
               height: 600,
               child: HyperViewer(
                 mode: HyperRenderMode.sync,
+                // Real-world links live inside block elements — wrap in <p>.
                 html:
-                    '<a href="https://example.com" aria-label="Open documentation site">Docs</a>',
+                    '<p><a href="https://example.com" aria-label="Open documentation site">Docs</a></p>',
               ),
             ),
           ),
