@@ -149,7 +149,30 @@ class LazyImageQueue {
   /// Called during memory pressure to release pending work that hasn't started.
   /// In-flight loads are not cancelled because their completion callbacks may
   /// still be needed by live widgets.
+  ///
+  /// Every dropped load fires its [onError] callbacks with an
+  /// [ImageLoadCancelledException] so waiting widgets can show a fallback
+  /// instead of spinning forever. Corresponding [_tokenToUrl] entries are
+  /// also removed to prevent memory leaks.
   void clearPending() {
+    for (final load in _queue.values) {
+      // Clean up token map for every subscriber of this queued load.
+      for (final token in load.onErrorCallbacks.keys) {
+        _tokenToUrl.remove(token);
+      }
+      for (final token in load.onLoadCallbacks.keys) {
+        _tokenToUrl.remove(token);
+      }
+      // Notify subscribers so their UI can show error/placeholder state.
+      final error = ImageLoadCancelledException(load.url);
+      for (final cb in load.onErrorCallbacks.values) {
+        try {
+          cb(error);
+        } catch (_) {
+          // Never let a subscriber callback crash the queue.
+        }
+      }
+    }
     _queue.clear();
   }
 
@@ -287,4 +310,14 @@ class _PendingLoad {
         onLoadCallbacks: Map.of(onLoadCallbacks),
         onErrorCallbacks: Map.of(onErrorCallbacks),
       );
+}
+
+/// Thrown by [LazyImageQueue.clearPending] when a queued load is dropped
+/// before it starts, so widgets waiting on the result can show a placeholder.
+class ImageLoadCancelledException implements Exception {
+  final String url;
+  const ImageLoadCancelledException(this.url);
+
+  @override
+  String toString() => 'ImageLoadCancelledException: load dropped for $url';
 }

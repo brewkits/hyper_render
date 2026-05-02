@@ -773,13 +773,15 @@ class RenderHyperBox extends RenderBox
 
     final loader = _imageLoader ?? defaultImageLoader;
 
-    // Use a nullable variable rather than `late final` to handle the case where
-    // the image is already in Flutter's image cache: defaultImageLoader calls
-    // addListener() which may deliver the onLoad callback **synchronously**,
-    // before enqueue() returns and the token value is known.  When that happens
-    // pendingToken is still null, so the remove() call is skipped — which is
-    // correct because the token hasn't been added to _imageTokens yet.
+    // Use a nullable `pendingToken` rather than `late final` because the loader
+    // may call onLoad **synchronously** (e.g. image already in Flutter's cache).
+    // When that happens enqueue() hasn't returned yet, so pendingToken == null:
+    //   • remove(null) is a no-op — correct, token not in _imageTokens yet.
+    //   • callbackCompleted is set to true so we skip _imageTokens.add below.
+    // Without the flag the token would be added AFTER the callback already ran,
+    // leaving a stale entry in _imageTokens that cancel() can never clean up.
     int? pendingToken;
+    bool callbackCompleted = false;
 
     final token = LazyImageQueue.instance.enqueue(
       url: src,
@@ -794,6 +796,7 @@ class RenderHyperBox extends RenderBox
           image.dispose();
           return;
         }
+        callbackCompleted = true;
         _imageTokens.remove(pendingToken);
         _imageCache.put(
             src,
@@ -809,6 +812,7 @@ class RenderHyperBox extends RenderBox
       },
       onError: (Object error) {
         if (!attached) return;
+        callbackCompleted = true;
         _imageTokens.remove(pendingToken);
         _imageCache.put(
             src,
@@ -820,7 +824,13 @@ class RenderHyperBox extends RenderBox
       },
     );
     pendingToken = token;
-    _imageTokens.add(token);
+    // Only track the token when the callback hasn't already fired synchronously.
+    // If it fired sync, the image is already in _imageCache and the token has
+    // been removed from LazyImageQueue._tokenToUrl — cancel() would be a no-op,
+    // so there is nothing to track.
+    if (!callbackCompleted) {
+      _imageTokens.add(token);
+    }
   }
 
   // ============================================
@@ -1151,16 +1161,15 @@ class RenderHyperBox extends RenderBox
         );
       }
     } catch (e, stack) {
-      // Error boundary: prevent full app crash, but report to Flutter framework
-      // so Crashlytics / Sentry / FlutterError.onError can capture it.
       FlutterError.reportError(FlutterErrorDetails(
         exception: e,
         stack: stack,
         library: 'HyperRender',
         context: ErrorDescription('during performLayout() in RenderHyperBox'),
       ));
-
-      // Fallback: Render minimum viable size to show something
+      // In debug mode rethrow so layout bugs surface immediately rather than
+      // being silently swallowed behind a zero-height box.
+      if (kDebugMode) rethrow;
       size = constraints.constrain(Size(constraints.maxWidth, 0));
     }
   }
@@ -1448,13 +1457,7 @@ class RenderHyperBox extends RenderBox
         final href = anchor.href;
         if (href != null && onLinkTap != null) {
           cfg.onTap = () {
-            // Reuse the same scheme-allow-list logic as pointer events.
-            const builtinSchemes = {'http', 'https', 'mailto', 'tel'};
-            final scheme = Uri.tryParse(href)?.scheme.toLowerCase() ?? '';
-            if (builtinSchemes.contains(scheme) ||
-                _config.extraLinkSchemes.contains(scheme)) {
-              onLinkTap!(href);
-            }
+            onLinkTap!(href);
           };
         }
       }

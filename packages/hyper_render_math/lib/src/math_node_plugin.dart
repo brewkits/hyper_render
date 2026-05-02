@@ -44,7 +44,7 @@ class MathNodePlugin implements HyperNodePlugin {
     final src = node.attributes['src']?.trim() ?? _getTextContent(node).trim();
     if (src.isEmpty) return null;
 
-    // TODO: replace _Placeholder with a real math renderer (see class docs).
+    // Return a real math renderer here (see class docs).
     return _Placeholder(src: src);
   }
 

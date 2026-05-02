@@ -213,15 +213,21 @@ extension RenderHyperBoxSelection on RenderHyperBox {
             final selectEnd =
                 math.min(fragmentLength, _selection!.end - fragmentStart);
 
-            // Trim whitespace for visual bounds (same as _paintSelection)
+            // Trim trailing/leading spaces for visual bounds, but preserve them
+            // in preformatted contexts where indentation is meaningful.
             final text = fragment.text!;
             int visualStart = selectStart;
             int visualEnd = selectEnd;
-            while (visualStart < visualEnd && text[visualStart] == ' ') {
-              visualStart++;
-            }
-            while (visualEnd > visualStart && text[visualEnd - 1] == ' ') {
-              visualEnd--;
+            final ws = fragment.style.whiteSpace;
+            final isPreformatted =
+                ws == 'pre' || ws == 'pre-wrap' || ws == 'break-spaces';
+            if (!isPreformatted) {
+              while (visualStart < visualEnd && text[visualStart] == ' ') {
+                visualStart++;
+              }
+              while (visualEnd > visualStart && text[visualEnd - 1] == ' ') {
+                visualEnd--;
+              }
             }
 
             if (visualStart < visualEnd) {
@@ -284,16 +290,26 @@ extension RenderHyperBoxSelection on RenderHyperBox {
     final charPos = _getCharacterPositionAtOffset(localPosition);
     if (charPos < 0 || _selection == null) return;
 
+    final HyperTextSelection newSel;
     if (isStartHandle) {
-      if (charPos < _selection!.end) {
-        _selection = HyperTextSelection(start: charPos, end: _selection!.end);
-        markNeedsPaint();
+      if (charPos <= _selection!.end) {
+        newSel = HyperTextSelection(start: charPos, end: _selection!.end);
+      } else {
+        // Start dragged past end — swap anchors so selection inverts smoothly.
+        newSel = HyperTextSelection(start: _selection!.end, end: charPos);
       }
     } else {
-      if (charPos > _selection!.start) {
-        _selection = HyperTextSelection(start: _selection!.start, end: charPos);
-        markNeedsPaint();
+      if (charPos >= _selection!.start) {
+        newSel = HyperTextSelection(start: _selection!.start, end: charPos);
+      } else {
+        // End dragged past start — swap anchors so selection inverts smoothly.
+        newSel = HyperTextSelection(start: charPos, end: _selection!.start);
       }
     }
+
+    if (newSel == _selection) return;
+    _selection = newSel;
+    markNeedsPaint();
+    _notifySelectionChanged();
   }
 }

@@ -288,12 +288,19 @@ class HtmlSanitizer {
   ///
   /// Exposed as public so Markdown/Delta adapters can reuse the same check.
   static bool isSafeUrl(String url) {
-    final trimmed = url.trim().toLowerCase();
-    if (trimmed.startsWith('javascript:')) return false;
-    if (trimmed.startsWith('vbscript:')) return false;
+    // Strip ASCII control characters (U+0000–U+001F) and DEL (U+007F) from the
+    // entire string — not just leading/trailing. Browsers and some parsers
+    // silently ignore embedded tabs/newlines in URLs, enabling bypasses like
+    // "jav&#x09;ascript:alert(1)" → "jav\tascript:alert(1)" which passes a
+    // naive startsWith check. Per WHATWG URL spec §4.1, these chars must be
+    // stripped before scheme identification.
+    final cleaned =
+        url.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '').trim().toLowerCase();
+    if (cleaned.startsWith('javascript:')) return false;
+    if (cleaned.startsWith('vbscript:')) return false;
     // Block SVG data URLs — inline SVG can contain <script> elements.
-    if (trimmed.startsWith('data:image/svg')) return false;
-    if (trimmed.startsWith('data:') && !trimmed.startsWith('data:image/')) {
+    if (cleaned.startsWith('data:image/svg')) return false;
+    if (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/')) {
       return false;
     }
     return true;

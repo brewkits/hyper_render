@@ -32,15 +32,14 @@ class HtmlAdapter {
       display: DisplayType.block,
       margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
       padding: const EdgeInsets.only(left: 16),
-      borderColor: const Color(0xFFCCCCCC),
+      borderColor: const Color(0x33000000),
       borderWidth: const EdgeInsets.only(left: 4),
     ),
     'pre': ComputedStyle(
       display: DisplayType.block,
       fontFamily: 'monospace',
       whiteSpace: 'pre',
-      backgroundColor: const Color(0xFF1E1E1E), // Dark background like VS Code
-      color: const Color(0xFFD4D4D4), // Light text
+      backgroundColor: const Color(0x0D000000),
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(vertical: 12),
       borderRadius: BorderRadius.circular(8),
@@ -49,8 +48,7 @@ class HtmlAdapter {
     ),
     'code': ComputedStyle(
       fontFamily: 'monospace',
-      backgroundColor: const Color(0xFFE8E8E8), // Light gray background
-      color: const Color(0xFFE91E63), // Pink/magenta for inline code
+      backgroundColor: const Color(0x14000000),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       borderRadius: BorderRadius.circular(4),
       fontSize: 13,
@@ -143,8 +141,16 @@ class HtmlAdapter {
           'aside'
         ].contains(tagName);
 
-        if (isContainer && nodeSize > chunkSize && node.nodes.length > 1) {
-          // Recursively flatten children of this large container
+        // Only flatten containers that carry no meaningful CSS class/style so
+        // we never silently discard styling on wrappers like
+        // <div class="markdown-body" style="padding:20px">…</div>.
+        final hasStyle = node.attributes['style']?.isNotEmpty == true;
+        final hasClass = node.attributes['class']?.isNotEmpty == true;
+        final canFlatten =
+            isContainer && nodeSize > chunkSize && node.nodes.length > 1;
+
+        if (canFlatten && !hasStyle && !hasClass) {
+          // Recursively flatten children of this large, unstyled container.
           result
               .addAll(_flattenLargeContainers(node.nodes.toList(), chunkSize));
         } else {
@@ -206,8 +212,21 @@ class HtmlAdapter {
 
   UDTNode? _parseNode(dom.Node node, String? baseUrl) {
     if (node.nodeType == dom.Node.TEXT_NODE) {
-      if (node.text == null || node.text!.trim().isEmpty) return null;
-      return TextNode(node.text!);
+      final text = node.text;
+      if (text == null || text.isEmpty) return null;
+      // Per HTML spec §8.2.6, whitespace-only text nodes between inline
+      // elements collapse to a single inter-element space. A bare "\n" between
+      // <span>A</span> and <span>B</span> should render as "A B" not "AB".
+      // Detect: trim() is empty (pure whitespace) but original contains a
+      // newline (not just spaces/tabs that are genuine inline spacing).
+      if (text.trim().isEmpty) {
+        if (text.contains('\n') || text.contains('\r')) {
+          return TextNode(' ');
+        }
+        // Pure spaces/tabs — could be meaningful inline spacing, preserve them.
+        return TextNode(text);
+      }
+      return TextNode(text);
     }
 
     if (node.nodeType == dom.Node.ELEMENT_NODE) {
@@ -242,11 +261,18 @@ class HtmlAdapter {
         String baseText = '';
         String rubyText = '';
         for (var child in element.nodes) {
-          if (child.nodeType == dom.Node.TEXT_NODE) {
+          if (child.nodeType == dom.Node.ELEMENT_NODE) {
+            final childEl = child as dom.Element;
+            if (childEl.localName == 'rt' || childEl.localName == 'rp') {
+              // rt = phonetic annotation, rp = fallback parentheses
+              if (childEl.localName == 'rt') rubyText += childEl.text;
+            } else {
+              // <b>, <strong>, <span>, etc. inside ruby base — collect their
+              // text content recursively so it is never silently dropped.
+              baseText += childEl.text;
+            }
+          } else if (child.nodeType == dom.Node.TEXT_NODE) {
             baseText += child.text ?? '';
-          } else if (child.nodeType == dom.Node.ELEMENT_NODE &&
-              (child as dom.Element).localName == 'rt') {
-            rubyText += child.text;
           }
         }
         return RubyNode(

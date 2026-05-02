@@ -221,8 +221,7 @@ class MarkdownAdapter {
             display: DisplayType.block,
             fontFamily: 'monospace',
             whiteSpace: 'pre',
-            backgroundColor: const Color(0xFF1E1E1E),
-            color: const Color(0xFFD4D4D4),
+            backgroundColor: const Color(0x0D000000),
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.symmetric(vertical: 12),
             borderRadius: BorderRadius.circular(8),
@@ -232,14 +231,16 @@ class MarkdownAdapter {
           children: children,
         );
 
-      // Link
+      // Link — sanitize href to block javascript:/vbscript: XSS
       case 'a':
-        final href = attributes['href'] ?? '#';
+        final rawHref = attributes['href'] ?? '#';
+        final href = _isSafeUrl(rawHref) ? rawHref : '#';
         return InlineNode.a(href: href, children: children);
 
-      // Image
+      // Image — sanitize src to block javascript:/data: XSS
       case 'img':
-        final src = attributes['src'] ?? '';
+        final rawSrc = attributes['src'] ?? '';
+        final src = _isSafeUrl(rawSrc) ? rawSrc : '';
         final alt = attributes['alt'];
         return AtomicNode.img(src: src, alt: alt);
 
@@ -251,7 +252,7 @@ class MarkdownAdapter {
             display: DisplayType.block,
             margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
             padding: const EdgeInsets.only(left: 16),
-            borderColor: const Color(0xFFCCCCCC),
+            borderColor: const Color(0x33000000),
             borderWidth: const EdgeInsets.only(left: 4),
           ),
           children: children,
@@ -327,7 +328,7 @@ class MarkdownAdapter {
           style: ComputedStyle(
             display: DisplayType.block,
             borderWidth: const EdgeInsets.only(top: 1),
-            borderColor: const Color(0xFFCCCCCC),
+            borderColor: const Color(0x33000000),
             margin: const EdgeInsets.symmetric(vertical: 16),
           ),
           children: [],
@@ -356,6 +357,21 @@ class MarkdownAdapter {
     }
     return result;
   }
+}
+
+/// URL safety guard — mirrors HtmlSanitizer.isSafeUrl in the root package.
+/// Strips ASCII control characters (incl. tab/newline bypass tricks) before
+/// checking the scheme, per WHATWG URL spec §4.1.
+bool _isSafeUrl(String url) {
+  final cleaned =
+      url.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '').trim().toLowerCase();
+  if (cleaned.startsWith('javascript:')) return false;
+  if (cleaned.startsWith('vbscript:')) return false;
+  if (cleaned.startsWith('data:image/svg')) return false;
+  if (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/')) {
+    return false;
+  }
+  return true;
 }
 
 /// Extension methods for MarkdownAdapter

@@ -3,7 +3,7 @@ description: >
   Community plugin template for HyperRender that renders mathematical
   expressions (LaTeX / MathML) via custom HTML tags. Use this as a
   starting point for your own math plugin.
-version: 0.1.0
+version: 1.2.3
 repository: https://github.com/brewkits/hyper_render
 
 environment:

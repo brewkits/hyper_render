@@ -11,7 +11,7 @@ import irondash_engine_context
 import just_audio
 import package_info_plus
 import share_plus
-import sqflite_darwin
+import sqflite
 import super_native_extensions
 import url_launcher_macos
 import video_player_avfoundation

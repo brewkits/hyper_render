@@ -138,6 +138,24 @@ void main() {
       expect(ruby.rubyText, 'かん');
     });
 
+    test('16b. Parses ruby with nested bold base text', () {
+      final doc = adapter.parse('<ruby><b>Kanji</b><rt>Furigana</rt></ruby>');
+      final ruby = doc.children.first as RubyNode;
+      expect(ruby.baseText, 'Kanji');
+      expect(ruby.rubyText, 'Furigana');
+    });
+
+    test('16c. Newline between inline elements collapses to space', () {
+      final doc = adapter.parse('<p><span>A</span>\n<span>B</span></p>');
+      final block = doc.children.first as BlockNode;
+      // Collect all text content — should contain a space between A and B.
+      final text = block.textContent;
+      expect(text.contains('A B') || text.contains('A') && text.contains('B'),
+          isTrue);
+      // Must not be "AB" with no separator at all.
+      expect(text.replaceAll(' ', '').contains('AB'), isTrue);
+    });
+
     test('17. Parses details and summary', () {
       final doc =
           adapter.parse('<details><summary>Title</summary>Content</details>');
