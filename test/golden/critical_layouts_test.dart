@@ -5,6 +5,9 @@
 ///
 /// Then run normally to compare:
 ///   flutter test test/golden/critical_layouts_test.dart
+///
+/// Excluded from normal CI runs via: --exclude-tags golden
+@Tags(['golden'])
 library;
 
 import 'package:flutter/material.dart';
