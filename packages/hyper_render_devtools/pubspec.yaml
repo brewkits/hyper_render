@@ -18,11 +18,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  # HyperRender core for accessing UDT model types
-  # Publishing: replace path with: hyper_render_core: ^1.2.0
   hyper_render_core:
     path: ../hyper_render_core
+
+  # HyperRender core for accessing UDT model types
 
   # Note: devtools_extensions is only needed in the devtools_ui sub-package
   # (the Flutter Web panel). This library (service extensions) only uses

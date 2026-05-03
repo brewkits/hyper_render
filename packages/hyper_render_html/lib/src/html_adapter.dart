@@ -3,6 +3,11 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as dom;
 import 'package:hyper_render_core/hyper_render_core.dart';
 
+/// HTML to UDT adapter
+///
+/// Converts HTML strings into Unified Document Tree (UDT) nodes.
+/// Supports CSS styles, relative URL resolution, and document chunking
+/// for virtualized rendering.
 class HtmlAdapter {
   static final Map<String, ComputedStyle> _defaultStyles = {
     'h1': ComputedStyle(
@@ -74,11 +79,47 @@ class HtmlAdapter {
     'tfoot': ComputedStyle(display: DisplayType.block),
   };
 
+  /// Parses [html] into a single [DocumentNode].
   DocumentNode parse(String html, {String? baseUrl}) {
     final document = html_parser.parse(html);
     return _parseDocument(document, baseUrl);
   }
 
+  /// Extracts the concatenated text of all `<style>` elements in [html].
+  ///
+  /// Call this **before** sanitizing so that `<style>` tags are not stripped
+  /// before the CSS rules are collected.
+  String extractCss(String html) {
+    final document = html_parser.parse(html);
+    final buffer = StringBuffer();
+    for (final el in document.querySelectorAll('style')) {
+      final text = el.text;
+      if (text.isNotEmpty) {
+        buffer.write(text);
+        buffer.write('\n');
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// Parses `@keyframes` rules from all `<style>` elements in [html].
+  ///
+  /// Returns a map from animation name → [HyperKeyframes].  The result can be
+  /// merged into [HyperRenderConfig.keyframeRegistry] so that the renderer
+  /// can drive CSS animations declared in the document itself.
+  ///
+  /// Call this **before** sanitizing (same reason as [extractCss]).
+  Map<String, HyperKeyframes> extractKeyframes(
+      String html, CssParserInterface cssParser) {
+    final css = extractCss(html);
+    if (css.isEmpty) return const {};
+    return cssParser.parseKeyframes(css);
+  }
+
+  /// Parses [html] into multiple [DocumentNode] chunks for virtualization.
+  ///
+  /// [chunkSize] is an estimate of the number of characters per section.
+  /// Prevents splitting at sensitive boundaries like headings and floats.
   List<DocumentNode> parseToSections(String html,
       {int chunkSize = 3000, String? baseUrl}) {
     final document = html_parser.parse(html);
@@ -94,17 +135,45 @@ class HtmlAdapter {
     final nodesToProcess =
         _flattenLargeContainers(body.nodes.toList(), chunkSize);
 
-    for (var child in nodesToProcess) {
-      UDTNode? udtNode = _parseNode(child, baseUrl);
+    for (int i = 0; i < nodesToProcess.length; i++) {
+      final child = nodesToProcess[i];
+      final UDTNode? udtNode = _parseNode(child, baseUrl);
 
       if (udtNode != null) {
         currentSection.children.add(udtNode);
         currentSize += _estimateNodeSize(child);
 
         if (currentSize >= chunkSize && udtNode.isBlock) {
-          sections.add(currentSection);
-          currentSection = DocumentNode(children: []);
-          currentSize = 0;
+          // Protection logic from root adapter
+          final lastTag = udtNode.tagName?.toLowerCase();
+          final isHeading = lastTag == 'h1' ||
+              lastTag == 'h2' ||
+              lastTag == 'h3' ||
+              lastTag == 'h4' ||
+              lastTag == 'h5' ||
+              lastTag == 'h6';
+
+          bool nextIsHeading = false;
+          if (!isHeading && i + 1 < nodesToProcess.length) {
+            final nextTag = nodesToProcess[i + 1] is dom.Element
+                ? (nodesToProcess[i + 1] as dom.Element)
+                    .localName
+                    ?.toLowerCase()
+                : null;
+            nextIsHeading = nextTag == 'h1' ||
+                nextTag == 'h2' ||
+                nextTag == 'h3' ||
+                nextTag == 'h4' ||
+                nextTag == 'h5' ||
+                nextTag == 'h6';
+          }
+
+          final currentHasFloat = _containsFloatChild(child);
+          if (!isHeading && !nextIsHeading && !currentHasFloat) {
+            sections.add(currentSection);
+            currentSection = DocumentNode(children: []);
+            currentSize = 0;
+          }
         }
       }
     }
@@ -130,7 +199,6 @@ class HtmlAdapter {
         final tagName = node.localName?.toLowerCase();
         final nodeSize = _estimateNodeSize(node);
 
-        // If this is a large container element, extract its children instead
         final isContainer = const [
           'div',
           'section',
@@ -141,16 +209,12 @@ class HtmlAdapter {
           'aside'
         ].contains(tagName);
 
-        // Only flatten containers that carry no meaningful CSS class/style so
-        // we never silently discard styling on wrappers like
-        // <div class="markdown-body" style="padding:20px">…</div>.
         final hasStyle = node.attributes['style']?.isNotEmpty == true;
         final hasClass = node.attributes['class']?.isNotEmpty == true;
         final canFlatten =
             isContainer && nodeSize > chunkSize && node.nodes.length > 1;
 
         if (canFlatten && !hasStyle && !hasClass) {
-          // Recursively flatten children of this large, unstyled container.
           result
               .addAll(_flattenLargeContainers(node.nodes.toList(), chunkSize));
         } else {
@@ -164,35 +228,25 @@ class HtmlAdapter {
     return result;
   }
 
-  /// Estimate the size of a node for chunking purposes
   int _estimateNodeSize(dom.Node node) {
     if (node is dom.Text) {
       return node.text.length;
     }
     if (node is dom.Element) {
-      // Estimate based on inner text + some overhead for tags/attributes
       final textLength = node.text.length;
-      final overhead = node.nodes.length * 10; // Rough estimate for structure
+      final overhead = node.nodes.length * 10;
       return textLength + overhead;
     }
-    return 50; // Default estimate for unknown nodes
+    return 50;
   }
 
-  /// Resolve relative URLs with base URL
-  ///
-  /// Handles cases like:
-  /// - Relative: "/logo.png" + "https://example.com" = "https://example.com/logo.png"
-  /// - Absolute: "https://cdn.com/img.png" + baseUrl = unchanged
-  /// - Protocol-relative: "//cdn.com/img.png" + baseUrl = adds protocol
   String? _resolveUrl(String? url, String? baseUrl) {
     if (url == null || url.isEmpty) return null;
     if (baseUrl == null || baseUrl.isEmpty) return url;
 
     try {
-      // Resolve relative URL with base
       return Uri.parse(baseUrl).resolve(url).toString();
     } catch (_) {
-      // If parsing fails, return original URL
       return url;
     }
   }
@@ -214,16 +268,10 @@ class HtmlAdapter {
     if (node.nodeType == dom.Node.TEXT_NODE) {
       final text = node.text;
       if (text == null || text.isEmpty) return null;
-      // Per HTML spec §8.2.6, whitespace-only text nodes between inline
-      // elements collapse to a single inter-element space. A bare "\n" between
-      // <span>A</span> and <span>B</span> should render as "A B" not "AB".
-      // Detect: trim() is empty (pure whitespace) but original contains a
-      // newline (not just spaces/tabs that are genuine inline spacing).
       if (text.trim().isEmpty) {
         if (text.contains('\n') || text.contains('\r')) {
           return TextNode(' ');
         }
-        // Pure spaces/tabs — could be meaningful inline spacing, preserve them.
         return TextNode(text);
       }
       return TextNode(text);
@@ -234,12 +282,32 @@ class HtmlAdapter {
       final tagName = element.localName?.toLowerCase() ?? 'div';
       final defaultStyle = _defaultStyles[tagName] ?? ComputedStyle();
 
+      // Inline SVG handling
+      if (tagName == 'svg') {
+        return AtomicNode.svg(
+          svgData: element.outerHtml,
+          width: double.tryParse(element.attributes['width'] ?? ''),
+          height: double.tryParse(element.attributes['height'] ?? ''),
+        );
+      }
+
       if (_isAtomic(element)) {
-        if (tagName == 'br' || tagName == 'hr') {
-          return LineBreakNode(); // Simplified
+        if (tagName == 'br') {
+          return LineBreakNode();
+        }
+        if (tagName == 'hr') {
+          return BlockNode(
+            tagName: 'hr',
+            style: ComputedStyle(
+              display: DisplayType.block,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              borderWidth: const EdgeInsets.only(bottom: 1),
+              borderColor: const Color(0xFFCCCCCC),
+              borderBottomStyle: HyperBorderStyle.solid,
+            ),
+          );
         }
 
-        // Resolve src attribute for media elements (img, video, audio, iframe)
         String? src = element.attributes['src'];
         if (src != null) {
           src = _resolveUrl(src, baseUrl);
@@ -264,11 +332,8 @@ class HtmlAdapter {
           if (child.nodeType == dom.Node.ELEMENT_NODE) {
             final childEl = child as dom.Element;
             if (childEl.localName == 'rt' || childEl.localName == 'rp') {
-              // rt = phonetic annotation, rp = fallback parentheses
               if (childEl.localName == 'rt') rubyText += childEl.text;
             } else {
-              // <b>, <strong>, <span>, etc. inside ruby base — collect their
-              // text content recursively so it is never silently dropped.
               baseText += childEl.text;
             }
           } else if (child.nodeType == dom.Node.TEXT_NODE) {
@@ -282,7 +347,6 @@ class HtmlAdapter {
         );
       }
 
-      // Resolve href attribute for link elements
       if (tagName == 'a') {
         String? href = element.attributes['href'];
         if (href != null) {
@@ -300,9 +364,17 @@ class HtmlAdapter {
 
       UDTNode result;
       if (tagName == 'details') {
-        // Parse <details> element — rendered by HyperDetailsWidget via HyperRenderWidget
         result = BlockNode(
           tagName: 'details',
+          attributes:
+              element.attributes.map((k, v) => MapEntry(k.toString(), v)),
+          style: defaultStyle,
+          children: children,
+        );
+      } else if (tagName == 'summary') {
+        // Summary is special — usually block-like inside <details> but semantic
+        result = BlockNode(
+          tagName: 'summary',
           attributes:
               element.attributes.map((k, v) => MapEntry(k.toString(), v)),
           style: defaultStyle,
@@ -348,7 +420,6 @@ class HtmlAdapter {
         );
       }
 
-      // Set parent reference for all children
       for (final child in children) {
         child.parent = result;
       }
@@ -362,5 +433,19 @@ class HtmlAdapter {
   bool _isAtomic(dom.Element element) {
     return const ['img', 'video', 'audio', 'iframe', 'br', 'hr', 'input']
         .contains(element.localName);
+  }
+
+  bool _containsFloatChild(dom.Node node) {
+    if (node is dom.Element) {
+      final style = node.attributes['style'];
+      if (style != null &&
+          (style.contains('float: left') || style.contains('float: right'))) {
+        return true;
+      }
+      for (final child in node.nodes) {
+        if (_containsFloatChild(child)) return true;
+      }
+    }
+    return false;
   }
 }

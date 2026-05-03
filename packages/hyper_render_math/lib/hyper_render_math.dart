@@ -1,7 +1,6 @@
 /// HyperRender math plugin — renders `<math>` and `<latex>` tags.
 ///
-/// This is a **skeleton / template** plugin. Wire up `flutter_math_fork`
-/// (or another backend) in `lib/src/math_node_plugin.dart` to complete it.
+/// This plugin uses `flutter_math_fork` for high-performance LaTeX rendering.
 ///
 /// ## Quick start
 ///
@@ -10,8 +9,7 @@
 /// import 'package:hyper_render_math/hyper_render_math.dart';
 ///
 /// final registry = HyperPluginRegistry()
-///   ..register(const MathNodePlugin())    // handles <math>
-///   ..register(const LatexNodePlugin());  // handles <latex>
+///   ..register(const MathNodePlugin());
 ///
 /// HyperViewer(
 ///   html: 'The quadratic formula: <math>x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}</math>',

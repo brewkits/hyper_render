@@ -10,7 +10,7 @@ Most apps should depend on [`hyper_render`](https://pub.dev/packages/hyper_rende
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.2.0
+  hyper_render_core: ^1.3.0
 ```
 
 ---

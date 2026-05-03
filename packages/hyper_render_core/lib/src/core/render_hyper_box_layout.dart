@@ -382,9 +382,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         // Clamp available width (leave a small margin so content doesn't touch edges).
         final maxW =
             _maxWidth > _kImageMargin ? _maxWidth - _kImageMargin : _maxWidth;
-        // Prefer HTML attrs first, then CSS style dims (width:80px etc.).
-        final dimW = node.intrinsicWidth ?? node.style.width;
-        final dimH = node.intrinsicHeight ?? node.style.height;
+        // CSS style takes priority over HTML attrs (customCss/inline style wins).
+        final dimW = node.style.width ?? node.intrinsicWidth;
+        final dimH = node.style.height ?? node.intrinsicHeight;
         if (dimW != null && dimH != null) {
           // Both dimensions specified — scale down proportionally if wider than viewport.
           final scale = (dimW > maxW && dimW > 0) ? maxW / dimW : 1.0;
@@ -415,9 +415,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         // Image not loaded yet - use specified dimensions or smart placeholder
         final maxW =
             _maxWidth > _kImageMargin ? _maxWidth - _kImageMargin : _maxWidth;
-        // Prefer HTML width/height attrs, then CSS style dims, then defaults.
-        final dimW = node.intrinsicWidth ?? node.style.width;
-        final dimH = node.intrinsicHeight ?? node.style.height;
+        // CSS style takes priority over HTML attrs (customCss/inline style wins).
+        final dimW = node.style.width ?? node.intrinsicWidth;
+        final dimH = node.style.height ?? node.intrinsicHeight;
         if (dimW != null && dimH != null) {
           final scale = (dimW > maxW && dimW > 0) ? maxW / dimW : 1.0;
           width = dimW * scale;
@@ -1617,9 +1617,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final img = cached!.image!;
         final imgW = img.width.toDouble();
         final imgH = img.height.toDouble();
-        // Prefer HTML attrs, then CSS style dims (width:180px etc.).
-        final dimW = sourceNode.intrinsicWidth ?? sourceNode.style.width;
-        final dimH = sourceNode.intrinsicHeight ?? sourceNode.style.height;
+        // CSS style takes priority over HTML attrs per CSS cascade spec.
+        final dimW = sourceNode.style.width ?? sourceNode.intrinsicWidth;
+        final dimH = sourceNode.style.height ?? sourceNode.intrinsicHeight;
         if (dimW != null && dimH != null) {
           final scale =
               (dimW > availableWidth && dimW > 0) ? availableWidth / dimW : 1.0;
@@ -1647,14 +1647,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       } else {
         // Image not yet loaded — use CSS dimensions or a 16:9 placeholder
         width = math.min(
-          sourceNode.intrinsicWidth ??
-              sourceNode.style.width ??
+          sourceNode.style.width ??
+              sourceNode.intrinsicWidth ??
               sourceNode.style.maxWidth ??
               _defaultImageWidth,
           availableWidth,
         );
-        height = sourceNode.intrinsicHeight ??
-            sourceNode.style.height ??
+        height = sourceNode.style.height ??
+            sourceNode.intrinsicHeight ??
             (width / RenderHyperBox._defaultAspectRatio);
       }
     } else {

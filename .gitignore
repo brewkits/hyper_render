@@ -4,6 +4,9 @@
 .cursor/
 .windsurf/
 .aider*
+CLAUDE.md
+GEMINI.md
+.geminiignore
 .env
 .env.*
 *.local
@@ -16,6 +19,8 @@ TEST.md
 
 # Private / internal documents (not for public repository)
 doc/internal/
+.demo_recordings/
+archive/
 STRATEGIC_POSITIONING.md
 EXECUTIVE_SUMMARY.md
 PITCH_DECK.md

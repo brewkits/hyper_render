@@ -3,24 +3,24 @@
 # HyperRender Demo GIF Recorder
 # =============================================================================
 #
-# Ghi lại tất cả 6 demo clips từ example app và convert thành GIF tối ưu.
+# Records all 6 demo clips from the example app and converts them to optimized GIFs.
 #
-# Yêu cầu:
+# Requirements:
 #   - ffmpeg       (brew install ffmpeg)
-#   - iOS Simulator đang chạy HOẶC Android device kết nối qua ADB
-#   - Example app đã được build và cài sẵn trên device/simulator
+#   - iOS Simulator running OR Android device connected via ADB
+#   - Example app built and installed on the device/simulator
 #
-# Cách dùng:
-#   # Chạy toàn bộ (hướng dẫn từng bước)
+# Usage:
+#   # Run full interactive session (step-by-step)
 #   ./scripts/record_demos.sh
 #
-#   # Chỉ convert video có sẵn → GIF (không record mới)
+#   # Convert existing videos to GIF only (no new recording)
 #   ./scripts/record_demos.sh convert-only
 #
-#   # Record 1 demo cụ thể (float | ruby | selection | table | comparison | performance)
+#   # Record a specific single demo (float | ruby | selection | table | comparison | performance)
 #   ./scripts/record_demos.sh single float
 #
-# Output: assets/*.gif  (thay thế GIFs cũ)
+# Output: assets/*.gif (replaces old GIFs)
 # =============================================================================
 
 set -euo pipefail
@@ -31,7 +31,7 @@ TMP="$ROOT/.demo_recordings"
 MODE="${1:-interactive}"
 SINGLE_DEMO="${2:-}"
 
-# ── Màu terminal ──────────────────────────────────────────────────────────────
+# ── Terminal Colors ─────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 
@@ -41,16 +41,16 @@ warn()    { echo -e "${YELLOW}⚠${NC}  $*" >&2; }
 error()   { echo -e "${RED}✗${NC}  $*" >&2; exit 1; }
 step()    { echo -e "\n${BOLD}${CYAN}══ $* ══${NC}" >&2; }
 
-# ── Kiểm tra ffmpeg ───────────────────────────────────────────────────────────
+# ── Check for ffmpeg ────────────────────────────────────────────────────────
 if ! command -v ffmpeg &>/dev/null; then
-  error "ffmpeg không tìm thấy. Cài đặt: brew install ffmpeg"
+  error "ffmpeg not found. Install with: brew install ffmpeg"
 fi
 
-# ── Tạo thư mục tạm ──────────────────────────────────────────────────────────
+# ── Create Temporary Directory ──────────────────────────────────────────────
 mkdir -p "$TMP" "$ASSETS"
 
 # =============================================================================
-# Cấu hình từng demo
+# Demo Configuration
 # =============================================================================
 # Format: NAME|GIF_FILE|DURATION_SEC|DESCRIPTION|DEMO_SCREEN
 declare -a DEMOS=(
@@ -68,14 +68,14 @@ GIF_FPS=15          # frames per second (15 = smooth, smaller file than 30)
 GIF_SCALE="scale=${GIF_WIDTH}:-1:flags=lanczos"
 
 # =============================================================================
-# Record từ iOS Simulator
+# Record from iOS Simulator
 # =============================================================================
 record_ios() {
   local name="$1"
   local duration="$2"
   local outfile="$TMP/${name}.mp4"
 
-  # Tìm booted simulator
+  # Find booted simulator
   local UDID
   UDID=$(xcrun simctl list devices booted -j 2>/dev/null \
     | python3 -c "
@@ -89,23 +89,23 @@ for runtime in d.get('devices', {}).values():
 " 2>/dev/null || true)
 
   if [[ -z "$UDID" ]]; then
-    error "Không có iOS Simulator nào đang chạy. Mở Simulator rồi build example app trước."
+    error "No iOS Simulator running. Please open Simulator and build the example app first."
   fi
 
-  info "Bắt đầu record iOS Simulator (${duration}s)..."
-  info "→ Điều hướng đến màn hình demo BÂY GIỜ, rồi tương tác trong ${duration}s."
+  info "Starting iOS Simulator recording (${duration}s)..."
+  info "→ Navigate to the demo screen NOW and interact for ${duration}s."
   echo "" >&2
 
-  # Record trong background
+  # Record in background
   xcrun simctl io "$UDID" recordVideo --codec=h264 "$outfile" &
   local REC_PID=$!
 
   # Countdown
   for ((i=duration; i>0; i--)); do
-    printf "\r  ⏺  Recording... ${i}s còn lại   " >&2
+    printf "\r  ⏺  Recording... ${i}s remaining   " >&2
     sleep 1
   done
-  printf "\r  ⏹  Dừng recording...              \n" >&2
+  printf "\r  ⏹  Stopping recording...              \n" >&2
 
   # Stop recording
   kill -SIGINT "$REC_PID" 2>/dev/null || true
@@ -116,7 +116,7 @@ for runtime in d.get('devices', {}).values():
 }
 
 # =============================================================================
-# Record từ Android (adb)
+# Record from Android (adb)
 # =============================================================================
 record_android() {
   local name="$1"
@@ -124,20 +124,20 @@ record_android() {
   local outfile="$TMP/${name}.mp4"
   local device_path="/sdcard/hyper_${name}.mp4"
 
-  # Kiểm tra device
+  # Check for device
   if ! adb devices | grep -q "device$"; then
-    error "Không có Android device nào kết nối. Kết nối device và bật USB debugging."
+    error "No Android device connected. Connect a device and enable USB debugging."
   fi
 
-  info "Bắt đầu record Android (${duration}s)..."
-  info "→ Điều hướng đến màn hình demo BÂY GIỜ, rồi tương tác trong ${duration}s."
+  info "Starting Android recording (${duration}s)..."
+  info "→ Navigate to the demo screen NOW and interact for ${duration}s."
   echo "" >&2
 
   adb shell screenrecord --time-limit "$duration" "$device_path" &
   local REC_PID=$!
 
   for ((i=duration; i>0; i--)); do
-    printf "\r  ⏺  Recording... ${i}s còn lại   " >&2
+    printf "\r  ⏺  Recording... ${i}s remaining   " >&2
     sleep 1
   done
   printf "\r  ⏹  Pulling video...              \n" >&2
@@ -150,7 +150,7 @@ record_android() {
 }
 
 # =============================================================================
-# Convert video → GIF tối ưu (2-pass palette)
+# Convert video → GIF (2-pass palette)
 # =============================================================================
 convert_to_gif() {
   local video="$1"
@@ -189,7 +189,7 @@ detect_platform() {
 }
 
 # =============================================================================
-# Record một demo
+# Record a single demo
 # =============================================================================
 record_demo() {
   local entry="$1"
@@ -197,28 +197,28 @@ record_demo() {
 
   step "Demo: ${BOLD}${desc}"
   echo ""
-  echo -e "  ${BOLD}Màn hình:${NC} $screen"
+  echo -e "  ${BOLD}Screen:${NC}   $screen"
   echo -e "  ${BOLD}Output:${NC}   assets/$gif_file"
-  echo -e "  ${BOLD}Thời gian:${NC} ${duration}s"
+  echo -e "  ${BOLD}Duration:${NC} ${duration}s"
   echo ""
 
   local platform
   platform=$(detect_platform)
 
   if [[ "$platform" == "none" ]]; then
-    warn "Không tìm thấy iOS Simulator hoặc Android device."
-    warn "Mở Simulator hoặc kết nối Android rồi chạy lại."
+    warn "No iOS Simulator or Android device found."
+    warn "Please open Simulator or connect an Android device and try again."
     return 1
   fi
 
   echo -e "  Platform: ${CYAN}${platform}${NC}"
   echo ""
-  echo -e "  ${YELLOW}Chuẩn bị:${NC}"
-  echo "  1. Mở Example app"
-  echo "  2. Điều hướng đến: $screen"
-  echo "  3. Scroll/vuốt để thấy nội dung chính"
+  echo -e "  ${YELLOW}Preparation:${NC}"
+  echo "  1. Open Example app"
+  echo "  2. Navigate to: $screen"
+  echo "  3. Scroll/swipe to show the main content"
   echo ""
-  read -rp "  Nhấn [Enter] khi bạn đã sẵn sàng..."
+  read -rp "  Press [Enter] when you are ready..."
 
   local video
   if [[ "$platform" == "ios" ]]; then
@@ -230,14 +230,14 @@ record_demo() {
   convert_to_gif "$video" "$ASSETS/$gif_file"
 
   echo ""
-  echo -e "  ${GREEN}✓ Xong! Xem kết quả:${NC} assets/$gif_file"
+  echo -e "  ${GREEN}✓ Done! See result:${NC} assets/$gif_file"
 }
 
 # =============================================================================
-# Convert-only mode (video đã có sẵn trong .demo_recordings/)
+# Convert-only mode
 # =============================================================================
 convert_only_mode() {
-  step "Convert-only mode — tìm video trong $TMP"
+  step "Convert-only mode — searching for videos in $TMP"
 
   local found=0
   for entry in "${DEMOS[@]}"; do
@@ -247,14 +247,14 @@ convert_only_mode() {
       convert_to_gif "$video" "$ASSETS/$gif_file"
       found=$((found + 1))
     else
-      warn "Không tìm thấy: $video (bỏ qua)"
+      warn "Not found: $video (skipping)"
     fi
   done
 
   if [[ "$found" -eq 0 ]]; then
-    error "Không có video nào trong $TMP. Hãy record trước."
+    error "No videos found in $TMP. Record some first."
   fi
-  success "Đã convert $found video → GIF"
+  success "Converted $found videos → GIF"
 }
 
 # =============================================================================
@@ -262,7 +262,7 @@ convert_only_mode() {
 # =============================================================================
 echo ""
 echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}${CYAN}║   HyperRender Demo Recorder v1.1.4       ║${NC}"
+echo -e "${BOLD}${CYAN}║   HyperRender Demo Recorder v1.3.0       ║${NC}"
 echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -283,13 +283,13 @@ if [[ "$MODE" == "single" && -n "$SINGLE_DEMO" ]]; then
     fi
   done
   if [[ "$found" -eq 0 ]]; then
-    error "Demo '$SINGLE_DEMO' không tồn tại. Chọn: float | ruby | selection | table | comparison | performance"
+    error "Demo '$SINGLE_DEMO' does not exist. Choose from: float | ruby | selection | table | comparison | performance"
   fi
   exit 0
 fi
 
-# ── Interactive mode (mặc định) ───────────────────────────────────────────────
-echo "Sẽ record 6 demo GIFs theo thứ tự:"
+# ── Interactive mode (default) ───────────────────────────────────────────────
+echo "Will record 6 demo GIFs in order:"
 echo ""
 for entry in "${DEMOS[@]}"; do
   IFS='|' read -r name gif_file duration desc screen <<< "$entry"
@@ -299,7 +299,7 @@ echo ""
 
 platform=$(detect_platform)
 if [[ "$platform" == "none" ]]; then
-  echo -e "${YELLOW}Hướng dẫn chuẩn bị:${NC}"
+  echo -e "${YELLOW}Preparation Guide:${NC}"
   echo ""
   echo "  iOS Simulator:"
   echo "    open -a Simulator"
@@ -308,19 +308,19 @@ if [[ "$platform" == "none" ]]; then
   echo "  Android:"
   echo "    cd example && flutter run -d <device-id>"
   echo ""
-  error "Không tìm thấy device. Mở Simulator hoặc kết nối Android rồi chạy lại."
+  error "No device found. Open Simulator or connect Android and try again."
 fi
 
 echo -e "  Platform: ${CYAN}${platform}${NC}"
 echo ""
 
-# Hỏi có muốn record tất cả hay chọn từng cái
-echo "Tùy chọn:"
-echo "  [a] Record tất cả 6 demos theo thứ tự"
-echo "  [s] Chọn demo cụ thể"
-echo "  [q] Thoát"
+# Ask to record all or choose specific
+echo "Options:"
+echo "  [a] Record all 6 demos in order"
+echo "  [s] Select a specific demo"
+echo "  [q] Quit"
 echo ""
-read -rp "Chọn [a/s/q]: " choice
+read -rp "Selection [a/s/q]: " choice
 
 case "$choice" in
   a|A)
@@ -328,9 +328,9 @@ case "$choice" in
       record_demo "$entry"
       echo ""
     done
-    step "Hoàn thành!"
+    step "Completed!"
     echo ""
-    echo "Tất cả GIFs đã được tạo trong assets/:"
+    echo "All GIFs created in assets/:"
     for entry in "${DEMOS[@]}"; do
       IFS='|' read -r name gif_file _ _ _ <<< "$entry"
       if [[ -f "$ASSETS/$gif_file" ]]; then
@@ -342,7 +342,7 @@ case "$choice" in
 
   s|S)
     echo ""
-    echo "Chọn demo:"
+    echo "Select demo:"
     i=1
     for entry in "${DEMOS[@]}"; do
       IFS='|' read -r name gif_file duration desc screen <<< "$entry"
@@ -350,28 +350,28 @@ case "$choice" in
       i=$((i+1))
     done
     echo ""
-    read -rp "Nhập số (1-6): " idx
+    read -rp "Enter number (1-6): " idx
     idx=$((idx - 1))
     if [[ "$idx" -lt 0 || "$idx" -ge "${#DEMOS[@]}" ]]; then
-      error "Số không hợp lệ"
+      error "Invalid selection"
     fi
     record_demo "${DEMOS[$idx]}"
     ;;
 
   q|Q)
-    info "Đã thoát."
+    info "Exiting."
     exit 0
     ;;
 
   *)
-    error "Lựa chọn không hợp lệ"
+    error "Invalid choice"
     ;;
 esac
 
 echo ""
-echo -e "${BOLD}${GREEN}✓ Xong! Các GIFs đã sẵn sàng để commit và push lên GitHub.${NC}"
+echo -e "${BOLD}${GREEN}✓ Done! GIFs are ready to be committed and pushed to GitHub.${NC}"
 echo ""
 echo "  git add assets/*.gif assets/logo.svg"
-echo "  git commit -m 'assets: update demo GIFs v1.1.4'"
+echo "  git commit -m 'assets: update demo GIFs v1.3.0'"
 echo "  git push"
 echo ""

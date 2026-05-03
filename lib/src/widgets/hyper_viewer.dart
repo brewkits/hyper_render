@@ -1125,7 +1125,8 @@ class _HyperViewerState extends State<HyperViewer>
     String contentToRender = widget.content;
     // CSS collected from <style> tags + customCss (applied to resolver directly,
     // not injected as a <style> tag so the sanitizer cannot strip it).
-    String cssToApply = '';
+    // customCss applies to all content types (HTML, Markdown, Delta).
+    String cssToApply = widget.customCss ?? '';
 
     if (widget.contentType == HyperContentType.html) {
       // 1. Extract CSS from <style> elements BEFORE sanitization.
@@ -1134,10 +1135,8 @@ class _HyperViewerState extends State<HyperViewer>
       final docCss = adapter.extractCss(contentToRender);
 
       // customCss is lower priority (applied first); docCss wins on conflict.
-      if (widget.customCss != null && widget.customCss!.isNotEmpty) {
-        cssToApply = '${widget.customCss!}\n$docCss';
-      } else {
-        cssToApply = docCss;
+      if (docCss.isNotEmpty) {
+        cssToApply = '${widget.customCss ?? ''}\n$docCss';
       }
 
       // Extract @keyframes rules so CSS animations declared inside <style>

@@ -2,30 +2,6 @@
 
 ## [1.3.0] - 2026-05-03
 
-- Version bump to stay in sync with `hyper_render` 1.2.0.
-- No API changes in this package.
-
-## [1.3.0] - 2026-05-03
-
-### 🐛 Bug Fixes
-- **`@override` analyzer warning removed**: `parseKeyframes()` no longer carries `@override` annotation — method overrides a concrete default in `CssParserInterface`, which triggered `override_on_non_overriding_member` lint. `flutter analyze` now reports 0 issues.
-
-## [1.3.0] - 2026-05-03
-
-- Remove `publish_to: none` from pubspec.yaml so pub.dev can verify the repository URL (fixes 10-point deduction).
-
-
-## [1.3.0] - 2026-05-03
-
-- Version bump to stay in sync with `hyper_render_core` 1.1.2 (Ruby selection fixes, CSS @keyframes support).
-- No API changes in this package.
-
-## [1.3.0] - 2026-05-03
-
-- Maintenance release: no code changes — republish to sync repository verification with current git HEAD
-
-## [1.3.0] - 2026-05-03
-
 ### ✨ New Features
 - **HTML tag coverage**: Full support for `h4`–`h6`, `section`, `article`, `main`, `aside`, `header`, `footer`, `nav`, `figure`, `figcaption`, `dl`/`dt`/`dd`, `summary`, `u`, `s`, `del`, `ins`, `small`, `q`, `cite`, `abbr`, `time`, `sup`, `sub`, `var`, `kbd`, `samp`, `bdi`, `bdo`, `dfn`, `wbr`
 - **`display: none`**: Elements with `display: none` are now correctly skipped — no more `[edit]` links leaking from Wikipedia-style HTML
@@ -40,10 +16,12 @@
 - **Shared `ComputedStyle` mutation**: `_defaultStyles` map now returns `.copyWith()` copies — prevents cross-node style bleed
 - **Link XSS**: `javascript:`, `vbscript:`, and `data:` hrefs are sanitized and blocked
 - **`<details>`/`<summary>`**: Fixed double-render issue on expanded details elements
+- **`@override` analyzer warning**: `parseKeyframes()` no longer carries `@override` annotation — `flutter analyze` reports 0 issues
+- **CSS float class detection**: `_containsFloatChild` now detects Bootstrap/Tailwind float class patterns
 
 ### 🔬 Tests
 - Added regression tests for `display:none`, `<pre>`, whitespace handling
 
-## [1.3.0] - 2026-05-03
+## [1.2.0] - 2026-03-30
 
 - Initial release: HTML → UDT adapter with CSS float, Flexbox, table colspan/rowspan, ruby, XSS sanitization

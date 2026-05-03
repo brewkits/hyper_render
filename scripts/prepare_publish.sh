@@ -7,7 +7,10 @@
 #   2. hyper_render_html
 #   3. hyper_render_markdown
 #   4. hyper_render_highlight
-#   5. hyper_render (root)
+#   5. hyper_render_clipboard
+#   6. hyper_render_devtools
+#   7. hyper_render_math
+#   8. hyper_render (root)
 
 set -e
 
@@ -74,7 +77,7 @@ else
   ok "pubspec.yaml already has version deps"
 fi
 
-# Swap path: ../hyper_render_core → hyper_render_core: ^1.2.0 in sub-packages
+# Swap path: ../hyper_render_core → hyper_render_core: ^1.3.0 in sub-packages
 # BSD sed (macOS) requires '' after -i; GNU sed does not
 _sed() { sed -i '' "$@" 2>/dev/null || sed -i "$@"; }
 
@@ -82,10 +85,11 @@ for f in packages/hyper_render_html/pubspec.yaml \
           packages/hyper_render_markdown/pubspec.yaml \
           packages/hyper_render_highlight/pubspec.yaml \
           packages/hyper_render_clipboard/pubspec.yaml \
-          packages/hyper_render_devtools/pubspec.yaml; do
+          packages/hyper_render_devtools/pubspec.yaml \
+          packages/hyper_render_math/pubspec.yaml; do
   if [ -f "$f" ] && grep -q "path: \.\./hyper_render_core" "$f"; then
     _sed '/hyper_render_core:/{n;/path: \.\.\/hyper_render_core/d;}' "$f"
-    _sed 's|hyper_render_core:$|hyper_render_core: ^1.2.0|' "$f"
+    _sed 's|hyper_render_core:$|hyper_render_core: ^1.3.0|' "$f"
     ok "Swapped path dep → version dep in $f"
   fi
 done
@@ -97,7 +101,8 @@ for f in pubspec.yaml \
           packages/hyper_render_markdown/pubspec.yaml \
           packages/hyper_render_highlight/pubspec.yaml \
           packages/hyper_render_clipboard/pubspec.yaml \
-          packages/hyper_render_devtools/pubspec.yaml; do
+          packages/hyper_render_devtools/pubspec.yaml \
+          packages/hyper_render_math/pubspec.yaml; do
   if [ -f "$f" ] && grep -q "^publish_to: none" "$f"; then
     _sed '/^publish_to: none/d' "$f"
     ok "Removed 'publish_to: none' from $f"
@@ -138,7 +143,8 @@ echo "    3. cd packages/hyper_render_markdown  && dart pub publish"
 echo "    4. cd packages/hyper_render_highlight && dart pub publish"
 echo "    5. cd packages/hyper_render_clipboard && dart pub publish"
 echo "    6. cd packages/hyper_render_devtools  && dart pub publish"
-echo "    7. dart pub publish    (from repo root)"
+echo "    7. cd packages/hyper_render_math      && dart pub publish"
+echo "    8. dart pub publish    (from repo root)"
 echo ""
 echo -e "${YELLOW}  After publishing, restore dev pubspecs:${NC}"
 echo "    cp pubspec.yaml.backup pubspec.yaml"
