@@ -1,27 +1,27 @@
 # Changelog — hyper_render_devtools
 
-## [1.2.0] - 2026-03-30
+## [1.3.0] - 2026-05-03
 
 - Version bump to stay in sync with `hyper_render` 1.2.0.
 - Updated `hyper_render_core` dependency to `^1.2.0`.
 - No UI changes in this version.
 
-## [1.1.5] - 2026-03-25
+## [1.3.0] - 2026-05-03
 
 ### 🔧 Improvements
 - Remove invalid `flutter.plugin.platforms` declaration (no native code exists); package now correctly reports support for all Flutter platforms.
 - Update `hyper_render_core` dependency to `^1.1.3`.
 
-## [1.1.4] - 2026-03-25
+## [1.3.0] - 2026-05-03
 
 - Fix pub.dev repository verification.
 
-## [1.1.3] - 2026-03-25
+## [1.3.0] - 2026-05-03
 
 - Remove `publish_to: none` from pubspec.yaml so pub.dev can verify the repository URL (fixes 10-point deduction).
 
 
-## [1.1.2] - 2026-03-25
+## [1.3.0] - 2026-05-03
 
 ### ✨ New
 - **Demo Mode** in the DevTools panel — loads sample UDT/style/fragment data when no live app is connected, so you can explore the inspector UI without a running HyperRender app.
@@ -32,7 +32,7 @@
 - Added `README.md` with full usage guide, service extension table, and architecture overview.
 - DevTools panel UI (`devtools_ui`) upgraded to `devtools_extensions: 0.2.2`.
 
-## [1.1.1] - 2026-03-23
+## [1.3.0] - 2026-05-03
 
 ### 🐛 Bug Fixes
 - `UdtSerializer.serializeStyle` — no longer throws on packages compiled with older `hyper_render_core` that lack newer `ComputedStyle` fields; unresolved dynamic fields fall back gracefully.
@@ -40,7 +40,7 @@
 ### 🔧 Improvements
 - `_HyperRenderRegistry` debounces rapid `updateLayout` calls to avoid flooding the DevTools panel during fast scroll.
 
-## [1.1.0] - 2026-03-20
+## [1.3.0] - 2026-05-03
 
 ### ✨ New
 - Initial public release of `hyper_render_devtools`.

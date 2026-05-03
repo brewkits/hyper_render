@@ -124,7 +124,7 @@ These APIs are stable and will remain backward-compatible in v2.0:
 
 ## Version History
 
-### v1.2.3 (April 2026)
+### v1.3.0 (April 2026)
 - High Coverage Milestone: >80% total line coverage (900+ tests)
 - Fixed missing `foundation` import for `compute` function
 - Virtualized selection logic refinements for off-screen chunks
@@ -156,7 +156,7 @@ These APIs are stable and will remain backward-compatible in v2.0:
 
 ## Getting Help
 
-For the current v1.2.3 release:
+For the current v1.3.0 release:
 - See [README](../README.md) for usage
 - Check [CHANGELOG](../CHANGELOG.md) for version history
 - Review [Plugin Development Guide](PLUGIN_DEVELOPMENT.md) for extending
@@ -164,7 +164,7 @@ For the current v1.2.3 release:
 
 ---
 
-*Last Updated: April 29, 2026 for v1.2.3*
+*Last Updated: April 29, 2026 for v1.3.0*
 ard support
 - Cross-platform (iOS, Android, Web, Desktop)
 
