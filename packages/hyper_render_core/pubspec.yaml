@@ -24,6 +24,7 @@ dependencies:
   csslib: ^1.0.2
   flutter_highlight: ^0.7.0
   highlight: ^0.7.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

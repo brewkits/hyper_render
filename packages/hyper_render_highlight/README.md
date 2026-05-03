@@ -8,8 +8,8 @@ Syntax highlighting plugin for [HyperRender](https://pub.dev/packages/hyper_rend
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.2.0
-  hyper_render_highlight: ^1.2.0
+  hyper_render_core: ^1.3.0
+  hyper_render_highlight: ^1.3.0
 ```
 
 ---

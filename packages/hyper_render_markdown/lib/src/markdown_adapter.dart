@@ -334,6 +334,15 @@ class MarkdownAdapter {
           children: [],
         );
 
+      case 'input':
+        if (attributes['type'] == 'checkbox') {
+          return AtomicNode(
+            tagName: 'input',
+            attributes: attributes,
+          );
+        }
+        return InlineNode(tagName: tag, children: children);
+
       default:
         // Unknown tag - wrap in span
         warnings.add('Unknown Markdown element: $tag');

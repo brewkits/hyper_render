@@ -8,7 +8,7 @@ Image clipboard operations for [HyperRender](https://pub.dev/packages/hyper_rend
 
 ```yaml
 dependencies:
-  hyper_render_clipboard: ^1.2.0
+  hyper_render_clipboard: ^1.3.0
 ```
 
 ---

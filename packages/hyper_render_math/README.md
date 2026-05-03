@@ -1,24 +1,30 @@
 # hyper_render_math
 
-A **template plugin** for [HyperRender](../../README.md) that renders mathematical
-expressions (`<math>` / `<latex>` tags) as Flutter widgets.
+Mathematical formula rendering plugin for [HyperRender](https://pub.dev/packages/hyper_render).
+Renders `<math>` and `<latex>` tags using [flutter_math_fork](https://pub.dev/packages/flutter_math_fork) for high-performance LaTeX typesetting.
 
-> **This is a skeleton.** It ships a visible placeholder so you can verify
-> the plugin wiring before adding a rendering backend. Replace the
-> `_Placeholder` widget in `lib/src/math_node_plugin.dart` with
-> `flutter_math_fork` (or another library) to complete the implementation.
+---
+
+## Installation
+
+```yaml
+dependencies:
+  hyper_render_core: ^1.3.0
+  hyper_render_math: ^1.3.0
+```
 
 ---
 
 ## Usage
+
+Register `MathNodePlugin` — it handles both `<math>` and `<latex>` tags:
 
 ```dart
 import 'package:hyper_render/hyper_render.dart';
 import 'package:hyper_render_math/hyper_render_math.dart';
 
 final registry = HyperPluginRegistry()
-  ..register(const MathNodePlugin())    // handles <math>
-  ..register(const LatexNodePlugin());  // handles <latex>
+  ..register(const MathNodePlugin());
 
 HyperViewer(
   html: 'The quadratic formula: '
@@ -27,33 +33,23 @@ HyperViewer(
 )
 ```
 
-## Completing the implementation
+### Display vs inline mode
 
-1. Uncomment a backend in `pubspec.yaml`:
+By default `<math>` renders in display mode (centered, larger). To render inline:
 
-   ```yaml
-   # KaTeX-based (fast, offline — recommended):
-   flutter_math_fork: ^0.7.2
-   ```
+```html
+<p>Energy: <math display="inline">E = mc^2</math> in action.</p>
+```
 
-2. In `lib/src/math_node_plugin.dart`, replace `_Placeholder` with:
+Or use the `<latex>` tag with the `mode="inline"` attribute:
 
-   ```dart
-   import 'package:flutter_math_fork/flutter_math.dart';
+```html
+<p>Euler's identity: <latex mode="inline">e^{i\pi} + 1 = 0</latex></p>
+```
 
-   // inside MathNodePlugin.build():
-   return Math.tex(
-     src,
-     textStyle: TextStyle(fontSize: ctx.style?.fontSize ?? 16),
-     onErrorFallback: (err) => SelectableText(src),
-   );
-   ```
+### Inline-tier plugin
 
-3. Add tests, update CHANGELOG, and publish on pub.dev.
-
-## Inline math
-
-To flow equations inside text paragraphs, switch to inline tier:
+To flow equations inside text lines (without the block break), subclass and flip `isInline`:
 
 ```dart
 class InlineMathPlugin extends MathNodePlugin {
@@ -61,7 +57,14 @@ class InlineMathPlugin extends MathNodePlugin {
 }
 ```
 
+### Error fallback
+
+If a LaTeX expression cannot be parsed, the raw source is displayed in red monospace
+so you can identify and fix the malformed formula.
+
+---
+
 ## Contributing
 
-See [PLUGIN_DEVELOPMENT.md](../../doc/PLUGIN_DEVELOPMENT.md) for the full
-guide on building, testing, and submitting plugins.
+See [PLUGIN_DEVELOPMENT.md](../../doc/PLUGIN_DEVELOPMENT.md) for the full guide
+on building, testing, and submitting plugins.

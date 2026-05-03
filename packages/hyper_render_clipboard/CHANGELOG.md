@@ -2,31 +2,6 @@
 
 ## [1.3.0] - 2026-05-03
 
-- Version bump to stay in sync with `hyper_render` 1.2.0.
-- No API changes in this package.
-
-## [1.3.0] - 2026-05-03
-
-- Version bump to stay in sync with `hyper_render` 1.1.4.
-
-## [1.3.0] - 2026-05-03
-
-- Remove `publish_to: none` from pubspec.yaml so pub.dev can verify the repository URL (fixes 10-point deduction).
-
-
-## [1.3.0] - 2026-05-03
-
-- Version bump to stay in sync with `hyper_render_core` 1.1.2 (Ruby selection fixes, CSS @keyframes support).
-- No API changes in this package.
-
-## [1.3.0] - 2026-05-03
-
-### 🐛 Bug Fixes
-- **Static analysis**: Replaced deprecated `Share.shareXFiles()` with `SharePlus.instance.share()` — 0 analyzer issues
-- **Conventions**: Renamed `docs/` → `doc/` (pub.dev singular directory convention)
-
-## [1.3.0] - 2026-05-03
-
 ### ✨ New Features
 - **`share_plus: ^10.0.0`**: Upgraded from `^7.2.0` — resolves `mime` version conflict with newer Flutter projects
 - **Image copy**: `SuperClipboardHandler.copyImage()` supports PNG byte data via `super_clipboard`
@@ -34,7 +9,9 @@
 
 ### 🐛 Bug Fixes
 - **Race condition**: Copy operation now guards against concurrent calls with a lock flag — prevents duplicate clipboard writes
+- **Static analysis**: Replaced deprecated `Share.shareXFiles()` with `SharePlus.instance.share()` — 0 analyzer issues
+- **Directory convention**: Renamed `docs/` → `doc/` (pub.dev singular directory convention)
 
-## [1.3.0] - 2026-05-03
+## [1.2.0] - 2026-03-30
 
 - Initial release: image clipboard and share support for HyperRender selections

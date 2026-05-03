@@ -277,7 +277,7 @@ LIMIT 10;
 
 /// Example: Using highlighter standalone
 void standaloneHighlighterExample() {
-  const highlighter = FlutterHighlightCodeHighlighter(
+  const highlighter = DefaultCodeHighlighter(
     theme: HighlightTheme.atomOneDark,
   );
 

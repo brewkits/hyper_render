@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hyper_render/src/parser/html/html_adapter.dart';
+import 'package:hyper_render_html/hyper_render_html.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
-import 'package:hyper_render/src/plugins/default_css_parser.dart';
 
 void main() {
   group('HtmlAdapter Unit Tests', () {

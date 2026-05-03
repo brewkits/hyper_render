@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hyper_render/src/plugins/default_code_highlighter.dart';
+import 'package:hyper_render_highlight/hyper_render_highlight.dart';
 
 void main() {
   group('DefaultCodeHighlighter', () {

@@ -513,4 +513,89 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Issue #9 — CSS overrides HTML width/height attributes on <img>
+  // -------------------------------------------------------------------------
+  group('Issue #9 — customCss overrides HTML img width/height attrs', () {
+    test('CSS width/height win over HTML attribute dimensions', () {
+      final adapter = HtmlAdapter();
+      final doc = adapter.parse(
+        '<img src="https://example.com/img.png" width="345" height="345">',
+      );
+      final resolver = StyleResolver();
+      resolver.parseCss('img { width: 600px; height: 300px; }');
+      resolver.resolveStyles(doc);
+
+      AtomicNode? imgNode;
+      void walk(UDTNode n) {
+        if (n is AtomicNode && n.tagName == 'img') {
+          imgNode = n;
+          return;
+        }
+        for (final c in n.children) {
+          walk(c);
+        }
+      }
+      walk(doc);
+
+      expect(imgNode, isNotNull);
+      expect(imgNode!.style.width, 600.0);
+      expect(imgNode!.style.height, 300.0);
+    });
+
+    test('HTML attrs used as fallback when no CSS width/height', () {
+      final adapter = HtmlAdapter();
+      final doc = adapter.parse(
+        '<img src="https://example.com/img.png" width="200" height="100">',
+      );
+      final resolver = StyleResolver();
+      resolver.resolveStyles(doc);
+
+      AtomicNode? imgNode;
+      void walk(UDTNode n) {
+        if (n is AtomicNode && n.tagName == 'img') {
+          imgNode = n;
+          return;
+        }
+        for (final c in n.children) {
+          walk(c);
+        }
+      }
+      walk(doc);
+
+      expect(imgNode, isNotNull);
+      expect(imgNode!.intrinsicWidth, 200.0);
+      expect(imgNode!.style.width, isNull);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Issue #8 — customCss applies to Markdown content
+  // -------------------------------------------------------------------------
+  group('Issue #8 — customCss applies to Markdown link nodes', () {
+    test('StyleResolver applies a { color } rule to InlineNode with tagName a',
+        () {
+      final adapter = MarkdownAdapter();
+      final doc = adapter.parse('[Visit](https://example.com)');
+      final resolver = StyleResolver();
+      resolver.parseCss('a { color: #FF0000; }');
+      resolver.resolveStyles(doc);
+
+      InlineNode? linkNode;
+      void walk(UDTNode n) {
+        if (n is InlineNode && n.tagName == 'a') {
+          linkNode = n;
+          return;
+        }
+        for (final c in n.children) {
+          walk(c);
+        }
+      }
+      walk(doc);
+
+      expect(linkNode, isNotNull);
+      expect(linkNode!.style.color, const Color(0xFFFF0000));
+    });
+  });
 }

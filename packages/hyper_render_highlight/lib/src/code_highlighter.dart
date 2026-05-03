@@ -31,7 +31,7 @@ enum HighlightTheme {
 /// ```dart
 /// import 'package:hyper_render_highlight/hyper_render_highlight.dart';
 ///
-/// final highlighter = FlutterHighlightCodeHighlighter(
+/// final highlighter = DefaultCodeHighlighter(
 ///   theme: HighlightTheme.dracula,
 /// );
 ///
@@ -41,14 +41,14 @@ enum HighlightTheme {
 ///   codeHighlighter: highlighter,
 /// )
 /// ```
-class FlutterHighlightCodeHighlighter implements CodeHighlighter {
+class DefaultCodeHighlighter implements CodeHighlighter {
   /// The theme to use for highlighting
   final HighlightTheme theme;
 
   /// Base text style to apply
   final TextStyle? baseStyle;
 
-  const FlutterHighlightCodeHighlighter({
+  const DefaultCodeHighlighter({
     this.theme = HighlightTheme.vs2015,
     this.baseStyle,
   });

@@ -19,8 +19,6 @@ topics:
 dependencies:
   flutter:
     sdk: flutter
-
-  # Publishing: replace path with: hyper_render_core: ^1.2.0
   hyper_render_core:
     path: ../hyper_render_core
 

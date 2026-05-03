@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hyper_render/src/parser/markdown/markdown_adapter.dart';
+import 'package:hyper_render_markdown/hyper_render_markdown.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 
 void main() {

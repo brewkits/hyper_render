@@ -7,7 +7,8 @@ void main() {
   group('MathNodePlugin', () {
     test('returns correct tag names', () {
       const plugin = MathNodePlugin();
-      expect(plugin.tagNames, equals(['math']));
+      expect(plugin.tagNames, contains('math'));
+      expect(plugin.tagNames, contains('latex'));
     });
 
     test('is not inline by default', () {
@@ -52,13 +53,6 @@ void main() {
 
       final widget = plugin.buildWidget(node, ctx);
       expect(widget, isNull);
-    });
-  });
-
-  group('LatexNodePlugin', () {
-    test('returns correct tag names', () {
-      const plugin = LatexNodePlugin();
-      expect(plugin.tagNames, equals(['latex']));
     });
   });
 }

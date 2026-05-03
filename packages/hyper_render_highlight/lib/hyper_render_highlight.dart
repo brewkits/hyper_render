@@ -36,8 +36,7 @@
 library;
 
 // Export the highlighter implementation
-export 'src/code_highlighter.dart'
-    show FlutterHighlightCodeHighlighter, HighlightTheme;
+export 'src/code_highlighter.dart' show DefaultCodeHighlighter, HighlightTheme;
 
 // Re-export CodeHighlighter interface from core for convenience
 export 'package:hyper_render_core/hyper_render_core.dart'
