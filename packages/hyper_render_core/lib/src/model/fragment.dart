@@ -50,8 +50,14 @@ class Fragment {
   /// Position offset within the line (set after layout)
   Offset? offset;
 
+  /// The index of the line this fragment belongs to (set after layout)
+  int lineIndex = -1;
+
   /// Character offset in the full text (for selection)
   int characterOffset;
+
+  /// Absolute character offset across the entire document
+  int globalOffset = 0;
 
   /// For ruby fragments
   final String? rubyText;

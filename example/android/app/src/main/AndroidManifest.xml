@@ -4,7 +4,7 @@
         android:label="HyperRender"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:extractNativeLibs="false">
+        android:extractNativeLibs="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

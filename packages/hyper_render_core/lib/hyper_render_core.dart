@@ -62,6 +62,7 @@ export 'src/style/design_tokens.dart';
 // Core rendering
 export 'src/core/hyper_render_debug_hooks.dart';
 export 'src/core/hyper_render_config.dart';
+export 'src/core/hyper_render_theme.dart';
 export 'src/core/render_hyper_box.dart';
 export 'src/core/hyper_selection_controller.dart';
 export 'src/core/span_converter.dart';

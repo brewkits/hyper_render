@@ -285,7 +285,7 @@ void main() {
       });
 
       test('cannot bypass with null bytes', () {
-        final html = '<script\x00>alert(1)</script>';
+        const html = '<script\x00>alert(1)</script>';
         final result = HtmlSanitizer.sanitize(html);
 
         expect(result, isNot(contains('alert')));
@@ -323,7 +323,7 @@ void main() {
 
       test('reflected XSS in search results', () {
         const searchQuery = '<script>alert(document.domain)</script>';
-        final html = '<p>Search results for: $searchQuery</p>';
+        const html = '<p>Search results for: $searchQuery</p>';
 
         final result = HtmlSanitizer.sanitize(html);
 

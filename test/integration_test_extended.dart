@@ -822,7 +822,7 @@ void main() {
 
     group('Code Highlighting Integration', () {
       test('PlainTextHighlighter returns single span', () {
-        final highlighter = PlainTextHighlighter();
+        const highlighter = PlainTextHighlighter();
 
         final spans = highlighter.highlight('Some code', 'any');
 
@@ -831,7 +831,7 @@ void main() {
       });
 
       test('PlainTextHighlighter has empty supported languages', () {
-        final highlighter = PlainTextHighlighter();
+        const highlighter = PlainTextHighlighter();
 
         // PlainTextHighlighter doesn't claim to support any language
         // but can still process any text

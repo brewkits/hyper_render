@@ -1,6 +1,7 @@
 import 'dart:isolate';
 
 import 'package:hyper_render_core/hyper_render_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../parser/html/html_adapter.dart';
 import '../plugins/default_css_parser.dart';
@@ -52,6 +53,21 @@ enum HyperContentType {
 
   /// Markdown
   markdown,
+}
+
+/// Interface for selection operations in the context menu.
+///
+/// This is passed to [HyperViewer.selectionMenuActionsBuilder] to allow
+/// custom actions (like Share or Search) to access the selected text.
+abstract class HyperSelectionState {
+  /// The currently selected text, or null if nothing is selected.
+  String? get selectedText;
+
+  /// Selects the entire document.
+  void selectAll();
+
+  /// Clears the current selection and dismisses the menu.
+  void clearSelection();
 }
 
 class HyperViewer extends StatefulWidget {
@@ -209,7 +225,7 @@ class HyperViewer extends StatefulWidget {
 
   /// Custom menu actions builder for the selection popup.
   /// If null, uses default Copy and Select All actions.
-  final List<SelectionMenuAction> Function(HyperSelectionOverlayState)?
+  final List<SelectionMenuAction> Function(HyperSelectionState)?
       selectionMenuActionsBuilder;
 
   /// Custom context menu builder for full customization.
@@ -224,18 +240,16 @@ class HyperViewer extends StatefulWidget {
   ///
   /// **IMPORTANT**: Always enable this when rendering untrusted HTML!
   ///
-  /// Default: false (for backward compatibility)
+  /// Default: **true** — sanitization is on by default. Disable only when
+  /// you fully control the HTML source (e.g. your own API, static assets).
   ///
   /// Example:
   /// ```dart
-  /// // ✅ SAFE - Sanitize user-generated content
-  /// HyperViewer(
-  ///   html: userInput,
-  ///   sanitize: true,
-  /// )
-  ///
-  /// // ❌ UNSAFE - Never do this with untrusted HTML
+  /// // ✅ SAFE - default sanitize:true protects against XSS
   /// HyperViewer(html: userInput)
+  ///
+  /// // ⚠️ ONLY disable for fully trusted, controlled HTML sources
+  /// HyperViewer(html: trustedStaticContent, sanitize: false)
   /// ```
   final bool sanitize;
 
@@ -617,16 +631,30 @@ class HyperViewer extends StatefulWidget {
   State<HyperViewer> createState() => _HyperViewerState();
 }
 
-/// Argument bundle sent into the parse isolate.
-/// All fields must be sendable (primitives + SendPort).
-class _ParseArgs {
-  final String content;
-  final String css;
-  final String? baseUrl;
-  final int chunkSize;
-  final SendPort port;
-  const _ParseArgs(
-      this.content, this.css, this.baseUrl, this.chunkSize, this.port);
+// ──────────────────────────────────────────────────────────────────────────────
+// Selection Adapters
+// ──────────────────────────────────────────────────────────────────────────────
+
+class _SyncSelectionAdapter implements HyperSelectionState {
+  _SyncSelectionAdapter(this.state);
+  final HyperSelectionOverlayState state;
+  @override
+  String? get selectedText => state.selectedText;
+  @override
+  void selectAll() => state.selectAll();
+  @override
+  void clearSelection() => state.clearSelection();
+}
+
+class _VirtualizedSelectionAdapter implements HyperSelectionState {
+  _VirtualizedSelectionAdapter(this.controller);
+  final VirtualizedSelectionController controller;
+  @override
+  String? get selectedText => controller.getSelectedText();
+  @override
+  void selectAll() => controller.selectAll();
+  @override
+  void clearSelection() => controller.clearSelection();
 }
 
 class _HyperViewerState extends State<HyperViewer>
@@ -672,6 +700,11 @@ class _HyperViewerState extends State<HyperViewer>
   /// from overwriting a newer parse when the content changes rapidly.
   int _parseId = 0;
 
+  /// Last section count reported to [HyperPageController._onSectionsReady].
+  /// Used to avoid re-registering [addPostFrameCallback] on every [build] call
+  /// when the count hasn't changed.
+  int _lastNotifiedPageCount = -1;
+
   /// `@keyframes` rules extracted from the document's own `<style>` tags.
   ///
   /// Merged with [HyperViewer.renderConfig.keyframeRegistry] in
@@ -687,24 +720,43 @@ class _HyperViewerState extends State<HyperViewer>
   /// Selection orchestrator for cross-chunk selection in virtualized mode.
   VirtualizedSelectionController? _virtualizedSelectionController;
 
-  /// Effective render config — merges [HyperViewer.renderConfig] with
-  /// `@keyframes` rules extracted from the document's own `<style>` tags.
+  /// Effective render config — merges [HyperViewer.renderConfig] with:
+  ///   1. `@keyframes` rules extracted from the document's own `<style>` tags.
+  ///   2. [HyperViewer.allowedCustomSchemes] merged into [HyperRenderConfig.extraLinkSchemes]
+  ///      so the render layer's scheme check in [RenderHyperBox.handleEvent] allows
+  ///      the same custom deep-link schemes as the widget-layer [_safeOnLinkTap].
+  ///
+  /// Without (2), a scheme present only in [allowedCustomSchemes] is silently
+  /// blocked by the render layer before [_safeOnLinkTap] ever sees the tap.
   HyperRenderConfig get _effectiveConfig {
-    if (_docKeyframes.isEmpty) return widget.renderConfig;
-    final merged = <String, HyperKeyframes>{
-      ...widget.renderConfig.keyframeRegistry,
-      ..._docKeyframes,
-    };
     final rc = widget.renderConfig;
+    final customSchemes = widget.allowedCustomSchemes;
+    final hasDocKeyframes = _docKeyframes.isNotEmpty;
+
+    // Fast path: nothing to merge.
+    if ((customSchemes == null || customSchemes.isEmpty) && !hasDocKeyframes) {
+      return rc;
+    }
+
+    // Direct null check so Dart promotes customSchemes to List<String> in the branch.
+    final mergedSchemes = (customSchemes != null && customSchemes.isNotEmpty)
+        ? {...rc.extraLinkSchemes, ...customSchemes}
+        : rc.extraLinkSchemes;
+
+    final mergedKeyframes = hasDocKeyframes
+        ? <String, HyperKeyframes>{...rc.keyframeRegistry, ..._docKeyframes}
+        : rc.keyframeRegistry;
+
     return HyperRenderConfig(
       textPainterCacheSize: rc.textPainterCacheSize,
       imageCacheSize: rc.imageCacheSize,
       defaultImagePlaceholderWidth: rc.defaultImagePlaceholderWidth,
       imageConcurrency: rc.imageConcurrency,
       virtualizationChunkSize: rc.virtualizationChunkSize,
-      extraLinkSchemes: rc.extraLinkSchemes,
+      extraLinkSchemes: mergedSchemes,
       codeHighlighter: rc.codeHighlighter,
-      keyframeRegistry: merged,
+      keyframeRegistry: mergedKeyframes,
+      useMicrotaskParsing: rc.useMicrotaskParsing,
     );
   }
 
@@ -761,7 +813,7 @@ class _HyperViewerState extends State<HyperViewer>
         oldWidget.baseUrl != widget.baseUrl ||
         oldWidget.customCss != widget.customCss ||
         oldWidget.sanitize != widget.sanitize ||
-        oldWidget.allowedTags != widget.allowedTags ||
+        !listEquals(oldWidget.allowedTags, widget.allowedTags) ||
         oldWidget.allowDataAttributes != widget.allowDataAttributes ||
         oldWidget.fallbackBuilder != widget.fallbackBuilder ||
         // BUG-08: Compare full renderConfig (value equality now available).
@@ -823,15 +875,23 @@ class _HyperViewerState extends State<HyperViewer>
       return newSections;
     }
 
-    // Build a map from hash → old section for O(1) reuse lookup.
-    final Map<int, DocumentNode> oldByHash = {};
+    // Build a map from hash → queue of old sections for O(1) reuse lookup.
+    // Using a queue (not a plain map) handles hash collisions: two sections
+    // with identical text content produce the same hash. With a plain map the
+    // second entry silently overwrites the first, causing both new sections to
+    // receive the same old DocumentNode object and producing duplicate
+    // ValueKeys in the ListView (Flutter assertion error in debug mode).
+    final Map<int, List<DocumentNode>> oldByHash = {};
     for (var i = 0; i < oldSections.length; i++) {
-      oldByHash[oldHashes[i]] = oldSections[i];
+      oldByHash.putIfAbsent(oldHashes[i], () => []).add(oldSections[i]);
     }
 
     final merged = List<DocumentNode>.generate(newSections.length, (i) {
       final h = newHashes[i];
-      return oldByHash[h] ?? newSections[i];
+      final queue = oldByHash[h];
+      return (queue != null && queue.isNotEmpty)
+          ? queue.removeAt(0)
+          : newSections[i];
     }, growable: false);
 
     _sectionHashes = newHashes;
@@ -846,19 +906,47 @@ class _HyperViewerState extends State<HyperViewer>
       DocumentNode doc, int chunkSize) {
     if (doc.children.isEmpty) return [doc];
 
+    final children = doc.children;
     final sections = <DocumentNode>[];
     var current = DocumentNode(children: []);
     var currentSize = 0;
 
-    for (final child in doc.children) {
+    for (int i = 0; i < children.length; i++) {
+      final child = children[i];
       current.children.add(child);
       child.parent = current;
       currentSize += child.textContent.length;
 
       if (currentSize >= chunkSize && child.isBlock) {
-        sections.add(current);
-        current = DocumentNode(children: []);
-        currentSize = 0;
+        // Heading-widow guard: never end a section on a heading — the heading
+        // should lead the content that follows it, not trail the section above.
+        final tag = child.tagName?.toLowerCase();
+        final isHeading = tag == 'h1' ||
+            tag == 'h2' ||
+            tag == 'h3' ||
+            tag == 'h4' ||
+            tag == 'h5' ||
+            tag == 'h6';
+
+        // Also guard the reverse: if the NEXT child is a heading, keep it in
+        // the current section so it opens the next chunk rather than appearing
+        // as a lone last element here.
+        bool nextIsHeading = false;
+        if (!isHeading && i + 1 < children.length) {
+          final nextTag = children[i + 1].tagName?.toLowerCase();
+          nextIsHeading = nextTag == 'h1' ||
+              nextTag == 'h2' ||
+              nextTag == 'h3' ||
+              nextTag == 'h4' ||
+              nextTag == 'h5' ||
+              nextTag == 'h6';
+        }
+
+        if (!isHeading && !nextIsHeading) {
+          sections.add(current);
+          current = DocumentNode(children: []);
+          currentSize = 0;
+        }
       }
     }
 
@@ -936,6 +1024,19 @@ class _HyperViewerState extends State<HyperViewer>
     // Only rebuild if the carryover actually changed.
     final prev = _floatCarryovers[index];
     if (prev.length == carryovers.length && prev.isEmpty) return;
+
+    bool isSame = prev.length == carryovers.length;
+    if (isSame) {
+      for (int i = 0; i < prev.length; i++) {
+        if (prev[i].direction != carryovers[i].direction ||
+            prev[i].width != carryovers[i].width ||
+            prev[i].overhangHeight != carryovers[i].overhangHeight) {
+          isSame = false;
+          break;
+        }
+      }
+    }
+    if (isSame) return;
 
     // FIX: setState called during layout.
     // Carryovers are often detected during a RenderBox layout pass.
@@ -1019,6 +1120,7 @@ class _HyperViewerState extends State<HyperViewer>
     // dirty-flag data don't persist across full content changes.
     _docKeyframes = const {};
     _sectionHashes = const [];
+    _lastNotifiedPageCount = -1;
 
     String contentToRender = widget.content;
     // CSS collected from <style> tags + customCss (applied to resolver directly,
@@ -1097,74 +1199,31 @@ class _HyperViewerState extends State<HyperViewer>
         // Capture parse ID before async gap to detect stale results.
         final currentParseId = ++_parseId;
 
-        // Cancel any in-flight isolate from a previous parse before spawning a
-        // new one, so we don't burn CPU on an abandoned parse.
-        _cancelParsing();
-        final receivePort = ReceivePort();
-        _parseReceivePort = receivePort;
+        final args = (
+          contentToRender,
+          cssToApply,
+          widget.baseUrl,
+          widget.renderConfig.virtualizationChunkSize,
+        );
 
-        Isolate.spawn(
-          _isolateEntry,
-          _ParseArgs(
-            contentToRender,
-            cssToApply,
-            widget.baseUrl,
-            widget.renderConfig.virtualizationChunkSize,
-            receivePort.sendPort,
-          ),
-        ).then((isolate) {
-          _parseIsolate = isolate;
-          return receivePort.first;
-        }).then((dynamic message) {
-          // Isolate finished — release references.
-          _parseIsolate = null;
-          _parseReceivePort = null;
+        Future<List<DocumentNode>> parseFuture;
+        if (widget.renderConfig.useMicrotaskParsing || kIsWeb) {
+          parseFuture = Future.microtask(() => _parseAndChunk(args));
+        } else {
+          parseFuture = compute(_parseAndChunk, args);
+        }
+
+        parseFuture.then((fresh) {
           if (!mounted || _parseId != currentParseId) return;
-
-          if (message is List &&
-              message.isNotEmpty &&
-              message[0] is DocumentNode) {
-            final fresh = List<DocumentNode>.from(message);
-            final merged = _mergeSections(fresh);
-            setState(() {
-              _sections = merged;
-              _syncDocument = null;
-              _isLoading = false;
-              _floatCarryovers.clear(); // reset carryovers for new content
-            });
-            _contentFadeController.forward();
-          } else if (message is List &&
-              message.length == 2 &&
-              message[0] is String) {
-            // FIX: Reconstruct error with StackTrace from isolate
-            final err = FormatException(message[0] as String);
-            final st = StackTrace.fromString(message[1] as String);
-            _reportError(err, st);
-            setState(() => _isLoading = false);
-          } else if (message is List && message.isEmpty) {
-            // Empty content case
-            setState(() {
-              _sections = [];
-              _syncDocument = null;
-              _isLoading = false;
-              _floatCarryovers.clear();
-            });
-          } else {
-            // _isolateEntry sent an error string.
-            final err = FormatException(
-              message is String ? message : 'Content parsing failed',
-            );
-            _reportError(err, StackTrace.empty);
-            setState(() => _isLoading = false);
-          }
+          final merged = _mergeSections(fresh);
+          setState(() {
+            _sections = merged;
+            _syncDocument = null;
+            _isLoading = false;
+            _floatCarryovers.clear(); // reset carryovers for new content
+          });
+          _contentFadeController.forward();
         }).catchError((Object e, StackTrace st) {
-          _cancelParsing();
-          // Improved check: only ignore StateError if we explicitly closed the port
-          if (e is StateError &&
-              e.message == 'No element' &&
-              _parseReceivePort == null) {
-            return;
-          }
           if (mounted && _parseId == currentParseId) {
             _reportError(e, st);
             setState(() => _isLoading = false);
@@ -1202,22 +1261,6 @@ class _HyperViewerState extends State<HyperViewer>
           setState(() => _isLoading = false);
         }
       }
-    }
-  }
-
-  /// Isolate entry point. Runs [_parseAndChunk] and sends the result (or an
-  /// error string) back via [_ParseArgs.port].
-  ///
-  /// Sending a plain `String` on error keeps the message always sendable —
-  /// exception objects can hold closures or native resources that the isolate
-  /// message protocol cannot transfer.
-  static void _isolateEntry(_ParseArgs args) {
-    try {
-      final sections = _parseAndChunk(
-          (args.content, args.css, args.baseUrl, args.chunkSize));
-      args.port.send(sections);
-    } catch (e, st) {
-      args.port.send([e.toString(), st.toString()]);
     }
   }
 
@@ -1373,6 +1416,11 @@ class _HyperViewerState extends State<HyperViewer>
               handleColor:
                   widget.selectionHandleColor ?? Theme.of(context).primaryColor,
               menuBackgroundColor: null,
+              selectionMenuActionsBuilder:
+                  widget.selectionMenuActionsBuilder != null
+                      ? (ctrl) => widget.selectionMenuActionsBuilder!(
+                          _VirtualizedSelectionAdapter(ctrl))
+                      : null,
               child: listView,
             )
           : KeyedSubtree(key: _virtualizedStackKey, child: listView);
@@ -1407,7 +1455,10 @@ class _HyperViewerState extends State<HyperViewer>
           handleColor:
               widget.selectionHandleColor ?? Theme.of(context).primaryColor,
           selectionColor: widget.selectionColor,
-          menuActionsBuilder: widget.selectionMenuActionsBuilder,
+          menuActionsBuilder: widget.selectionMenuActionsBuilder != null
+              ? (state) => widget
+                  .selectionMenuActionsBuilder!(_SyncSelectionAdapter(state))
+              : null,
           contextMenuBuilder: widget.selectionContextMenuBuilder,
           showHandles: true,
           autoShowMenu: true,
@@ -1478,9 +1529,15 @@ class _HyperViewerState extends State<HyperViewer>
 
     // Notify the HyperPageController about the final page count once sections
     // are ready (post-frame so the PageView has been built).
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.pageController?._onSectionsReady(sections.length);
-    });
+    // Guard: only register once per distinct count to avoid accumulating
+    // callbacks on every build() call (e.g. during scroll or parent rebuilds).
+    if (sections.length != _lastNotifiedPageCount &&
+        widget.pageController != null) {
+      _lastNotifiedPageCount = sections.length;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.pageController?._onSectionsReady(sections.length);
+      });
+    }
 
     final pageView = PageView.builder(
       controller: ctrl,
@@ -1488,26 +1545,48 @@ class _HyperViewerState extends State<HyperViewer>
       onPageChanged: widget.pageController?._onPageChanged,
       itemBuilder: (context, index) {
         final sectionKey = _sectionHashes.length > index
-            ? ValueKey(_sectionHashes[index])
+            ? ValueKey('${_sectionHashes[index]}_$index')
             : ValueKey(index);
         // Each page: full available height, with vertical scroll for overflowing
         // sections (e.g. a single very long chapter).
+        Widget pageContent = HyperRenderWidget(
+          document: sections[index],
+          selectable: widget.selectable,
+          textDirection: dir,
+          onLinkTap: _safeOnLinkTap,
+          widgetBuilder: _effectiveWidgetBuilder,
+          debugShowBounds: widget.debugShowHyperRenderBounds,
+          enableComplexFilters: widget.enableComplexFilters,
+          config: _effectiveConfig,
+          suppressFirstBlockMarginTop: index > 0,
+          pluginRegistry: widget.pluginRegistry,
+        );
+
+        if (widget.selectable && widget.showSelectionMenu) {
+          pageContent = HyperSelectionOverlay(
+            document: sections[index],
+            selectable: true,
+            onLinkTap: _safeOnLinkTap,
+            widgetBuilder: _effectiveWidgetBuilder,
+            handleColor:
+                widget.selectionHandleColor ?? Theme.of(context).primaryColor,
+            selectionColor: widget.selectionColor,
+            menuActionsBuilder: widget.selectionMenuActionsBuilder != null
+                ? (state) => widget
+                    .selectionMenuActionsBuilder!(_SyncSelectionAdapter(state))
+                : null,
+            contextMenuBuilder: widget.selectionContextMenuBuilder,
+            showHandles: true,
+            autoShowMenu: true,
+            debugShowBounds: widget.debugShowHyperRenderBounds,
+          );
+        }
+
         return RepaintBoundary(
           key: sectionKey,
           child: SingleChildScrollView(
             physics: widget.physics ?? const ClampingScrollPhysics(),
-            child: HyperRenderWidget(
-              document: sections[index],
-              selectable: widget.selectable,
-              textDirection: dir,
-              onLinkTap: _safeOnLinkTap,
-              widgetBuilder: _effectiveWidgetBuilder,
-              debugShowBounds: widget.debugShowHyperRenderBounds,
-              enableComplexFilters: widget.enableComplexFilters,
-              config: _effectiveConfig,
-              suppressFirstBlockMarginTop: index > 0,
-              pluginRegistry: widget.pluginRegistry,
-            ),
+            child: pageContent,
           ),
         );
       },

@@ -156,7 +156,7 @@ void main() {
   group('Real-World HTML — Rendering (no crash)', () {
     testWidgets('renders news article with images', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: HyperViewer(
@@ -177,7 +177,7 @@ void main() {
 
     testWidgets('renders blog post with code blocks', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: HyperViewer(html: _blogPost, selectable: true),
@@ -194,7 +194,7 @@ void main() {
 
     testWidgets('renders documentation with tables', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body:
                 SingleChildScrollView(child: HyperViewer(html: _documentation)),
@@ -209,7 +209,7 @@ void main() {
 
     testWidgets('renders complex layout with floats', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: HyperViewer(html: _complexLayout, selectable: true),
@@ -225,7 +225,7 @@ void main() {
 
     testWidgets('handles HTML entities and special characters', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body:
                 SingleChildScrollView(child: HyperViewer(html: _htmlEntities)),

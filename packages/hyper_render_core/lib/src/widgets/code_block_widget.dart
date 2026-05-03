@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 
 import '../interfaces/code_highlighter.dart';
 
@@ -111,6 +112,7 @@ class CodeBlockWidget extends StatelessWidget {
             borderRadius: borderRadius,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
+              dragStartBehavior: DragStartBehavior.down,
               child: Padding(
                 padding: padding,
                 child: _buildContent(),

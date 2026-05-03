@@ -45,6 +45,13 @@ if command -v genhtml &> /dev/null; then
         echo "📈 Coverage Summary:"
         lcov --summary coverage/lcov.info 2>&1 | grep -E "lines|functions"
 
+        # Print console report if test_cov_console is available
+        if flutter pub run test_cov_console --help &> /dev/null; then
+            echo ""
+            echo "📊 Detailed Console Report:"
+            flutter pub run test_cov_console
+        fi
+
         # Extract line coverage percentage
         coverage=$(lcov --summary coverage/lcov.info 2>&1 | grep "lines" | awk '{print $2}' | cut -d'%' -f1)
 

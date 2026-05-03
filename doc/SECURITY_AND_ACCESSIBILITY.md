@@ -158,7 +158,37 @@ Examples include:
 
 ### Semantic Labels for Screen Readers
 
-HyperRender provides full WCAG 2.1 compliant accessibility support.
+HyperRender targets **WCAG 2.1 AA** for read-only rendered content.
+The criteria below are implemented and covered by automated tests.
+
+#### Supported WCAG 2.1 AA Criteria
+
+| Criterion | Coverage | How |
+|-----------|----------|-----|
+| **1.1.1 Non-text Content** | ✅ | `<img alt="…">` exposed as a named semantic node at the image's layout rect |
+| **1.3.1 Info & Relationships** | ✅ Partial | `<h1>`–`<h6>` marked as `isHeader`; `<th>` marked as `header: true` in table semantics |
+| **2.4.4 Link Purpose** | ✅ | `<a href>` exposed as `isLink`; `aria-label` overrides visible text (WCAG 4.1.2) |
+| **4.1.2 Name, Role, Value** | ✅ Partial | Links and headings have role; `aria-label` on `<a>` is honoured |
+
+#### Known Limitations
+
+- **Heading levels not differentiated** — `<h1>` through `<h6>` are all marked as
+  `isHeader: true` but the numeric level is not passed to the platform accessibility
+  tree. This is a Flutter engine limitation (`SemanticsConfiguration` has no
+  `headingLevel` property as of Flutter 3.x). Screen readers announce the heading
+  role but not "heading level 2" etc.
+
+- **No ARIA live regions** — `aria-live`, `role="alert"`, `role="status"` are not
+  wired to Flutter's `LiveRegion` semantics. Dynamic content updates are not
+  announced automatically.
+
+- **No ARIA widget roles** — `role="button"`, `role="checkbox"`, `role="dialog"`,
+  etc. are not mapped. HyperRender is a read-only renderer; interactive roles
+  require native Flutter widgets.
+
+- **No keyboard focus management** — Tab-order navigation through links and headings
+  is not supported. On platforms where keyboard access is expected (Web, Desktop),
+  pair HyperRender with native navigation controls.
 
 #### Quick Start
 

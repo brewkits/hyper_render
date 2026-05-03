@@ -51,6 +51,11 @@ pubspec_dev.yaml
 # Internal archive / historical comparison docs
 archive/
 
+# AI assistant config files
+CLAUDE.md
+GEMINI.md
+.claude/
+
 # Coverage artifacts
 coverage/
 

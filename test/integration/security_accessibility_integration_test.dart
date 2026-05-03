@@ -14,7 +14,7 @@ void main() {
       ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: maliciousHtml,
@@ -52,7 +52,7 @@ void main() {
       ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: html,
@@ -126,7 +126,7 @@ void main() {
               children: [
                 if (HtmlSanitizer.containsDangerousContent(dangerousHtml))
                   const Text('⚠️ Dangerous content detected - sanitizing'),
-                HyperViewer(
+                const HyperViewer(
                   html: dangerousHtml,
                   sanitize: true,
                   semanticLabel: 'User generated content',
@@ -185,7 +185,7 @@ void main() {
       ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: cjkHtml,
@@ -214,7 +214,7 @@ This is **bold** text with a [link](https://example.com).
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer.markdown(
               markdown: markdown,
@@ -236,7 +236,7 @@ This is **bold** text with a [link](https://example.com).
       const invalidHtml = '<p>Unclosed tag';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: invalidHtml,
@@ -265,7 +265,7 @@ This is **bold** text with a [link](https://example.com).
 
       // Test without data attributes
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: html,
@@ -282,7 +282,7 @@ This is **bold** text with a [link](https://example.com).
 
       // Test with data attributes
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html: html,

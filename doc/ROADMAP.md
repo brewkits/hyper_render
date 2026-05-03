@@ -1,7 +1,7 @@
 # HyperRender — Product Roadmap
 
-**Last Updated**: 2026-03-25
-**Current Stable**: v1.1.4
+**Last Updated**: 2026-04-29
+**Current Stable**: v1.2.3
 **Repository**: [github.com/brewkits/hyper_render](https://github.com/brewkits/hyper_render)
 
 This document tracks the long-term direction of the HyperRender ecosystem.
@@ -9,7 +9,7 @@ For detailed CSS property tracking, see [`internal/CSS_SUPPORT_ROADMAP.md`](inte
 
 ---
 
-## Completed — v1.0 → v1.1.2
+## Completed — v1.0 → v1.2.3
 
 - Single `RenderObject` pipeline (Parse → Style → Layout → Paint)
 - Float layout algorithm (`float: left/right`, `clear`) — unique advantage over FWFH
@@ -28,6 +28,7 @@ For detailed CSS property tracking, see [`internal/CSS_SUPPORT_ROADMAP.md`](inte
 - CSS Grid layout (`display:grid` — full row/column track sizing, `gap`, span)
 - RTL / bidirectional text (Arabic, Hebrew, Persian via `direction: rtl`)
 - **CSS `@keyframes` execution** (v1.1.2) — `opacity`, `transform` (translate, scale, rotate); `from`/`to` and percentage selectors; vendor prefixes
+- **High Coverage Milestone** (v1.2.3) — Reached >80% global test coverage with expanded suites for all parsers and selection logic.
 - Modular package architecture: `hyper_render_core`, `hyper_render_html`,
   `hyper_render_markdown`, `hyper_render_highlight`, `hyper_render_clipboard`
 - **`hyper_render_devtools` v1.0.0** — UDT Tree inspector, Computed Style panel, Float region visualizer, demo mode (no live app required); published to pub.dev
@@ -37,7 +38,7 @@ For detailed CSS property tracking, see [`internal/CSS_SUPPORT_ROADMAP.md`](inte
 
 ---
 
-## v1.2 — Stability & CSS Polish (updated 2026-03-24)
+## v2.0 — Plugin Ecosystem (Next)
 
 ### Cross-Chunk Float Carryover
 

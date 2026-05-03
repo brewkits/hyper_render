@@ -1,5 +1,18 @@
-# Claude Code session files
+# AI / LLM Tools
 .claude/
+.gemini/
+.cursor/
+.windsurf/
+.aider*
+.env
+.env.*
+*.local
+memory/
+RESEARCH.md
+PLAN.md
+TODO.md
+ACT.md
+TEST.md
 
 # Private / internal documents (not for public repository)
 doc/internal/
@@ -13,17 +26,20 @@ TEST_SUMMARY.md
 IMPROVEMENTS_SUMMARY.md
 PRIORITY_ACTION_PLAN.md
 
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
+# User-specific / Local config
+.vscode/
+.history/
 .DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-migrate_working_dir/
+*.swp
+*.temp
+*.tmp
+*.log
+.DS_Store?
+Icon?
+ehthumbs.db
+Thumbs.db
+
+
 
 # IntelliJ related
 *.iml

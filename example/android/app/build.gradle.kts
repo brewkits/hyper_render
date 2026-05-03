@@ -43,7 +43,7 @@ android {
     // with correct page alignment (4KB on older devices, 16KB on newer).
     packaging {
         jniLibs {
-            useLegacyPackaging = false
+            useLegacyPackaging = true
         }
     }
 }

@@ -10,8 +10,6 @@ const double _kImageMargin =
     32.0; // horizontal margin subtracted from maxWidth for images
 const double _kDefaultFlexFallbackHeight = 50.0;
 const double _kDefaultTableFallbackHeight = 200.0;
-const double _kDefaultCodeBlockFallbackHeight = 100.0;
-const double _kDefaultDetailsFallbackHeight = 40.0;
 const double _kTableBottomMargin = 16.0;
 const double _kCodeBlockBottomMargin = 8.0;
 const double _kDetailsBottomMargin = 4.0;
@@ -28,6 +26,19 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // Reset list item counters so ordered-list numbering restarts from 1
     _listItemIndices.clear();
     _tokenizeNode(_document!, null);
+
+    // Assign global offsets
+    int offset = 0;
+    for (final f in _fragments) {
+      f.globalOffset = offset;
+      if ((f.type == FragmentType.text || f.type == FragmentType.ruby) &&
+          f.text != null) {
+        offset += f.text!.length;
+      } else if (f.type == FragmentType.lineBreak) {
+        offset += 1;
+      }
+    }
+    _totalCharacterCount = offset;
   }
 
   void _tokenizeNode(UDTNode node, UDTNode? parentBlock) {
@@ -141,10 +152,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     final collapsedMargin = math.max(marginTop, _lastBlockMarginBottom);
     final effectiveMarginTop = collapsedMargin - _lastBlockMarginBottom;
 
-    // Flex containers are rendered as FlexContainerWidget child widgets.
+    // Flex containers and Grid containers are rendered as child widgets.
     // The widget handles its own padding/border internally, so we only inject
     // margin spacing via a zero-padding _BlockStartFragment.
-    if (style.display == DisplayType.flex) {
+    if (style.display == DisplayType.flex ||
+        style.display == DisplayType.grid) {
       if (effectiveMarginTop > 0 || _fragments.isNotEmpty) {
         _fragments.add(_BlockStartFragment(
           sourceNode: node,
@@ -375,7 +387,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final dimH = node.intrinsicHeight ?? node.style.height;
         if (dimW != null && dimH != null) {
           // Both dimensions specified — scale down proportionally if wider than viewport.
-          final scale = dimW > maxW ? maxW / dimW : 1.0;
+          final scale = (dimW > maxW && dimW > 0) ? maxW / dimW : 1.0;
           width = dimW * scale;
           height = dimH * scale;
         } else if (dimW != null) {
@@ -407,7 +419,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final dimW = node.intrinsicWidth ?? node.style.width;
         final dimH = node.intrinsicHeight ?? node.style.height;
         if (dimW != null && dimH != null) {
-          final scale = dimW > maxW ? maxW / dimW : 1.0;
+          final scale = (dimW > maxW && dimW > 0) ? maxW / dimW : 1.0;
           width = dimW * scale;
           height = dimH * scale;
         } else if (dimW != null) {
@@ -429,7 +441,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       final intrinsicW = node.intrinsicWidth;
       final intrinsicH = node.intrinsicHeight;
       if (intrinsicW != null && intrinsicH != null) {
-        final scale = intrinsicW > maxW ? maxW / intrinsicW : 1.0;
+        final scale =
+            (intrinsicW > maxW && intrinsicW > 0) ? maxW / intrinsicW : 1.0;
         width = intrinsicW * scale;
         height = intrinsicH * scale;
       } else if (intrinsicW != null) {
@@ -766,7 +779,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         leftInset: leftInset,
         rightInset: rightInset,
       );
+      final currentLineIndex = _lines.length;
       for (final frag in currentLineFragments) {
+        frag.lineIndex = currentLineIndex;
         lineInfo.add(frag);
       }
       // Guard against zero lineHeight: when all fragments have measuredSize ==
@@ -1035,7 +1050,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         finishLine();
         // Find the child RenderBox for this code block
         RenderBox? codeBlockChild = _findChildForFragment(fragment);
-        double blockHeight = _kDefaultCodeBlockFallbackHeight;
+        double blockHeight = 0.0;
         double blockWidth = _maxWidth;
 
         if (codeBlockChild != null) {
@@ -1061,7 +1076,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       if (fragment is _DetailsFragment) {
         finishLine();
         RenderBox? detailsChild = _findChildForFragment(fragment);
-        double blockHeight = _kDefaultDetailsFallbackHeight;
+        double blockHeight = 0.0;
         double blockWidth = _maxWidth;
         // Subtract the current block insets so the details widget does not
         // overflow when it is nested inside a padded block element.
@@ -1140,7 +1155,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
                 sourceNode: fragment.sourceNode,
                 style: fragment.style,
                 characterOffset: fragment.characterOffset,
-              );
+              )..globalOffset = fragment.globalOffset;
               _measureFragment(truncFrag);
               truncFrag.offset = Offset(currentX, currentY);
               currentLineFragments.add(truncFrag);
@@ -1157,7 +1172,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
             sourceNode: fragment.sourceNode,
             style: fragment.style,
             characterOffset: fragment.characterOffset,
-          );
+          )..globalOffset = fragment.globalOffset;
           _measureFragment(ellipsisFrag);
           ellipsisFrag.offset = Offset(currentX, currentY);
           currentLineFragments.add(ellipsisFrag);
@@ -1382,14 +1397,21 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       return null;
     }
 
-    // Snap breakIndex off any UTF-16 low surrogate (0xDC00–0xDFFF).
-    // Low surrogates are the *second* code unit of a surrogate pair (emoji,
-    // rare CJK extension B, etc.).  If breakIndex lands there, substring()
-    // would put the lone high surrogate at the end of the first fragment —
-    // an invalid Dart string that crashes TextPainter and corrupts clipboard.
-    // Stepping back by one puts the break BEFORE the whole surrogate pair.
-    if ((text.codeUnitAt(breakIndex) & 0xFC00) == 0xDC00) {
-      breakIndex -= 1;
+    // Ensure breakIndex aligns with grapheme cluster boundaries.
+    // This prevents splitting emojis (even with ZWJ) or complex scripts.
+    if (breakIndex > 0 && breakIndex < text.length) {
+      final range = text.characters.iterator;
+      int currentOffset = 0;
+      while (range.moveNext()) {
+        int nextOffset = currentOffset + range.current.length;
+        if (nextOffset > breakIndex) {
+          // The grapheme cluster crosses the breakIndex. Snap back.
+          breakIndex = currentOffset;
+          break;
+        }
+        currentOffset = nextOffset;
+        if (currentOffset == breakIndex) break;
+      }
       if (breakIndex <= 0) return null;
     }
 
@@ -1415,7 +1437,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       sourceNode: fragment.sourceNode,
       style: fragment.style,
       characterOffset: fragment.characterOffset,
-    );
+    )..globalOffset = fragment.globalOffset;
     _measureFragment(firstFragment);
 
     // characterOffset points to the START of secondPart in the document.
@@ -1427,7 +1449,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       sourceNode: fragment.sourceNode,
       style: fragment.style,
       characterOffset: fragment.characterOffset + breakIndex,
-    );
+    )..globalOffset = fragment.globalOffset + breakIndex;
     _measureFragment(secondFragment);
 
     return (firstFragment, secondFragment);
@@ -1509,19 +1531,24 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
     }
 
-    // Snap off any low surrogate — same reason as in _splitTextFragment.
-    if ((text.codeUnitAt(breakIndex) & 0xFC00) == 0xDC00) {
-      if (breakIndex > 1) {
-        breakIndex -= 1;
-      } else if (text.length > 2) {
-        // If we're at index 1 and it's a low surrogate, but there's more text,
-        // snap forward to index 2 to include the whole surrogate pair in the
-        // first fragment rather than returning null.
-        breakIndex = 2;
-      } else {
-        // Single surrogate pair (Emoji) — cannot split.
-        // FIX: Force include it in the first part rather than dropping it.
-        breakIndex = text.length;
+    // Ensure breakIndex aligns with grapheme cluster boundaries.
+    if (breakIndex > 0 && breakIndex < text.length) {
+      final range = text.characters.iterator;
+      int currentOffset = 0;
+      while (range.moveNext()) {
+        int nextOffset = currentOffset + range.current.length;
+        if (nextOffset > breakIndex) {
+          // If we snap back to 0, snap forward instead so we don't return null
+          // and get stuck dropping content.
+          if (currentOffset == 0) {
+            breakIndex = nextOffset;
+          } else {
+            breakIndex = currentOffset;
+          }
+          break;
+        }
+        currentOffset = nextOffset;
+        if (currentOffset == breakIndex) break;
       }
     }
 
@@ -1533,7 +1560,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       sourceNode: fragment.sourceNode,
       style: fragment.style,
       characterOffset: fragment.characterOffset,
-    );
+    )..globalOffset = fragment.globalOffset;
     _measureFragment(firstFragment);
 
     final secondFragment = Fragment.text(
@@ -1541,7 +1568,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       sourceNode: fragment.sourceNode,
       style: fragment.style,
       characterOffset: fragment.characterOffset + breakIndex,
-    );
+    )..globalOffset = fragment.globalOffset + breakIndex;
     _measureFragment(secondFragment);
 
     return (firstFragment, secondFragment);
@@ -1594,7 +1621,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final dimW = sourceNode.intrinsicWidth ?? sourceNode.style.width;
         final dimH = sourceNode.intrinsicHeight ?? sourceNode.style.height;
         if (dimW != null && dimH != null) {
-          final scale = dimW > availableWidth ? availableWidth / dimW : 1.0;
+          final scale =
+              (dimW > availableWidth && dimW > 0) ? availableWidth / dimW : 1.0;
           width = dimW * scale;
           height = dimH * scale;
         } else if (dimW != null) {
@@ -1632,13 +1660,20 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     } else {
       // Non-image float: measure via intrinsic APIs to avoid a double layout
       // (this runs inside _performLineLayout; _layoutChildren will do the real layout).
+      // Respect explicit CSS dimensions if provided.
       final child = _findChildForFragment(fragment);
       if (child != null && !availableWidth.isInfinite && availableWidth > 0) {
-        width = math.min(
-          child.getMaxIntrinsicWidth(availableWidth),
-          availableWidth,
-        );
-        height = child.getMaxIntrinsicHeight(width);
+        final cssWidth = fragment.style.width;
+        final cssHeight = fragment.style.height;
+
+        width = cssWidth != null
+            ? math.min(cssWidth, availableWidth)
+            : math.min(
+                child.getMaxIntrinsicWidth(availableWidth),
+                availableWidth,
+              );
+
+        height = cssHeight ?? child.getMaxIntrinsicHeight(width);
       } else {
         width = math.min(
           fragment.style.width ?? RenderHyperBox.defaultFloatSize,
@@ -1717,14 +1752,19 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
 
       if (!foundPosition) {
-        // Fall back to currentY when the iteration limit is exceeded (e.g.
-        // extreme float density).
         assert(() {
           debugPrint('HyperRender: left float exceeded maxIterations — '
-              'falling back to currentY. Reduce float density to avoid this.');
+              'falling back to lowest active float to prevent overlap.');
           return true;
         }());
-        floatY = currentY;
+        double lowestBottom = currentY;
+        for (final existing in _leftFloats) {
+          lowestBottom = math.max(lowestBottom, existing.rect.bottom);
+        }
+        for (final existing in _rightFloats) {
+          lowestBottom = math.max(lowestBottom, existing.rect.bottom);
+        }
+        floatY = lowestBottom;
       }
 
       // Float rect includes margin on right and bottom for text spacing
@@ -1792,13 +1832,19 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
 
       if (!foundPosition) {
-        // Same fallback as left float: use currentY when iteration limit hit.
         assert(() {
           debugPrint('HyperRender: right float exceeded maxIterations — '
-              'falling back to currentY. Reduce float density to avoid this.');
+              'falling back to lowest active float to prevent overlap.');
           return true;
         }());
-        floatY = currentY;
+        double lowestBottom = currentY;
+        for (final existing in _leftFloats) {
+          lowestBottom = math.max(lowestBottom, existing.rect.bottom);
+        }
+        for (final existing in _rightFloats) {
+          lowestBottom = math.max(lowestBottom, existing.rect.bottom);
+        }
+        floatY = lowestBottom;
       }
 
       // Float rect includes margin on left and bottom for text spacing
@@ -1994,32 +2040,33 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     _characterToFragment.clear();
     _fragmentRanges.clear();
     _lineStartOffsets.clear();
-    _totalCharacterCount = 0;
+    // _totalCharacterCount is already computed in _ensureFragments
 
     // Build ranges instead of individual character mapping
     for (final fragment in _fragments) {
       if ((fragment.type == FragmentType.text ||
               fragment.type == FragmentType.ruby) &&
           fragment.text != null) {
-        final startIdx = _totalCharacterCount;
+        final startIdx = fragment.globalOffset;
         final endIdx = startIdx + fragment.text!.length;
         _fragmentRanges.add((startIdx, endIdx, fragment));
-        _totalCharacterCount = endIdx;
       }
     }
 
     // Build per-line start offsets for O(log N) selection hit-testing.
     // _lineStartOffsets[i] = cumulative char count before line i.
-    int lineStart = 0;
     for (final line in _lines) {
-      _lineStartOffsets.add(lineStart);
+      int? lineStart;
       for (final frag in line.fragments) {
         if ((frag.type == FragmentType.text ||
                 frag.type == FragmentType.ruby) &&
             frag.text != null) {
-          lineStart += frag.text!.length;
+          lineStart = frag.globalOffset;
+          break;
         }
       }
+      _lineStartOffsets.add(lineStart ??
+          (_lineStartOffsets.isNotEmpty ? _lineStartOffsets.last : 0));
     }
   }
 
@@ -2265,14 +2312,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     }
 
     // Check for the opposite case: more fragments than widgets
-    assert(() {
-      if (unlinkedFragmentIndex < unlinkedFragments.length) {
-        debugPrint(
-            '[HyperRender] Layout Warning: More fragments than child widgets. '
-            'Remaining fragments: ${unlinkedFragments.length - unlinkedFragmentIndex}');
-      }
-      return true;
-    }());
+    // It is valid for `unlinkedFragments.length > unlinkedFragmentIndex` if the
+    // Widget builder (HyperRenderWidget) intentionally dropped an invalid node
+    // (e.g., an <img> with a missing src, or an unhandled plugin node).
+    // Therefore, we no longer print a layout warning here.
   }
 
   /// Find child RenderBox for a given fragment

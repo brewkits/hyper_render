@@ -201,7 +201,7 @@ const _welcomeEmail = '''
     <!-- 3 perk cards -->
     <div style="background:#F8F9FF; border-radius:10px; padding:14px 16px; margin-bottom:10px;">
       <div style="display:flex; align-items:center;">
-        <span style="font-size:24px; margin-right:14px;">🚀</span>
+        <span style="font-size:24px; padding-right:14px;">🚀</span>
         <div>
           <div style="font-size:14px; font-weight:700; color:#212121;">Free shipping on all orders</div>
           <div style="font-size:12px; color:#757575; margin-top:2px;">No minimum order, worldwide delivery</div>
@@ -210,7 +210,7 @@ const _welcomeEmail = '''
     </div>
     <div style="background:#F8F9FF; border-radius:10px; padding:14px 16px; margin-bottom:10px;">
       <div style="display:flex; align-items:center;">
-        <span style="font-size:24px; margin-right:14px;">🎁</span>
+        <span style="font-size:24px; padding-right:14px;">🎁</span>
         <div>
           <div style="font-size:14px; font-weight:700; color:#212121;">20% off your first order</div>
           <div style="font-size:12px; color:#757575; margin-top:2px;">
@@ -221,7 +221,7 @@ const _welcomeEmail = '''
     </div>
     <div style="background:#F8F9FF; border-radius:10px; padding:14px 16px; margin-bottom:22px;">
       <div style="display:flex; align-items:center;">
-        <span style="font-size:24px; margin-right:14px;">💬</span>
+        <span style="font-size:24px; padding-right:14px;">💬</span>
         <div>
           <div style="font-size:14px; font-weight:700; color:#212121;">24/7 live chat support</div>
           <div style="font-size:12px; color:#757575; margin-top:2px;">Average response time under 2 minutes</div>
@@ -556,7 +556,7 @@ const _japaneseNewsletter = '''
       <tr>
         <td style="padding:12px 0; border-bottom:1px solid #F0F0F0; vertical-align:top;">
           <div style="display:flex; align-items:flex-start;">
-            <span style="font-size:20px; margin-right:12px; margin-top:1px;">🤖</span>
+            <span style="font-size:20px; padding-right:12px; margin-top:1px;">🤖</span>
             <div>
               <div style="font-size:13px; font-weight:700; color:#1A1A1A; line-height:1.4;
                           margin-bottom:4px;">
@@ -576,7 +576,7 @@ const _japaneseNewsletter = '''
       <tr>
         <td style="padding:12px 0; border-bottom:1px solid #F0F0F0; vertical-align:top;">
           <div style="display:flex; align-items:flex-start;">
-            <span style="font-size:20px; margin-right:12px; margin-top:1px;">📱</span>
+            <span style="font-size:20px; padding-right:12px; margin-top:1px;">📱</span>
             <div>
               <div style="font-size:13px; font-weight:700; color:#1A1A1A; line-height:1.4;
                           margin-bottom:4px;">
@@ -597,7 +597,7 @@ const _japaneseNewsletter = '''
       <tr>
         <td style="padding:12px 0; vertical-align:top;">
           <div style="display:flex; align-items:flex-start;">
-            <span style="font-size:20px; margin-right:12px; margin-top:1px;">🎯</span>
+            <span style="font-size:20px; padding-right:12px; margin-top:1px;">🎯</span>
             <div>
               <div style="font-size:13px; font-weight:700; color:#1A1A1A; line-height:1.4;
                           margin-bottom:4px;">

@@ -228,6 +228,48 @@ void main() {
       expect(capturedStyle, isNotNull);
       expect(capturedStyle!.fontSize, isNotNull);
     });
+
+    testWidgets(
+        'pluginRegistry is propagated through nested HyperRenderWidget (e.g. inside a float)',
+        (WidgetTester tester) async {
+      final registry = HyperPluginRegistry()..register(const _BlockPlugin());
+
+      final doc = DocumentNode(children: [
+        BlockNode(
+          tagName: 'div',
+          children: [
+            // This float div will create a nested HyperRenderWidget for its children
+            BlockNode(
+              tagName: 'div',
+              children: [
+                // This 'figure' tag should be handled by the plugin if propagated correctly
+                BlockNode(tagName: 'figure', children: []),
+              ],
+            )..style = ComputedStyle(
+                float: HyperFloat.left,
+                width: 100,
+                height: 100,
+              ),
+          ],
+        ),
+      ]);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HyperRenderWidget(
+              document: doc,
+              pluginRegistry: registry,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // If propagation works, the _BlockPlugin should have rendered its blue container
+      expect(find.byKey(const ValueKey('figure-plugin')), findsOneWidget);
+    });
   });
 }
 

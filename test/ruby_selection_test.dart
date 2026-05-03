@@ -20,7 +20,7 @@ void main() {
           '</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: html, selectable: true),
           ),
@@ -36,7 +36,7 @@ void main() {
           'に行く</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: html, selectable: true),
           ),
@@ -54,7 +54,7 @@ void main() {
           '</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: html, selectable: true),
           ),
@@ -73,7 +73,7 @@ void main() {
           '</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: html, selectable: true),
           ),
@@ -96,7 +96,7 @@ void main() {
           '</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: html, selectable: true),
           ),
@@ -125,7 +125,7 @@ void main() {
           '</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: html, selectable: true),
           ),
@@ -146,7 +146,7 @@ void main() {
           '<p><ruby>二行目<rt>にぎょうめ</rt></ruby>のテキスト</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: html, selectable: true),
           ),
@@ -167,7 +167,7 @@ void main() {
           '<p>続くテキスト。</p>';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: html, selectable: true),
           ),

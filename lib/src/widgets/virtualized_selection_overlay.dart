@@ -204,8 +204,7 @@ class VirtualizedSelectionOverlay extends StatefulWidget {
 
   /// Overrides the default [Copy / Select All] menu. Receives the controller
   /// so custom actions can call [controller.getSelectedText()].
-  // ignore: library_private_types_in_public_api
-  final List<_SelectionMenuAction> Function(VirtualizedSelectionController)?
+  final List<SelectionMenuAction> Function(VirtualizedSelectionController)?
       selectionMenuActionsBuilder;
 
   @override
@@ -346,6 +345,36 @@ class _VirtualizedSelectionOverlayState
     );
   }
 
+  void _autoScrollIfNearEdge(Offset globalPosition) {
+    final scrollable = Scrollable.maybeOf(context);
+    if (scrollable == null) return;
+
+    final RenderBox? scrollableBox =
+        scrollable.context.findRenderObject() as RenderBox?;
+    if (scrollableBox == null) return;
+
+    final localPosition = scrollableBox.globalToLocal(globalPosition);
+    final size = scrollableBox.size;
+
+    const threshold = 50.0;
+    double dy = 0.0;
+
+    if (localPosition.dy < threshold) {
+      dy = -15.0;
+    } else if (localPosition.dy > size.height - threshold) {
+      dy = 15.0;
+    }
+
+    if (dy != 0.0) {
+      final position = scrollable.position;
+      final target = (position.pixels + dy)
+          .clamp(position.minScrollExtent, position.maxScrollExtent);
+      if (target != position.pixels) {
+        position.jumpTo(target);
+      }
+    }
+  }
+
   Widget _buildHandle({required bool isStart, required Rect rect}) {
     final left = isStart ? rect.left - 11 : rect.right - 11;
     final top = isStart ? rect.top - 22 : rect.bottom;
@@ -368,6 +397,7 @@ class _VirtualizedSelectionOverlayState
         onPanUpdate: (details) {
           widget.controller
               .updateSelectionFromHandle(isStart, details.globalPosition);
+          _autoScrollIfNearEdge(details.globalPosition);
         },
         onPanEnd: (_) {
           if (isStart) {
@@ -450,13 +480,13 @@ class _VirtualizedSelectionOverlayState
     );
   }
 
-  List<_SelectionMenuAction> get _defaultActions => [
-        _SelectionMenuAction(
+  List<SelectionMenuAction> get _defaultActions => [
+        SelectionMenuAction(
           icon: Icons.copy_rounded,
           label: 'Copy',
           onPressed: _copySelection,
         ),
-        _SelectionMenuAction(
+        SelectionMenuAction(
           icon: Icons.select_all_rounded,
           label: 'All',
           onPressed: widget.controller.selectAll,
@@ -467,18 +497,6 @@ class _VirtualizedSelectionOverlayState
 // ──────────────────────────────────────────────────────────────────────────────
 // Supporting types
 // ──────────────────────────────────────────────────────────────────────────────
-
-/// A menu action for the virtualised selection Copy popup.
-class _SelectionMenuAction {
-  const _SelectionMenuAction({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-}
 
 class _MenuButton extends StatelessWidget {
   const _MenuButton(

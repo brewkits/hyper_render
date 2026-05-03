@@ -269,10 +269,10 @@ void main() {
   group('DefaultMediaWidget — rendering', () {
     testWidgets('video placeholder renders without error', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: DefaultMediaWidget(
-              mediaInfo: const MediaInfo(
+              mediaInfo: MediaInfo(
                 type: MediaType.video,
                 src: 'v.mp4',
                 poster: null,
@@ -290,10 +290,10 @@ void main() {
 
     testWidgets('audio placeholder renders without error', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: DefaultMediaWidget(
-              mediaInfo: const MediaInfo(
+              mediaInfo: MediaInfo(
                 type: MediaType.audio,
                 src: 'a.mp3',
                 width: 300,
@@ -311,12 +311,12 @@ void main() {
         (tester) async {
       // Container is 400px wide; video requests 1920px → must not overflow
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
               child: DefaultMediaWidget(
-                mediaInfo: const MediaInfo(
+                mediaInfo: MediaInfo(
                   type: MediaType.video,
                   src: 'v.mp4',
                   width: 1920,
@@ -340,12 +340,12 @@ void main() {
     testWidgets('video with no explicit size fills container at 16:9',
         (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 360,
               child: DefaultMediaWidget(
-                mediaInfo: const MediaInfo(
+                mediaInfo: MediaInfo(
                   type: MediaType.video,
                   src: 'v.mp4',
                 ),
@@ -454,7 +454,7 @@ void main() {
     testWidgets('video with sanitize:true still renders', (tester) async {
       // Default: sanitize=true — video must survive sanitizer
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(
               html:
@@ -470,7 +470,7 @@ void main() {
 
     testWidgets('mixed text and video renders correctly', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: HyperViewer(

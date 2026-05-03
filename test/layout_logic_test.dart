@@ -36,7 +36,7 @@ void main() {
 
       // Get the RenderHyperBox
       final renderBox = tester.renderObject<RenderHyperBox>(
-        find.byType(HyperRenderWidget),
+        find.byType(HyperRenderWidget).first,
       );
 
       // The height should be > single line height (roughly 20px for fontSize 16)
@@ -68,7 +68,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final renderBox = tester.renderObject<RenderHyperBox>(
-        find.byType(HyperRenderWidget),
+        find.byType(HyperRenderWidget).first,
       );
 
       // Single line should have small height (around 20-30px)
@@ -104,7 +104,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final renderBox = tester.renderObject<RenderHyperBox>(
-        find.byType(HyperRenderWidget),
+        find.byType(HyperRenderWidget).first,
       );
 
       // 3 lines with line breaks should have height > 2 lines
@@ -152,7 +152,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final renderBox = tester.renderObject<RenderHyperBox>(
-        find.byType(HyperRenderWidget),
+        find.byType(HyperRenderWidget).first,
       );
 
       // With a 100px wide float and 300px container,
@@ -199,7 +199,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final renderBox = tester.renderObject<RenderHyperBox>(
-        find.byType(HyperRenderWidget),
+        find.byType(HyperRenderWidget).first,
       );
 
       // Height should accommodate the float
@@ -250,7 +250,96 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
+    });
+
+    testWidgets('float width and height respect explicit CSS styles',
+        (WidgetTester tester) async {
+      final doc = DocumentNode(children: [
+        BlockNode(
+          tagName: 'div',
+          children: [
+            BlockNode(
+              tagName: 'div',
+              children: [TextNode('Tiny text')],
+            )..style = ComputedStyle(
+                float: HyperFloat.left,
+                width: 250, // Much larger than text needs
+                height: 150,
+              ),
+            BlockNode.p(children: [
+              TextNode('Wrapping text'),
+            ]),
+          ],
+        ),
+      ]);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              child: HyperRenderWidget(
+                document: doc,
+                baseStyle: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final renderBox = tester.renderObject<RenderHyperBox>(
+        find.byType(HyperRenderWidget).first,
+      );
+
+      // Height should be exactly the float's height (150) or slightly more because of line height,
+      // but not just intrinsic (which would be ~20px).
+      expect(renderBox.size.height, greaterThanOrEqualTo(150));
+    });
+
+    testWidgets('float without explicit dimensions falls back to intrinsic',
+        (WidgetTester tester) async {
+      final doc = DocumentNode(children: [
+        BlockNode(
+          tagName: 'div',
+          children: [
+            BlockNode(
+              tagName: 'div',
+              children: [TextNode('Short')],
+            )..style = ComputedStyle(
+                float: HyperFloat.left,
+              ),
+            BlockNode.p(children: [
+              TextNode('Wrapping text'),
+            ]),
+          ],
+        ),
+      ]);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              child: HyperRenderWidget(
+                document: doc,
+                baseStyle: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final renderBox = tester.renderObject<RenderHyperBox>(
+        find.byType(HyperRenderWidget).first,
+      );
+
+      // A single line float + single line text should not exceed ~60px
+      expect(renderBox.size.height, lessThan(60));
     });
   });
 
@@ -329,7 +418,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final renderBox = tester.renderObject<RenderHyperBox>(
-        find.byType(HyperRenderWidget),
+        find.byType(HyperRenderWidget).first,
       );
 
       // Set a selection
@@ -373,7 +462,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final renderBox = tester.renderObject<RenderHyperBox>(
-        find.byType(HyperRenderWidget),
+        find.byType(HyperRenderWidget).first,
       );
 
       // Set initial selection
@@ -413,7 +502,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final renderBox = tester.renderObject<RenderHyperBox>(
-        find.byType(HyperRenderWidget),
+        find.byType(HyperRenderWidget).first,
       );
 
       // Select all text
@@ -460,11 +549,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify widget renders without error
-      expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
 
       // Check that child widgets were created for the image
       final renderBox = tester.renderObject<RenderHyperBox>(
-        find.byType(HyperRenderWidget),
+        find.byType(HyperRenderWidget).first,
       );
 
       // The render box should have a non-zero height accounting for text and image
@@ -522,7 +611,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
     });
 
     testWidgets('maxIntrinsicWidth returns reasonable value',
@@ -548,7 +637,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
     });
   });
 
@@ -578,7 +667,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final renderBox = tester.renderObject<RenderHyperBox>(
-        find.byType(HyperRenderWidget),
+        find.byType(HyperRenderWidget).first,
       );
 
       // Ruby annotation should take more height than regular text
@@ -618,7 +707,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
     });
   });
 
@@ -647,7 +736,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final renderBox = tester.renderObject<RenderHyperBox>(
-        find.byType(HyperRenderWidget),
+        find.byType(HyperRenderWidget).first,
       );
 
       // Long CJK text should wrap into multiple lines
@@ -678,7 +767,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.byType(HyperRenderWidget), findsOneWidget);
+      expect(find.byType(HyperRenderWidget), findsWidgets);
     });
   });
 }

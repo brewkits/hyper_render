@@ -17,18 +17,21 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       // 1. Backdrop Filter (Glassmorphism) - Paints BEFORE background
       if (decoration.backdropFilter != null && enableComplexFilters) {
         canvas.saveLayer(adjustedRect, _sLayerPaint);
-        canvas.drawRect(
-            adjustedRect,
-            Paint()
-              ..imageFilter = decoration.backdropFilter
-              ..blendMode = BlendMode.srcOver);
+        _filterPaint
+          ..imageFilter = decoration.backdropFilter
+          ..blendMode = BlendMode.srcOver;
+        canvas.drawRect(adjustedRect, _filterPaint);
+        _filterPaint
+          ..imageFilter = null
+          ..blendMode = BlendMode.srcOver;
         canvas.restore();
       }
 
       // 2. Filter (blur, etc.)
       if (decoration.filter != null && enableComplexFilters) {
-        canvas.saveLayer(
-            adjustedRect, Paint()..imageFilter = decoration.filter);
+        _filterPaint.imageFilter = decoration.filter;
+        canvas.saveLayer(adjustedRect, _filterPaint);
+        _filterPaint.imageFilter = null;
       }
 
       // 3. Box shadows
@@ -134,15 +137,17 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         // 1. Backdrop Filter
         if (decoration.style.backdropFilter != null && enableComplexFilters) {
           canvas.saveLayer(adjustedRect, _sLayerPaint);
-          canvas.drawRect(adjustedRect,
-              Paint()..imageFilter = decoration.style.backdropFilter);
+          _filterPaint.imageFilter = decoration.style.backdropFilter;
+          canvas.drawRect(adjustedRect, _filterPaint);
+          _filterPaint.imageFilter = null;
           canvas.restore();
         }
 
         // 2. Filter (blur, etc.)
         if (decoration.style.filter != null && enableComplexFilters) {
-          canvas.saveLayer(
-              adjustedRect, Paint()..imageFilter = decoration.style.filter);
+          _filterPaint.imageFilter = decoration.style.filter;
+          canvas.saveLayer(adjustedRect, _filterPaint);
+          _filterPaint.imageFilter = null;
         }
 
         // 3. Box shadows
@@ -418,7 +423,6 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     // the "spreadsheet cell" feel of perfectly sharp corners.
     const selectionRadius = Radius.circular(2.0);
 
-    int currentOffset = 0;
     for (final line in _lines) {
       // Accumulate all highlight rects for this line into a single Path so
       // that adjacent boxes merge cleanly (no hairline gap between them) and
@@ -427,8 +431,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
 
       for (final fragment in line.fragments) {
         if (fragment.type == FragmentType.text && fragment.text != null) {
-          final fragmentStart = currentOffset;
-          final fragmentEnd = currentOffset + fragment.text!.length;
+          final fragmentStart = fragment.globalOffset;
+          final fragmentEnd = fragmentStart + fragment.text!.length;
 
           // Check if this fragment overlaps with selection
           if (fragmentEnd > _selection!.start &&
@@ -442,18 +446,24 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
             // element boundaries (e.g. " は、" or "を "). These spaces are
             // preserved in the selection range for copy-paste, but should not
             // produce blank margin inside the painted highlight rect.
+            // Exception: preformatted content (pre/pre-wrap) where indent
+            // spaces are meaningful and must be visually highlighted.
             final text = fragment.text!;
             int visualStart = selectStart;
             int visualEnd = selectEnd;
-            while (visualStart < visualEnd && text[visualStart] == ' ') {
-              visualStart++;
-            }
-            while (visualEnd > visualStart && text[visualEnd - 1] == ' ') {
-              visualEnd--;
+            final ws = fragment.style.whiteSpace;
+            final isPreformatted =
+                ws == 'pre' || ws == 'pre-wrap' || ws == 'break-spaces';
+            if (!isPreformatted) {
+              while (visualStart < visualEnd && text[visualStart] == ' ') {
+                visualStart++;
+              }
+              while (visualEnd > visualStart && text[visualEnd - 1] == ' ') {
+                visualEnd--;
+              }
             }
 
             if (visualStart >= visualEnd) {
-              currentOffset = fragmentEnd;
               continue;
             }
 
@@ -485,14 +495,12 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
                   : Path.combine(PathOperation.union, linePath, boxPath);
             }
           }
-
-          currentOffset = fragmentEnd;
         } else if (fragment.type == FragmentType.ruby &&
             fragment.text != null) {
           // Ruby fragments contribute to character offset and get a full-rect
           // highlight covering both the annotation and the base text.
-          final fragmentStart = currentOffset;
-          final fragmentEnd = currentOffset + fragment.text!.length;
+          final fragmentStart = fragment.globalOffset;
+          final fragmentEnd = fragmentStart + fragment.text!.length;
 
           if (fragmentEnd > _selection!.start &&
               fragmentStart < _selection!.end) {
@@ -509,8 +517,6 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
                 ? boxPath
                 : Path.combine(PathOperation.union, linePath, boxPath);
           }
-
-          currentOffset = fragmentEnd;
         }
       }
 

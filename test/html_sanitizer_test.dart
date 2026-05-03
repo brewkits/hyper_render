@@ -87,6 +87,18 @@ void main() {
         expect(result, isNot(contains('javascript:')));
       });
 
+      test('isSafeUrl blocks tab-encoded bypass (mXSS)', () {
+        // "jav\tascript:alert(1)" — tab embedded inside scheme name.
+        // A plain startsWith check misses this; control-char stripping catches it.
+        expect(HtmlSanitizer.isSafeUrl('jav\tascript:alert(1)'), isFalse);
+        expect(HtmlSanitizer.isSafeUrl('java\nscript:alert(1)'), isFalse);
+        expect(HtmlSanitizer.isSafeUrl('java\rscript:alert(1)'), isFalse);
+        expect(HtmlSanitizer.isSafeUrl('\tjavascript:alert(1)'), isFalse);
+        // Safe URLs remain safe.
+        expect(HtmlSanitizer.isSafeUrl('https://example.com'), isTrue);
+        expect(HtmlSanitizer.isSafeUrl('data:image/png;base64,abc'), isTrue);
+      });
+
       test('removes javascript: URLs from src', () {
         const html = '<img src="javascript:alert(\'XSS\')">';
         final result = HtmlSanitizer.sanitize(html);

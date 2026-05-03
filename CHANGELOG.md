@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.2.4] - 2026-05-03
+
+### 🐛 Bug Fixes
+
+- **Markdown CRLF line endings left stray `\r` in code blocks** (`markdown_adapter.dart`): `content.split('\n')` on Windows `\r\n` content produced lines like `"some code\r"` — the carriage-return was stored verbatim in code block text and rendered as a stray character in monospace. Content is now normalised to LF (bare `\r` old-Mac endings also handled) before splitting.
+- **Virtualized Markdown/Delta sections orphaned headings** (`hyper_viewer.dart`): `_splitIntoSections` (Markdown/Quill Delta virtualized/paged path) lacked the heading-widow guard that `HtmlAdapter.parseToSections` already had. A heading that pushed `currentSize ≥ chunkSize` became the last element of a section, stranding its content at the top of the next section without a heading. Added twin guards: (1) never end a section on `h1`–`h6`, (2) never split immediately before a heading.
+- **`Paint()` allocated every frame for filter/backdrop-filter decorations** (`render_hyper_box_paint.dart`): `_paintBlockDecorations` / `_paintInlineDecorations` created inline `Paint()` objects for CSS `filter` and `backdrop-filter` on every paint call. Added reusable `_filterPaint` instance field (same pattern as `_fillPaint` / `_strokePaint`).
+- **`_effectiveConfig` dropped `useMicrotaskParsing` and blocked `allowedCustomSchemes`** (`hyper_viewer.dart`): When HTML contained CSS animations, `_effectiveConfig` rebuilt `HyperRenderConfig` but omitted `useMicrotaskParsing` (reset to `false`, breaking widget tests for animated HTML) and did not merge `allowedCustomSchemes` into `extraLinkSchemes` (custom-scheme deep-links silently blocked at the render layer). Both fields now correctly propagated.
+- **`allowedTags` diff used reference equality** (`hyper_viewer.dart`): `didUpdateWidget` compared `oldWidget.allowedTags != widget.allowedTags` which is always `true` for new list literals — causing unnecessary re-parses on every rebuild. Now uses `listEquals` for content equality.
+- **Incremental layout hash collision on duplicate sections** (`hyper_viewer.dart`): `_mergeSections` used `Map<int, DocumentNode>` keyed by 32-bit hash; two sections with identical text share the same hash, so the second overwrote the first and both received the same cached node. Changed to `Map<int, List<DocumentNode>>` with queue semantics.
+- **`sanitize` doc-comment stated wrong default** (`hyper_viewer.dart`): Comment claimed default was `false`; actual default is `true`. Corrected with accurate security guidance.
+- **`addPostFrameCallback` fired on every `build()` in paged mode** (`hyper_viewer.dart`): `_buildPagedContent` registered `pageController._onSectionsReady` unconditionally each build. Now guarded by `_lastNotifiedPageCount` — fires only when section count changes.
+
+## [1.2.3] - 2026-04-30
+
+### 🚀 Performance & Stability
+
+- **Test Coverage Optimization**: Increased global test coverage to >75% with new comprehensive suites for parsers, adapters, and selection logic.
+- **Golden Test Alignment**: Updated golden tests for consistent multi-platform rendering validation.
+- **Improved Widget Test Robustness**: Updated `find.byType(HyperRenderWidget)` assertions to handle multiple instances in the tree caused by virtualization and float nesting.
+
+### 🐛 Bug Fixes
+
+- **Fixed `HyperRenderWidget` compilation error**: Resolved a signature mismatch in recursive widget construction where `codeHighlighter` was passed outside of `config` and `pluginRegistry` was missing.
+- **Fixed Float Layout logic**: Explicit CSS `width` and `height` properties are now correctly respected for non-image float elements, rather than always falling back to intrinsic text dimensions.
+- **Fixed Plugin Propagation**: Ensured `pluginRegistry` is correctly passed to nested renderers, allowing custom tags to work inside floated containers.
+- **Missing `foundation` import** in `hyper_viewer.dart`: Fixed compilation error when using `compute` function in some environments.
+- **Improved selection logic** for virtualized lists: Fixed edge cases when selecting text across off-screen chunks.
+- **Flexible Markdown parsing**: Updated adapter to handle variations in tag output (e.g., `<b>` vs `<strong>`) across different environments.
+
 ## [1.2.2] - 2026-04-02
 
 ### 🐛 Bug Fixes
