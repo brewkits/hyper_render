@@ -331,7 +331,8 @@ void main() {
       }
 
       expect(row, isNotNull);
-      final cell = row!.children.firstWhere((n) => n is TableCellNode) as TableCellNode;
+      final cell =
+          row!.children.firstWhere((n) => n is TableCellNode) as TableCellNode;
       expect(cell.rowspan, equals(2));
     });
   });
@@ -539,7 +540,8 @@ void main() {
     //   renderers as a stray box / cursor-return character.
     //
     // AFTER FIX: content normalised to LF first → no \r in any parsed node.
-    test('MarkdownAdapter handles Windows CRLF — no stray CR in code block', () {
+    test('MarkdownAdapter handles Windows CRLF — no stray CR in code block',
+        () {
       // Markdown with Windows-style \r\n line endings.
       const md = '```\r\nsome code\r\n```\r\n';
       final adapter = MarkdownAdapter();
@@ -547,8 +549,7 @@ void main() {
       expect(document.children, isNotEmpty);
       // Code block must NOT contain a carriage-return character.
       expect(document.textContent, isNot(contains('\r')),
-          reason:
-              'CRLF should be normalised; no stray \\r in code block text. '
+          reason: 'CRLF should be normalised; no stray \\r in code block text. '
               'BEFORE fix: "some code\\r\\n" was stored as "some code\\r".');
     });
 
@@ -644,8 +645,7 @@ void main() {
               lastTag == 'h5' ||
               lastTag == 'h6',
           isFalse,
-          reason:
-              'Section must not end with a heading (orphaned heading bug). '
+          reason: 'Section must not end with a heading (orphaned heading bug). '
               'Last tag was: $lastTag',
         );
       }
@@ -656,8 +656,8 @@ void main() {
       final adapter = MarkdownAdapter();
       // First section body puts us exactly at the threshold; the very next
       // child is a heading — the split must be deferred past the heading.
-      final doc = adapter.parse(
-          '$body\n\n## My Heading\n\nFollowing paragraph content.\n');
+      final doc = adapter
+          .parse('$body\n\n## My Heading\n\nFollowing paragraph content.\n');
 
       final sections = splitSections(doc, 200);
 
@@ -673,8 +673,7 @@ void main() {
               firstTag == 'h5' ||
               firstTag == 'h6',
           isFalse,
-          reason:
-              'A heading should not start a new section when the previous '
+          reason: 'A heading should not start a new section when the previous '
               'section still had room (deferred split). First tag: $firstTag',
         );
       }

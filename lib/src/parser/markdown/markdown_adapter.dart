@@ -115,7 +115,8 @@ class MarkdownAdapter extends ExtendedDocumentAdapter {
       // Normalize line endings: \r\n (Windows) and bare \r (old Mac) → \n so
       // that the Markdown parser never sees a trailing \r inside a "line" (e.g.
       // "# Title\r" rendered as heading text with a stray carriage-return char).
-      final lines = content.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
+      final lines =
+          content.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
       final nodes = document.parseLines(lines);
 
       // Convert Markdown AST to UDT
