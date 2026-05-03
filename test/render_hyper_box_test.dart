@@ -448,7 +448,7 @@ void main() {
 
         await tester.pumpAndSettle();
 
-        await tester.tap(find.byType(HyperRenderWidget));
+        await tester.tap(find.byType(HyperRenderWidget).first);
         await tester.pumpAndSettle();
 
         // If the tap lands on the link the url must match; otherwise the

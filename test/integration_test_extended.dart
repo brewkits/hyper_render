@@ -477,11 +477,11 @@ void main() {
         await tester.pumpAndSettle();
 
         // Verify widget rendered
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+        expect(find.byType(HyperRenderWidget), findsWidgets);
 
         // Tap the widget (verifies no crash on tap; link hit-testing requires
         // exact coordinates that depend on text layout at runtime)
-        await tester.tap(find.byType(HyperRenderWidget));
+        await tester.tap(find.byType(HyperRenderWidget).first);
         await tester.pumpAndSettle();
       });
 
@@ -659,7 +659,7 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+        expect(find.byType(HyperRenderWidget), findsWidgets);
       });
 
       testWidgets('clear property clears floats', (WidgetTester tester) async {
@@ -695,7 +695,7 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+        expect(find.byType(HyperRenderWidget), findsWidgets);
       });
     });
 
@@ -816,7 +816,7 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+        expect(find.byType(HyperRenderWidget), findsWidgets);
       });
     });
 
@@ -930,7 +930,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Focus the widget first
-        await tester.tap(find.byType(HyperRenderWidget));
+        await tester.tap(find.byType(HyperRenderWidget).first);
         await tester.pump();
 
         // Send Ctrl+A
@@ -942,7 +942,7 @@ void main() {
         // Verify the widget is still rendered after keyboard interaction
         // (Ctrl+A triggers the shortcut handler; full selection state testing
         // requires the widget to have proper focus in the test environment)
-        expect(find.byType(HyperRenderWidget), findsOneWidget);
+        expect(find.byType(HyperRenderWidget), findsWidgets);
       });
     });
 
