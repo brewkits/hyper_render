@@ -254,7 +254,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
 <style>
   .tale-section { padding:0 16px 28px 16px; }
   .tale-heading { color:#6B2D0C; font-size:20px; margin:0 0 14px 0; padding-bottom:8px; border-bottom:2px solid #D4B896; font-style:italic; }
-  .tale-emoji { color:#C19A6B; margin-right:6px; }
+  .tale-emoji { color:#C19A6B; padding-right:6px; }
   .tale-img { display:block; margin:0 auto 18px auto; border-radius:10px; border:3px solid #D4B896; }
   .tale-caption { text-align:center; color:#C19A6B; font-size:12px; margin:-12px 0 16px 0; font-style:italic; }
   .tale-para { margin:0 0 14px 0; font-size:15px; text-align:justify; color:#3a2010; }

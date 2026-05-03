@@ -49,13 +49,13 @@ const kOptimizedTextStyle = TextStyle(
 );
 
 void main() {
-  // Ensure Flutter binding is initialized before accessing PaintingBinding
+  // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Increase image cache size for better performance with multiple images
-  // Default: maximumSize = 1000 images, maximumSizeBytes = 50 MB
-  PaintingBinding.instance.imageCache.maximumSizeBytes =
-      150 << 20; // 150 MB for demo images
+  // Initialize image cache after the first frame is rendered to prevent startup hangs
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    PaintingBinding.instance.imageCache.maximumSizeBytes = 150 << 20; // 150 MB
+  });
 
   runApp(const HyperRenderDemoApp());
 }
@@ -672,7 +672,7 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
 
   <h2 style="color: #1976D2; border-left: 4px solid #1976D2; padding-left: 12px;">1. Float Layout</h2>
   <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/100/100?random=1" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px;" />
+    <img src="https://picsum.photos/100/100?random=1" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
     <p style="margin: 0;">
       This is an example of <strong style="color: #E91E63;">Float Layout</strong>. This text will automatically
       wrap around the image on the left. HyperRender uses the IFC algorithm like web browsers.
@@ -795,7 +795,7 @@ class FloatLayoutDemo extends StatelessWidget {
 <div style="font-family: sans-serif; line-height: 1.6;">
   <h2 style="color: #1976D2;">Float Left</h2>
   <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/120/120?random=10" style="float: left; width: 120px; height: 120px; margin: 0 16px 8px 0; border-radius: 12px;" />
+    <img src="https://picsum.photos/120/120?random=10" style="float: left; width: 120px; height: 120px; margin: 0 16px 8px 0; border-radius: 12px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
     <p>
       This is an example of <strong>float: left</strong>. Text will automatically wrap around the image on the left.
       When the text is long enough, it will continue below the image naturally. This is a feature
@@ -811,7 +811,7 @@ class FloatLayoutDemo extends StatelessWidget {
 
   <h2 style="color: #9C27B0;">Float Right</h2>
   <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/100/100?random=11" style="float: right; width: 100px; height: 100px; margin: 0 0 8px 16px; border-radius: 50%;" />
+    <img src="https://picsum.photos/100/100?random=11" style="float: right; width: 100px; height: 100px; margin: 0 0 8px 16px; border-radius: 50%; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
     <p>
       Float also works on the <strong>right side</strong>! This circle floats right and text
       will fill the empty space on the left naturally.
@@ -825,8 +825,8 @@ class FloatLayoutDemo extends StatelessWidget {
 
   <h2 style="color: #E91E63;">Left + Right</h2>
   <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/90/90?random=20" style="float: left; width: 90px; height: 90px; margin: 0 14px 8px 0; border-radius: 8px;" />
-    <img src="https://picsum.photos/90/90?random=21" style="float: right; width: 90px; height: 90px; margin: 0 0 8px 14px; border-radius: 8px;" />
+    <img src="https://picsum.photos/90/90?random=20" style="float: left; width: 90px; height: 90px; margin: 0 14px 8px 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
+    <img src="https://picsum.photos/90/90?random=21" style="float: right; width: 90px; height: 90px; margin: 0 0 8px 14px; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
     <p>
       Two images on <strong>opposite sides</strong> — one float left, one float right. The text
       automatically fills the gap in between. The layout engine calculates both float boundaries
@@ -841,8 +841,8 @@ class FloatLayoutDemo extends StatelessWidget {
 
   <h2 style="color: #FF5722;">Multiple Left Floats</h2>
   <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/80/80?random=12" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px;" />
-    <img src="https://picsum.photos/80/80?random=13" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px;" />
+    <img src="https://picsum.photos/80/80?random=12" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
+    <img src="https://picsum.photos/80/80?random=13" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
     <p>
       Multiple images floated left side-by-side. Text wraps around the entire group.
       This is a common way to display horizontal image galleries within an article.
@@ -1221,7 +1221,7 @@ class RealContentDemo extends StatelessWidget {
     Published December 25, 2024 • 5 min read
   </p>
 
-  <img src="https://picsum.photos/400/200?random=20" style="float: left; width: 200px; height: 100px; margin: 0 20px 12px 0; border-radius: 8px;" />
+  <img src="https://picsum.photos/400/200?random=20" style="float: left; width: 200px; height: 100px; margin: 0 20px 12px 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
 
   <p>
     Flutter has revolutionized cross-platform development. With its unique architecture
@@ -1919,7 +1919,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
           'Text wrapping around floated images (HyperRender exclusive)',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
-  <img src="https://picsum.photos/100/100?random=50" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px;" />
+  <img src="https://picsum.photos/100/100?random=50" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
   <p>
     This is an example of <strong>float: left</strong>. Text should wrap around the image on the left side naturally.
     When the text is long enough, it continues below the image seamlessly.
@@ -1977,8 +1977,8 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
       'description': 'Left and right floats in same paragraph',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
-  <img src="https://picsum.photos/80/80?random=1" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 50%;" />
-  <img src="https://picsum.photos/80/80?random=2" style="float: right; width: 80px; height: 80px; margin: 0 0 8px 12px; border-radius: 50%;" />
+  <img src="https://picsum.photos/80/80?random=1" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 50%; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
+  <img src="https://picsum.photos/80/80?random=2" style="float: right; width: 80px; height: 80px; margin: 0 0 8px 12px; border-radius: 50%; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
   <p>
     This paragraph has images floating on <strong>both sides</strong>. The text should wrap between them naturally, creating a magazine-style layout. This is a challenging layout scenario that tests the rendering engine's float handling capabilities. Additional text to make the wrapping more visible.
   </p>
@@ -1991,13 +1991,13 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
           '4 images pinned to each corner with text filling the middle',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
-  <img src="https://picsum.photos/90/90?random=41" style="float: left; width: 90px; height: 90px; margin: 0 14px 10px 0; border-radius: 8px;" />
-  <img src="https://picsum.photos/90/90?random=42" style="float: right; width: 90px; height: 90px; margin: 0 0 10px 14px; border-radius: 8px;" />
+  <img src="https://picsum.photos/90/90?random=41" style="float: left; width: 90px; height: 90px; margin: 0 14px 10px 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
+  <img src="https://picsum.photos/90/90?random=42" style="float: right; width: 90px; height: 90px; margin: 0 0 10px 14px; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
   <p>
     Two images anchor the <strong>top corners</strong>. Text flows naturally in the space between them, respecting both left and right float boundaries at the same time. This tests simultaneous multi-float layout.
   </p>
-  <img src="https://picsum.photos/90/90?random=43" style="float: left; width: 90px; height: 90px; margin: 0 14px 0 0; border-radius: 8px;" />
-  <img src="https://picsum.photos/90/90?random=44" style="float: right; width: 90px; height: 90px; margin: 0 0 0 14px; border-radius: 8px;" />
+  <img src="https://picsum.photos/90/90?random=43" style="float: left; width: 90px; height: 90px; margin: 0 14px 0 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
+  <img src="https://picsum.photos/90/90?random=44" style="float: right; width: 90px; height: 90px; margin: 0 0 0 14px; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
   <p>
     Two more images anchor the <strong>bottom corners</strong>. The middle column of text continues to wrap correctly even when four floats are active across two rows. This is the most complex float scenario.
   </p>
