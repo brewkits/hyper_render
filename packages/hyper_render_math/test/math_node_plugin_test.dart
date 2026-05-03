@@ -21,7 +21,7 @@ void main() {
         tagName: 'math',
         children: [TextNode('E=mc^2')],
       );
-      final ctx = HyperPluginBuildContext(
+      const ctx = HyperPluginBuildContext(
         baseStyle: TextStyle(),
       );
 
@@ -35,7 +35,7 @@ void main() {
         tagName: 'math',
         attributes: {'src': 'E=mc^2'},
       );
-      final ctx = HyperPluginBuildContext(
+      const ctx = HyperPluginBuildContext(
         baseStyle: TextStyle(),
       );
 
@@ -46,7 +46,7 @@ void main() {
     test('returns null if no content', () {
       const plugin = MathNodePlugin();
       final node = BlockNode(tagName: 'math');
-      final ctx = HyperPluginBuildContext(
+      const ctx = HyperPluginBuildContext(
         baseStyle: TextStyle(),
       );
 

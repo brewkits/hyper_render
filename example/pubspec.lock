@@ -394,6 +394,13 @@ packages:
       relative: true
     source: path
     version: "1.2.4"
+  hyper_render_math:
+    dependency: transitive
+    description:
+      path: "../packages/hyper_render_math"
+      relative: true
+    source: path
+    version: "1.2.4"
   irondash_engine_context:
     dependency: transitive
     description:
