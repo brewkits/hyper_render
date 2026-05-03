@@ -17,18 +17,21 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       // 1. Backdrop Filter (Glassmorphism) - Paints BEFORE background
       if (decoration.backdropFilter != null && enableComplexFilters) {
         canvas.saveLayer(adjustedRect, _sLayerPaint);
-        canvas.drawRect(
-            adjustedRect,
-            Paint()
-              ..imageFilter = decoration.backdropFilter
-              ..blendMode = BlendMode.srcOver);
+        _filterPaint
+          ..imageFilter = decoration.backdropFilter
+          ..blendMode = BlendMode.srcOver;
+        canvas.drawRect(adjustedRect, _filterPaint);
+        _filterPaint
+          ..imageFilter = null
+          ..blendMode = BlendMode.srcOver;
         canvas.restore();
       }
 
       // 2. Filter (blur, etc.)
       if (decoration.filter != null && enableComplexFilters) {
-        canvas.saveLayer(
-            adjustedRect, Paint()..imageFilter = decoration.filter);
+        _filterPaint.imageFilter = decoration.filter;
+        canvas.saveLayer(adjustedRect, _filterPaint);
+        _filterPaint.imageFilter = null;
       }
 
       // 3. Box shadows
@@ -134,15 +137,17 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         // 1. Backdrop Filter
         if (decoration.style.backdropFilter != null && enableComplexFilters) {
           canvas.saveLayer(adjustedRect, _sLayerPaint);
-          canvas.drawRect(adjustedRect,
-              Paint()..imageFilter = decoration.style.backdropFilter);
+          _filterPaint.imageFilter = decoration.style.backdropFilter;
+          canvas.drawRect(adjustedRect, _filterPaint);
+          _filterPaint.imageFilter = null;
           canvas.restore();
         }
 
         // 2. Filter (blur, etc.)
         if (decoration.style.filter != null && enableComplexFilters) {
-          canvas.saveLayer(
-              adjustedRect, Paint()..imageFilter = decoration.style.filter);
+          _filterPaint.imageFilter = decoration.style.filter;
+          canvas.saveLayer(adjustedRect, _filterPaint);
+          _filterPaint.imageFilter = null;
         }
 
         // 3. Box shadows
