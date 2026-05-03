@@ -17,7 +17,7 @@ class _UltraShowcase2026State extends State<UltraShowcase2026> {
     ハイパーレンダーの進化 (The Evolution of HyperRender)
   </h1>
 
-  <img src="https://picsum.photos/400/400?random=1" style="float: left; width: 180px; height: 180px; border-radius: 8px; margin: 0 24px 16px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+  <img src="https://picsum.photos/400/400?random=1" style="float: left; width: 180px; height: 180px; border-radius: 8px; margin: 0 24px 16px 0; padding: 4px; background: white; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
 
   <p style="font-size: 18px;">
     <span style="font-size: 48px; line-height: 1; float: left; margin: 8px 12px 0 0; color: #D32F2F;">当</span>

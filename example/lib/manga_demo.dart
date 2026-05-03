@@ -489,7 +489,7 @@ class _PanelsTab extends StatelessWidget {
     <div style="background:#EDE7F6; padding:14px 10px; text-align:center; min-height:100px;">
       <div style="padding:8px 0;">
         <span style="font-size:28px;">⚔️</span>
-        <span style="font-size:21px; font-weight:900; color:#1565C0; letter-spacing:2px; margin:0 8px;">ズバッ！！</span>
+        <span style="font-size:21px; font-weight:900; color:#1565C0; letter-spacing:2px; padding:0 8px;">ズバッ！！</span>
         <span style="font-size:28px;">⚔️</span>
       </div>
       <div style="background:white; border:2px solid #111; border-radius:14px; padding:6px 14px; font-size:11px; font-weight:bold; display:inline-block;">
