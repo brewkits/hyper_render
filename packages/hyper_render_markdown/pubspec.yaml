@@ -1,6 +1,6 @@
 name: hyper_render_markdown
 description: Markdown parser plugin for HyperRender - Converts Markdown to Universal Document Tree (UDT).
-version: 1.2.3
+version: 1.2.4
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_markdown
 issue_tracker: https://github.com/brewkits/hyper_render/issues

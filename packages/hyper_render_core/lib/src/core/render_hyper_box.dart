@@ -396,6 +396,11 @@ class RenderHyperBox extends RenderBox
     ..isAntiAlias = true
     ..style = PaintingStyle.stroke;
 
+  /// Reusable filter paint for saveLayer / drawRect with imageFilter.
+  /// Set `.imageFilter` (and optionally `.blendMode`) before use; always reset
+  /// both to null/srcOver afterward so the object is safe to reuse next frame.
+  final Paint _filterPaint = Paint();
+
   // ── Incremental layout dirty tracking ─────────────────────────────────────
   /// Bumped each time _fragments is rebuilt (via _ensureFragments).
   /// Line layout skips when this matches [_linesFragmentsVersion] AND

@@ -240,18 +240,16 @@ class HyperViewer extends StatefulWidget {
   ///
   /// **IMPORTANT**: Always enable this when rendering untrusted HTML!
   ///
-  /// Default: false (for backward compatibility)
+  /// Default: **true** — sanitization is on by default. Disable only when
+  /// you fully control the HTML source (e.g. your own API, static assets).
   ///
   /// Example:
   /// ```dart
-  /// // ✅ SAFE - Sanitize user-generated content
-  /// HyperViewer(
-  ///   html: userInput,
-  ///   sanitize: true,
-  /// )
-  ///
-  /// // ❌ UNSAFE - Never do this with untrusted HTML
+  /// // ✅ SAFE - default sanitize:true protects against XSS
   /// HyperViewer(html: userInput)
+  ///
+  /// // ⚠️ ONLY disable for fully trusted, controlled HTML sources
+  /// HyperViewer(html: trustedStaticContent, sanitize: false)
   /// ```
   final bool sanitize;
 
@@ -702,6 +700,11 @@ class _HyperViewerState extends State<HyperViewer>
   /// from overwriting a newer parse when the content changes rapidly.
   int _parseId = 0;
 
+  /// Last section count reported to [HyperPageController._onSectionsReady].
+  /// Used to avoid re-registering [addPostFrameCallback] on every [build] call
+  /// when the count hasn't changed.
+  int _lastNotifiedPageCount = -1;
+
   /// `@keyframes` rules extracted from the document's own `<style>` tags.
   ///
   /// Merged with [HyperViewer.renderConfig.keyframeRegistry] in
@@ -717,24 +720,43 @@ class _HyperViewerState extends State<HyperViewer>
   /// Selection orchestrator for cross-chunk selection in virtualized mode.
   VirtualizedSelectionController? _virtualizedSelectionController;
 
-  /// Effective render config — merges [HyperViewer.renderConfig] with
-  /// `@keyframes` rules extracted from the document's own `<style>` tags.
+  /// Effective render config — merges [HyperViewer.renderConfig] with:
+  ///   1. `@keyframes` rules extracted from the document's own `<style>` tags.
+  ///   2. [HyperViewer.allowedCustomSchemes] merged into [HyperRenderConfig.extraLinkSchemes]
+  ///      so the render layer's scheme check in [RenderHyperBox.handleEvent] allows
+  ///      the same custom deep-link schemes as the widget-layer [_safeOnLinkTap].
+  ///
+  /// Without (2), a scheme present only in [allowedCustomSchemes] is silently
+  /// blocked by the render layer before [_safeOnLinkTap] ever sees the tap.
   HyperRenderConfig get _effectiveConfig {
-    if (_docKeyframes.isEmpty) return widget.renderConfig;
-    final merged = <String, HyperKeyframes>{
-      ...widget.renderConfig.keyframeRegistry,
-      ..._docKeyframes,
-    };
     final rc = widget.renderConfig;
+    final customSchemes = widget.allowedCustomSchemes;
+    final hasDocKeyframes = _docKeyframes.isNotEmpty;
+
+    // Fast path: nothing to merge.
+    if ((customSchemes == null || customSchemes.isEmpty) && !hasDocKeyframes) {
+      return rc;
+    }
+
+    // Direct null check so Dart promotes customSchemes to List<String> in the branch.
+    final mergedSchemes = (customSchemes != null && customSchemes.isNotEmpty)
+        ? {...rc.extraLinkSchemes, ...customSchemes}
+        : rc.extraLinkSchemes;
+
+    final mergedKeyframes = hasDocKeyframes
+        ? <String, HyperKeyframes>{...rc.keyframeRegistry, ..._docKeyframes}
+        : rc.keyframeRegistry;
+
     return HyperRenderConfig(
       textPainterCacheSize: rc.textPainterCacheSize,
       imageCacheSize: rc.imageCacheSize,
       defaultImagePlaceholderWidth: rc.defaultImagePlaceholderWidth,
       imageConcurrency: rc.imageConcurrency,
       virtualizationChunkSize: rc.virtualizationChunkSize,
-      extraLinkSchemes: rc.extraLinkSchemes,
+      extraLinkSchemes: mergedSchemes,
       codeHighlighter: rc.codeHighlighter,
-      keyframeRegistry: merged,
+      keyframeRegistry: mergedKeyframes,
+      useMicrotaskParsing: rc.useMicrotaskParsing,
     );
   }
 
@@ -791,7 +813,7 @@ class _HyperViewerState extends State<HyperViewer>
         oldWidget.baseUrl != widget.baseUrl ||
         oldWidget.customCss != widget.customCss ||
         oldWidget.sanitize != widget.sanitize ||
-        oldWidget.allowedTags != widget.allowedTags ||
+        !listEquals(oldWidget.allowedTags, widget.allowedTags) ||
         oldWidget.allowDataAttributes != widget.allowDataAttributes ||
         oldWidget.fallbackBuilder != widget.fallbackBuilder ||
         // BUG-08: Compare full renderConfig (value equality now available).
@@ -853,15 +875,23 @@ class _HyperViewerState extends State<HyperViewer>
       return newSections;
     }
 
-    // Build a map from hash → old section for O(1) reuse lookup.
-    final Map<int, DocumentNode> oldByHash = {};
+    // Build a map from hash → queue of old sections for O(1) reuse lookup.
+    // Using a queue (not a plain map) handles hash collisions: two sections
+    // with identical text content produce the same hash. With a plain map the
+    // second entry silently overwrites the first, causing both new sections to
+    // receive the same old DocumentNode object and producing duplicate
+    // ValueKeys in the ListView (Flutter assertion error in debug mode).
+    final Map<int, List<DocumentNode>> oldByHash = {};
     for (var i = 0; i < oldSections.length; i++) {
-      oldByHash[oldHashes[i]] = oldSections[i];
+      oldByHash.putIfAbsent(oldHashes[i], () => []).add(oldSections[i]);
     }
 
     final merged = List<DocumentNode>.generate(newSections.length, (i) {
       final h = newHashes[i];
-      return oldByHash[h] ?? newSections[i];
+      final queue = oldByHash[h];
+      return (queue != null && queue.isNotEmpty)
+          ? queue.removeAt(0)
+          : newSections[i];
     }, growable: false);
 
     _sectionHashes = newHashes;
@@ -876,19 +906,47 @@ class _HyperViewerState extends State<HyperViewer>
       DocumentNode doc, int chunkSize) {
     if (doc.children.isEmpty) return [doc];
 
+    final children = doc.children;
     final sections = <DocumentNode>[];
     var current = DocumentNode(children: []);
     var currentSize = 0;
 
-    for (final child in doc.children) {
+    for (int i = 0; i < children.length; i++) {
+      final child = children[i];
       current.children.add(child);
       child.parent = current;
       currentSize += child.textContent.length;
 
       if (currentSize >= chunkSize && child.isBlock) {
-        sections.add(current);
-        current = DocumentNode(children: []);
-        currentSize = 0;
+        // Heading-widow guard: never end a section on a heading — the heading
+        // should lead the content that follows it, not trail the section above.
+        final tag = child.tagName?.toLowerCase();
+        final isHeading = tag == 'h1' ||
+            tag == 'h2' ||
+            tag == 'h3' ||
+            tag == 'h4' ||
+            tag == 'h5' ||
+            tag == 'h6';
+
+        // Also guard the reverse: if the NEXT child is a heading, keep it in
+        // the current section so it opens the next chunk rather than appearing
+        // as a lone last element here.
+        bool nextIsHeading = false;
+        if (!isHeading && i + 1 < children.length) {
+          final nextTag = children[i + 1].tagName?.toLowerCase();
+          nextIsHeading = nextTag == 'h1' ||
+              nextTag == 'h2' ||
+              nextTag == 'h3' ||
+              nextTag == 'h4' ||
+              nextTag == 'h5' ||
+              nextTag == 'h6';
+        }
+
+        if (!isHeading && !nextIsHeading) {
+          sections.add(current);
+          current = DocumentNode(children: []);
+          currentSize = 0;
+        }
       }
     }
 
@@ -1062,6 +1120,7 @@ class _HyperViewerState extends State<HyperViewer>
     // dirty-flag data don't persist across full content changes.
     _docKeyframes = const {};
     _sectionHashes = const [];
+    _lastNotifiedPageCount = -1;
 
     String contentToRender = widget.content;
     // CSS collected from <style> tags + customCss (applied to resolver directly,
@@ -1470,9 +1529,15 @@ class _HyperViewerState extends State<HyperViewer>
 
     // Notify the HyperPageController about the final page count once sections
     // are ready (post-frame so the PageView has been built).
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.pageController?._onSectionsReady(sections.length);
-    });
+    // Guard: only register once per distinct count to avoid accumulating
+    // callbacks on every build() call (e.g. during scroll or parent rebuilds).
+    if (sections.length != _lastNotifiedPageCount &&
+        widget.pageController != null) {
+      _lastNotifiedPageCount = sections.length;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.pageController?._onSectionsReady(sections.length);
+      });
+    }
 
     final pageView = PageView.builder(
       controller: ctrl,
