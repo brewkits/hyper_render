@@ -1,6 +1,6 @@
 # Changelog — hyper_render_core
 
-## [1.2.3] - 2026-04-30
+## [1.3.0] - 2026-05-03
 
 ### 🐛 Bug Fixes
 
@@ -8,7 +8,7 @@
 - **Fixed Float Layout logic**: Explicit CSS `width` and `height` properties are now correctly respected for non-image float elements, rather than always falling back to intrinsic text dimensions.
 - **Fixed Plugin Propagation**: Ensured `pluginRegistry` is correctly passed to nested renderers, allowing custom tags to work inside floated containers.
 
-## [1.2.0] - 2026-03-29
+## [1.3.0] - 2026-05-03
 ...
 ### ✨ New Features
 
@@ -31,7 +31,7 @@
 
 ---
 
-## [1.1.4] - 2026-03-28
+## [1.3.0] - 2026-05-03
 
 ### 🐛 Bug Fixes
 - **`display:none` not respected**: Added guard in `_tokenizeNode` — elements with `display:none` produce no layout fragments.
@@ -43,12 +43,12 @@
 ### 🏗️ Code Quality
 - `dart fix` applied to test files: 73 `prefer_const` issues resolved — 0 analyzer issues.
 
-## [1.1.3] - 2026-03-25
+## [1.3.0] - 2026-05-03
 
 - Remove `publish_to: none` from pubspec.yaml so pub.dev can verify the repository URL (fixes 10-point deduction).
 
 
-## [1.1.2] - 2026-03-25
+## [1.3.0] - 2026-05-03
 
 ### 🐛 Bug Fixes
 - **Ruby selection — 5 bugs fixed**: `FragmentType.ruby` was silently skipped in every selection pipeline step, causing character offset desynchronisation for all content after a ruby fragment.
@@ -62,12 +62,12 @@
 ### 🔬 Tests
 - **+17 tests** — `ruby_layout_test.dart`: `LineInfo.characterCount` with ruby, selection offset accumulation across text + ruby + text, character position mapping
 
-## [1.1.1] - 2026-03-23
+## [1.3.0] - 2026-05-03
 
 ### 🐛 Bug Fixes
 - **`details_widget.dart`**: Fixed undefined `DetailsNode` class — changed field type to `UDTNode` and replaced `.open` property access with `attributes.containsKey('open')` for HTML-spec-compliant initial state
 
-## [1.1.0] - 2026-03-20
+## [1.3.0] - 2026-05-03
 
 ### ✨ New Features (synced from hyper_render)
 - **CSS**: Box shadow, linear-gradient, advanced border styles (dashed/dotted)
@@ -104,5 +104,5 @@
 - **+32 tests** — `details_element_test.dart`: `<details>/<summary>` model and widget open/close behavior
 - **+53 tests** — `rtl_bidi_test.dart`: HyperTextDirection, hyperDirection inheritance, Arabic/Hebrew text, RTL widget integration
 
-## [1.0.0] - 2026-03-01
+## [1.3.0] - 2026-05-03
 First stable release. Core UDT model, RenderObject engine, plugin interfaces.

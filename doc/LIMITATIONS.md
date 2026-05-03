@@ -147,4 +147,4 @@ final registry = HyperPluginRegistry()
 
 ---
 
-*Last updated: April 29, 2026 — HyperRender v1.2.3*
+*Last updated: April 29, 2026 — HyperRender v1.3.0*

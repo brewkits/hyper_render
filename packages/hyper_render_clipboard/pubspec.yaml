@@ -1,6 +1,6 @@
 name: hyper_render_clipboard
 description: Image clipboard support for HyperRender using super_clipboard. Enables copying, saving, and sharing images.
-version: 1.2.4
+version: 1.3.0
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_clipboard
 issue_tracker: https://github.com/brewkits/hyper_render/issues
