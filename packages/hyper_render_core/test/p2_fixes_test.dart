@@ -320,7 +320,7 @@ void main() {
       await tester.pump();
 
       final renderBox =
-          tester.renderObject(find.byType(HyperRenderWidget)) as RenderHyperBox;
+          tester.renderObject(find.byType(HyperRenderWidget).first) as RenderHyperBox;
 
       expect(renderBox.headingAnchors.length, 3);
       expect(renderBox.headingAnchors[0].level, 1);
@@ -342,7 +342,7 @@ void main() {
       await tester.pump();
 
       final renderBox =
-          tester.renderObject(find.byType(HyperRenderWidget)) as RenderHyperBox;
+          tester.renderObject(find.byType(HyperRenderWidget).first) as RenderHyperBox;
       expect(renderBox.headingAnchors, isEmpty);
     });
 
@@ -358,7 +358,7 @@ void main() {
       await tester.pump();
 
       final renderBox =
-          tester.renderObject(find.byType(HyperRenderWidget)) as RenderHyperBox;
+          tester.renderObject(find.byType(HyperRenderWidget).first) as RenderHyperBox;
 
       expect(renderBox.headingAnchors.length, 2);
       expect(
@@ -387,7 +387,7 @@ void main() {
       await tester.pump();
 
       final renderBox =
-          tester.renderObject(find.byType(HyperRenderWidget)) as RenderHyperBox;
+          tester.renderObject(find.byType(HyperRenderWidget).first) as RenderHyperBox;
       expect(renderBox.headingAnchors.length, 6);
       for (int i = 0; i < 6; i++) {
         expect(renderBox.headingAnchors[i].level, i + 1);
@@ -415,11 +415,11 @@ void main() {
 
       // headingAnchors must be non-empty — the data source for semantic nodes
       final renderBox =
-          tester.renderObject(find.byType(HyperRenderWidget)) as RenderHyperBox;
+          tester.renderObject(find.byType(HyperRenderWidget).first) as RenderHyperBox;
       expect(renderBox.headingAnchors.length, 2);
 
       // The full semantics node for HyperRenderWidget should exist.
-      final semanticsNode = tester.getSemantics(find.byType(HyperRenderWidget));
+      final semanticsNode = tester.getSemantics(find.byType(HyperRenderWidget).first);
       expect(semanticsNode, isNotNull);
 
       // The top-level label includes all text (flat label for linear reading).
@@ -444,7 +444,7 @@ void main() {
       await tester.pumpWidget(_app(HyperRenderWidget(document: doc)));
       await tester.pump();
 
-      final semanticsNode = tester.getSemantics(find.byType(HyperRenderWidget));
+      final semanticsNode = tester.getSemantics(find.byType(HyperRenderWidget).first);
       expect(semanticsNode, isNotNull);
       // Flat label covers the link text.
       expect(semanticsNode.label, contains('Visit Example'));
@@ -463,7 +463,7 @@ void main() {
       await tester.pumpWidget(_app(HyperRenderWidget(document: doc)));
       await tester.pump();
 
-      final semanticsNode = tester.getSemantics(find.byType(HyperRenderWidget));
+      final semanticsNode = tester.getSemantics(find.byType(HyperRenderWidget).first);
       expect(semanticsNode.label, contains('Just a paragraph.'));
 
       handle.dispose();
