@@ -53,6 +53,9 @@ dependencies:
   hyper_render_clipboard:
     path: packages/hyper_render_clipboard
 
+  hyper_render_math:
+    path: packages/hyper_render_math
+
   # Fixed version constraints for pub.dev compliance
   flutter_highlight: ^0.7.0
   highlight: ^0.7.0
