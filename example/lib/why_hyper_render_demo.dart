@@ -31,7 +31,7 @@ class WhyHyperRenderDemo extends StatelessWidget {
     </p>
     <img src="https://picsum.photos/seed/hr_why1/90/90"
          style="float: left; width: 90px; height: 90px; border-radius: 10px;
-                margin: 0 14px 6px 0; border: 2px solid #7e57c2;" />
+                margin: 0 14px 6px 0; padding: 4px; background: white; border: 2px solid #7e57c2;" />
     <p style="color: #37474f; font-size: 14px; margin: 0; line-height: 1.7;">
       This text wraps around the floated image exactly like a browser.
       HyperRender implements the full IFC (Inline Formatting Context) algorithm.

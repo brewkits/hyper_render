@@ -32,6 +32,7 @@ class HyperRenderConfig {
     this.extraLinkSchemes = const {},
     this.codeHighlighter,
     this.keyframeRegistry = const {},
+    this.useMicrotaskParsing = false,
   })  : assert(
             textPainterCacheSize > 0, 'textPainterCacheSize must be positive'),
         assert(imageCacheSize > 0, 'imageCacheSize must be positive'),
@@ -140,6 +141,14 @@ class HyperRenderConfig {
   /// Default: `const {}` (no preset animations; add [HyperAnimations.all] to
   /// enable the built-in library).
   final Map<String, HyperKeyframes> keyframeRegistry;
+
+  /// If true, parsing runs synchronously inside a microtask instead of a
+  /// separate isolate using `compute()`.
+  /// This is highly recommended for unit/integration testing where isolates
+  /// can cause test timeouts or synchronization issues.
+  ///
+  /// Default: false
+  final bool useMicrotaskParsing;
 
   /// Additional URL schemes permitted to reach [onLinkTap].
   ///

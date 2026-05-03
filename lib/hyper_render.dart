@@ -155,6 +155,7 @@ export 'src/widgets/hyper_viewer.dart'
         HyperContentType,
         HyperViewerController,
         HyperPageController,
+        HyperSelectionState,
         HeadingAnchor;
 
 export 'src/core/capture_extension.dart' show HyperCaptureExtension;

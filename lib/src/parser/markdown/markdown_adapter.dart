@@ -93,7 +93,7 @@ class MarkdownAdapter extends ExtendedDocumentAdapter {
         // Simple path: let extensionSet own all syntaxes
         document = md.Document(
           extensionSet: enableGfm ? md.ExtensionSet.gitHubFlavored : null,
-          encodeHtml: true,
+          encodeHtml: !enableInlineHtml,
         );
       } else {
         // Custom syntax path: merge GFM + custom into explicit lists
@@ -108,11 +108,14 @@ class MarkdownAdapter extends ExtendedDocumentAdapter {
         document = md.Document(
           blockSyntaxes: blockSyntaxes,
           inlineSyntaxes: inlineSyntaxes,
-          encodeHtml: true,
+          encodeHtml: !enableInlineHtml,
         );
       }
 
-      final lines = content.split('\n');
+      // Normalize line endings: \r\n (Windows) and bare \r (old Mac) → \n so
+      // that the Markdown parser never sees a trailing \r inside a "line" (e.g.
+      // "# Title\r" rendered as heading text with a stray carriage-return char).
+      final lines = content.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
       final nodes = document.parseLines(lines);
 
       // Convert Markdown AST to UDT
@@ -257,7 +260,7 @@ class MarkdownAdapter extends ExtendedDocumentAdapter {
           style: ComputedStyle(
             display: DisplayType.block,
             fontFamily: 'monospace',
-            backgroundColor: const Color(0xFFF5F5F5),
+            backgroundColor: const Color(0x0D000000),
             padding: const EdgeInsets.all(12),
           ),
           children: children,
@@ -360,7 +363,7 @@ class MarkdownAdapter extends ExtendedDocumentAdapter {
           style: ComputedStyle(
             display: DisplayType.block,
             borderWidth: const EdgeInsets.only(top: 1),
-            borderColor: const Color(0xFFCCCCCC),
+            borderColor: const Color(0x33000000),
             margin: const EdgeInsets.symmetric(vertical: 16),
           ),
           children: [],

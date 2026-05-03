@@ -403,7 +403,7 @@ void main() {
 
       testWidgets('handles long text with word wrap',
           (WidgetTester tester) async {
-        final longText =
+        const longText =
             'This is a very long text that should wrap to multiple lines '
             'when the container width is not sufficient to display it in a single line. '
             'The custom rendering engine should handle this correctly.';

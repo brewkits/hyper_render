@@ -438,7 +438,7 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
   // Action Handlers
   // ============================================================================
 
-  Future<void> _handleCopy(HyperSelectionOverlayState state) async {
+  Future<void> _handleCopy(HyperSelectionState state) async {
     final text = state.selectedText;
     if (text == null || text.isEmpty) return;
     // Dismiss menu first so overlay context is gone before async work
@@ -452,7 +452,7 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
     _showSnackBar('✅ Copied to clipboard', Colors.green);
   }
 
-  void _handleShare(HyperSelectionOverlayState state) async {
+  void _handleShare(HyperSelectionState state) async {
     final text = state.selectedText;
     if (text != null && text.isNotEmpty) {
       setState(() {
@@ -482,7 +482,7 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
     }
   }
 
-  void _handleSearch(HyperSelectionOverlayState state) async {
+  void _handleSearch(HyperSelectionState state) async {
     final text = state.selectedText;
     if (text != null && text.isNotEmpty) {
       setState(() {
@@ -518,7 +518,7 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
     }
   }
 
-  void _handleTranslate(HyperSelectionOverlayState state) async {
+  void _handleTranslate(HyperSelectionState state) async {
     final text = state.selectedText;
     if (text != null && text.isNotEmpty) {
       setState(() {
@@ -544,7 +544,7 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
     }
   }
 
-  void _handleDefine(HyperSelectionOverlayState state) async {
+  void _handleDefine(HyperSelectionState state) async {
     final text = state.selectedText;
     if (text != null && text.isNotEmpty) {
       setState(() {
@@ -569,7 +569,7 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
     }
   }
 
-  void _handleHighlight(HyperSelectionOverlayState state) {
+  void _handleHighlight(HyperSelectionState state) {
     final text = state.selectedText;
     if (text != null && text.isNotEmpty) {
       setState(() {

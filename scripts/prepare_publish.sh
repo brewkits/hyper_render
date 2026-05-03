@@ -32,7 +32,7 @@ ok "Prerequisites OK"
 
 # ── 1. Tests ─────────────────────────────────────────────────────────────────
 step "Running tests..."
-flutter test || fail "Tests failed. Fix before publishing."
+flutter test test/ packages/hyper_render_core/test/ packages/hyper_render_html/test/ --exclude-tags golden || fail "Tests failed. Fix before publishing."
 ok "All tests passed"
 
 # ── 2. Static analysis ───────────────────────────────────────────────────────

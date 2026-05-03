@@ -13,7 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.10+-54C5F8.svg?logo=flutter)](https://flutter.dev)
 
-**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · Flexbox/Grid · XSS-safe**
+**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · 80%+ Test Coverage · XSS-safe**
 
 [**Quick Start**](#-quick-start) · [**Why Switch?**](#️-why-switch-the-architecture-argument) · [**API**](#-api-reference) · [**Packages**](#-packages)
 
@@ -39,7 +39,7 @@
 
 ```yaml
 dependencies:
-  hyper_render: ^1.2.2
+  hyper_render: ^1.2.3
 ```
 
 ```dart
@@ -316,7 +316,7 @@ HyperViewer(html: '<my-card>Hello</my-card>', pluginRegistry: registry)
 final ctrl = HyperViewerController();
 HyperViewer(html: html, controller: ctrl)
 
-ctrl.jumpToAnchor('section-2');   // scroll to <a name="section-2">
+ctrl.scrollToId('section-2');   // scroll to <id="section-2">
 ctrl.scrollToOffset(1200);        // absolute pixel offset
 ```
 

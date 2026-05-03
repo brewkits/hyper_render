@@ -72,8 +72,9 @@ void main() {
       await tester.pump();
 
       final semantics = tester.getSemantics(find.byType(HyperRenderWidget));
-      // Empty alt → should not add any label.
-      expect(_containsLabel(semantics, ''), isFalse);
+      // Empty alt → should not contribute "[Image]" or any other text to semantics.
+      expect(_containsLabel(semantics, '[Image]'), isFalse);
+      expect(_containsLabel(semantics, '[Image: ]'), isFalse);
     });
   });
 

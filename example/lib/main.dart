@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
@@ -10,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'html_preview_helper.dart';
 import 'v2_1_showcase.dart';
+import 'ultra_showcase_2026.dart';
 import 'security_demo.dart';
 import 'accessibility_demo.dart';
 import 'video_demo_improved.dart';
@@ -33,6 +35,7 @@ import 'enterprise_features_demo.dart';
 import 'paged_mode_demo.dart';
 import 'plugin_api_demo.dart';
 import 'reader_app/library_screen.dart';
+import 'float_hell_demo.dart';
 
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
@@ -46,13 +49,13 @@ const kOptimizedTextStyle = TextStyle(
 );
 
 void main() {
-  // Ensure Flutter binding is initialized before accessing PaintingBinding
+  // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Increase image cache size for better performance with multiple images
-  // Default: maximumSize = 1000 images, maximumSizeBytes = 50 MB
-  PaintingBinding.instance.imageCache.maximumSizeBytes =
-      150 << 20; // 150 MB for demo images
+  // Initialize image cache after the first frame is rendered to prevent startup hangs
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    PaintingBinding.instance.imageCache.maximumSizeBytes = 150 << 20; // 150 MB
+  });
 
   runApp(const HyperRenderDemoApp());
 }
@@ -68,6 +71,14 @@ class HyperRenderDemoApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
+      ),
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          ui.PointerDeviceKind.mouse,
+          ui.PointerDeviceKind.touch,
+          ui.PointerDeviceKind.stylus,
+          ui.PointerDeviceKind.trackpad,
+        },
       ),
       home: const DemoHomePage(),
     );
@@ -99,6 +110,18 @@ class DemoHomePage extends StatelessWidget {
           const SizedBox(height: 16),
           _buildWhyCard(context),
           const SizedBox(height: 8),
+          // ── The Ultimate Showcase ─────────────────────────────────────────
+          _buildSectionHeader(context, 'The Ultimate Showcase'),
+          _buildDemoCard(
+            context,
+            icon: Icons.auto_awesome,
+            title: 'Ultra Showcase 2026',
+            subtitle:
+                'Float + CJK Typography, Giant Div Virtualization, and Interactive Plugins',
+            color: Colors.redAccent,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const UltraShowcase2026())),
+          ),
           // ── Highlights ────────────────────────────────────────────────────
           _buildSectionHeader(context, 'Highlights'),
           _buildDemoCard(
@@ -277,6 +300,16 @@ class DemoHomePage extends StatelessWidget {
           ),
           // ── Advanced & Quality ────────────────────────────────────────────
           _buildSectionHeader(context, 'Advanced & Quality'),
+          _buildDemoCard(
+            context,
+            icon: Icons.whatshot,
+            title: 'Sprint 1: Float Hell Stress Test',
+            subtitle:
+                '2000 blocks, randomized left/right floats, width animation, virtualization test.',
+            color: Colors.deepPurple,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const FloatHellDemo())),
+          ),
           _buildDemoCard(
             context,
             icon: Icons.compare,
@@ -639,7 +672,7 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
 
   <h2 style="color: #1976D2; border-left: 4px solid #1976D2; padding-left: 12px;">1. Float Layout</h2>
   <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/100/100?random=1" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px;" />
+    <img src="https://picsum.photos/100/100?random=1" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
     <p style="margin: 0;">
       This is an example of <strong style="color: #E91E63;">Float Layout</strong>. This text will automatically
       wrap around the image on the left. HyperRender uses the IFC algorithm like web browsers.
@@ -762,7 +795,7 @@ class FloatLayoutDemo extends StatelessWidget {
 <div style="font-family: sans-serif; line-height: 1.6;">
   <h2 style="color: #1976D2;">Float Left</h2>
   <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/120/120?random=10" style="float: left; width: 120px; height: 120px; margin: 0 16px 8px 0; border-radius: 12px;" />
+    <img src="https://picsum.photos/120/120?random=10" style="float: left; width: 120px; height: 120px; margin: 0 16px 8px 0; border-radius: 12px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
     <p>
       This is an example of <strong>float: left</strong>. Text will automatically wrap around the image on the left.
       When the text is long enough, it will continue below the image naturally. This is a feature
@@ -778,7 +811,7 @@ class FloatLayoutDemo extends StatelessWidget {
 
   <h2 style="color: #9C27B0;">Float Right</h2>
   <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/100/100?random=11" style="float: right; width: 100px; height: 100px; margin: 0 0 8px 16px; border-radius: 50%;" />
+    <img src="https://picsum.photos/100/100?random=11" style="float: right; width: 100px; height: 100px; margin: 0 0 8px 16px; border-radius: 50%; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
     <p>
       Float also works on the <strong>right side</strong>! This circle floats right and text
       will fill the empty space on the left naturally.
@@ -792,15 +825,15 @@ class FloatLayoutDemo extends StatelessWidget {
 
   <h2 style="color: #E91E63;">Left + Right</h2>
   <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/90/90?random=20" style="float: left; width: 90px; height: 90px; margin: 0 14px 8px 0; border-radius: 8px;" />
-    <img src="https://picsum.photos/90/90?random=21" style="float: right; width: 90px; height: 90px; margin: 0 0 8px 14px; border-radius: 8px;" />
+    <img src="https://picsum.photos/90/90?random=20" style="float: left; width: 90px; height: 90px; margin: 0 14px 8px 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
+    <img src="https://picsum.photos/90/90?random=21" style="float: right; width: 90px; height: 90px; margin: 0 0 8px 14px; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
     <p>
-      Hai ảnh ở <strong>hai phía</strong> — một float left, một float right. Văn bản tự động
-      lấp đầy khoảng giữa. Layout engine phải tính toán đồng thời cả hai float boundary
-      để xác định vùng hợp lệ cho từng dòng chữ.
+      Two images on <strong>opposite sides</strong> — one float left, one float right. The text
+      automatically fills the gap in between. The layout engine calculates both float boundaries
+      simultaneously to determine the valid region for each line of text.
     </p>
     <p>
-      Đây là layout kiểu <em>tạp chí</em> — ảnh ghim hai góc, nội dung chảy ở giữa.
+      This is a <em>magazine-style</em> layout — images pinned to both corners with content flowing in the middle.
     </p>
   </div>
 
@@ -808,11 +841,11 @@ class FloatLayoutDemo extends StatelessWidget {
 
   <h2 style="color: #FF5722;">Multiple Left Floats</h2>
   <div style="margin: 16px 0;">
-    <img src="https://picsum.photos/80/80?random=12" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px;" />
-    <img src="https://picsum.photos/80/80?random=13" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px;" />
+    <img src="https://picsum.photos/80/80?random=12" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
+    <img src="https://picsum.photos/80/80?random=13" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
     <p>
-      Nhiều ảnh float left xếp cạnh nhau. Văn bản wrap quanh toàn bộ cụm ảnh.
-      Đây là cách hiển thị ảnh theo hàng ngang trong bài viết.
+      Multiple images floated left side-by-side. Text wraps around the entire group.
+      This is a common way to display horizontal image galleries within an article.
     </p>
   </div>
 </div>
@@ -841,17 +874,17 @@ class SelectionDemo extends StatelessWidget {
   static const html = '''
 <div style="font-family: sans-serif; line-height: 1.8;">
   <div style="background: #E3F2FD; padding: 16px; border-radius: 12px; margin-bottom: 24px;">
-    <h3 style="margin: 0 0 8px 0; color: #1565C0;">📱 Hướng dẫn sử dụng</h3>
+    <h3 style="margin: 0 0 8px 0; color: #1565C0;">📱 How to Use</h3>
     <ul style="margin: 0; padding-left: 20px;">
-      <li><strong>Kéo</strong> trên văn bản để bôi đen</li>
-      <li><strong>Long press</strong> để hiện menu Copy</li>
-      <li><strong>Ctrl+C</strong> (hoặc Cmd+C) để copy</li>
-      <li><strong>Ctrl+A</strong> để select all</li>
-      <li>Tap ra ngoài để clear selection</li>
+      <li><strong>Drag</strong> over text to select</li>
+      <li><strong>Long press</strong> to show Copy menu</li>
+      <li><strong>Ctrl+C</strong> (or Cmd+C) to copy</li>
+      <li><strong>Ctrl+A</strong> to select all</li>
+      <li>Tap outside to clear selection</li>
     </ul>
   </div>
 
-  <h2>Đoạn văn mẫu</h2>
+  <h2>Sample Paragraph</h2>
   <p>
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
     incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
@@ -901,7 +934,7 @@ class RubyDemo extends StatelessWidget {
   static const html = '''
 <div style="font-family: sans-serif; line-height: 2;">
   <h2 style="color: #E91E63;">Ruby Annotation (振り仮名)</h2>
-  <p>Ruby annotation hiển thị reading aids (furigana) phía trên kanji.</p>
+  <p>Ruby annotations display reading aids (furigana) above Chinese or Japanese characters.</p>
 
   <div style="background: #FCE4EC; padding: 16px; border-radius: 12px; margin: 16px 0;">
     <h3 style="margin: 0 0 12px 0;">基本的な例 (Basic Examples)</h3>
@@ -1188,7 +1221,7 @@ class RealContentDemo extends StatelessWidget {
     Published December 25, 2024 • 5 min read
   </p>
 
-  <img src="https://picsum.photos/400/200?random=20" style="float: left; width: 200px; height: 100px; margin: 0 20px 12px 0; border-radius: 8px;" />
+  <img src="https://picsum.photos/400/200?random=20" style="float: left; width: 200px; height: 100px; margin: 0 20px 12px 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
 
   <p>
     Flutter has revolutionized cross-platform development. With its unique architecture
@@ -1886,7 +1919,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
           'Text wrapping around floated images (HyperRender exclusive)',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
-  <img src="https://picsum.photos/100/100?random=50" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px;" />
+  <img src="https://picsum.photos/100/100?random=50" style="float: left; width: 100px; height: 100px; margin: 0 16px 8px 0; border-radius: 12px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
   <p>
     This is an example of <strong>float: left</strong>. Text should wrap around the image on the left side naturally.
     When the text is long enough, it continues below the image seamlessly.
@@ -1944,8 +1977,8 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
       'description': 'Left and right floats in same paragraph',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
-  <img src="https://picsum.photos/80/80?random=1" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 50%;" />
-  <img src="https://picsum.photos/80/80?random=2" style="float: right; width: 80px; height: 80px; margin: 0 0 8px 12px; border-radius: 50%;" />
+  <img src="https://picsum.photos/80/80?random=1" style="float: left; width: 80px; height: 80px; margin: 0 12px 8px 0; border-radius: 50%; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
+  <img src="https://picsum.photos/80/80?random=2" style="float: right; width: 80px; height: 80px; margin: 0 0 8px 12px; border-radius: 50%; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
   <p>
     This paragraph has images floating on <strong>both sides</strong>. The text should wrap between them naturally, creating a magazine-style layout. This is a challenging layout scenario that tests the rendering engine's float handling capabilities. Additional text to make the wrapping more visible.
   </p>
@@ -1958,13 +1991,13 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
           '4 images pinned to each corner with text filling the middle',
       'html': '''
 <div style="font-family: sans-serif; line-height: 1.6;">
-  <img src="https://picsum.photos/90/90?random=41" style="float: left; width: 90px; height: 90px; margin: 0 14px 10px 0; border-radius: 8px;" />
-  <img src="https://picsum.photos/90/90?random=42" style="float: right; width: 90px; height: 90px; margin: 0 0 10px 14px; border-radius: 8px;" />
+  <img src="https://picsum.photos/90/90?random=41" style="float: left; width: 90px; height: 90px; margin: 0 14px 10px 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
+  <img src="https://picsum.photos/90/90?random=42" style="float: right; width: 90px; height: 90px; margin: 0 0 10px 14px; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
   <p>
     Two images anchor the <strong>top corners</strong>. Text flows naturally in the space between them, respecting both left and right float boundaries at the same time. This tests simultaneous multi-float layout.
   </p>
-  <img src="https://picsum.photos/90/90?random=43" style="float: left; width: 90px; height: 90px; margin: 0 14px 0 0; border-radius: 8px;" />
-  <img src="https://picsum.photos/90/90?random=44" style="float: right; width: 90px; height: 90px; margin: 0 0 0 14px; border-radius: 8px;" />
+  <img src="https://picsum.photos/90/90?random=43" style="float: left; width: 90px; height: 90px; margin: 0 14px 0 0; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
+  <img src="https://picsum.photos/90/90?random=44" style="float: right; width: 90px; height: 90px; margin: 0 0 0 14px; border-radius: 8px; padding: 4px; background: white; border: 1px solid #e0e0e0;" />
   <p>
     Two more images anchor the <strong>bottom corners</strong>. The middle column of text continues to wrap correctly even when four floats are active across two rows. This is the most complex float scenario.
   </p>

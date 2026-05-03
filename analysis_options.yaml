@@ -1,5 +1,12 @@
 include: package:flutter_lints/flutter.yaml
 
+linter:
+  rules:
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - always_declare_return_types
+    - type_annotate_public_apis
+
 analyzer:
   exclude:
     # Sub-packages have their own pubspec.yaml and analysis_options.yaml.

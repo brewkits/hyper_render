@@ -25,9 +25,16 @@ subprojects {
 // subprojects so the check passes.
 // Tracked: https://github.com/brewkits/hyper_render/issues/5
 subprojects {
-    afterEvaluate {
-        extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)?.apply {
+    val project = this
+    if (project.state.executed) {
+        project.extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)?.apply {
             compileSdk = 35
+        }
+    } else {
+        project.afterEvaluate {
+            project.extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)?.apply {
+                compileSdk = 35
+            }
         }
     }
 }

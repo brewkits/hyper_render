@@ -55,7 +55,7 @@ class MockLibrary {
       content: '''
 <div style="font-family: serif; padding: 20px;">
   <h1 style="text-align: center; color: #1a237e;">Chapter I</h1>
-  <p><span style="float: left; font-size: 3em; line-height: 0.8; margin-right: 8px; font-weight: bold;">I</span>n my younger and more vulnerable years my father gave me some advice that I’ve been turning over in my mind ever since.</p>
+  <p><span style="float: left; font-size: 3em; line-height: 0.8; padding-right: 8px; font-weight: bold;">I</span>n my younger and more vulnerable years my father gave me some advice that I’ve been turning over in my mind ever since.</p>
   <p>“Whenever you feel like criticizing any one,” he told me, “just remember that all the people in this world haven’t had the advantages that you’ve had.”</p>
   <p>He didn’t say any more, but we’ve always been unusually communicative in a reserved way, and I understood that he meant a great deal more than that. In consequence, I’m inclined to reserve all judgments, a habit that has opened up many curious natures to me and also made me the victim of not a few veteran bores. The abnormal mind is quick to detect and attach itself to this quality when it appears in a normal person, and so it came about that in college I was unjustly accused of being a politician, because I was privy to the secret griefs of wild, unknown men.</p>
   

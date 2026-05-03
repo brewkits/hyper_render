@@ -173,7 +173,7 @@ void main() {
     });
 
     test('copyWith() overrides margin', () {
-      final newMargin = const EdgeInsets.symmetric(vertical: 4);
+      const newMargin = EdgeInsets.symmetric(vertical: 4);
       expect(base.copyWith(margin: newMargin).margin, equals(newMargin));
     });
 

@@ -30,7 +30,7 @@ void main() {
       final stopwatch = Stopwatch()..start();
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: smallHtml, mode: HyperRenderMode.sync),
           ),
@@ -213,7 +213,7 @@ It has multiple lines and should respond quickly to tap events.</p>
 ''';
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: HyperViewer(html: html, selectable: true),
           ),
@@ -238,13 +238,13 @@ It has multiple lines and should respond quickly to tap events.</p>
       const html = '<p>Test content for rebuild check.</p>';
 
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
+        const MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
       );
       await tester.pumpAndSettle();
 
       final stopwatch = Stopwatch()..start();
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
+        const MaterialApp(home: Scaffold(body: HyperViewer(html: html))),
       );
       await tester.pump();
       stopwatch.stop();
