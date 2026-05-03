@@ -27,7 +27,8 @@ void main() {
 
       // The alt text should appear in the semantics tree so screen readers
       // can navigate to the image element.
-      final semantics = tester.getSemantics(find.byType(HyperRenderWidget).first);
+      final semantics =
+          tester.getSemantics(find.byType(HyperRenderWidget).first);
 
       // Walk all semantic nodes looking for the alt text label.
       bool found = _containsLabel(semantics, 'A cute cat');
@@ -51,7 +52,8 @@ void main() {
       ));
       await tester.pump();
 
-      final semantics = tester.getSemantics(find.byType(HyperRenderWidget).first);
+      final semantics =
+          tester.getSemantics(find.byType(HyperRenderWidget).first);
       // Decorative images without alt should not pollute the semantics tree.
       expect(_containsLabel(semantics, 'A cute cat'), isFalse);
     });
@@ -71,7 +73,8 @@ void main() {
       ));
       await tester.pump();
 
-      final semantics = tester.getSemantics(find.byType(HyperRenderWidget).first);
+      final semantics =
+          tester.getSemantics(find.byType(HyperRenderWidget).first);
       // Empty alt → should not contribute "[Image]" or any other text to semantics.
       expect(_containsLabel(semantics, '[Image]'), isFalse);
       expect(_containsLabel(semantics, '[Image: ]'), isFalse);
@@ -103,7 +106,8 @@ void main() {
       ));
       await tester.pump();
 
-      final semantics = tester.getSemantics(find.byType(HyperRenderWidget).first);
+      final semantics =
+          tester.getSemantics(find.byType(HyperRenderWidget).first);
 
       // aria-label value should appear, not the element text.
       expect(
@@ -133,7 +137,8 @@ void main() {
       ));
       await tester.pump();
 
-      final semantics = tester.getSemantics(find.byType(HyperRenderWidget).first);
+      final semantics =
+          tester.getSemantics(find.byType(HyperRenderWidget).first);
       expect(_containsLabel(semantics, 'Click here'), isTrue);
     });
   });

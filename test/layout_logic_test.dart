@@ -382,7 +382,8 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      await tester.tapAt(tester.getCenter(find.byType(HyperRenderWidget).first));
+      await tester
+          .tapAt(tester.getCenter(find.byType(HyperRenderWidget).first));
       await tester.pump();
 
       if (tappedUrl != null) {
