@@ -292,7 +292,7 @@ void main() {
       }
 
       expect(row, isNotNull);
-      final cell = row!.children.first as TableCellNode;
+      final cell = row!.children.whereType<TableCellNode>().first;
       expect(cell.colspan, equals(2));
     });
 
