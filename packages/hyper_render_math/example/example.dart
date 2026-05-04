@@ -25,8 +25,8 @@ class MyApp extends StatelessWidget {
 class MathExamplePage extends StatelessWidget {
   const MathExamplePage({super.key});
 
-  static final _registry =
-      HyperPluginRegistry()..register(const MathNodePlugin());
+  static final _registry = HyperPluginRegistry()
+    ..register(const MathNodePlugin());
 
   static final _document = DocumentNode(children: [
     BlockNode(

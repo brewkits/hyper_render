@@ -537,6 +537,7 @@ void main() {
           walk(c);
         }
       }
+
       walk(doc);
 
       expect(imgNode, isNotNull);
@@ -562,6 +563,7 @@ void main() {
           walk(c);
         }
       }
+
       walk(doc);
 
       expect(imgNode, isNotNull);
@@ -592,6 +594,7 @@ void main() {
           walk(c);
         }
       }
+
       walk(doc);
 
       expect(linkNode, isNotNull);
