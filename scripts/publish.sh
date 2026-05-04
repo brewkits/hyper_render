@@ -50,7 +50,7 @@ patch_pubspec() {
   local dir="$1"
   local pubspec="$dir/pubspec.yaml"
 
-  cp "$pubspec" "$pubspec.bak"
+  cp "$pubspec" "/tmp/$(basename "$dir")_pubspec.bak"
 
   # Replace multi-line path dep with version constraint via python3
   python3 - "$pubspec" "$VERSION" <<'PYEOF'
@@ -83,8 +83,9 @@ PYEOF
 restore_pubspec() {
   local dir="$1"
   local pubspec="$dir/pubspec.yaml"
-  if [[ -f "$pubspec.bak" ]]; then
-    mv "$pubspec.bak" "$pubspec"
+  local bak="/tmp/$(basename "$dir")_pubspec.bak"
+  if [[ -f "$bak" ]]; then
+    mv "$bak" "$pubspec"
     echo "  restored: $pubspec"
   fi
 }
