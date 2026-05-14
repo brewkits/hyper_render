@@ -53,21 +53,6 @@ HyperViewer(
 
 Zero configuration. XSS sanitization is **on by default**.
 
-> **Android note:** `hyper_render` depends on `super_clipboard` which transitively pulls in `irondash_engine_context`. That library was compiled against Android SDK 31, but its `androidx.fragment:1.7.1` dependency requires `compileSdk ≥ 34`. Add this one-time workaround to your `android/build.gradle.kts`:
->
-> ```kotlin
-> // android/build.gradle.kts  (root — not app/build.gradle.kts)
-> subprojects {
->     afterEvaluate {
->         extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)?.apply {
->             compileSdk = 35
->         }
->     }
-> }
-> ```
->
-> This overrides `compileSdk` for all library sub-projects so AGP's `checkAarMetadata` passes. Tracked in [#5](https://github.com/brewkits/hyper_render/issues/5).
-
 ---
 
 ## 🏗️ Why Switch? The Architecture Argument
@@ -403,13 +388,63 @@ HTML / Markdown / Quill Delta
 
 | Package | pub.dev | Description |
 |---------|---------|-------------|
-| [`hyper_render`](https://pub.dev/packages/hyper_render) | [![pub](https://img.shields.io/pub/v/hyper_render.svg)](https://pub.dev/packages/hyper_render) | Convenience wrapper — one dependency, everything included |
+| [`hyper_render`](https://pub.dev/packages/hyper_render) | [![pub](https://img.shields.io/pub/v/hyper_render.svg)](https://pub.dev/packages/hyper_render) | Convenience wrapper — HTML, Markdown, Delta, syntax highlight |
 | [`hyper_render_core`](https://pub.dev/packages/hyper_render_core) | [![pub](https://img.shields.io/pub/v/hyper_render_core.svg)](https://pub.dev/packages/hyper_render_core) | Core engine — UDT model, CSS resolver, RenderObject |
 | [`hyper_render_html`](https://pub.dev/packages/hyper_render_html) | [![pub](https://img.shields.io/pub/v/hyper_render_html.svg)](https://pub.dev/packages/hyper_render_html) | HTML + CSS parser |
 | [`hyper_render_markdown`](https://pub.dev/packages/hyper_render_markdown) | [![pub](https://img.shields.io/pub/v/hyper_render_markdown.svg)](https://pub.dev/packages/hyper_render_markdown) | Markdown adapter (GFM) |
 | [`hyper_render_highlight`](https://pub.dev/packages/hyper_render_highlight) | [![pub](https://img.shields.io/pub/v/hyper_render_highlight.svg)](https://pub.dev/packages/hyper_render_highlight) | Syntax highlighting for `<code>` / `<pre>` blocks |
-| [`hyper_render_clipboard`](https://pub.dev/packages/hyper_render_clipboard) | [![pub](https://img.shields.io/pub/v/hyper_render_clipboard.svg)](https://pub.dev/packages/hyper_render_clipboard) | Image copy / share |
 | [`hyper_render_devtools`](https://pub.dev/packages/hyper_render_devtools) | [![pub](https://img.shields.io/pub/v/hyper_render_devtools.svg)](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools extension — UDT inspector, computed styles |
+
+### Optional add-ons
+
+These packages have native dependencies and are **not bundled** by default. Install only if you need the feature.
+
+#### `hyper_render_clipboard` — Native image copy / share
+
+```yaml
+dependencies:
+  hyper_render_clipboard: ^1.3.0
+```
+
+```dart
+import 'package:hyper_render_clipboard/hyper_render_clipboard.dart';
+
+HyperViewer(
+  html: html,
+  imageClipboardHandler: SuperClipboardHandler(),
+)
+```
+
+> **Android setup required:** `super_clipboard` transitively pulls in `irondash_engine_context`, which requires `compileSdk ≥ 34`. Add this to `android/build.gradle.kts` (root file, not `app/`):
+>
+> ```kotlin
+> subprojects {
+>     afterEvaluate {
+>         extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)?.apply {
+>             compileSdk = 35
+>         }
+>     }
+> }
+> ```
+>
+> Tracked in [#5](https://github.com/brewkits/hyper_render/issues/5).
+
+#### `hyper_render_math` — LaTeX / MathML rendering
+
+```yaml
+dependencies:
+  hyper_render_math: ^1.3.0
+```
+
+```dart
+import 'package:hyper_render_math/hyper_render_math.dart';
+
+final registry = HyperPluginRegistry()..register(const MathPlugin());
+HyperViewer(html: html, pluginRegistry: registry)
+```
+
+| [`hyper_render_clipboard`](https://pub.dev/packages/hyper_render_clipboard) | [![pub](https://img.shields.io/pub/v/hyper_render_clipboard.svg)](https://pub.dev/packages/hyper_render_clipboard) | Native image copy / share via `super_clipboard` |
+| [`hyper_render_math`](https://pub.dev/packages/hyper_render_math) | [![pub](https://img.shields.io/pub/v/hyper_render_math.svg)](https://pub.dev/packages/hyper_render_math) | LaTeX / MathML via `flutter_math_fork` |
 
 ---
 

@@ -23,12 +23,10 @@ dependencies:
 
   # ============================================
   # MODULAR ARCHITECTURE v1.0
-  # This package is a convenience wrapper that includes all plugins
-  # For minimal dependencies, use individual packages:
-  #   - hyper_render_core: Zero-dep core
-  #   - hyper_render_html: HTML parsing
-  #   - hyper_render_markdown: Markdown parsing
-  #   - hyper_render_highlight: Syntax highlighting
+  # This package is a convenience wrapper that includes core plugins.
+  # Optional add-ons (install separately if needed):
+  #   - hyper_render_clipboard: Image copy/share (adds super_clipboard native dep)
+  #   - hyper_render_math: LaTeX/MathML rendering (adds flutter_math_fork)
   # ============================================
 
   # NOTE: For publishing to pub.dev, replace path dependencies with versions:
@@ -36,8 +34,6 @@ dependencies:
   #   hyper_render_html: ^1.3.0
   #   hyper_render_markdown: ^1.3.0
   #   hyper_render_highlight: ^1.3.0
-  #   hyper_render_clipboard: ^1.3.0
-  #   hyper_render_math: ^1.3.0
 
   hyper_render_core:
     path: packages/hyper_render_core
@@ -50,12 +46,6 @@ dependencies:
 
   hyper_render_highlight:
     path: packages/hyper_render_highlight
-
-  hyper_render_clipboard:
-    path: packages/hyper_render_clipboard
-
-  hyper_render_math:
-    path: packages/hyper_render_math
 
   # Fixed version constraints for pub.dev compliance
   flutter_highlight: ^0.7.0
