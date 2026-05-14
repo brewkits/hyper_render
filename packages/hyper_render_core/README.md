@@ -10,7 +10,7 @@ Most apps should depend on [`hyper_render`](https://pub.dev/packages/hyper_rende
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.3.0
+  hyper_render_core: ^1.3.1
 ```
 
 ---
@@ -51,12 +51,12 @@ Register a `HyperNodePlugin` to render arbitrary HTML tags as Flutter widgets:
 
 ```dart
 class MyCardPlugin implements HyperNodePlugin {
-  @override String get tagName => 'my-card';
+  @override List<String> get tagNames => ['my-card'];
   @override bool get isInline => false; // true = flows with text
 
   @override
-  Widget? build(HyperPluginBuildContext ctx) {
-    return Card(child: Text(ctx.node.textContent));
+  Widget? buildWidget(UDTNode node, HyperPluginBuildContext ctx) {
+    return Card(child: Text(node.textContent));
   }
 }
 
@@ -94,6 +94,23 @@ Implement these to extend the engine:
 | `CodeHighlighter` | Syntax highlighting for `<code>` / `<pre>` |
 | `CssParserInterface` | CSS stylesheet parsing |
 | `ImageClipboardHandler` | Image copy / share |
+
+---
+
+## HyperRender Ecosystem
+
+| Package | Description |
+|---------|-------------|
+| [hyper_render](https://pub.dev/packages/hyper_render) | Main package — `HyperViewer` widget, HTML + Markdown rendering |
+| **[hyper_render_core](https://pub.dev/packages/hyper_render_core)** | **Core engine: UDT model, `RenderHyperBox`, plugin API** ← you are here |
+| [hyper_render_html](https://pub.dev/packages/hyper_render_html) | HTML + CSS → UDT parser |
+| [hyper_render_markdown](https://pub.dev/packages/hyper_render_markdown) | Markdown (GFM) → UDT parser |
+| [hyper_render_highlight](https://pub.dev/packages/hyper_render_highlight) | Syntax highlighting for `<code>` / `<pre>` blocks |
+| [hyper_render_clipboard](https://pub.dev/packages/hyper_render_clipboard) | Image copy / save / share *(opt-in)* |
+| [hyper_render_math](https://pub.dev/packages/hyper_render_math) | LaTeX / MathML rendering *(opt-in)* |
+| [hyper_render_devtools](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools inspector |
+
+[Source](https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_core) · [Issues](https://github.com/brewkits/hyper_render/issues) · [Changelog](CHANGELOG.md)
 
 ---
 

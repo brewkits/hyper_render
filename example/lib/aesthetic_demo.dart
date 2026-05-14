@@ -79,6 +79,7 @@ class AestheticDemo extends StatelessWidget {
             _buildFeature('✨ CSS filters and backdrop-filter (blur)'),
             _buildFeature(
                 '✨ NEW: word-break and background-size (cover/contain)'),
+            _buildFeature('✨ NEW: list-style and background (repeat/position)'),
             _buildFeature('✨ NEW: Advanced borders (dashed, dotted, double)'),
             _buildFeature(
                 '✨ NEW: Professional truncation (text-overflow: ellipsis)'),

@@ -9,8 +9,7 @@ Renders `<math>` and `<latex>` tags using [flutter_math_fork](https://pub.dev/pa
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.3.0
-  hyper_render_math: ^1.3.0
+  hyper_render_math: ^1.3.1
 ```
 
 ---
@@ -64,7 +63,23 @@ so you can identify and fix the malformed formula.
 
 ---
 
-## Contributing
+## HyperRender Ecosystem
 
-See [PLUGIN_DEVELOPMENT.md](../../doc/PLUGIN_DEVELOPMENT.md) for the full guide
-on building, testing, and submitting plugins.
+| Package | Description |
+|---------|-------------|
+| [hyper_render](https://pub.dev/packages/hyper_render) | Main package — `HyperViewer` widget, HTML + Markdown rendering |
+| [hyper_render_core](https://pub.dev/packages/hyper_render_core) | Core engine: UDT model, `RenderHyperBox`, plugin API |
+| [hyper_render_html](https://pub.dev/packages/hyper_render_html) | HTML + CSS → UDT parser |
+| [hyper_render_markdown](https://pub.dev/packages/hyper_render_markdown) | Markdown (GFM) → UDT parser |
+| [hyper_render_highlight](https://pub.dev/packages/hyper_render_highlight) | Syntax highlighting for `<code>` / `<pre>` blocks |
+| [hyper_render_clipboard](https://pub.dev/packages/hyper_render_clipboard) | Image copy / save / share *(opt-in)* |
+| **[hyper_render_math](https://pub.dev/packages/hyper_render_math)** | **LaTeX / MathML rendering** ← you are here |
+| [hyper_render_devtools](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools inspector |
+
+[Source](https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_math) · [Issues](https://github.com/brewkits/hyper_render/issues) · [Changelog](CHANGELOG.md) · [Plugin Development Guide](https://github.com/brewkits/hyper_render/blob/main/doc/PLUGIN_DEVELOPMENT.md)
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
