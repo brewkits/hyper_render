@@ -25,6 +25,35 @@ class CssPropertiesDemo extends StatelessWidget {
           // NEW PROPERTIES
           _buildSection('🎉 NEW CSS Properties'),
           _buildPropertyCard(
+            title: 'list-style-type & position',
+            description: 'Advanced list markers (roman, alpha) and positioning',
+            html: '''
+              <ul style="list-style-type: upper-roman; list-style-position: inside; background: #f5f5f5; padding: 8px;">
+                <li>First Roman</li>
+                <li>Second Roman</li>
+              </ul>
+              <ol style="list-style-type: lower-alpha; padding-left: 24px;">
+                <li>First Alpha</li>
+                <li>Second Alpha</li>
+              </ol>
+              <ul style="list-style: none; padding: 0;">
+                <li style="border-bottom: 1px solid #ddd;">No markers here</li>
+              </ul>
+            ''',
+          ),
+          _buildPropertyCard(
+            title: 'background-repeat & position',
+            description: 'Advanced background image rendering',
+            html: '''
+              <div style="background-image: url('https://picsum.photos/100/100?random=bg1'); background-repeat: repeat-x; background-position: center; height: 120px; border: 1px solid #ddd;">
+                <div style="background: rgba(255,255,255,0.8); padding: 4px; text-align: center; margin-top: 40px;">repeat-x + center</div>
+              </div>
+              <div style="background-image: url('https://picsum.photos/100/100?random=bg2'); background-repeat: no-repeat; background-position: right bottom; height: 120px; border: 1px solid #ddd; margin-top: 8px;">
+                <div style="background: rgba(255,255,255,0.8); padding: 4px; text-align: center;">no-repeat + right bottom</div>
+              </div>
+            ''',
+          ),
+          _buildPropertyCard(
             title: 'text-shadow',
             description: 'Drop shadow on text (multiple shadows supported)',
             html: '''

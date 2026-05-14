@@ -7,7 +7,7 @@ const double _kDefaultFloatMargin = 8.0;
 
 const double _kMinFloatYStep = 1.0;
 const double _kImageMargin =
-    32.0; // horizontal margin subtracted from maxWidth for images
+    0.0; // horizontal margin subtracted from maxWidth for images
 const double _kDefaultFlexFallbackHeight = 50.0;
 const double _kDefaultTableFallbackHeight = 200.0;
 const double _kTableBottomMargin = 16.0;
@@ -198,24 +198,30 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       final parentTag = parentBlock.tagName?.toLowerCase();
       final isOrdered = parentTag == 'ol';
 
-      // Get or calculate list item index
-      int index = 1;
-      if (isOrdered) {
-        // Count previous li siblings
-        index = (_listItemIndices[parentBlock] ?? 0) + 1;
-        _listItemIndices[parentBlock] = index;
+      // Resolve effective list-style-type: li overrides parent, then parent,
+      // then default (disc for ul, decimal for ol).
+      final effectiveType = style.listStyleType ??
+          parentBlock.style.listStyleType ??
+          (isOrdered ? 'decimal' : 'disc');
+
+      // list-style-type: none → suppress marker entirely.
+      if (effectiveType != 'none') {
+        int index = 1;
+        if (isOrdered) {
+          index = (_listItemIndices[parentBlock] ?? 0) + 1;
+          _listItemIndices[parentBlock] = index;
+        }
+
+        final marker = _buildListMarker(effectiveType, isOrdered, index);
+
+        _fragments.add(_ListMarkerFragment(
+          sourceNode: node,
+          style: style,
+          marker: marker,
+          isOrdered: isOrdered,
+          index: index,
+        ));
       }
-
-      // Create marker text
-      final marker = isOrdered ? '$index. ' : '• ';
-
-      _fragments.add(_ListMarkerFragment(
-        sourceNode: node,
-        style: style,
-        marker: marker,
-        isOrdered: isOrdered,
-        index: index,
-      ));
     }
 
     if (style.float != HyperFloat.none) {
@@ -1576,6 +1582,75 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
   /// Recursively extracts plain text content from a [UDTNode] subtree.
   /// Used by heading-anchor collection to provide human-readable TOC labels.
+  /// Returns the marker string for a list item given its CSS list-style-type.
+  String _buildListMarker(String type, bool isOrdered, int index) {
+    switch (type) {
+      case 'disc':
+        return '• ';
+      case 'circle':
+        return '◦ ';
+      case 'square':
+        return '▪ ';
+      case 'decimal':
+        return '$index. ';
+      case 'decimal-leading-zero':
+        return '${index.toString().padLeft(2, '0')}. ';
+      case 'lower-alpha':
+      case 'lower-latin':
+        return '${_indexToAlpha(index, uppercase: false)}. ';
+      case 'upper-alpha':
+      case 'upper-latin':
+        return '${_indexToAlpha(index, uppercase: true)}. ';
+      case 'lower-roman':
+        return '${_indexToRoman(index).toLowerCase()}. ';
+      case 'upper-roman':
+        return '${_indexToRoman(index)}. ';
+      default:
+        return isOrdered ? '$index. ' : '• ';
+    }
+  }
+
+  String _indexToAlpha(int index, {required bool uppercase}) {
+    // 1→a, 2→b, …26→z, 27→aa, etc.
+    final base = uppercase ? 'A'.codeUnitAt(0) : 'a'.codeUnitAt(0);
+    var n = index;
+    final buf = StringBuffer();
+    while (n > 0) {
+      n--;
+      buf.write(String.fromCharCode(base + n % 26));
+      n ~/= 26;
+    }
+    return buf.toString().split('').reversed.join();
+  }
+
+  String _indexToRoman(int n) {
+    const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+    const syms = [
+      'M',
+      'CM',
+      'D',
+      'CD',
+      'C',
+      'XC',
+      'L',
+      'XL',
+      'X',
+      'IX',
+      'V',
+      'IV',
+      'I'
+    ];
+    final buf = StringBuffer();
+    var remaining = n;
+    for (var i = 0; i < vals.length; i++) {
+      while (remaining >= vals[i]) {
+        buf.write(syms[i]);
+        remaining -= vals[i];
+      }
+    }
+    return buf.toString();
+  }
+
   String _extractNodeText(UDTNode node) {
     if (node is TextNode) return node.text;
     final buf = StringBuffer();

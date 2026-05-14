@@ -4,7 +4,7 @@
 
 # HyperRender
 
-### Fast, robust HTML rendering for Flutter.
+### The only Flutter HTML renderer with CSS float layout.
 
 [![pub.dev](https://img.shields.io/pub/v/hyper_render.svg?label=pub.dev&color=0175C2)](https://pub.dev/packages/hyper_render)
 [![pub points](https://img.shields.io/pub/points/hyper_render?label=pub%20points&color=00b4ab)](https://pub.dev/packages/hyper_render/score)
@@ -13,7 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.10+-54C5F8.svg?logo=flutter)](https://flutter.dev)
 
-**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · 80%+ Test Coverage · XSS-safe**
+**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · 1 646 tests · XSS-safe · Zero Gradle config**
 
 [**Quick Start**](#-quick-start) · [**Why Switch?**](#️-why-switch-the-architecture-argument) · [**API**](#-api-reference) · [**Packages**](#-packages)
 
@@ -26,7 +26,7 @@
 | CSS Float Layout | Ruby / Furigana | Crash-Free Selection |
 |:---:|:---:|:---:|
 | ![CSS Float Demo](https://raw.githubusercontent.com/brewkits/hyper_render/main/assets/float_demo.gif) | ![Ruby Demo](https://raw.githubusercontent.com/brewkits/hyper_render/main/assets/ruby_demo.gif) | ![Selection Demo](https://raw.githubusercontent.com/brewkits/hyper_render/main/assets/selection_demo.gif) |
-| Text wraps around floated images — no other Flutter HTML renderer does this | Furigana centered above base glyphs, full Kinsoku line-breaking | Select across headings, paragraphs, tables — tested to 100 000 chars |
+| Text wraps around floated images — **no other Flutter HTML renderer does this** | Furigana centered above base glyphs, full Kinsoku line-breaking | Select across headings, paragraphs, tables — tested to 100 000 chars |
 
 | Advanced Tables | Head-to-Head | Virtualized Mode |
 |:---:|:---:|:---:|
@@ -39,7 +39,7 @@
 
 ```yaml
 dependencies:
-  hyper_render: ^1.3.0
+  hyper_render: ^1.3.1
 ```
 
 ```dart
@@ -51,22 +51,7 @@ HyperViewer(
 )
 ```
 
-Zero configuration. XSS sanitization is **on by default**.
-
-> **Android note:** `hyper_render` depends on `super_clipboard` which transitively pulls in `irondash_engine_context`. That library was compiled against Android SDK 31, but its `androidx.fragment:1.7.1` dependency requires `compileSdk ≥ 34`. Add this one-time workaround to your `android/build.gradle.kts`:
->
-> ```kotlin
-> // android/build.gradle.kts  (root — not app/build.gradle.kts)
-> subprojects {
->     afterEvaluate {
->         extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)?.apply {
->             compileSdk = 35
->         }
->     }
-> }
-> ```
->
-> This overrides `compileSdk` for all library sub-projects so AGP's `checkAarMetadata` passes. Tracked in [#5](https://github.com/brewkits/hyper_render/issues/5).
+Zero configuration. XSS sanitization is **on by default**. No Gradle setup required.
 
 ---
 
@@ -74,10 +59,10 @@ Zero configuration. XSS sanitization is **on by default**.
 
 Most Flutter HTML libraries map each HTML tag to a Flutter widget. A 3 000-word article becomes **500+ nested widgets** — and some layout primitives simply cannot be expressed that way:
 
-> **CSS `float` is not possible in a widget tree.**
-> Wrapping text around a floated image requires every fragment's coordinates before adjacent text can be composed. That geometry only exists when a single `RenderObject` owns the entire layout.
+> **CSS `float` is architecturally impossible in a widget tree.**
+> Wrapping text around a floated image requires every fragment's coordinates before adjacent text can be composed. That geometry only exists when a single `RenderObject` owns the entire layout pass.
 
-HyperRender renders the whole document inside **one custom `RenderObject`**. Float, crash-free selection, and sub-millisecond binary-search hit-testing all follow from that single design decision.
+HyperRender renders the whole document inside **one custom `RenderObject`**. CSS float, crash-free selection, O(log N) binary-search hit-testing, and `@keyframes` animations all follow directly from that single architectural decision.
 
 ### Feature Matrix
 
@@ -85,13 +70,18 @@ HyperRender renders the whole document inside **one custom `RenderObject`**. Flo
 |---|:---:|:---:|:---:|
 | `float: left / right` | ❌ | ❌ | ✅ |
 | Text selection — large docs | ❌ Crashes | ❌ Crashes | ✅ Crash-free |
-| Ruby / Furigana | ❌ Raw text | ❌ Raw text | ✅ |
-| `<details>` / `<summary>` | ❌ | ❌ | ✅ Interactive |
+| Ruby / Furigana + Kinsoku | ❌ Raw text | ❌ Raw text | ✅ |
+| RTL / BiDi (Arabic, Hebrew) | ⚠️ | ⚠️ | ✅ |
 | CSS Variables `var()` | ❌ | ❌ | ✅ |
-| CSS `@keyframes` | ❌ | ❌ | ✅ |
+| CSS `@keyframes` animation | ❌ | ❌ | ✅ |
 | Flexbox / Grid | ⚠️ Partial | ⚠️ Partial | ✅ Full |
-| Box shadow · `filter` | ❌ | ❌ | ✅ |
-| SVG `<img src="*.svg">` | ⚠️ | ⚠️ | ✅ |
+| `box-shadow` · `filter` | ❌ | ❌ | ✅ |
+| `list-style-type` (all 11 values) | ⚠️ disc only | ⚠️ disc only | ✅ |
+| `<details>` / `<summary>` | ❌ | ❌ | ✅ Interactive |
+| Quill Delta input | ❌ | ❌ | ✅ |
+| Markdown input | ❌ | ❌ | ✅ GFM |
+| Modular packages | ❌ monolith | ❌ monolith | ✅ opt-in add-ons |
+| Zero Gradle config | ✅ | ✅ | ✅ |
 
 ### Benchmarks
 
@@ -368,10 +358,11 @@ HTML / Markdown / Quill Delta
                           Kinsoku · O(log N) binary-search selection
 ```
 
-- **Single RenderObject** — float layout and crash-free selection require one shared coordinate system
+- **Single RenderObject** — float layout and crash-free selection require one shared coordinate system; a widget tree cannot provide this
 - **O(1) CSS rule lookup** — rules indexed by tag / class / ID; constant time regardless of stylesheet size
-- **O(log N) hit-testing** — `_lineStartOffsets[]` precomputed at layout time; each touch is a binary search
-- **RepaintBoundary per chunk** — unmodified chunks are composited, not repainted
+- **O(log N) hit-testing** — `_lineStartOffsets[]` precomputed at layout time; each touch is a binary search, not a linear scan
+- **RepaintBoundary per chunk** — unmodified chunks are composited, not repainted; incremental layout caches unchanged sections by content hash
+- **1 646 passing tests** — unit, widget, integration, fuzz (43 cases), and golden pixel tests across 3 OS platforms
 
 ---
 
@@ -403,13 +394,65 @@ HTML / Markdown / Quill Delta
 
 | Package | pub.dev | Description |
 |---------|---------|-------------|
-| [`hyper_render`](https://pub.dev/packages/hyper_render) | [![pub](https://img.shields.io/pub/v/hyper_render.svg)](https://pub.dev/packages/hyper_render) | Convenience wrapper — one dependency, everything included |
-| [`hyper_render_core`](https://pub.dev/packages/hyper_render_core) | [![pub](https://img.shields.io/pub/v/hyper_render_core.svg)](https://pub.dev/packages/hyper_render_core) | Core engine — UDT model, CSS resolver, RenderObject |
+| [`hyper_render`](https://pub.dev/packages/hyper_render) | [![pub](https://img.shields.io/pub/v/hyper_render.svg)](https://pub.dev/packages/hyper_render) | Convenience wrapper — HTML, Markdown, Delta, syntax highlight |
+| [`hyper_render_core`](https://pub.dev/packages/hyper_render_core) | [![pub](https://img.shields.io/pub/v/hyper_render_core.svg)](https://pub.dev/packages/hyper_render_core) | Core engine — UDT model, CSS resolver, RenderObject; zero native deps |
 | [`hyper_render_html`](https://pub.dev/packages/hyper_render_html) | [![pub](https://img.shields.io/pub/v/hyper_render_html.svg)](https://pub.dev/packages/hyper_render_html) | HTML + CSS parser |
 | [`hyper_render_markdown`](https://pub.dev/packages/hyper_render_markdown) | [![pub](https://img.shields.io/pub/v/hyper_render_markdown.svg)](https://pub.dev/packages/hyper_render_markdown) | Markdown adapter (GFM) |
 | [`hyper_render_highlight`](https://pub.dev/packages/hyper_render_highlight) | [![pub](https://img.shields.io/pub/v/hyper_render_highlight.svg)](https://pub.dev/packages/hyper_render_highlight) | Syntax highlighting for `<code>` / `<pre>` blocks |
-| [`hyper_render_clipboard`](https://pub.dev/packages/hyper_render_clipboard) | [![pub](https://img.shields.io/pub/v/hyper_render_clipboard.svg)](https://pub.dev/packages/hyper_render_clipboard) | Image copy / share |
-| [`hyper_render_devtools`](https://pub.dev/packages/hyper_render_devtools) | [![pub](https://img.shields.io/pub/v/hyper_render_devtools.svg)](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools extension — UDT inspector, computed styles |
+| [`hyper_render_devtools`](https://pub.dev/packages/hyper_render_devtools) | [![pub](https://img.shields.io/pub/v/hyper_render_devtools.svg)](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools extension — UDT inspector, computed styles, float visualizer |
+
+### Optional add-ons
+
+These packages bring native dependencies and are **not bundled** by default. Install only what you need.
+
+| Package | pub.dev | Description |
+|---------|---------|-------------|
+| [`hyper_render_clipboard`](https://pub.dev/packages/hyper_render_clipboard) | [![pub](https://img.shields.io/pub/v/hyper_render_clipboard.svg)](https://pub.dev/packages/hyper_render_clipboard) | Native image copy / share via `super_clipboard` |
+| [`hyper_render_math`](https://pub.dev/packages/hyper_render_math) | [![pub](https://img.shields.io/pub/v/hyper_render_math.svg)](https://pub.dev/packages/hyper_render_math) | LaTeX / MathML via `flutter_math_fork` |
+
+#### `hyper_render_clipboard` — Native image copy / share
+
+```yaml
+dependencies:
+  hyper_render_clipboard: ^1.3.1
+```
+
+```dart
+import 'package:hyper_render_clipboard/hyper_render_clipboard.dart';
+
+HyperViewer(
+  html: html,
+  imageClipboardHandler: SuperClipboardHandler(),
+)
+```
+
+> **Android setup required:** `super_clipboard` transitively pulls in `irondash_engine_context`, which requires `compileSdk ≥ 34`. Add this to `android/build.gradle.kts` (root file, not `app/`):
+>
+> ```kotlin
+> subprojects {
+>     afterEvaluate {
+>         extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)?.apply {
+>             compileSdk = 35
+>         }
+>     }
+> }
+> ```
+>
+> Tracked in [#5](https://github.com/brewkits/hyper_render/issues/5).
+
+#### `hyper_render_math` — LaTeX / MathML rendering
+
+```yaml
+dependencies:
+  hyper_render_math: ^1.3.1
+```
+
+```dart
+import 'package:hyper_render_math/hyper_render_math.dart';
+
+final registry = HyperPluginRegistry()..register(const MathPlugin());
+HyperViewer(html: html, pluginRegistry: registry)
+```
 
 ---
 

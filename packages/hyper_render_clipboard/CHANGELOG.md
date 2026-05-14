@@ -1,5 +1,10 @@
 # Changelog — hyper_render_clipboard
 
+## [1.3.1] - 2026-05-14
+
+### 🏗️ Packaging
+- **Opt-in add-on**: `hyper_render_clipboard` is no longer bundled with the root `hyper_render` package. Add it explicitly to your `pubspec.yaml` if you use `SuperClipboardHandler`. This removes the `compileSdk = 34` requirement from default `hyper_render` users.
+
 ## [1.3.0] - 2026-05-03
 
 ### ✨ New Features

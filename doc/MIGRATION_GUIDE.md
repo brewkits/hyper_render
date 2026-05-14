@@ -1,17 +1,41 @@
 # Migration Guide
 
-> **Current version: v1.2.0** — All v1.x releases are additive and backward-compatible. No breaking API changes.
+> **Current version: v1.3.1**
 
-## Current Version: 1.2.0
+## Upgrading to 1.3.1
 
-**No migration needed!** If you're starting fresh with HyperRender v1.2.0:
+### ⚠️ Breaking change — clipboard and math are now opt-in
+
+`hyper_render_clipboard` and `hyper_render_math` are no longer transitive dependencies of the root `hyper_render` package. If you use either, add them explicitly:
 
 ```yaml
 dependencies:
-  hyper_render: ^1.2.0
-  # or use individual packages:
-  hyper_render_core: ^1.2.0
-  hyper_render_clipboard: ^1.2.0
+  hyper_render: ^1.3.1
+  hyper_render_clipboard: ^1.3.1   # only if you use SuperClipboardHandler
+  hyper_render_math: ^1.3.1        # only if you use MathNodePlugin / LatexNodePlugin
+```
+
+If you don't use either feature, **no changes are needed** — just bump the version and your Android build will no longer require a `compileSdk = 35` workaround.
+
+### New in 1.3.1
+
+- `list-style-type`, `list-style-position`, `list-style` shorthand CSS support
+- `background-repeat`, `background-position` CSS support
+- Edge-to-edge images: `width: 100%` now truly fills the container
+- Selection drag performance improved (rects cached, auto-scroll proportional)
+
+---
+
+## Starting fresh with 1.3.1
+
+**No migration needed!** If you're starting fresh:
+
+```yaml
+dependencies:
+  hyper_render: ^1.3.1
+  # opt-in extras:
+  hyper_render_clipboard: ^1.3.1   # image copy/save/share
+  hyper_render_math: ^1.3.1        # LaTeX/MathML
 ```
 
 ```dart
@@ -156,7 +180,7 @@ These APIs are stable and will remain backward-compatible in v2.0:
 
 ## Getting Help
 
-For the current v1.3.0 release:
+For the current v1.3.1 release:
 - See [README](../README.md) for usage
 - Check [CHANGELOG](../CHANGELOG.md) for version history
 - Review [Plugin Development Guide](PLUGIN_DEVELOPMENT.md) for extending
@@ -164,20 +188,4 @@ For the current v1.3.0 release:
 
 ---
 
-*Last Updated: April 29, 2026 for v1.3.0*
-ard support
-- Cross-platform (iOS, Android, Web, Desktop)
-
----
-
-## Getting Help
-
-For the current v1.2.0 release:
-- See [README](../README.md) for usage
-- Check [CHANGELOG](../CHANGELOG.md) for version history
-- Review [Plugin Development Guide](PLUGIN_DEVELOPMENT.md) for extending
-- File issues at [GitHub Issues](https://github.com/your-repo/issues)
-
----
-
-*Last Updated: March 30, 2026 for v1.2.0*
+*Last Updated: May 14, 2026 for v1.3.1*

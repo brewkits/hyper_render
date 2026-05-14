@@ -116,9 +116,10 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
   /// Whether context menu is showing
   bool _showContextMenu = false;
 
-  /// Selection handles positions
+  /// Selection handles positions and rects (cached to avoid redundant passes)
   Rect? _startHandleRect;
   Rect? _endHandleRect;
+  List<Rect> _selectionRects = const [];
 
   /// Which handle is being dragged (for potential future animation/haptic feedback)
   // ignore: unused_field
@@ -294,9 +295,11 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     final renderBox = _renderBox;
     if (renderBox == null) return;
 
+    final rects = renderBox.getSelectionRects();
     setState(() {
-      _startHandleRect = renderBox.getStartHandleRect();
-      _endHandleRect = renderBox.getEndHandleRect();
+      _selectionRects = rects;
+      _startHandleRect = rects.isEmpty ? null : rects.first;
+      _endHandleRect = rects.isEmpty ? null : rects.last;
     });
   }
 
@@ -335,29 +338,18 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     return KeyEventResult.ignored;
   }
 
-  /// Calculate menu position above selection
+  /// Calculate menu position above selection (uses cached rects — no extra pass)
   Offset _calculateMenuPosition() {
-    if (_startHandleRect == null) return Offset.zero;
+    if (_selectionRects.isEmpty) return Offset.zero;
 
-    final RenderBox? box =
-        _renderKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return Offset.zero;
-
-    // Get all selection rects to find the topmost point
-    final selectionRects = _renderBox?.getSelectionRects() ?? [];
-    if (selectionRects.isEmpty) return Offset.zero;
-
-    // Find the topmost and leftmost point of selection
     double minY = double.infinity;
     double centerX = 0;
-    for (final rect in selectionRects) {
+    for (final rect in _selectionRects) {
       if (rect.top < minY) {
         minY = rect.top;
         centerX = rect.center.dx;
       }
     }
-
-    // Position menu above selection with some padding
     return Offset(centerX, minY - 8);
   }
 
@@ -466,13 +458,15 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     final localPosition = scrollableBox.globalToLocal(globalPosition);
     final size = scrollableBox.size;
 
-    const threshold = 50.0;
+    // Speed scales linearly with proximity: 0 px/event at threshold edge → 20 px/event at screen edge.
+    const threshold = 60.0;
+    const maxStep = 20.0;
     double dy = 0.0;
 
     if (localPosition.dy < threshold) {
-      dy = -15.0;
+      dy = -maxStep * (1.0 - localPosition.dy / threshold);
     } else if (localPosition.dy > size.height - threshold) {
-      dy = 15.0;
+      dy = maxStep * (1.0 - (size.height - localPosition.dy) / threshold);
     }
 
     if (dy != 0.0) {
@@ -531,7 +525,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
         },
         child: CustomPaint(
           size: const Size(22, 22),
-          painter: _TeardropHandlePainter(
+          painter: HyperTeardropHandlePainter(
             color: widget.handleColor,
             isStart: isStart,
           ),
@@ -623,11 +617,11 @@ class _ContextMenuButton extends StatelessWidget {
 }
 
 /// Custom painter for native-style teardrop selection handles
-class _TeardropHandlePainter extends CustomPainter {
+class HyperTeardropHandlePainter extends CustomPainter {
   final Color color;
   final bool isStart;
 
-  _TeardropHandlePainter({
+  HyperTeardropHandlePainter({
     required this.color,
     required this.isStart,
   });
@@ -681,7 +675,7 @@ class _TeardropHandlePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_TeardropHandlePainter oldDelegate) {
+  bool shouldRepaint(HyperTeardropHandlePainter oldDelegate) {
     return color != oldDelegate.color || isStart != oldDelegate.isStart;
   }
 }

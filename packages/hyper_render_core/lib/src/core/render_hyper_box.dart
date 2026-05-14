@@ -1576,4 +1576,59 @@ class RenderHyperBox extends RenderBox
         return BoxFit.cover;
     }
   }
+
+  ImageRepeat _getImageRepeat(String? cssValue) {
+    switch (cssValue?.toLowerCase().trim()) {
+      case 'repeat-x':
+        return ImageRepeat.repeatX;
+      case 'repeat-y':
+        return ImageRepeat.repeatY;
+      case 'no-repeat':
+        return ImageRepeat.noRepeat;
+      case 'repeat':
+      case 'space':
+      case 'round':
+      default:
+        return ImageRepeat.repeat;
+    }
+  }
+
+  Alignment _getBackgroundAlignment(String? cssValue) {
+    if (cssValue == null) return Alignment.topLeft;
+    final v = cssValue.toLowerCase().trim();
+    switch (v) {
+      case 'center':
+        return Alignment.center;
+      case 'top':
+      case 'top center':
+      case 'center top':
+        return Alignment.topCenter;
+      case 'bottom':
+      case 'bottom center':
+      case 'center bottom':
+        return Alignment.bottomCenter;
+      case 'left':
+      case 'left center':
+      case 'center left':
+        return Alignment.centerLeft;
+      case 'right':
+      case 'right center':
+      case 'center right':
+        return Alignment.centerRight;
+      case 'top left':
+      case 'left top':
+        return Alignment.topLeft;
+      case 'top right':
+      case 'right top':
+        return Alignment.topRight;
+      case 'bottom left':
+      case 'left bottom':
+        return Alignment.bottomLeft;
+      case 'bottom right':
+      case 'right bottom':
+        return Alignment.bottomRight;
+      default:
+        return Alignment.topLeft;
+    }
+  }
 }
