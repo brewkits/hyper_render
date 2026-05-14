@@ -76,7 +76,10 @@ void main() {
       final ul = result.document.children[0] as BlockNode;
       // md package generates <li class="task-list-item"><input type="checkbox">...
       expect(ul.children[0], isA<BlockNode>());
-      expect((ul.children[0] as BlockNode).attributes['data-task'], isNotNull);
+      final firstChild = (ul.children[0] as BlockNode).children.first;
+      expect(firstChild, isA<AtomicNode>());
+      expect((firstChild as AtomicNode).tagName, 'input');
+      expect(firstChild.attributes['type'], 'checkbox');
     });
 
     test('parse line break', () {

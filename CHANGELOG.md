@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1] - 2026-05-04
+
+### 🏗️ Maintenance & Build Fixes
+
+- **Decoupled Native Dependencies**: Removed `hyper_render_clipboard` (which relies on `super_clipboard`) and `hyper_render_math` from the default `hyper_render` wrapper package. This eliminates the `compileSdk = 34` requirement out-of-the-box, fixing Android build failures for users on older Gradle setups.
+- **Optional Add-ons**: Native clipboard and LaTeX math rendering are now opt-in. Install `hyper_render_clipboard` or `hyper_render_math` directly if needed.
+
+
 ## [1.3.0] - 2026-05-03
 
 ### ✨ New Features
