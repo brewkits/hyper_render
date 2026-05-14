@@ -8,7 +8,7 @@ Image clipboard operations for [HyperRender](https://pub.dev/packages/hyper_rend
 
 ```yaml
 dependencies:
-  hyper_render_clipboard: ^1.3.0
+  hyper_render_clipboard: ^1.3.1
 ```
 
 ---
@@ -75,6 +75,23 @@ await handler.shareImageBytes(imageBytes, text: 'Created with MyApp!');
 ## Supported formats
 
 PNG, JPEG, GIF, WebP, BMP, TIFF
+
+---
+
+## HyperRender Ecosystem
+
+| Package | Description |
+|---------|-------------|
+| [hyper_render](https://pub.dev/packages/hyper_render) | Main package — `HyperViewer` widget, HTML + Markdown rendering |
+| [hyper_render_core](https://pub.dev/packages/hyper_render_core) | Core engine: UDT model, `RenderHyperBox`, plugin API |
+| [hyper_render_html](https://pub.dev/packages/hyper_render_html) | HTML + CSS → UDT parser |
+| [hyper_render_markdown](https://pub.dev/packages/hyper_render_markdown) | Markdown (GFM) → UDT parser |
+| [hyper_render_highlight](https://pub.dev/packages/hyper_render_highlight) | Syntax highlighting for `<code>` / `<pre>` blocks |
+| **[hyper_render_clipboard](https://pub.dev/packages/hyper_render_clipboard)** | **Image copy / save / share** ← you are here |
+| [hyper_render_math](https://pub.dev/packages/hyper_render_math) | LaTeX / MathML rendering *(opt-in)* |
+| [hyper_render_devtools](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools inspector |
+
+[Source](https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_clipboard) · [Issues](https://github.com/brewkits/hyper_render/issues) · [Changelog](CHANGELOG.md)
 
 ---
 

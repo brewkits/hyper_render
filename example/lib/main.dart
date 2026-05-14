@@ -36,6 +36,7 @@ import 'paged_mode_demo.dart';
 import 'plugin_api_demo.dart';
 import 'reader_app/library_screen.dart';
 import 'float_hell_demo.dart';
+import 'zero_padding_image_demo.dart';
 
 /// Optimized base TextStyle for better readability
 /// - fontSize: 16 (comfortable reading size)
@@ -69,7 +70,7 @@ class HyperRenderDemoApp extends StatelessWidget {
       title: 'HyperRender Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1A56DB)),
         useMaterial3: true,
       ),
       scrollBehavior: const MaterialScrollBehavior().copyWith(
@@ -96,9 +97,9 @@ class DemoHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('HyperRender Demo'),
+        title: const Text('HyperRender'),
         centerTitle: false,
-        backgroundColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: const Color(0xFF1A56DB),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -110,42 +111,40 @@ class DemoHomePage extends StatelessWidget {
           const SizedBox(height: 16),
           _buildWhyCard(context),
           const SizedBox(height: 8),
-          // ── The Ultimate Showcase ─────────────────────────────────────────
-          _buildSectionHeader(context, 'The Ultimate Showcase'),
+          // ── Signature Features ────────────────────────────────────────────
+          _buildSectionHeader(context, 'Signature Features'),
           _buildDemoCard(
             context,
             icon: Icons.auto_awesome,
-            title: 'Ultra Showcase 2026',
+            title: 'Flagship Demo',
             subtitle:
-                'Float + CJK Typography, Giant Div Virtualization, and Interactive Plugins',
-            color: Colors.redAccent,
+                'Float layout · CJK ruby · virtualized rendering · plugin injection — all at once',
+            color: const Color(0xFF1A56DB),
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const UltraShowcase2026())),
           ),
-          // ── Highlights ────────────────────────────────────────────────────
-          _buildSectionHeader(context, 'Highlights'),
           _buildDemoCard(
             context,
             icon: Icons.view_quilt,
-            title: 'Float Layout',
+            title: 'CSS Float Layout',
             subtitle:
-                'Text wraps around floated images — the feature no other Flutter HTML library has',
-            color: DemoColors.primary,
+                'Text wraps around floated images — impossible in any widget-tree-based renderer',
+            color: const Color(0xFF1A56DB),
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const FloatLayoutDemo())),
           ),
           _buildDemoCard(
             context,
-            icon: Icons.email,
+            icon: Icons.email_outlined,
             title: 'HTML Email',
             subtitle:
-                'Render real HTML emails natively — no WebView, no heavy dependencies',
-            color: DemoColors.primary,
+                'Real HTML emails rendered natively — no WebView, <1 MB overhead vs ~20 MB',
+            color: const Color(0xFF1A56DB),
             onTap: () => Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const EmailDemo())),
           ),
           // ── Applications ──────────────────────────────────────────────────
-          _buildSectionHeader(context, 'Applications & Solutions'),
+          _buildSectionHeader(context, 'Real-World Applications'),
           _buildDemoCard(
             context,
             icon: Icons.auto_stories,
@@ -266,6 +265,16 @@ class DemoHomePage extends StatelessWidget {
           ),
           _buildDemoCard(
             context,
+            icon: Icons.fullscreen,
+            title: 'Zero Padding Images',
+            subtitle:
+                'Edge-to-edge images with no padding relative to the device edges',
+            color: DemoColors.warning,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ZeroPaddingImageDemo())),
+          ),
+          _buildDemoCard(
+            context,
             icon: Icons.widgets,
             title: 'Widget Injection & Animation',
             subtitle:
@@ -298,24 +307,24 @@ class DemoHomePage extends StatelessWidget {
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const FormulaDemo())),
           ),
-          // ── Advanced & Quality ────────────────────────────────────────────
-          _buildSectionHeader(context, 'Advanced & Quality'),
+          // ── Engineering & Quality ─────────────────────────────────────────
+          _buildSectionHeader(context, 'Engineering & Quality'),
           _buildDemoCard(
             context,
-            icon: Icons.whatshot,
-            title: 'Sprint 1: Float Hell Stress Test',
+            icon: Icons.speed,
+            title: 'Float Layout Stress Test',
             subtitle:
-                '2000 blocks, randomized left/right floats, width animation, virtualization test.',
-            color: Colors.deepPurple,
+                '2 000 blocks, randomised left/right floats, live width animation — 60 FPS',
+            color: DemoColors.success,
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const FloatHellDemo())),
           ),
           _buildDemoCard(
             context,
-            icon: Icons.compare,
+            icon: Icons.compare_arrows_rounded,
             title: 'Comparison & Performance',
             subtitle:
-                'Side-by-side vs other libraries, unique features, stress test, render pipeline',
+                'Side-by-side vs other libraries, render pipeline deep-dive, benchmark numbers',
             color: DemoColors.success,
             onTap: () => Navigator.push(
                 context,
@@ -325,30 +334,30 @@ class DemoHomePage extends StatelessWidget {
           _buildDemoCard(
             context,
             icon: Icons.dark_mode,
-            title: 'Dark Mode, Skeletons & Visual Quality',
+            title: 'Dark Mode & Visual Quality',
             subtitle:
-                'Theme switching, skeleton loading, error boundaries, crisp rendering',
+                'Theme switching, skeleton loading, error boundaries, crisp retina rendering',
             color: DemoColors.success,
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const V21Showcase())),
           ),
           _buildDemoCard(
             context,
-            icon: Icons.security,
+            icon: Icons.shield_outlined,
             title: 'Security & Accessibility',
             subtitle:
-                'XSS protection, screen reader support, WebView fallback detection',
+                'XSS sanitization, WCAG 2.1 AA screen reader support, WebView fallback',
             color: DemoColors.success,
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const _QualityHubPage())),
           ),
           _buildDemoCard(
             context,
-            icon: Icons.business_center,
+            icon: Icons.business_center_outlined,
             title: 'Enterprise Features',
             subtitle:
-                'GPU resource safety, error routing, device tuning, deeplink security, zoom modes',
-            color: const Color(0xFF1A237E),
+                'GPU safety, error routing, memory pressure handling, deeplink security, zoom',
+            color: DemoColors.success,
             onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -362,15 +371,15 @@ class DemoHomePage extends StatelessWidget {
   Widget _buildWhyCard(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.amber.shade700, Colors.orange.shade600],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0D3B8E), Color(0xFF1A56DB)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withValues(alpha: 0.35),
+            color: const Color(0xFF1A56DB).withValues(alpha: 0.35),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -384,11 +393,19 @@ class DemoHomePage extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const WhyHyperRenderDemo())),
           borderRadius: BorderRadius.circular(14),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
             child: Row(
               children: [
-                const Icon(Icons.emoji_events,
-                    color: Color(0xFF4E2600), size: 32),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.compare_arrows_rounded,
+                      color: Colors.white, size: 22),
+                ),
                 const SizedBox(width: 14),
                 const Expanded(
                   child: Column(
@@ -397,17 +414,17 @@ class DemoHomePage extends StatelessWidget {
                       Text(
                         'Why HyperRender?',
                         style: TextStyle(
-                          color: Color(0xFF4E2600),
-                          fontSize: 16,
+                          color: Colors.white,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.2,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      SizedBox(height: 3),
                       Text(
-                        'Live demos · Feature matrix · 16/16 score vs other libraries',
+                        'Live feature demos · side-by-side comparison · 16 vs 3 exclusive features',
                         style: TextStyle(
-                            color: Color(0xFF7A3E00),
+                            color: Color(0xFFB8CEFC),
                             fontSize: 12,
                             height: 1.4),
                       ),
@@ -417,15 +434,17 @@ class DemoHomePage extends StatelessWidget {
                 const SizedBox(width: 8),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.12),
+                    color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3), width: 1),
                   ),
                   child: const Text(
-                    '16/16',
+                    '16 / 16',
                     style: TextStyle(
-                        color: Color(0xFF4E2600),
+                        color: Colors.white,
                         fontWeight: FontWeight.w800,
                         fontSize: 13),
                   ),
@@ -439,21 +458,20 @@ class DemoHomePage extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [primary, Color.lerp(primary, Colors.purple.shade800, 0.55)!],
+          colors: [Color(0xFF0D3B8E), Color(0xFF1A56DB)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.all(Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: primary.withValues(alpha: 0.35),
+            color: Color(0x591A56DB),
             blurRadius: 24,
-            offset: const Offset(0, 8),
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -467,11 +485,22 @@ class DemoHomePage extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.25),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2), width: 1),
                 ),
-                child: const Icon(Icons.rocket_launch,
-                    color: Colors.white, size: 30),
+                child: const Center(
+                  child: Text(
+                    'HR',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               const Expanded(
@@ -487,13 +516,13 @@ class DemoHomePage extends StatelessWidget {
                         letterSpacing: -0.5,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    SizedBox(height: 3),
                     Text(
-                      'Universal Content Engine for Flutter',
+                      'The only Flutter HTML renderer\nwith CSS float layout.',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.white,
-                        letterSpacing: 0.1,
+                        color: Color(0xFFB8CEFC),
+                        height: 1.45,
                       ),
                     ),
                   ],
@@ -502,18 +531,68 @@ class DemoHomePage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
+          // ── Stat row ──────────────────────────────────────────────────────
+          Row(
+            children: [
+              _buildStatChip('1 646', 'tests'),
+              const SizedBox(width: 8),
+              _buildStatChip('60 FPS', 'scroll'),
+              const SizedBox(width: 8),
+              _buildStatChip('<100 ms', 'parse'),
+              const SizedBox(width: 8),
+              _buildStatChip('0', 'Gradle config'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          // ── Feature chips ─────────────────────────────────────────────────
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _buildChip('Float Layout', Icons.view_quilt_rounded),
-              _buildChip('Text Selection', Icons.select_all_rounded),
-              _buildChip('Ruby', Icons.translate_rounded),
-              _buildChip('Flexbox', Icons.view_column_rounded),
-              _buildChip('Widget Injection', Icons.widgets_rounded),
+              _buildChip('CSS Float', Icons.view_quilt_rounded),
+              _buildChip('Ruby / CJK', Icons.translate_rounded),
+              _buildChip('@keyframes', Icons.animation_rounded),
+              _buildChip('CSS Grid', Icons.grid_view_rounded),
+              _buildChip('Selection', Icons.select_all_rounded),
+              _buildChip('Markdown', Icons.description_outlined),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatChip(String value, String label) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: Colors.white.withValues(alpha: 0.2), width: 1),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 1),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFFB8CEFC),
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -522,10 +601,10 @@ class DemoHomePage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.25),
+        color: Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
         border:
-            Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1),
+            Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -586,61 +665,78 @@ class DemoHomePage extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Left accent bar
+                  Container(
+                    width: 4,
+                    color: color,
                   ),
-                  child: Icon(icon, color: color, size: 24),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A2E),
-                          letterSpacing: -0.1,
-                        ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                            child: Icon(icon, color: color, size: 22),
+                          ),
+                          const SizedBox(width: 13),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  title,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF0D1B3E),
+                                    letterSpacing: -0.1,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  subtitle,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: Colors.grey.shade500,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(Icons.chevron_right_rounded,
+                              color: Colors.grey.shade300, size: 20),
+                        ],
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade500,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Icon(Icons.chevron_right_rounded,
-                    color: Colors.grey.shade400, size: 22),
-              ],
+                ],
+              ),
             ),
           ),
         ),

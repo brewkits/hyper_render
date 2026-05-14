@@ -1,5 +1,22 @@
 # Changelog — hyper_render_core
 
+## [1.3.1] - 2026-05-14
+
+### ✨ New CSS Properties
+- **`list-style-type`**: All 11 values — `disc`, `circle`, `square`, `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-latin`, `upper-latin`, `lower-roman`, `upper-roman`, `none`
+- **`list-style-position`**: `inside` / `outside` (default)
+- **`list-style` shorthand**: parses `<type> <position>` in any order
+- **`background-repeat`**: `repeat`, `repeat-x`, `repeat-y`, `no-repeat`, `space`, `round`
+- **`background-position`**: keyword (`center`, `top left`, etc.) and percentage values
+
+### 🚀 Performance
+- **Selection rects cached**: `getSelectionRects()` called once per drag event (was 3×); stored in `_selectionRects` field — eliminates redundant layout walks during selection drag
+- **Auto-scroll proportional speed**: `_autoScrollIfNearEdge` now scales 0–20 px/frame based on finger distance from edge (was fixed 15 px/frame)
+- **`HyperTeardropHandlePainter` deduplicated**: renamed to `HyperTeardropHandlePainter`, made public, and exported from core; duplicate in the virtualized overlay deleted
+
+### 🐛 Bug Fixes
+- **Edge-to-edge images**: `_kImageMargin` set to `0.0` — `width: 100%` images now truly fill their container with no internal margin offset
+
 ## [1.3.0] - 2026-05-03
 
 ### ✨ New Features

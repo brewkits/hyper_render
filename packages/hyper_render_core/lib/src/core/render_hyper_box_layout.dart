@@ -7,7 +7,7 @@ const double _kDefaultFloatMargin = 8.0;
 
 const double _kMinFloatYStep = 1.0;
 const double _kImageMargin =
-    32.0; // horizontal margin subtracted from maxWidth for images
+    0.0; // horizontal margin subtracted from maxWidth for images
 const double _kDefaultFlexFallbackHeight = 50.0;
 const double _kDefaultTableFallbackHeight = 200.0;
 const double _kTableBottomMargin = 16.0;
