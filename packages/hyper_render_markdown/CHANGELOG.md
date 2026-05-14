@@ -1,5 +1,10 @@
 # Changelog — hyper_render_markdown
 
+## [1.3.1] - 2026-05-14
+
+### 🏗️ Maintenance
+- Updated `hyper_render_core` dependency to `^1.3.1`
+
 ## [1.3.0] - 2026-05-03
 
 ### ✨ New Features

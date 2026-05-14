@@ -80,86 +80,89 @@ class _CharacterTab extends StatelessWidget {
   // gap replaced by margin-right on children for compatibility.
   static const _html = '''
 <style>
-  .page { padding: 16px; background: #FFF9F9; }
+  .page { padding: 32px 24px; background: #FFF9F9; }
 
   .profile-card {
     background: white;
-    border-radius: 12px;
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    margin-bottom: 32px;
   }
 
   .profile-header {
     background: linear-gradient(135deg, #B71C1C, #E53935);
     color: white;
-    padding: 16px;
+    padding: 24px;
   }
   .header-inner {
     display: flex;
     align-items: center;
   }
   .avatar {
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
     background: rgba(255,255,255,0.2);
     border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.6);
-    font-size: 26px;
+    border: 3px solid rgba(255,255,255,0.6);
+    font-size: 32px;
     text-align: center;
-    line-height: 56px;
-    margin-right: 14px;
+    line-height: 64px;
+    margin-right: 18px;
     flex-shrink: 0;
   }
   .name-block { flex: 1; }
-  .name-ja { font-size: 20px; font-weight: bold; line-height: 2.0; }
-  .name-en { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+  .name-ja { font-size: 24px; font-weight: bold; line-height: 1.8; }
+  .name-en { font-size: 14px; opacity: 0.85; margin-top: 4px; letter-spacing: 1px; }
   .rank-badge {
     background: rgba(255,255,255,0.25);
-    padding: 4px 10px;
+    padding: 6px 14px;
     border-radius: 20px;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: bold;
     flex-shrink: 0;
+    letter-spacing: 1px;
   }
 
-  .profile-body { padding: 16px; }
-  .stat-row { margin-bottom: 12px; }
+  .profile-body { padding: 24px; }
+  .stat-row { margin-bottom: 20px; }
   .stat-chip {
     display: inline-block;
     background: #FFF3E0;
     border: 1px solid #FFCC80;
     border-radius: 20px;
-    padding: 3px 10px;
-    font-size: 12px;
+    padding: 6px 14px;
+    font-size: 14px;
     color: #E65100;
-    margin-right: 6px;
-    margin-bottom: 6px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    font-weight: 500;
   }
   .section-title {
-    font-size: 13px;
+    font-size: 16px;
     font-weight: bold;
     color: #B71C1C;
-    border-left: 3px solid #B71C1C;
-    padding-left: 8px;
-    margin: 14px 0 8px;
+    border-left: 4px solid #B71C1C;
+    padding-left: 12px;
+    margin: 24px 0 12px;
   }
-  .description { font-size: 14px; line-height: 1.9; color: #424242; }
-  .ability-list { margin: 0; padding-left: 18px; }
-  .ability-list li { font-size: 13px; color: #424242; margin-bottom: 6px; line-height: 1.8; }
+  .description { font-size: 16px; line-height: 2.0; color: #333; margin-bottom: 24px; }
+  .ability-list { margin: 0; padding-left: 24px; }
+  .ability-list li { font-size: 15px; color: #333; margin-bottom: 12px; line-height: 2.0; }
 
-  hr { border: none; border-top: 1px solid #F5F5F5; margin: 4px 0 12px; }
+  hr { border: none; border-top: 1px solid #EEEEEE; margin: 8px 0 24px; }
 
   .quote-box {
     background: #FCE4EC;
-    border-left: 4px solid #E91E63;
-    border-radius: 0 8px 8px 0;
-    padding: 10px 14px;
-    margin: 12px 0;
+    border-left: 5px solid #E91E63;
+    border-radius: 0 12px 12px 0;
+    padding: 16px 20px;
+    margin: 24px 0;
     font-style: italic;
-    font-size: 14px;
-    line-height: 2.0;
+    font-size: 17px;
+    line-height: 2.2;
     color: #880E4F;
+    box-shadow: 0 2px 8px rgba(233,30,99,0.1);
   }
 </style>
 
@@ -267,9 +270,17 @@ class _CharacterTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return HyperViewer(
-      html: _html,
-      selectable: true,
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).padding.bottom + 16,
+          ),
+          child: HyperViewer(html: _html, selectable: true),
+        ),
+      ),
     );
   }
 }
@@ -283,42 +294,44 @@ class _SynopsisTab extends StatelessWidget {
 
   static const _html = '''
 <style>
-  .page { padding: 16px; background: #FFFDE7; }
+  .page { padding: 32px 24px; background: #FFFDE7; }
 
-  h1 { font-size: 20px; color: #B71C1C; margin: 0 0 4px; }
-  .series-info { font-size: 12px; color: #757575; margin-bottom: 20px; }
+  h1 { font-size: 26px; color: #B71C1C; margin: 0 0 8px; font-weight: 800; letter-spacing: 1px; }
+  .series-info { font-size: 14px; color: #5D4037; margin-bottom: 32px; letter-spacing: 0.5px; }
   .series-info strong { color: #424242; }
 
   .chapter {
     background: white;
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin-bottom: 16px;
-    border-left: 4px solid #FF6F00;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    border-left: 5px solid #FF6F00;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
   }
   .chapter-number {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: bold;
     color: #FF6F00;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
   }
-  .chapter-title { font-size: 16px; font-weight: bold; color: #212121; margin-bottom: 8px; line-height: 2.2; }
-  .chapter-body { font-size: 14px; line-height: 2.0; color: #424242; }
+  .chapter-title { font-size: 20px; font-weight: bold; color: #212121; margin-bottom: 16px; line-height: 2.2; }
+  .chapter-body { font-size: 16px; line-height: 2.2; color: #424242; }
 
   .sfx-panel {
-    background: #212121;
+    background: #111;
     color: white;
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin: 12px 0;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 20px 0;
     text-align: center;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
   }
-  .sfx-ja { font-size: 26px; color: #FF5252; font-weight: bold; display: block; letter-spacing: 1px; }
-  .sfx-en { font-size: 11px; color: #BDBDBD; display: block; margin-top: 2px; }
+  .sfx-ja { font-size: 32px; color: #FF5252; font-weight: 900; display: block; letter-spacing: 2px; }
+  .sfx-en { font-size: 13px; color: #BDBDBD; display: block; margin-top: 6px; letter-spacing: 1px; font-style: italic; }
 
-  .highlight { background: #FFF9C4; padding: 2px 4px; border-radius: 3px; }
+  .highlight { background: #FFF9C4; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #F57F17; }
 </style>
 
 <div class="page">
@@ -423,9 +436,17 @@ class _SynopsisTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return HyperViewer(
-      html: _html,
-      selectable: true,
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).padding.bottom + 16,
+          ),
+          child: HyperViewer(html: _html, selectable: true),
+        ),
+      ),
     );
   }
 }
@@ -441,43 +462,43 @@ class _PanelsTab extends StatelessWidget {
   // rock-solid. Flex with nested children collapses to zero-height panels.
   // Dark background (#212121) is inside the HTML wrapper, not Flutter-level.
   static const _html = '''
-<div style="padding:12px; background:#EBEBEB;">
+<div style="padding:32px 24px; background:#EBEBEB; min-height: 100vh;">
 
   <!-- Page label -->
-  <div style="text-align:center; margin-bottom:10px;">
-    <span style="background:#B71C1C; color:white; font-size:11px; font-weight:bold; letter-spacing:1.5px; padding:3px 12px; border-radius:20px;">
+  <div style="text-align:center; margin-bottom:20px;">
+    <span style="background:#B71C1C; color:white; font-size:13px; font-weight:bold; letter-spacing:2px; padding:6px 16px; border-radius:24px; box-shadow: 0 4px 12px rgba(183,28,28,0.2);">
       影界年代記 ▸ Ch.12 ▸ P.8
     </span>
   </div>
 
   <!-- ═══ Page 1: White manga page with thick black panel borders ═══ -->
-  <div style="background:white; border:3px solid #111; margin-bottom:14px; overflow:hidden;">
+  <div style="background:white; border:4px solid #111; margin-bottom:24px; overflow:hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.15);">
 
     <!-- Row 1: Full-width establishing shot -->
-    <div style="background:linear-gradient(180deg,#B3E5FC 0%,#E8F5E9 100%); padding:14px 10px; border-bottom:3px solid #111; min-height:100px;">
-      <div style="text-align:center; font-size:48px; padding:4px 0;">🏯</div>
-      <div style="background:rgba(0,0,0,0.65); color:#FFF9C4; font-size:11px; padding:5px 8px; border-radius:4px; line-height:1.5; margin-top:6px;">
+    <div style="background:linear-gradient(180deg,#B3E5FC 0%,#E8F5E9 100%); padding:20px 14px; border-bottom:4px solid #111; min-height:120px;">
+      <div style="text-align:center; font-size:56px; padding:8px 0;">🏯</div>
+      <div style="background:rgba(0,0,0,0.7); color:#FFF9C4; font-size:13px; padding:8px 12px; border-radius:6px; line-height:1.6; margin-top:8px;">
         <ruby>鬼殺隊<rt>きさつたい</rt></ruby>本部——深夜
       </div>
     </div>
 
     <!-- Row 2: Left tall panel + right two stacked (float layout) -->
-    <div style="overflow:hidden; border-bottom:3px solid #111;">
+    <div style="overflow:hidden; border-bottom:4px solid #111;">
       <!-- Left: hero close-up -->
-      <div style="float:left; width:46%; background:#FCE4EC; padding:10px; min-height:220px; box-sizing:border-box; border-right:3px solid #111;">
-        <div style="font-size:44px; text-align:center; margin-bottom:10px;">😤</div>
-        <div style="background:white; border:2px solid #111; border-radius:14px; padding:7px 10px; font-size:11px; font-weight:bold; line-height:1.9;">
+      <div style="float:left; width:46%; background:#FCE4EC; padding:14px; min-height:260px; box-sizing:border-box; border-right:4px solid #111;">
+        <div style="font-size:56px; text-align:center; margin-bottom:14px; margin-top: 10px;">😤</div>
+        <div style="background:white; border:3px solid #111; border-radius:16px; padding:10px 14px; font-size:13px; font-weight:bold; line-height:2.0; box-shadow: 2px 2px 0 rgba(0,0,0,0.2);">
           「<ruby>来<rt>く</rt></ruby>るがいい……<ruby>上弦<rt>じょうげん</rt></ruby>よ」
         </div>
       </div>
       <!-- Right: two stacked panels -->
       <div style="margin-left:49%;">
-        <div style="background:#E3F2FD; padding:10px; min-height:107px; border-bottom:3px solid #111; text-align:center;">
-          <div style="font-size:20px; font-weight:900; color:#D32F2F; letter-spacing:2px; padding-top:32px;">ドドドォ！！</div>
+        <div style="background:#E3F2FD; padding:14px; min-height:127px; border-bottom:4px solid #111; text-align:center;">
+          <div style="font-size:24px; font-weight:900; color:#D32F2F; letter-spacing:2px; padding-top:38px; text-shadow: 2px 2px 0 rgba(255,255,255,0.8);">ドドドォ！！</div>
         </div>
-        <div style="background:#1C2A33; padding:10px; min-height:110px;">
-          <div style="font-size:40px; text-align:center; margin-bottom:6px;">😈</div>
-          <div style="background:#EF5350; border:2px solid #B71C1C; color:white; border-radius:4px; padding:5px 8px; font-size:11px; font-weight:bold; line-height:1.6;">
+        <div style="background:#1C2A33; padding:14px; min-height:130px;">
+          <div style="font-size:50px; text-align:center; margin-bottom:10px;">😈</div>
+          <div style="background:#EF5350; border:3px solid #B71C1C; color:white; border-radius:6px; padding:8px 10px; font-size:13px; font-weight:bold; line-height:1.8; box-shadow: 2px 2px 0 rgba(0,0,0,0.4);">
             「<ruby>面白<rt>おもしろ</rt></ruby>い……！」
           </div>
         </div>
@@ -486,34 +507,34 @@ class _PanelsTab extends StatelessWidget {
     <div style="clear:both;"></div>
 
     <!-- Row 3: Full-width clash panel -->
-    <div style="background:#EDE7F6; padding:14px 10px; text-align:center; min-height:100px;">
-      <div style="padding:8px 0;">
-        <span style="font-size:28px;">⚔️</span>
-        <span style="font-size:21px; font-weight:900; color:#1565C0; letter-spacing:2px; padding:0 8px;">ズバッ！！</span>
-        <span style="font-size:28px;">⚔️</span>
+    <div style="background:#EDE7F6; padding:20px 14px; text-align:center; min-height:120px;">
+      <div style="padding:10px 0;">
+        <span style="font-size:32px;">⚔️</span>
+        <span style="font-size:26px; font-weight:900; color:#1565C0; letter-spacing:4px; padding:0 12px; text-shadow: 2px 2px 0 rgba(255,255,255,0.8);">ズバッ！！</span>
+        <span style="font-size:32px;">⚔️</span>
       </div>
-      <div style="background:white; border:2px solid #111; border-radius:14px; padding:6px 14px; font-size:11px; font-weight:bold; display:inline-block;">
+      <div style="background:white; border:3px solid #111; border-radius:20px; padding:10px 20px; font-size:14px; font-weight:bold; display:inline-block; margin-top: 10px; box-shadow: 2px 2px 0 rgba(0,0,0,0.2);">
         <ruby>影<rt>かげ</rt></ruby>ノ<ruby>型<rt>かた</rt></ruby>——
-        <strong style="color:#B71C1C;"><ruby>漆黒<rt>しっこく</rt></ruby>の<ruby>斬閃<rt>ざんせん</rt></ruby>！！</strong>
+        <strong style="color:#B71C1C; font-size:16px;"><ruby>漆黒<rt>しっこく</rt></ruby>の<ruby>斬閃<rt>ざんせん</rt></ruby>！！</strong>
       </div>
     </div>
 
   </div>
 
   <!-- ═══ Page 2: 3-beat rapid sequence ═══ -->
-  <div style="background:white; border:3px solid #111; overflow:hidden;">
+  <div style="background:white; border:4px solid #111; overflow:hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.15);">
 
     <!-- 3-beat row -->
-    <div style="overflow:hidden; border-bottom:3px solid #111;">
-      <div style="float:left; width:31%; background:#E8F5E9; padding:8px; min-height:90px; box-sizing:border-box; border-right:3px solid #111; text-align:center;">
-        <div style="font-size:28px;">😱</div>
-        <div style="background:white; border:2px solid #111; border-radius:10px; padding:4px 6px; font-size:10px; font-weight:bold; margin-top:4px;">「まさか——！」</div>
+    <div style="overflow:hidden; border-bottom:4px solid #111;">
+      <div style="float:left; width:31%; background:#E8F5E9; padding:12px; min-height:110px; box-sizing:border-box; border-right:4px solid #111; text-align:center;">
+        <div style="font-size:32px; margin-bottom: 6px;">😱</div>
+        <div style="background:white; border:3px solid #111; border-radius:12px; padding:6px 8px; font-size:11px; font-weight:bold; margin-top:6px; box-shadow: 2px 2px 0 rgba(0,0,0,0.2);">「まさか——！」</div>
       </div>
-      <div style="float:left; width:33%; background:#FFFDE7; padding:8px; min-height:90px; box-sizing:border-box; border-right:3px solid #111; text-align:center;">
-        <div style="font-size:17px; font-weight:900; color:#D32F2F; letter-spacing:2px; padding-top:24px;">バキッ！</div>
+      <div style="float:left; width:33%; background:#FFFDE7; padding:12px; min-height:110px; box-sizing:border-box; border-right:4px solid #111; text-align:center;">
+        <div style="font-size:22px; font-weight:900; color:#D32F2F; letter-spacing:2px; padding-top:32px; text-shadow: 2px 2px 0 rgba(255,255,255,0.8);">バキッ！</div>
       </div>
-      <div style="float:right; width:30%; background:#263238; padding:8px; min-height:90px; box-sizing:border-box; text-align:center;">
-        <div style="background:white; border:2px dashed #78909C; border-radius:10px; padding:5px 6px; font-size:10px; font-style:italic; color:#424242; margin-top:16px;">
+      <div style="float:right; width:30%; background:#263238; padding:12px; min-height:110px; box-sizing:border-box; text-align:center;">
+        <div style="background:white; border:2px dashed #78909C; border-radius:12px; padding:8px 6px; font-size:12px; font-style:italic; color:#424242; margin-top:20px;">
           （<ruby>父<rt>ちち</rt></ruby>さん……）
         </div>
       </div>
@@ -521,8 +542,8 @@ class _PanelsTab extends StatelessWidget {
     <div style="clear:both;"></div>
 
     <!-- つづく -->
-    <div style="background:#B71C1C; padding:18px; text-align:center;">
-      <span style="font-size:26px; color:white; font-weight:900; letter-spacing:4px;">つ・づ・く……</span>
+    <div style="background:#B71C1C; padding:24px; text-align:center;">
+      <span style="font-size:32px; color:white; font-weight:900; letter-spacing:6px; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">つ・づ・く……</span>
     </div>
 
   </div>
@@ -532,9 +553,17 @@ class _PanelsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return HyperViewer(
-      html: _html,
-      selectable: false,
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SingleChildScrollView(
+          child: HyperViewer(
+            html: _html,
+            selectable: false,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -548,32 +577,35 @@ class _FuriganaTab extends StatelessWidget {
 
   static const _html = '''
 <style>
-  .page { padding: 16px; }
-  h2 { font-size: 16px; color: #B71C1C; border-bottom: 2px solid #B71C1C; padding-bottom: 6px; margin: 20px 0 12px; }
-  h3 { font-size: 13px; color: #757575; font-weight: normal; margin: 0 0 10px; }
-  .row { margin-bottom: 14px; background: #FAFAFA; border-radius: 8px; padding: 12px 14px; }
-  .label { font-size: 11px; color: #9E9E9E; margin-bottom: 6px; }
-  .sample { font-size: 18px; line-height: 3.0; }
-  .note { font-size: 12px; color: #B71C1C; margin-top: 6px; }
+  .page { padding: 32px 24px; background: #FAFAFA; }
+  h2 { font-size: 20px; color: #B71C1C; border-bottom: 2px solid #FFCDD2; padding-bottom: 8px; margin: 32px 0 16px; font-weight: bold; }
+  h2:first-child { margin-top: 0; }
+  h3 { font-size: 15px; color: #5D4037; font-weight: 500; margin: 0 0 20px; line-height: 1.6; }
+  .row { margin-bottom: 20px; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid #EEEEEE; }
+  .label { font-size: 13px; color: #616161; margin-bottom: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  .sample { font-size: 22px; line-height: 3.2; color: #212121; }
+  .note { font-size: 14px; color: #B71C1C; margin-top: 12px; }
 
   /* Side-by-side comparison — two columns using float */
-  .comparison { margin-bottom: 14px; overflow: hidden; }
+  .comparison { margin-bottom: 24px; overflow: hidden; }
   .comp-box {
     float: left;
     width: 47%;
-    background: #F5F5F5;
-    border-radius: 8px;
-    padding: 10px;
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
     margin-right: 6%;
     box-sizing: border-box;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    border: 1px solid #EEEEEE;
   }
-  .comp-box:last-child { margin-right: 0; float: right; }
+  .comp-box:last-child { margin-right: 0; float: right; background: #FFF3E0; border-color: #FFE0B2; }
   .comp-clear { clear: both; }
-  .comp-title { font-size: 11px; font-weight: bold; margin-bottom: 6px; }
-  .comp-title.good { color: #388E3C; }
-  .comp-title.bad  { color: #D32F2F; }
-  .comp-sample { font-size: 15px; line-height: 2.8; }
-  .raw { color: #E53935; font-size: 13px; font-family: monospace; }
+  .comp-title { font-size: 13px; font-weight: bold; margin-bottom: 12px; letter-spacing: 0.5px; }
+  .comp-title.good { color: #2E7D32; }
+  .comp-title.bad  { color: #C62828; }
+  .comp-sample { font-size: 18px; line-height: 3.0; }
+  .raw { color: #E53935; font-size: 15px; font-family: monospace; background: rgba(229,57,53,0.1); padding: 4px; border-radius: 4px; }
 </style>
 
 <div class="page">
@@ -679,9 +711,17 @@ class _FuriganaTab extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: HyperViewer(
-            html: _html,
-            selectable: true,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: SingleChildScrollView(
+                child: HyperViewer(
+                  html: _html,
+                  selectable: true,
+                ),
+              ),
+            ),
           ),
         ),
       ],

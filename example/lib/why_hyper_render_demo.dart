@@ -347,15 +347,15 @@ class WhyHyperRenderDemo extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [DemoColors.primary, const Color(0xFF6A1B9A)],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0D3B8E), Color(0xFF1A56DB)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: DemoColors.primary.withValues(alpha: 0.4),
+            color: const Color(0xFF1A56DB).withValues(alpha: 0.4),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -367,13 +367,25 @@ class WhyHyperRenderDemo extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.25),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2), width: 1),
                 ),
-                child: const Icon(Icons.emoji_events,
-                    color: Colors.white, size: 28),
+                child: const Center(
+                  child: Text(
+                    'HR',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 14),
               const Expanded(
@@ -381,19 +393,22 @@ class WhyHyperRenderDemo extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'The Best Flutter HTML Renderer',
+                      'CSS float. No other Flutter\nHTML library can do this.',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
+                        letterSpacing: -0.4,
+                        height: 1.3,
                       ),
                     ),
+                    SizedBox(height: 4),
                     Text(
-                      'Custom RenderObject · Zero WebView · Zero Deps',
+                      'Single RenderObject · Zero WebView · XSS-safe by default',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Color(0xFFB8CEFC),
                         fontSize: 12,
+                        height: 1.4,
                       ),
                     ),
                   ],
@@ -518,20 +533,20 @@ class WhyHyperRenderDemo extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-            child: _buildStatCard(
-                '16 / 16', 'Features', Icons.check_circle, Colors.green)),
-        const SizedBox(width: 10),
-        Expanded(
-            child:
-                _buildStatCard('60+', 'CSS Props', Icons.style, Colors.indigo)),
+            child: _buildStatCard('1 646', 'Tests passing',
+                Icons.check_circle_outline, const Color(0xFF2E7D32))),
         const SizedBox(width: 10),
         Expanded(
             child: _buildStatCard(
-                'Zero', 'WebViews', Icons.no_encryption, Colors.red)),
+                '60 FPS', 'Scroll', Icons.speed, Colors.indigo)),
+        const SizedBox(width: 10),
+        Expanded(
+            child: _buildStatCard('<100ms', 'Parse', Icons.timer_outlined,
+                const Color(0xFFBF360C))),
         const SizedBox(width: 10),
         Expanded(
             child: _buildStatCard(
-                '3+', 'Formats', Icons.data_object, Colors.teal)),
+                '8 MB', 'RAM (25k)', Icons.memory, const Color(0xFF00695C))),
       ],
     );
   }

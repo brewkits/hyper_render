@@ -8,8 +8,8 @@ Syntax highlighting plugin for [HyperRender](https://pub.dev/packages/hyper_rend
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.3.0
-  hyper_render_highlight: ^1.3.0
+  hyper_render_core: ^1.3.1
+  hyper_render_highlight: ^1.3.1
 ```
 
 ---
@@ -72,6 +72,23 @@ final highlighter = FlutterHighlightCodeHighlighter(
 print(FlutterHighlightCodeHighlighter().supportedLanguages);
 // {dart, javascript, typescript, python, go, rust, swift, kotlin, ...}
 ```
+
+---
+
+## HyperRender Ecosystem
+
+| Package | Description |
+|---------|-------------|
+| [hyper_render](https://pub.dev/packages/hyper_render) | Main package — `HyperViewer` widget, HTML + Markdown rendering |
+| [hyper_render_core](https://pub.dev/packages/hyper_render_core) | Core engine: UDT model, `RenderHyperBox`, plugin API |
+| [hyper_render_html](https://pub.dev/packages/hyper_render_html) | HTML + CSS → UDT parser |
+| [hyper_render_markdown](https://pub.dev/packages/hyper_render_markdown) | Markdown (GFM) → UDT parser |
+| **[hyper_render_highlight](https://pub.dev/packages/hyper_render_highlight)** | **Syntax highlighting for `<code>` / `<pre>` blocks** ← you are here |
+| [hyper_render_clipboard](https://pub.dev/packages/hyper_render_clipboard) | Image copy / save / share *(opt-in)* |
+| [hyper_render_math](https://pub.dev/packages/hyper_render_math) | LaTeX / MathML rendering *(opt-in)* |
+| [hyper_render_devtools](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools inspector |
+
+[Source](https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_highlight) · [Issues](https://github.com/brewkits/hyper_render/issues) · [Changelog](CHANGELOG.md)
 
 ---
 

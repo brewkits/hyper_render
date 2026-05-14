@@ -1,11 +1,40 @@
 # Changelog
 
-## [1.3.1] - 2026-05-04
+## [1.3.1] - 2026-05-14
 
-### 🏗️ Maintenance & Build Fixes
+### ⚠️ Migration from 1.3.0
 
-- **Decoupled Native Dependencies**: Removed `hyper_render_clipboard` (which relies on `super_clipboard`) and `hyper_render_math` from the default `hyper_render` wrapper package. This eliminates the `compileSdk = 34` requirement out-of-the-box, fixing Android build failures for users on older Gradle setups.
-- **Optional Add-ons**: Native clipboard and LaTeX math rendering are now opt-in. Install `hyper_render_clipboard` or `hyper_render_math` directly if needed.
+`hyper_render_clipboard` and `hyper_render_math` are no longer transitive dependencies of `hyper_render`. If you use either, add them explicitly:
+
+```yaml
+dependencies:
+  hyper_render: ^1.3.1
+  hyper_render_clipboard: ^1.3.1   # only if you use SuperClipboardHandler
+  hyper_render_math: ^1.3.1        # only if you use MathNodePlugin / LatexNodePlugin
+```
+
+### ✨ New CSS Properties
+
+- **`list-style-type`**: All 11 marker types — `disc`, `circle`, `square`, `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-latin`, `upper-latin`, `lower-roman`, `upper-roman`, `none`
+- **`list-style-position`**: `inside` / `outside`
+- **`list-style` shorthand**: parses type and position in any order
+- **`background-repeat`**: `repeat`, `repeat-x`, `repeat-y`, `no-repeat`, `space`, `round`
+- **`background-position`**: keyword (`center`, `top left`, etc.) and percentage values
+
+### 🚀 Performance
+
+- **Selection rects cached**: `getSelectionRects()` now called once per drag event (was 3×) — stored in `_selectionRects` field, eliminating redundant layout walks during selection drag
+- **Auto-scroll proportional speed**: `_autoScrollIfNearEdge` scales 0–20 px/frame based on finger proximity to edge (was fixed 15 px/frame)
+- **`HyperTeardropHandlePainter` deduplicated**: renamed, made public, and exported from `hyper_render_core`; duplicate implementation in the virtualized overlay removed
+
+### 🐛 Bug Fixes
+
+- **Edge-to-edge images**: `width: 100%` images now truly fill their container — no internal margin offset
+
+### 🏗️ Build Fixes
+
+- **Decoupled native dependencies**: `hyper_render_clipboard` and `hyper_render_math` removed from root `hyper_render` default dependencies — eliminates the `compileSdk = 34` Gradle requirement for basic usage
+- **Removed outdated `compileSdk` workaround** from example app's Android Gradle config
 
 
 ## [1.3.0] - 2026-05-03

@@ -255,7 +255,7 @@ class _StressTestDemoState extends State<StressTestDemo> {
   .tale-section { padding:0 16px 28px 16px; }
   .tale-heading { color:#6B2D0C; font-size:20px; margin:0 0 14px 0; padding-bottom:8px; border-bottom:2px solid #D4B896; font-style:italic; }
   .tale-emoji { color:#C19A6B; padding-right:6px; }
-  .tale-img { display:block; margin:0 auto 18px auto; border-radius:10px; border:3px solid #D4B896; }
+  .tale-img { display:block; max-width:100%; margin:0 auto 18px auto; border-radius:10px; border:3px solid #D4B896; }
   .tale-caption { text-align:center; color:#C19A6B; font-size:12px; margin:-12px 0 16px 0; font-style:italic; }
   .tale-para { margin:0 0 14px 0; font-size:15px; text-align:justify; color:#3a2010; }
   .tale-quote { border-left:4px solid #C19A6B; margin:16px 0; padding:12px 16px; background:#FEF9F0; border-radius:0 8px 8px 0; }
@@ -328,11 +328,11 @@ class _StressTestDemoState extends State<StressTestDemo> {
   .novel-drop { font-size:48px; font-weight:bold; color:#1565C0; float:left; line-height:0.85; margin:6px 8px 0 0; }
   .novel-highlight { background:#E3F2FD; padding:12px 16px; border-radius:8px; margin:16px 0; border-left:4px solid #1976D2; }
   .novel-highlight strong { color:#1565C0; }
-  .novel-img { display:block; margin:0 auto 16px auto; border-radius:10px; }
+  .novel-img { display:block; max-width:100%; margin:0 auto 16px auto; border-radius:10px; }
   .novel-hr { margin:28px 0; border:none; border-top:1px solid #E0E0E0; }
   .novel-tag { display:inline-block; background:#E3F2FD; color:#1565C0; border-radius:12px; padding:2px 8px; font-size:11px; margin:0 4px 4px 0; }
 </style>
-<article style="font-family:Georgia,serif;line-height:1.8;padding:4px;background:#FAFAFA;">
+<article style="font-family:Georgia,serif;line-height:1.8;background:#FAFAFA;">
   <div style="background:#1565C0;padding:32px 20px;text-align:center;border-radius:8px;margin-bottom:24px;">
     <h1 style="color:white;margin:0;font-size:24px;">📖 The Infinite Archive</h1>
     <p style="color:rgba(255,255,255,0.75);font-size:13px;margin:8px 0 0 0;">$pages chapters · Performance &amp; rendering showcase</p>
@@ -978,12 +978,17 @@ class _StressTestDemoState extends State<StressTestDemo> {
 
     switch (_selectedLibrary) {
       case 'HyperRender':
-        return HyperViewer(
-          html: content,
-          mode: HyperRenderMode.auto,
-          selectable: true,
-          placeholderBuilder: (context) =>
-              _buildLoadingPlaceholder(content.length),
+        // Manga is intentionally edge-to-edge; other content types need margin.
+        final hPad = _contentType == _ContentType.manga ? 0.0 : 16.0;
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: hPad),
+          child: HyperViewer(
+            html: content,
+            mode: HyperRenderMode.auto,
+            selectable: true,
+            placeholderBuilder: (context) =>
+                _buildLoadingPlaceholder(content.length),
+          ),
         );
       case 'flutter_html':
         return ClipRect(

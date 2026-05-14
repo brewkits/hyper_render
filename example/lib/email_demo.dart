@@ -144,7 +144,7 @@ class _EmailTab extends StatelessWidget {
           // Email body — scrollable, padded like a real email client viewport
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
               child: HyperViewer(
                 html: html,
                 selectable: true,
