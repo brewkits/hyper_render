@@ -707,8 +707,9 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         rect: rect,
         image: cached.image!,
         fit: _getBoxFit(fragment.style.backgroundSize),
-        filterQuality:
-            FilterQuality.medium, // Crisp rendering on retina displays
+        repeat: _getImageRepeat(fragment.style.backgroundRepeat),
+        alignment: _getBackgroundAlignment(fragment.style.backgroundPosition),
+        filterQuality: FilterQuality.medium,
       );
 
       if (borderRadius != null) {

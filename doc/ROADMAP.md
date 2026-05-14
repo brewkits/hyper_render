@@ -13,7 +13,7 @@ For detailed CSS property tracking, see [`internal/CSS_SUPPORT_ROADMAP.md`](inte
 
 - Single `RenderObject` pipeline (Parse → Style → Layout → Paint)
 - Float layout algorithm (`float: left/right`, `clear`) — unique advantage over FWFH
-- Isolate-based HTML parsing (non-blocking UI thread)
+- Async microtask-based HTML parsing (non-blocking UI thread; uses `Future.microtask` instead of a real isolate so `FakeAsync` works in widget tests)
 - `ListView.builder` virtualization (low RAM on large documents)
 - Full Flexbox support (90% coverage: direction, wrap, gap, align, grow/shrink/basis)
 - CSS Variables `var()`, `transition`, `animation-*` parsing
@@ -79,12 +79,12 @@ jarring for large images. A workaround is to increase `chunkSize` so fewer split
 occur near floats.
 
 Scope:
-- [ ] Add `FloatCarryover` data class to `render_hyper_box_types.dart`
-- [ ] Add `danglingFloats` getter to `RenderHyperBox`
-- [ ] Add `initialFloats` parameter to `RenderHyperBox` / `HyperRenderWidget`
-- [ ] Seed initial floats in `_performLineLayout`
-- [ ] Wire `FloatCarryover` callbacks through `VirtualizedChunk` → `HyperViewer`
-- [ ] Add offset rendering support in `_paintFloatImages` for image floats
+- [x] Add `FloatCarryover` data class to `render_hyper_box_types.dart`
+- [x] Add `danglingFloats` getter to `RenderHyperBox`
+- [x] Add `initialFloats` parameter to `RenderHyperBox` / `HyperRenderWidget`
+- [x] Seed initial floats in `_performLineLayout`
+- [x] Wire `FloatCarryover` callbacks through `VirtualizedChunk` → `HyperViewer`
+- [ ] Add offset rendering support in `_paintFloatImages` for image floats (imagePixelOffset not yet read by painter)
 - [ ] Integration test: tall float at chunk boundary shows no wasted space
 
 ---
@@ -98,22 +98,8 @@ Scope:
 **Source**: Expert review recommendation
 **Priority**: High — directly impacts stability on low-end devices (2 GB RAM)
 
-The image cache is currently tuned manually. `WidgetsBindingObserver` should be
-integrated so HyperRender automatically evicts caches when the OS signals memory pressure.
-
-```dart
-class HyperRenderController with WidgetsBindingObserver {
-  @override
-  void didHaveMemoryPressure() {
-    imageCache.evictAll();        // Flutter image cache
-    _internalSpanCache.clear();   // HyperRender internal span cache
-    super.didHaveMemoryPressure();
-  }
-}
-```
-
 Scope:
-- [ ] Implement `WidgetsBindingObserver` in `HyperRenderController`
+- [x] Implement `WidgetsBindingObserver` in `HyperViewer` — `didHaveMemoryPressure` clears TextPainter cache, `LazyImageQueue.clearPending()`, and `PaintingBinding.imageCache.clear()`
 - [ ] Expose `onMemoryPressure` callback for host-app customization
 - [ ] Debug-mode metrics: eviction count, bytes freed
 - [ ] Smoke test on a 2 GB RAM device
@@ -122,12 +108,14 @@ Scope:
 
 Properties deferred from Phase 3 in [`internal/CSS_SUPPORT_ROADMAP.md`](internal/CSS_SUPPORT_ROADMAP.md):
 
-- [ ] `text-shadow` — high visual impact, 1-day effort
-- [ ] `text-overflow: ellipsis` — extremely common, 4-hour effort
-- [ ] `box-shadow` — design system compatibility
-- [ ] `list-style-type`, `list-style-position` — better `<ul>` / `<ol>` rendering
-- [ ] `word-break`, `overflow-wrap` — CJK and long-URL handling
-- [ ] `background-repeat`, `background-position`, `background-size`
+- [x] `text-shadow` — parsed + applied to `TextStyle.shadows` in `ComputedStyle`
+- [x] `text-overflow: ellipsis` — parsed + executed in `render_hyper_box_fragments.dart`
+- [x] `box-shadow` — parsed + applied in `render_hyper_box_paint.dart`
+- [x] `word-break`, `overflow-wrap` — parsed + executed in `render_hyper_box_layout.dart` (L1339–1375)
+- [ ] `list-style-type`, `list-style-position` — not yet in resolver or painter
+- [x] `background-repeat` — parsed + mapped to `ImageRepeat` in `paintImage()`
+- [x] `background-position` — parsed + mapped to `Alignment` in `paintImage()` (keyword values: top/center/bottom/left/right and combinations)
+- [x] `background-size` — parsed and applied
 
 ---
 
