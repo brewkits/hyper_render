@@ -194,9 +194,5 @@ export 'src/plugins/default_css_parser.dart' show DefaultCssParser;
 export 'src/plugins/default_code_highlighter.dart'
     show DefaultCodeHighlighter, HighlightTheme;
 
-// ============================================
-// Clipboard plugin
-// ============================================
-
-export 'package:hyper_render_clipboard/hyper_render_clipboard.dart'
-    show SuperClipboardHandler;
+// SuperClipboardHandler is available in the optional hyper_render_clipboard package.
+// Add it to your pubspec if you need native image copy/share.
