@@ -356,13 +356,14 @@ class _VirtualizedSelectionOverlayState
     final localPosition = scrollableBox.globalToLocal(globalPosition);
     final size = scrollableBox.size;
 
-    const threshold = 50.0;
+    const threshold = 60.0;
+    const maxStep = 20.0;
     double dy = 0.0;
 
     if (localPosition.dy < threshold) {
-      dy = -15.0;
+      dy = -maxStep * (1.0 - localPosition.dy / threshold);
     } else if (localPosition.dy > size.height - threshold) {
-      dy = 15.0;
+      dy = maxStep * (1.0 - (size.height - localPosition.dy) / threshold);
     }
 
     if (dy != 0.0) {
@@ -415,7 +416,7 @@ class _VirtualizedSelectionOverlayState
         },
         child: CustomPaint(
           size: const Size(22, 22),
-          painter: _TeardropHandlePainter(
+          painter: HyperTeardropHandlePainter(
             color: widget.handleColor,
             isStart: isStart,
           ),
@@ -522,43 +523,5 @@ class _MenuButton extends StatelessWidget {
   }
 }
 
-/// Teardrop handle painter (mirrors the one in hyper_selection_overlay.dart).
-class _TeardropHandlePainter extends CustomPainter {
-  const _TeardropHandlePainter({required this.color, required this.isStart});
-  final Color color;
-  final bool isStart;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-    final shadow = Paint()
-      ..color = const Color(0x33000000)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
-    final path = Path();
-    final w = size.width;
-    final h = size.height;
-
-    if (isStart) {
-      path.moveTo(w / 2, 0);
-      path.quadraticBezierTo(w, h * 0.4, w * 0.85, h * 0.7);
-      path.arcToPoint(Offset(w * 0.15, h * 0.7),
-          radius: Radius.circular(w * 0.35), clockwise: false);
-      path.quadraticBezierTo(0, h * 0.4, w / 2, 0);
-    } else {
-      path.moveTo(w / 2, h);
-      path.quadraticBezierTo(w, h * 0.6, w * 0.85, h * 0.3);
-      path.arcToPoint(Offset(w * 0.15, h * 0.3),
-          radius: Radius.circular(w * 0.35), clockwise: true);
-      path.quadraticBezierTo(0, h * 0.6, w / 2, h);
-    }
-
-    canvas.drawPath(path, shadow);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(_TeardropHandlePainter old) =>
-      old.color != color || old.isStart != isStart;
-}
+// HyperTeardropHandlePainter is defined in hyper_selection_overlay.dart
+// and exported from hyper_render_core — no local copy needed.

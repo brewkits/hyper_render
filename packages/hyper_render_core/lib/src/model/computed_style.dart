@@ -386,6 +386,13 @@ class ComputedStyle {
   /// CSS overflow-wrap
   String? overflowWrap;
 
+  /// CSS list-style-type: disc | circle | square | decimal | lower-alpha |
+  /// upper-alpha | lower-roman | upper-roman | none
+  String? listStyleType;
+
+  /// CSS list-style-position: outside (default) | inside
+  String? listStylePosition;
+
   /// CSS text-shadow
   List<Shadow>? textShadow;
 
@@ -413,6 +420,12 @@ class ComputedStyle {
 
   /// CSS background-size
   String? backgroundSize;
+
+  /// CSS background-repeat: repeat | repeat-x | repeat-y | no-repeat | space | round
+  String? backgroundRepeat;
+
+  /// CSS background-position: top | center | bottom | left | right | "x y"
+  String? backgroundPosition;
 
   // ============================================
   // Layout Properties
@@ -613,6 +626,8 @@ class ComputedStyle {
     this.textOverflow,
     this.wordBreak,
     this.overflowWrap,
+    this.listStyleType,
+    this.listStylePosition,
     this.textShadow,
     this.boxShadow,
     this.filter,
@@ -621,6 +636,8 @@ class ComputedStyle {
     this.backgroundGradient,
     this.backgroundImage,
     this.backgroundSize,
+    this.backgroundRepeat,
+    this.backgroundPosition,
     this.display = DisplayType.inline,
     this.overflowX = HyperOverflow.visible,
     this.overflowY = HyperOverflow.visible,
@@ -774,6 +791,8 @@ class ComputedStyle {
     TextOverflow? textOverflow,
     String? wordBreak,
     String? overflowWrap,
+    String? listStyleType,
+    String? listStylePosition,
     List<Shadow>? textShadow,
     List<BoxShadow>? boxShadow,
     ui.ImageFilter? filter,
@@ -783,6 +802,8 @@ class ComputedStyle {
     Gradient? backgroundGradient,
     String? backgroundImage,
     String? backgroundSize,
+    String? backgroundRepeat,
+    String? backgroundPosition,
     // Layout
     DisplayType? display,
     HyperOverflow? overflowX,
@@ -868,6 +889,8 @@ class ComputedStyle {
       textOverflow: textOverflow ?? this.textOverflow,
       wordBreak: wordBreak ?? this.wordBreak,
       overflowWrap: overflowWrap ?? this.overflowWrap,
+      listStyleType: listStyleType ?? this.listStyleType,
+      listStylePosition: listStylePosition ?? this.listStylePosition,
       textShadow: textShadow ?? this.textShadow,
       boxShadow: boxShadow ?? this.boxShadow,
       filter: filter ?? this.filter,
@@ -876,6 +899,8 @@ class ComputedStyle {
       backgroundGradient: backgroundGradient ?? this.backgroundGradient,
       backgroundImage: backgroundImage ?? this.backgroundImage,
       backgroundSize: backgroundSize ?? this.backgroundSize,
+      backgroundRepeat: backgroundRepeat ?? this.backgroundRepeat,
+      backgroundPosition: backgroundPosition ?? this.backgroundPosition,
       display: display ?? this.display,
       overflowX: overflowX ?? this.overflowX,
       overflowY: overflowY ?? this.overflowY,

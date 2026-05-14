@@ -601,4 +601,94 @@ void main() {
       expect(linkNode!.style.color, const Color(0xFFFF0000));
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // list-style-type / list-style-position / list-style shorthand
+  // ---------------------------------------------------------------------------
+  group('list-style-type', () {
+    test('default ul uses disc', () {
+      final style = _styleOfTag('<ul><li>item</li></ul>', 'li');
+      // No explicit list-style-type → null (resolved to disc in layout)
+      expect(style?.listStyleType, isNull);
+    });
+
+    test('list-style-type: none is parsed', () {
+      final style = _styleOfTag(
+        '<ul style="list-style-type:none"><li>item</li></ul>',
+        'ul',
+      );
+      expect(style?.listStyleType, 'none');
+    });
+
+    test('list-style-type: circle on li', () {
+      final style = _styleOfTag(
+        '<ul><li style="list-style-type:circle">item</li></ul>',
+        'li',
+      );
+      expect(style?.listStyleType, 'circle');
+    });
+
+    test('list-style-type: upper-roman', () {
+      final style = _styleOfTag(
+        '<ol style="list-style-type:upper-roman"><li>item</li></ol>',
+        'ol',
+      );
+      expect(style?.listStyleType, 'upper-roman');
+    });
+
+    test('list-style-position: inside', () {
+      final style = _styleOfTag(
+        '<ul style="list-style-position:inside"><li>item</li></ul>',
+        'ul',
+      );
+      expect(style?.listStylePosition, 'inside');
+    });
+
+    test('list-style shorthand: none sets type to none', () {
+      final style = _styleOfTag(
+        '<ul style="list-style:none"><li>item</li></ul>',
+        'ul',
+      );
+      expect(style?.listStyleType, 'none');
+    });
+
+    test('list-style shorthand: square inside', () {
+      final style = _styleOfTag(
+        '<ul style="list-style: square inside"><li>item</li></ul>',
+        'ul',
+      );
+      expect(style?.listStyleType, 'square');
+      expect(style?.listStylePosition, 'inside');
+    });
+
+    test('invalid value is ignored', () {
+      final style = _styleOfTag(
+        '<ul style="list-style-type:banana"><li>item</li></ul>',
+        'ul',
+      );
+      expect(style?.listStyleType, isNull);
+    });
+
+    testWidgets('list-style:none nav menu renders without crash',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HyperViewer(
+              html: '''
+<nav>
+  <ul style="list-style:none; padding:0; margin:0;">
+    <li><a href="/home">Home</a></li>
+    <li><a href="/about">About</a></li>
+    <li><a href="/contact">Contact</a></li>
+  </ul>
+</nav>''',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

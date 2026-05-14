@@ -1214,6 +1214,27 @@ class StyleResolver {
         style.markExplicitlySet('background-size');
         break;
 
+      case 'background-repeat':
+        final repeat = value.trim().toLowerCase();
+        const validRepeats = {
+          'repeat',
+          'repeat-x',
+          'repeat-y',
+          'no-repeat',
+          'space',
+          'round',
+        };
+        if (validRepeats.contains(repeat)) {
+          style.backgroundRepeat = repeat;
+          style.markExplicitlySet('background-repeat');
+        }
+        break;
+
+      case 'background-position':
+        style.backgroundPosition = value.trim().toLowerCase();
+        style.markExplicitlySet('background-position');
+        break;
+
       case 'font-size':
         final size = _parseFontSize(value, parentFontSize: parentFontSize);
         if (size != null) {
@@ -1563,6 +1584,64 @@ class StyleResolver {
       case 'overflow-wrap':
         style.overflowWrap = value.trim().toLowerCase();
         style.markExplicitlySet('overflow-wrap');
+        break;
+
+      case 'list-style-type':
+        final lst = value.trim().toLowerCase();
+        const validListStyleTypes = {
+          'disc',
+          'circle',
+          'square',
+          'decimal',
+          'decimal-leading-zero',
+          'lower-alpha',
+          'lower-latin',
+          'upper-alpha',
+          'upper-latin',
+          'lower-roman',
+          'upper-roman',
+          'none',
+        };
+        if (validListStyleTypes.contains(lst)) {
+          style.listStyleType = lst;
+          style.markExplicitlySet('list-style-type');
+        }
+        break;
+
+      case 'list-style-position':
+        final lsp = value.trim().toLowerCase();
+        if (lsp == 'inside' || lsp == 'outside') {
+          style.listStylePosition = lsp;
+          style.markExplicitlySet('list-style-position');
+        }
+        break;
+
+      case 'list-style':
+        // Shorthand: parse each space-separated token
+        for (final token in value.trim().toLowerCase().split(RegExp(r'\s+'))) {
+          if (token == 'none') {
+            style.listStyleType = 'none';
+            style.markExplicitlySet('list-style-type');
+          } else if (token == 'inside' || token == 'outside') {
+            style.listStylePosition = token;
+            style.markExplicitlySet('list-style-position');
+          } else if (const {
+            'disc',
+            'circle',
+            'square',
+            'decimal',
+            'decimal-leading-zero',
+            'lower-alpha',
+            'lower-latin',
+            'upper-alpha',
+            'upper-latin',
+            'lower-roman',
+            'upper-roman',
+          }.contains(token)) {
+            style.listStyleType = token;
+            style.markExplicitlySet('list-style-type');
+          }
+        }
         break;
 
       case 'text-shadow':
