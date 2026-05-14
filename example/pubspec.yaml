@@ -22,8 +22,6 @@ dependencies:
     path: ../packages/hyper_render_core
 
   # Clipboard/sharing support
-  hyper_render_clipboard:
-    path: ../packages/hyper_render_clipboard
 
   # Competitor libraries for comparison
   flutter_html: ^3.0.0-beta.2
@@ -46,8 +44,6 @@ dependency_overrides:
     path: ../
   hyper_render_core:
     path: ../packages/hyper_render_core
-  hyper_render_clipboard:
-    path: ../packages/hyper_render_clipboard
 
 dev_dependencies:
   flutter_test:
