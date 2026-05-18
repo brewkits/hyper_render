@@ -1,7 +1,5 @@
 name: hyper_render_math
-description: >
-  Mathematical formula rendering plugin for HyperRender. Supports LaTeX and MathML
-  using the flutter_math_fork engine.
+description: "Mathematical formula rendering plugin for HyperRender. Supports LaTeX and MathML via the flutter_math_fork engine."
 version: 1.3.2
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_math

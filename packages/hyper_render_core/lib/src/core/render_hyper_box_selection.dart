@@ -9,7 +9,21 @@ extension RenderHyperBoxSelection on RenderHyperBox {
   /// Lines are laid out top-to-bottom with monotonically increasing [top]
   /// values, so binary search gives O(log N) instead of the previous O(N)
   /// linear scan — critical for long documents during handle-drag selection.
-  int _lineIndexAt(double dy) {
+  ///
+  /// When [clampOutOfBounds] is true, a [dy] above the first line snaps to
+  /// index 0 and a [dy] below the last line snaps to the last index. This
+  /// is what selection-handle dragging wants so that a finger drifting a
+  /// pixel above the first line — or into the margin below the last line —
+  /// still extends the selection rather than freezing. Tap hit-testing must
+  /// pass `false` so that clicks in empty margins don't accidentally
+  /// resolve to a link in the nearest line.
+  int _lineIndexAt(double dy, {bool clampOutOfBounds = false}) {
+    if (_lines.isEmpty) return -1;
+    if (clampOutOfBounds) {
+      if (dy < _lines.first.top) return 0;
+      final last = _lines.last;
+      if (dy >= last.top + last.height) return _lines.length - 1;
+    }
     int lo = 0, hi = _lines.length - 1;
     while (lo <= hi) {
       final mid = (lo + hi) >>> 1;
@@ -38,7 +52,10 @@ extension RenderHyperBoxSelection on RenderHyperBox {
   }
 
   int _getCharacterPositionAtOffset(Offset position) {
-    final lineIdx = _lineIndexAt(position.dy);
+    // Selection drag is lenient — a finger that drifts above the first
+    // line or into the margin below the last line should still extend
+    // the selection to the nearest edge, not freeze.
+    final lineIdx = _lineIndexAt(position.dy, clampOutOfBounds: true);
     if (lineIdx < 0) return -1;
 
     final line = _lines[lineIdx];
@@ -102,7 +119,12 @@ extension RenderHyperBoxSelection on RenderHyperBox {
           fragment.text != null;
       if (!isText) continue;
 
-      final fragmentLength = fragment.text!.length;
+      // Honor CSS text-overflow:ellipsis — never surface characters that
+      // were clipped at paint time. ellipsisVisibleLength == 0 means the
+      // whole fragment was swallowed by the "…"; a positive value caps
+      // the visible prefix.
+      final fragmentLength = fragment.ellipsisVisibleLength ?? fragment.text!.length;
+      if (fragmentLength == 0) continue;
       final fragmentStart = fragment.globalOffset;
       final fragmentEnd = fragmentStart + fragmentLength;
 

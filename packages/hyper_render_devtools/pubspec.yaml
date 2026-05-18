@@ -27,6 +27,11 @@ dependencies:
   # (the Flutter Web panel). This library (service extensions) only uses
   # dart:developer + hyper_render_core and needs no extra dependency.
 
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
 flutter:
   # No assets or native code — pure Dart/VM-service-extension package.
   # Platform support is inherited from the flutter SDK dependency (all 6 platforms).

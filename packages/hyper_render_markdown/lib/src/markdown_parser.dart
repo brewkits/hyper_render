@@ -9,16 +9,16 @@ import 'markdown_adapter.dart';
 /// ## Usage
 ///
 /// ```dart
-/// final parser = MarkdownContentParser();
+/// final parser = DefaultMarkdownParser();
 /// final document = parser.parse('# Hello World\n\nThis is **bold** text.');
 ///
 /// // Or with HyperViewer
 /// HyperViewer.markdown(
 ///   markdown: '# Title\n\nContent here...',
-///   contentParser: MarkdownContentParser(enableGfm: true),
+///   contentParser: DefaultMarkdownParser(enableGfm: true),
 /// )
 /// ```
-class MarkdownContentParser implements ContentParser {
+class DefaultMarkdownParser implements ContentParser {
   /// Enable GitHub Flavored Markdown extensions
   final bool enableGfm;
 
@@ -29,7 +29,7 @@ class MarkdownContentParser implements ContentParser {
   ///
   /// [enableGfm] - Enable GitHub Flavored Markdown (tables, strikethrough, etc.)
   /// [enableInlineHtml] - Allow inline HTML in Markdown
-  const MarkdownContentParser({
+  const DefaultMarkdownParser({
     this.enableGfm = true,
     this.enableInlineHtml = true,
   });
@@ -69,5 +69,16 @@ class MarkdownContentParser implements ContentParser {
 
 /// Convenience function to parse Markdown string
 DocumentNode parseMarkdown(String markdown, {bool enableGfm = true}) {
-  return MarkdownContentParser(enableGfm: enableGfm).parse(markdown);
+  return DefaultMarkdownParser(enableGfm: enableGfm).parse(markdown);
 }
+
+/// Backwards-compatible alias.
+///
+/// Renamed to [DefaultMarkdownParser] in v1.3.3 so the class lines up with
+/// [DefaultHtmlParser] / [DefaultCssParser] in the HTML sub-package — the
+/// review found the old name was the only `…ContentParser` in the codebase
+/// and it broke pattern recognition for consumers. The alias keeps existing
+/// `MarkdownContentParser(...)` call sites compiling; new code should use
+/// [DefaultMarkdownParser] directly.
+@Deprecated('Use DefaultMarkdownParser instead. Will be removed in v2.0.')
+typedef MarkdownContentParser = DefaultMarkdownParser;

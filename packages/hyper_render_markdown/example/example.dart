@@ -29,7 +29,7 @@ class MarkdownExamplePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Parse Markdown to UDT
-    const parser = MarkdownContentParser(
+    const parser = DefaultMarkdownParser(
       enableGfm: true,
       enableInlineHtml: true,
     );
@@ -103,7 +103,7 @@ Fenced code block:
 
 ```dart
 void main() {
-  final parser = MarkdownContentParser();
+  final parser = DefaultMarkdownParser();
   final document = parser.parse('# Hello World');
 
   runApp(MaterialApp(
@@ -156,7 +156,7 @@ void quickParseExample() {
 
 /// Example: Parsing without GFM
 void noGfmExample() {
-  const parser = MarkdownContentParser(
+  const parser = DefaultMarkdownParser(
     enableGfm: false, // Disable GFM extensions
     enableInlineHtml: false, // Disable inline HTML
   );
@@ -195,7 +195,7 @@ Using `MarkdownAdapter` directly gives you the same result.
 
 /// Example: Parsing to sections for virtualization
 void sectionsExample() {
-  const parser = MarkdownContentParser();
+  const parser = DefaultMarkdownParser();
 
   // For very long content, parse to sections
   final sections = parser.parseToSections(

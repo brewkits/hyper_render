@@ -59,6 +59,9 @@ export 'src/style/resolver.dart';
 export 'src/style/css_rule_index.dart';
 export 'src/style/design_tokens.dart';
 
+// Util
+export 'src/util/url_safety.dart';
+
 // Core rendering
 export 'src/core/hyper_render_debug_hooks.dart';
 export 'src/core/hyper_render_config.dart';

@@ -26,6 +26,17 @@ const int _kMaxSpan = 1000;
 /// Browsers themselves cap nested table rendering at ~6–10 levels.
 const int _kMaxTableNestingDepth = 6;
 
+/// Hard cap on `rowCount × columnCount` for a single table grid.
+///
+/// Per-cell colspan/rowspan are already clamped by [_kMaxSpan], but a
+/// malicious or generated document can still combine many rows with
+/// moderate colspans to allocate millions of `null` refs (each ~8 bytes
+/// on 64-bit Dart). 100 000 cells × 8 B ≈ 800 KB — large but recoverable;
+/// 1 M cells crosses 8 MB and starts triggering UI-thread freezes on
+/// mid-range mobile devices. When this cap is hit we abandon the grid
+/// layout and fall back to a flat plain-text rendering of the cell text.
+const int _kMaxTotalCells = 100000;
+
 // ── Nesting-depth tracker (InheritedWidget) ───────────────────────────────────
 //
 // Propagated through the widget tree so any descendant [HyperTable] can read
@@ -210,6 +221,18 @@ class _HyperTableState extends State<HyperTable> {
     }
 
     final grid = _TableGrid.fromTableNode(widget.tableNode);
+    if (grid.exceededLimit) {
+      // Surface the cap visibly so a user (or QA) can see why a huge table
+      // didn't render, instead of an invisible empty box.
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          'Table too large to render (over $_kMaxTotalCells cells).',
+          style: widget.baseStyle?.copyWith(fontStyle: FontStyle.italic) ??
+              const TextStyle(fontStyle: FontStyle.italic),
+        ),
+      );
+    }
     if (grid.isEmpty) return const SizedBox.shrink();
 
     // Only primary cells become children of _HyperTableWidget.
@@ -297,6 +320,39 @@ class _HyperTableState extends State<HyperTable> {
       return widget.cellContentBuilder!(cellNode);
     }
 
+    // Default fallback when the caller didn't supply a [cellContentBuilder]
+    // but the cell still contains block-level children (a <div>, <p>, nested
+    // table, etc.). Without this branch _buildSpan returns null for every
+    // such child and the block content silently disappears from the cell.
+    // We render the inline run (if any) followed by each block child via a
+    // plain [Text] / placeholder so the user sees *something* — callers that
+    // want full fidelity should still supply a cellContentBuilder.
+    if (hasNonInline && widget.cellContentBuilder == null) {
+      final inlineRun = spans.isEmpty
+          ? null
+          : Text.rich(
+              TextSpan(
+                children: spans,
+                style: TextStyle(
+                  fontWeight:
+                      cellNode.isHeader ? FontWeight.bold : FontWeight.normal,
+                  color: cellNode.style.color,
+                ),
+              ),
+              softWrap: true,
+            );
+      final blockChildren = <Widget>[
+        if (inlineRun != null) inlineRun,
+        for (final child in cellNode.children)
+          if (_buildSpan(child) == null) _buildBlockFallback(child),
+      ];
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: blockChildren,
+      );
+    }
+
     if (spans.isEmpty) return const SizedBox.shrink();
 
     // Include cell-level color so that CSS color inheritance from <tr> → <td>
@@ -322,6 +378,34 @@ class _HyperTableState extends State<HyperTable> {
       ),
       softWrap: true,
       overflow: forceClip ? TextOverflow.clip : TextOverflow.visible,
+    );
+  }
+
+  /// Plain-text rendering for a block-level child inside a cell when no
+  /// [cellContentBuilder] is supplied. Walks the subtree, concatenates
+  /// `TextNode` text, and emits a single [Text] widget so the content at
+  /// least becomes visible (proper layout / nested tables / images still
+  /// need a builder for full fidelity).
+  Widget _buildBlockFallback(UDTNode node) {
+    final buffer = StringBuffer();
+    void walk(UDTNode n) {
+      if (n is TextNode) {
+        buffer.write(n.text);
+      }
+      for (final c in n.children) {
+        walk(c);
+      }
+    }
+
+    walk(node);
+    final text = buffer.toString().trim();
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Text(
+        text,
+        style: TextStyle(color: node.style.color),
+      ),
     );
   }
 
@@ -366,10 +450,17 @@ class _TableGrid {
   final int columnCount;
   final int rowCount;
 
+  /// True when [_TableGrid.fromTableNode] refused to allocate the grid
+  /// because `rowCount * columnCount` exceeded [_kMaxTotalCells]. Surfaced
+  /// so the build path can show a "table too large" placeholder instead
+  /// of silently rendering nothing.
+  final bool exceededLimit;
+
   _TableGrid({
     required this.cells,
     required this.columnCount,
     required this.rowCount,
+    this.exceededLimit = false,
   });
 
   bool get isEmpty => rowCount == 0 || columnCount == 0;
@@ -401,6 +492,21 @@ class _TableGrid {
     }
 
     final rowCount = rows.length;
+
+    // Total-cell cap: even with per-cell span clamped to [_kMaxSpan], a wide
+    // table with many rows (e.g. 1000 rows × 1000 effective columns) would
+    // allocate 1M `null` refs (~8 MB) and freeze the UI thread for the rest
+    // of layout. Refuse to build the grid above [_kMaxTotalCells] and let
+    // the caller / placeholder layer fall back to a flat rendering.
+    if (rowCount > 0 && maxCols > 0 && rowCount * maxCols > _kMaxTotalCells) {
+      return _TableGrid(
+        cells: const [],
+        columnCount: 0,
+        rowCount: 0,
+        exceededLimit: true,
+      );
+    }
+
     final grid = List.generate(
       rowCount,
       (_) => List<_GridCell?>.filled(maxCols, null),

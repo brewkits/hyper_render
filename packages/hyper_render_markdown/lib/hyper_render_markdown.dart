@@ -22,7 +22,7 @@
 /// // Or use with HyperViewer
 /// HyperViewer.markdown(
 ///   markdown: '# Title\n\nContent...',
-///   contentParser: MarkdownContentParser(),
+///   contentParser: DefaultMarkdownParser(),
 /// )
 /// ```
 library;

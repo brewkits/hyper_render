@@ -14,6 +14,12 @@ const double _kTableBottomMargin = 16.0;
 const double _kCodeBlockBottomMargin = 8.0;
 const double _kDetailsBottomMargin = 4.0;
 
+/// Fallback width used when the widget is given an unbounded horizontal
+/// constraint (e.g. an unwrapped Row child, horizontal SingleChildScrollView).
+/// Flutter's BoxConstraints forbids passing `double.infinity` as minWidth, so
+/// child render objects like _FlexFragment would crash without this clamp.
+const double _kUnboundedWidthFallback = 800.0;
+
 extension _RenderHyperBoxLayout on RenderHyperBox {
   /// Step 1: Tokenization - Convert UDT tree to flat list of Fragments
   void _ensureFragments() {
@@ -670,6 +676,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     _pendingLineLeftFloats.clear();
     _pendingLineRightFloats.clear();
 
+    // Clear any prior ellipsis-truncation state. Fragments persist across
+    // layout passes (_ensureFragments only rebuilds when _fragments is
+    // cleared), so a width change that now fits the full text must drop
+    // any stale "hidden" flags from a previous narrower pass.
+    for (final f in _fragments) {
+      f.ellipsisVisibleLength = null;
+    }
+
     // Seed floats inherited from the previous virtualized section so that
     // text in this section correctly wraps around a float that began in the
     // preceding chunk (cross-chunk float continuity).
@@ -938,7 +952,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
       if (fragment is _BlockEndFragment) {
         finishLine();
-        currentY += fragment.paddingBottom;
+        currentY += fragment.paddingBottom + fragment.marginBottom;
 
         // Clear ellipsis context when leaving the truncation block
         if (fragment.style.textOverflow == TextOverflow.ellipsis &&
@@ -1118,6 +1132,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
       // Skip remaining content in an ellipsis block after truncation
       if (skipEllipsisContent) {
+        // Mark suppressed text fragments as fully hidden so
+        // getSelectedText / a11y don't leak content behind the "…".
+        if ((fragment.type == FragmentType.text || fragment.type == FragmentType.ruby) && fragment.text != null) {
+          fragment.ellipsisVisibleLength = 0;
+        }
         if (fragment.type == FragmentType.lineBreak) {
           // A line break inside a nowrap/ellipsis block still resets position
           // but does not produce a new visual line.
@@ -1143,12 +1162,18 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       // and the fragment overflows the line, clip and append "…" instead of
       // wrapping to the next line.
       if (ellipsisDepth > 0 &&
-          fragment.type == FragmentType.text &&
+          (fragment.type == FragmentType.text || fragment.type == FragmentType.ruby) &&
           fragment.text != null &&
           fragment.width > remainingWidth) {
         const ellipsisChar = '\u2026'; // …
         final ellipsisPainter = _getTextPainter(ellipsisChar, fragment.style);
         final fitWidth = remainingWidth - ellipsisPainter.width;
+
+        // Record how many characters from this fragment actually survived
+        // the truncation pass so getSelectedText / a11y don't leak the
+        // clipped suffix. Defaults to 0 (fully hidden) and gets raised when
+        // a partial prefix fits on the line.
+        fragment.ellipsisVisibleLength = 0;
 
         if (fitWidth > 0) {
           // Find how many characters fit before the ellipsis
@@ -1171,6 +1196,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
                 lineHeight = h;
                 maxBaseline = b;
               });
+              fragment.ellipsisVisibleLength = clippedText.length;
             }
           }
         } else if (currentLineFragments.isEmpty) {
@@ -2114,21 +2140,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
   /// Step 6: Build character mapping for selection (optimized)
   void _buildCharacterMapping() {
-    _characterToFragment.clear();
-    _fragmentRanges.clear();
     _lineStartOffsets.clear();
     // _totalCharacterCount is already computed in _ensureFragments
-
-    // Build ranges instead of individual character mapping
-    for (final fragment in _fragments) {
-      if ((fragment.type == FragmentType.text ||
-              fragment.type == FragmentType.ruby) &&
-          fragment.text != null) {
-        final startIdx = fragment.globalOffset;
-        final endIdx = startIdx + fragment.text!.length;
-        _fragmentRanges.add((startIdx, endIdx, fragment));
-      }
-    }
 
     // Build per-line start offsets for O(log N) selection hit-testing.
     // _lineStartOffsets[i] = cumulative char count before line i.

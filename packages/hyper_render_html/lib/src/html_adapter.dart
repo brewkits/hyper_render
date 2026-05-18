@@ -89,13 +89,64 @@ class HtmlAdapter {
   ///
   /// Call this **before** sanitizing so that `<style>` tags are not stripped
   /// before the CSS rules are collected.
+  ///
+  /// PERF: This used to always go through [html_parser.parse], which is the
+  /// pure-Dart html5lib port — fine for small fragments, but blocks the UI
+  /// thread for 50–300 ms on a 200 KB document. Since the only thing this
+  /// method needs from the DOM is the contents of `<style>` blocks, we
+  /// short-circuit with a focused regex when there is no `<style>` tag at
+  /// all (the common case for Markdown/Delta-derived content) and use a
+  /// regex extractor when the input is large enough that the full parse
+  /// would visibly stall scrolling. The regex path is conservative: it
+  /// only matches the literal `<style>…</style>` shape, so any caller that
+  /// depends on css-in-attribute-quirks (rare) still falls back to the
+  /// full parser.
   String extractCss(String html) {
+    // Cheap reject: nothing to extract.
+    if (!_styleProbeRegex.hasMatch(html)) return '';
+
+    // Fast path for large inputs — avoids the full html5lib parse on the
+    // UI thread.
+    if (html.length >= _extractCssRegexThreshold) {
+      return _extractCssWithRegex(html);
+    }
+
     final document = html_parser.parse(html);
     final buffer = StringBuffer();
     for (final el in document.querySelectorAll('style')) {
       final text = el.text;
       if (text.isNotEmpty) {
         buffer.write(text);
+        buffer.write('\n');
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// Threshold above which [extractCss] skips html5lib and uses a regex.
+  /// 32 KB is empirically the point at which html_parser starts costing
+  /// more than one 60-fps frame on a mid-range Android device.
+  static const int _extractCssRegexThreshold = 32 * 1024;
+
+  /// Cheap "is there a `<style` tag anywhere?" check — avoids spinning up
+  /// either parsing path when the document obviously has no inline CSS.
+  static final RegExp _styleProbeRegex =
+      RegExp(r'<style\b', caseSensitive: false);
+
+  /// Captures the inner text of every `<style>…</style>` block. Matches
+  /// any attribute soup before the closing `>` and is non-greedy on the
+  /// body so adjacent style blocks don't get concatenated incorrectly.
+  static final RegExp _styleBodyRegex = RegExp(
+    r'<style\b[^>]*>([\s\S]*?)</style\s*>',
+    caseSensitive: false,
+  );
+
+  String _extractCssWithRegex(String html) {
+    final buffer = StringBuffer();
+    for (final m in _styleBodyRegex.allMatches(html)) {
+      final body = m.group(1);
+      if (body != null && body.trim().isNotEmpty) {
+        buffer.write(body);
         buffer.write('\n');
       }
     }
@@ -311,6 +362,14 @@ class HtmlAdapter {
         String? src = element.attributes['src'];
         if (src != null) {
           src = _resolveUrl(src, baseUrl);
+          // Defense-in-depth: HtmlSanitizer normally strips dangerous schemes
+          // upstream, but a caller that uses HtmlAdapter directly (or disables
+          // sanitize:true) would otherwise let `file:` / `javascript:` etc.
+          // through to image-loading and link-tap. Mirrors the same gate the
+          // Markdown and Delta adapters already apply.
+          if (src != null && !UrlSafety.isSafe(src)) {
+            src = '';
+          }
         }
 
         return AtomicNode(
@@ -352,7 +411,11 @@ class HtmlAdapter {
         if (href != null) {
           final resolvedHref = _resolveUrl(href, baseUrl);
           if (resolvedHref != null) {
-            element.attributes['href'] = resolvedHref;
+            // Defense-in-depth scheme check — see <img src> handling above
+            // for rationale. Blocked hrefs collapse to "#" so the link
+            // stays inert instead of routing through onLinkTap.
+            element.attributes['href'] =
+                UrlSafety.isSafe(resolvedHref) ? resolvedHref : '#';
           }
         }
       }

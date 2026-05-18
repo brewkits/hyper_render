@@ -77,7 +77,7 @@ else
   ok "pubspec.yaml already has version deps"
 fi
 
-# Swap path: ../hyper_render_core → hyper_render_core: ^1.3.1 in sub-packages
+# Swap path: ../hyper_render_core → hyper_render_core: ^1.3.2 in sub-packages
 # BSD sed (macOS) requires '' after -i; GNU sed does not
 _sed() { sed -i '' "$@" 2>/dev/null || sed -i "$@"; }
 
@@ -89,7 +89,7 @@ for f in packages/hyper_render_html/pubspec.yaml \
           packages/hyper_render_math/pubspec.yaml; do
   if [ -f "$f" ] && grep -q "path: \.\./hyper_render_core" "$f"; then
     _sed '/hyper_render_core:/{n;/path: \.\.\/hyper_render_core/d;}' "$f"
-    _sed 's|hyper_render_core:$|hyper_render_core: ^1.3.1|' "$f"
+    _sed 's|hyper_render_core:$|hyper_render_core: ^1.3.2|' "$f"
     ok "Swapped path dep → version dep in $f"
   fi
 done

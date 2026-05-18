@@ -125,9 +125,12 @@ class SuperClipboardHandler implements ImageClipboardHandler {
     try {
       final dir = await _fileSystem.getStorageDirectory();
 
-      // Generate unique filename if not provided
-      final name =
-          filename ?? 'image_${DateTime.now().millisecondsSinceEpoch}.png';
+      // Generate unique filename if not provided, then always sanitise —
+      // a caller-supplied `filename` is otherwise concatenated raw into the
+      // path, re-introducing the traversal vector the URL-decoded
+      // `_getFilenameFromUrl` already guards against.
+      final name = _sanitiseFilename(
+          filename ?? 'image_${DateTime.now().millisecondsSinceEpoch}.png');
       final file = File('${dir.path}/$name');
 
       await file.writeAsBytes(bytes);
@@ -161,10 +164,10 @@ class SuperClipboardHandler implements ImageClipboardHandler {
     String? filename,
   }) async {
     try {
-      // Save to temp file for sharing
+      // Save to temp file for sharing — same sanitisation as saveImageBytes.
       final tempDir = await _fileSystem.getCacheDirectory();
-      final name =
-          filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png';
+      final name = _sanitiseFilename(
+          filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png');
       final file = File('${tempDir.path}/$name');
       await file.writeAsBytes(bytes);
 
@@ -203,6 +206,20 @@ class SuperClipboardHandler implements ImageClipboardHandler {
         'image/bmp',
       ];
 
+  /// Extract filename from URL.
+  ///
+  /// Visible to tests so we can verify the path-traversal guard
+  /// (URL-encoded `/` and `\\` in the URL must not survive into the
+  /// on-disk filename, otherwise `File('${dir.path}/$name')` would write
+  /// outside [dir]).
+  @visibleForTesting
+  String getFilenameFromUrlForTest(String url) => _getFilenameFromUrl(url);
+
+  /// Visible to tests — exercises the same gate every save/share path
+  /// hits before concatenating into a `File('${dir}/$name')`.
+  @visibleForTesting
+  String sanitiseFilenameForTest(String name) => _sanitiseFilename(name);
+
   /// Extract filename from URL
   String _getFilenameFromUrl(String url) {
     try {
@@ -211,10 +228,22 @@ class SuperClipboardHandler implements ImageClipboardHandler {
       if (pathSegments.isNotEmpty) {
         final lastSegment = pathSegments.last;
         if (lastSegment.contains('.')) {
-          return lastSegment;
+          return _sanitiseFilename(lastSegment);
         }
       }
     } catch (_) {}
     return 'image_${DateTime.now().millisecondsSinceEpoch}.png';
+  }
+
+  /// Strip path separators from a filename so it cannot escape its target
+  /// directory when concatenated with `dir.path`.
+  ///
+  /// Applied to every external string that lands in a `File('${dir}/$name')`
+  /// expression, not just URL-derived ones. `Uri.pathSegments.last` decodes
+  /// `%2F` / `%5C` into literal slashes, so a single point of sanitisation
+  /// has historically drifted out of sync — keep this routine the only
+  /// gate.
+  String _sanitiseFilename(String name) {
+    return name.replaceAll(RegExp(r'[/\\]'), '_');
   }
 }

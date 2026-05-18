@@ -6,6 +6,7 @@ library;
 
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
+import 'package:hyper_render_core/hyper_render_core.dart' show UrlSafety;
 
 /// HTML Sanitizer for preventing XSS attacks
 class HtmlSanitizer {
@@ -335,34 +336,14 @@ class HtmlSanitizer {
   /// Returns `false` for dangerous URL schemes.
   ///
   /// Blocked: `javascript:`, `vbscript:`, `data:image/svg` (SVG can embed
-  /// `<script>`), and any non-image `data:` URL.
+  /// `<script>`), any non-image `data:` URL, and the mobile-dangerous
+  /// `file:`/`mhtml:`/`about:` schemes.
   ///
-  /// Exposed as public so Markdown/Delta adapters can reuse the same check.
-  static bool isSafeUrl(String url) {
-    // Strip ASCII control characters (U+0000–U+001F) and DEL (U+007F) from the
-    // entire string — not just leading/trailing. Browsers and some parsers
-    // silently ignore embedded tabs/newlines in URLs, enabling bypasses like
-    // "jav&#x09;ascript:alert(1)" → "jav\tascript:alert(1)" which passes a
-    // naive startsWith check. Per WHATWG URL spec §4.1, these chars must be
-    // stripped before scheme identification.
-    final cleaned =
-        url.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '').trim().toLowerCase();
-    if (cleaned.startsWith('javascript:')) return false;
-    if (cleaned.startsWith('vbscript:')) return false;
-    // Block SVG data URLs — inline SVG can contain <script> elements.
-    if (cleaned.startsWith('data:image/svg')) return false;
-    if (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/')) {
-      return false;
-    }
-    // Mobile-specific dangerous schemes:
-    // file: — can read local filesystem, contacts, private app storage on Android/iOS.
-    // mhtml: — MHTML archive format; used as a XSS vector on Android WebView.
-    // about: — about:blank is a classic XSS sandbox escape vector.
-    if (cleaned.startsWith('file:')) return false;
-    if (cleaned.startsWith('mhtml:')) return false;
-    if (cleaned.startsWith('about:')) return false;
-    return true;
-  }
+  /// Thin wrapper around [UrlSafety.isSafe] kept for backwards compatibility
+  /// with code that imports the sanitizer directly. New callers should
+  /// depend on [UrlSafety] from `hyper_render_core` so every adapter shares
+  /// the same blocklist instead of drifting copies.
+  static bool isSafeUrl(String url) => UrlSafety.isSafe(url);
 
   /// Quick check — returns `true` if [html] likely contains dangerous content.
   ///
