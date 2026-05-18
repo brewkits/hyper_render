@@ -4,6 +4,9 @@
 
 ### Bug Fixes (Critical)
 
+- **[DEADLOCK] LazyImageQueue no longer deadlocks on a synchronously-throwing loader** — if a user-supplied `HyperImageLoader` threw before invoking its onLoad/onError callback, `_active` was never decremented; after `maxConcurrent` such throws the queue stopped processing every subsequent image until app restart. `_startLoad` now wraps the loader call in try/catch and routes any synchronous exception through the same idempotent error path used by the async callback.
+- **[SECURITY] Sanitizer now validates ALL URL-bearing attributes** — previously only `href` and `src` were checked, leaving `poster`, `data`, `cite`, `background`, `longdesc`, `usemap`, `manifest`, `xlink:href`, `formaction`, `action`, `icon`, and `srcset` as XSS bypass vectors (e.g. `<video poster="javascript:...">`). Added `urlBearingAttributes` constant and routes every match through `isSafeUrl`. `srcset` is split into candidates and each candidate's URL is validated independently.
+- **[SECURITY] `isTap` no longer fires when the pointer never went down inside the widget** — `handleEvent` previously treated `downPosition == null` as a valid tap, so a finger swiping into the widget from outside and lifting up would trigger `onLinkTap` on whatever fragment was under the lift point. Now requires BOTH a recorded down position AND a movement within `tapSlop`.
 - **[BUG-1] Images no longer permanently disappear after a Low Memory Warning** — `clearMemoryCaches()` disposed the image cache but never re-triggered `_loadImages()`. Visible images were stuck in the empty-placeholder state until the user scrolled the section out of view and back to force a detach+attach cycle. The cache-clear path now re-enqueues image loads via `LazyImageQueue` so visible images reload through the normal priority pipeline.
 - **[BUG-2] `_hashSection` now invalidates on attribute changes** — the previous fingerprint only hashed text content + child count, so changing only `<img src="a.jpg">` → `<img src="b.jpg">` (or class/id/style) produced the same hash. `_mergeSections` would silently reuse the stale `DocumentNode`, freezing dynamic UI at the first rendered version. The new recursive hash walks the subtree and includes tagName, type, text, atomic src/alt, all attributes (keys sorted), and per-depth child counts.
 - **[BUG-3] Eliminated 1-frame layout flash with dangling floats** — `_onFloatCarryover` previously deferred the cross-section update via `addPostFrameCallback + setState`, so section N+1 always laid out once with empty initialFloats before the corrected pass. Added `onRenderBoxReady` callback on `HyperRenderWidget` and `VirtualizedChunk`; `_HyperViewerState` keeps a `Map<int, RenderHyperBox>` registry and pushes new floats directly onto section N+1's RenderObject during section N's layout, so the pipeline owner picks up the change in the same frame.
@@ -35,6 +38,16 @@
 
 - **[L-3] `_splitIntoSections` no longer overwrites existing node parents** — changed `child.parent = current` to `if (child.parent == null) child.parent = current` to avoid corrupting ancestor-chain traversal on reused section nodes.
 - **[L-4] Removed dead `_draggingHandle` field** from `HyperSelectionOverlayState`.
+
+### Correctness & Robustness
+
+- **Hash collision resilience on Web** — `_accumulateHashParts` now also mixes in `text.length` for every `TextNode`, significantly reducing the chance that two long-but-distinct strings hash to the same slot on the JS target (where `Object.hashAll` has weaker dispersion than the Dart VM).
+- **`computeMinIntrinsicWidth` handles icon fonts, emoji, and dingbats** — the previous "longest-by-char-count word" heuristic miscalculated when a single PUA glyph (Material Icons, Font Awesome) or emoji renders far wider than a Latin letter. When the fragment contains any code point in U+E000–U+F8FF, U+2600–U+27BF, or U+1F000+, the entire fragment is measured instead of just the longest word.
+- **`RenderHyperBox.detach()` now cancels shimmer state** — a `ListView` item that detached mid-shimmer (scrolled out of cache) and later re-attached kept a stale `_shimmerEpoch`, producing a 1-frame phase jump on re-mount. The frame callback is now cancelled and `_shimmerEpoch` reset.
+
+### New
+
+- **`HyperRenderConfig.useRepaintBoundary`** (default `true`) — opt out of the outer-section `RepaintBoundary` wrapper. `RenderHyperBox` is already an internal repaint boundary, so this is mostly an escape hatch for very low-RAM Android devices (≤ 1.5 GB) rendering image-heavy long documents with a custom small `virtualizationChunkSize`, where many concurrent GPU layers could exhaust VRAM before the texture cache evicts.
 
 ---
 

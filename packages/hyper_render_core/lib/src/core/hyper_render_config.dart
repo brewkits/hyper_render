@@ -33,6 +33,7 @@ class HyperRenderConfig {
     this.codeHighlighter,
     this.keyframeRegistry = const {},
     this.useMicrotaskParsing = false,
+    this.useRepaintBoundary = true,
   })  : assert(
             textPainterCacheSize > 0, 'textPainterCacheSize must be positive'),
         assert(imageCacheSize > 0, 'imageCacheSize must be positive'),
@@ -150,6 +151,23 @@ class HyperRenderConfig {
   /// Default: false
   final bool useMicrotaskParsing;
 
+  /// Wrap each virtualized section in a [RepaintBoundary] widget.
+  ///
+  /// `RenderHyperBox` is already an internal repaint boundary
+  /// (`isRepaintBoundary => true`), so this extra widget-layer wrapper does
+  /// not multiply the layer count in normal operation. However, on very
+  /// low-RAM devices (≤ 1.5 GB) rendering image-heavy long documents with a
+  /// custom small [virtualizationChunkSize] can produce 10+ concurrent GPU
+  /// layers and exhaust VRAM before the texture cache evicts.
+  ///
+  /// Set to `false` to disable the outer wrapper. Repaint isolation between
+  /// sections is mostly preserved by the inner `RenderHyperBox` boundary,
+  /// at the cost of slightly more invalidation when a sibling section
+  /// repaints (rare in practice — sections are independent).
+  ///
+  /// Default: `true` (no behavior change for existing users)
+  final bool useRepaintBoundary;
+
   /// Additional URL schemes permitted to reach [onLinkTap].
   ///
   /// HyperRender always allows the built-in safe set (`http`, `https`,
@@ -181,6 +199,7 @@ class HyperRenderConfig {
         other.imageConcurrency == imageConcurrency &&
         other.virtualizationChunkSize == virtualizationChunkSize &&
         other.useMicrotaskParsing == useMicrotaskParsing &&
+        other.useRepaintBoundary == useRepaintBoundary &&
         other.codeHighlighter == codeHighlighter &&
         other.extraLinkSchemes == extraLinkSchemes &&
         _mapsEqual(other.keyframeRegistry, keyframeRegistry);
@@ -194,6 +213,7 @@ class HyperRenderConfig {
         imageConcurrency,
         virtualizationChunkSize,
         useMicrotaskParsing,
+        useRepaintBoundary,
         codeHighlighter,
         Object.hashAll(extraLinkSchemes),
         Object.hashAll(keyframeRegistry.keys),

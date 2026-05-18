@@ -216,46 +216,70 @@ class LazyImageQueue {
     _active++;
     _inFlight.add(load);
 
-    load.loader(
-      load.url,
-      (ui.Image image) {
-        _active--;
-        _inFlight.remove(load);
+    // Idempotent guard: a buggy loader could call both onLoad AND onError, or
+    // call one of them after throwing synchronously. Without the guard we
+    // would double-decrement _active and leak slots until deadlock.
+    bool completed = false;
 
-        // Remove token mappings for all remaining subscribers (load complete).
-        for (final token in load.onLoadCallbacks.keys) {
-          _tokenToUrl.remove(token);
-        }
-
-        if (load.onLoadCallbacks.isEmpty) {
-          // All subscribers cancelled before image arrived.
-          // Dispose to prevent GPU memory leak — Dart GC cannot free ui.Image.
-          image.dispose();
-        } else {
-          // Distribute independent clones so each subscriber owns its resource.
-          // Disposing a clone does not affect other clones or the original.
-          for (final cb in load.onLoadCallbacks.values) {
-            cb(image.clone());
-          }
-          image.dispose(); // release the source after cloning
-        }
-
-        _pump();
-      },
-      (Object error) {
-        _active--;
-        _inFlight.remove(load);
-
-        for (final token in load.onErrorCallbacks.keys) {
-          _tokenToUrl.remove(token);
-        }
-        for (final cb in load.onErrorCallbacks.values) {
+    void completeWithError(Object error) {
+      if (completed) return;
+      completed = true;
+      _active--;
+      _inFlight.remove(load);
+      for (final token in load.onErrorCallbacks.keys) {
+        _tokenToUrl.remove(token);
+      }
+      for (final cb in load.onErrorCallbacks.values) {
+        try {
           cb(error);
+        } catch (_) {
+          // Never let a subscriber error crash the queue.
         }
+      }
+      _pump();
+    }
 
-        _pump();
-      },
-    );
+    void completeWithImage(ui.Image image) {
+      if (completed) {
+        // Late callback after sync-throw recovery: dispose to avoid GPU leak.
+        image.dispose();
+        return;
+      }
+      completed = true;
+      _active--;
+      _inFlight.remove(load);
+
+      // Remove token mappings for all remaining subscribers (load complete).
+      for (final token in load.onLoadCallbacks.keys) {
+        _tokenToUrl.remove(token);
+      }
+
+      if (load.onLoadCallbacks.isEmpty) {
+        // All subscribers cancelled before image arrived.
+        // Dispose to prevent GPU memory leak — Dart GC cannot free ui.Image.
+        image.dispose();
+      } else {
+        // Distribute independent clones so each subscriber owns its resource.
+        // Disposing a clone does not affect other clones or the original.
+        for (final cb in load.onLoadCallbacks.values) {
+          cb(image.clone());
+        }
+        image.dispose(); // release the source after cloning
+      }
+
+      _pump();
+    }
+
+    // Synchronous-throw guard: a user-supplied loader (passed in via
+    // HyperImageLoader from HyperRenderConfig) could throw before invoking
+    // either callback. Without try/catch, _active would never decrement;
+    // after maxConcurrent such throws the queue would deadlock and no
+    // further images would ever load until app restart.
+    try {
+      load.loader(load.url, completeWithImage, completeWithError);
+    } catch (e) {
+      completeWithError(e);
+    }
   }
 
   _PendingLoad? _findQueued(String url) => _urlToQueued[url];
