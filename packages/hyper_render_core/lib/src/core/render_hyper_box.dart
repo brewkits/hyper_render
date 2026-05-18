@@ -612,6 +612,16 @@ class RenderHyperBox extends RenderBox
     if (kDebugMode) {
       HyperRenderDebugHooks.onRendererDetached?.call(_debugId);
     }
+    // Cancel the shimmer loop and reset its epoch. Without this, a
+    // ListView item that detaches mid-shimmer (scrolled out of cache) and
+    // later re-attaches keeps a stale _shimmerEpoch from the previous mount,
+    // producing a wrong initial phase (visible 1-frame jump) until the
+    // periodic modulo recovers.
+    if (_shimmerCallbackId != null) {
+      SchedulerBinding.instance.cancelFrameCallbackWithId(_shimmerCallbackId!);
+      _shimmerCallbackId = null;
+    }
+    _shimmerEpoch = null;
     super.detach();
   }
 
@@ -741,6 +751,25 @@ class RenderHyperBox extends RenderBox
   // ============================================
   // Shimmer Animation
   // ============================================
+  //
+  // NOTE — Architectural choice:
+  // We drive the shimmer with [SchedulerBinding.scheduleFrameCallback]
+  // instead of an [AnimationController] + [TickerProvider]. Pros: zero API
+  // surface — `RenderHyperBox` stays self-contained and doesn't force every
+  // caller to provide a TickerProvider. Cons: render objects driving their
+  // own frame loop is non-idiomatic.
+  //
+  // Lifecycle correctness is ensured by:
+  //   • [dispose]: cancels the pending callback id
+  //   • [detach]: cancels callback + resets [_shimmerEpoch] for clean re-attach
+  //   • Flutter's scheduler auto-pauses when [AppLifecycleState] != resumed,
+  //     so background apps don't burn CPU.
+  //
+  // If shimmer state issues appear in production (visible phase jumps,
+  // lingering CPU after detach), the proper refactor is to add a
+  // `vsync: TickerProvider` to [HyperRenderWidget] and drive shimmer
+  // through a real [AnimationController]. That refactor is API-breaking
+  // and was deemed too risky for v1.3.2 (1646 tests + many call sites).
 
   /// Starts the per-frame shimmer loop if not already running.
   /// Safe to call repeatedly — no-ops when already scheduled.
@@ -951,7 +980,19 @@ class RenderHyperBox extends RenderBox
         final isRtl = fragment.style.isRtl;
         final measurePainter = isRtl ? rtlPainter : ltrPainter;
         final mergedStyle = _baseStyle.merge(fragment.style.toTextStyle());
-        measurePainter.text = TextSpan(text: longestWord, style: mergedStyle);
+
+        // Wide-glyph guard: icon fonts (Material Icons, Font Awesome) use the
+        // Unicode PUA block U+E000–U+F8FF, where a single code point renders
+        // ~3× wider than a typical Latin glyph. Emoji (U+1F000+) and CJK
+        // symbols (U+2E80+) likewise break the "longest char-count word ≈
+        // longest measured word" heuristic. For these we measure the FULL
+        // fragment text so IntrinsicWidth doesn't clip them.
+        String candidate = longestWord;
+        if (_containsWideGlyph(text) && text.length < 200) {
+          candidate = text;
+        }
+
+        measurePainter.text = TextSpan(text: candidate, style: mergedStyle);
         measurePainter.layout();
         if (measurePainter.width > maxWidth) {
           maxWidth = measurePainter.width;
@@ -1394,7 +1435,12 @@ class RenderHyperBox extends RenderBox
         // for touch/stylus and kPrecisePointerHitSlop (1 px) for mouse.
         null,
       );
-      final isTap = downPosition == null ||
+      // CRITICAL: when downPosition is null, the pointer-down did NOT happen
+      // inside this widget — the finger entered from outside the hit area
+      // (e.g. a swipe that crosses the widget boundary). Treating this as a
+      // tap would let an unintended lift-up trigger onLinkTap. Require BOTH
+      // a recorded down position AND a movement within tapSlop.
+      final isTap = downPosition != null &&
           (upPosition - downPosition).distance < tapSlop;
 
       if (isTap && onLinkTap != null) {
@@ -1592,6 +1638,24 @@ class RenderHyperBox extends RenderBox
     properties.add(IntProperty('rightFloats', _rightFloats.length));
     properties.add(IntProperty('totalCharacters', _totalCharacterCount));
     properties.add(DiagnosticsProperty('selection', _selection));
+  }
+
+  /// Returns true if [text] contains a code point that typically renders
+  /// significantly wider than a Latin glyph. Used by [computeMinIntrinsicWidth]
+  /// to fall back to whole-fragment measurement when "longest word by char
+  /// count" is unreliable.
+  ///
+  /// Ranges:
+  /// - U+E000–U+F8FF: Private Use Area (Material Icons, Font Awesome, etc.)
+  /// - U+1F000+: SMP emoji, mathematical/pictographic symbols
+  /// - U+2600–U+27BF: Miscellaneous Symbols & Dingbats
+  static bool _containsWideGlyph(String text) {
+    for (final r in text.runes) {
+      if (r >= 0xE000 && r <= 0xF8FF) return true;
+      if (r >= 0x2600 && r <= 0x27BF) return true;
+      if (r >= 0x1F000) return true;
+    }
+    return false;
   }
 
   BoxFit _getBoxFit(String? cssValue) {

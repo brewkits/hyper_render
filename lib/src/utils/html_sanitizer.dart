@@ -80,6 +80,31 @@ class HtmlSanitizer {
     'formaction', 'action', 'dynsrc', 'lowsrc',
   ];
 
+  /// Attribute names whose value is interpreted as a URL by the browser /
+  /// renderer. Every one must be passed through [isSafeUrl] so that
+  /// `javascript:`, `file:`, `data:` SVG, etc. cannot slip through via a
+  /// non-`href`/`src` channel.
+  ///
+  /// Historically the sanitizer only checked `href` and `src`, which left
+  /// `<video poster="javascript:...">`, `<object data="...">`,
+  /// `<blockquote cite="...">`, and similar attributes as XSS bypass vectors.
+  static const Set<String> urlBearingAttributes = {
+    'href',
+    'src',
+    'poster',
+    'data',
+    'cite',
+    'background',
+    'longdesc',
+    'usemap',
+    'manifest',
+    'xlink:href',
+    'formaction',
+    'action',
+    'icon',
+    'srcset',
+  };
+
   /// Default allowed attributes (safe subset)
   static const List<String> defaultAllowedAttributes = [
     'id', 'class', 'title', 'lang', 'dir',
@@ -215,8 +240,9 @@ class HtmlSanitizer {
         toRemove.add(entry.key);
         continue;
       }
-      // xlink:href and plain href may carry javascript: URLs inside <use>/<a>
-      if (name == 'href' || name == 'xlink:href') {
+      // Any URL-bearing attribute (href, xlink:href, src, etc.) may carry
+      // javascript: URLs inside SVG <use>, <a>, <image>, etc.
+      if (urlBearingAttributes.contains(name)) {
         if (!isSafeUrl(entry.value)) toRemove.add(entry.key);
       }
     }
@@ -257,10 +283,21 @@ class HtmlSanitizer {
         continue;
       }
 
-      // Validate URL-bearing attributes.
-      if (name == 'href' || name == 'src') {
-        if (!isSafeUrl(entry.value)) {
+      // Validate ALL URL-bearing attributes (href, src, poster, data, cite,
+      // background, longdesc, usemap, manifest, xlink:href, formaction,
+      // action, icon, srcset). Stripping only href/src previously let
+      // attackers slip javascript: URLs through `<video poster="...">`,
+      // `<object data="...">`, `<blockquote cite="...">`, etc.
+      if (urlBearingAttributes.contains(name)) {
+        // srcset is a comma-separated list of URLs — validate each.
+        if (name == 'srcset') {
+          if (!_isSafeSrcset(entry.value)) {
+            toRemove.add(entry.key);
+            continue;
+          }
+        } else if (!isSafeUrl(entry.value)) {
           toRemove.add(entry.key);
+          continue;
         }
       }
 
@@ -279,6 +316,20 @@ class HtmlSanitizer {
     for (final key in toRemove) {
       element.attributes.remove(key);
     }
+  }
+
+  /// Validates a `srcset` attribute (comma-separated URL list with optional
+  /// descriptors).  Returns false if any candidate URL would be blocked.
+  static bool _isSafeSrcset(String value) {
+    // Each candidate is "<url> [density|width descriptor]". Split on commas
+    // (which separate candidates) then on whitespace to isolate the URL.
+    for (final part in value.split(',')) {
+      final trimmed = part.trim();
+      if (trimmed.isEmpty) continue;
+      final url = trimmed.split(RegExp(r'\s+')).first;
+      if (!isSafeUrl(url)) return false;
+    }
+    return true;
   }
 
   /// Returns `false` for dangerous URL schemes.

@@ -771,6 +771,7 @@ class _HyperViewerState extends State<HyperViewer>
       codeHighlighter: rc.codeHighlighter,
       keyframeRegistry: mergedKeyframes,
       useMicrotaskParsing: rc.useMicrotaskParsing,
+      useRepaintBoundary: rc.useRepaintBoundary,
     );
   }
 
@@ -901,7 +902,13 @@ class _HyperViewerState extends State<HyperViewer>
       ..add(node.tagName);
 
     if (node is TextNode) {
-      out.add(node.text);
+      // Include length explicitly. Object.hashAll on Web (JS) has weaker hash
+      // quality than the VM and can collide on long strings; mixing in the
+      // length signature dramatically reduces collision probability without
+      // any additional traversal cost.
+      out
+        ..add(node.text.length)
+        ..add(node.text);
     } else if (node is AtomicNode) {
       out
         ..add(node.src)
@@ -1450,9 +1457,6 @@ class _HyperViewerState extends State<HyperViewer>
         physics: widget.physics ?? const AlwaysScrollableScrollPhysics(),
         itemCount: _sections!.length,
         itemBuilder: (context, index) {
-          // RepaintBoundary isolates each chunk into its own GPU layer.
-          // Prevents a re-paint in one chunk from invalidating neighbours,
-          // and keeps each composited layer well under GL_MAX_TEXTURE_SIZE.
           // Retrieve carryover from previous section (if layout already ran).
           final prevCarryover = (index > 0 && _floatCarryovers.length >= index)
               ? _floatCarryovers[index - 1]
@@ -1463,45 +1467,53 @@ class _HyperViewerState extends State<HyperViewer>
           final sectionKey = _sectionHashes.length > index
               ? ValueKey(_sectionHashes[index])
               : ValueKey(index);
-          return RepaintBoundary(
-            key: sectionKey,
-            child: selCtrl != null
-                ? VirtualizedChunk(
-                    chunkIndex: index,
-                    document: _sections![index],
-                    selectionController: selCtrl,
-                    selectable: widget.selectable,
-                    selectionColor: widget.selectionColor,
-                    textDirection: dir,
-                    onLinkTap: _safeOnLinkTap,
-                    widgetBuilder: _effectiveWidgetBuilder,
-                    debugShowBounds: widget.debugShowHyperRenderBounds,
-                    enableComplexFilters: widget.enableComplexFilters,
-                    config: _effectiveConfig,
-                    suppressFirstBlockMarginTop: index > 0,
-                    initialFloats: prevCarryover,
-                    onFloatCarryover: (carryovers) =>
-                        _onFloatCarryover(index, carryovers),
-                    pluginRegistry: widget.pluginRegistry,
-                    onRenderBoxReady: (box) => _sectionBoxes[index] = box,
-                  )
-                : HyperRenderWidget(
-                    document: _sections![index],
-                    selectable: false,
-                    textDirection: dir,
-                    onLinkTap: _safeOnLinkTap,
-                    widgetBuilder: _effectiveWidgetBuilder,
-                    debugShowBounds: widget.debugShowHyperRenderBounds,
-                    enableComplexFilters: widget.enableComplexFilters,
-                    config: _effectiveConfig,
-                    suppressFirstBlockMarginTop: index > 0,
-                    initialFloats: prevCarryover,
-                    onFloatCarryover: (carryovers) =>
-                        _onFloatCarryover(index, carryovers),
-                    pluginRegistry: widget.pluginRegistry,
-                    onRenderBoxReady: (box) => _sectionBoxes[index] = box,
-                  ),
-          );
+          final Widget chunk = selCtrl != null
+              ? VirtualizedChunk(
+                  chunkIndex: index,
+                  document: _sections![index],
+                  selectionController: selCtrl,
+                  selectable: widget.selectable,
+                  selectionColor: widget.selectionColor,
+                  textDirection: dir,
+                  onLinkTap: _safeOnLinkTap,
+                  widgetBuilder: _effectiveWidgetBuilder,
+                  debugShowBounds: widget.debugShowHyperRenderBounds,
+                  enableComplexFilters: widget.enableComplexFilters,
+                  config: _effectiveConfig,
+                  suppressFirstBlockMarginTop: index > 0,
+                  initialFloats: prevCarryover,
+                  onFloatCarryover: (carryovers) =>
+                      _onFloatCarryover(index, carryovers),
+                  pluginRegistry: widget.pluginRegistry,
+                  onRenderBoxReady: (box) => _sectionBoxes[index] = box,
+                )
+              : HyperRenderWidget(
+                  document: _sections![index],
+                  selectable: false,
+                  textDirection: dir,
+                  onLinkTap: _safeOnLinkTap,
+                  widgetBuilder: _effectiveWidgetBuilder,
+                  debugShowBounds: widget.debugShowHyperRenderBounds,
+                  enableComplexFilters: widget.enableComplexFilters,
+                  config: _effectiveConfig,
+                  suppressFirstBlockMarginTop: index > 0,
+                  initialFloats: prevCarryover,
+                  onFloatCarryover: (carryovers) =>
+                      _onFloatCarryover(index, carryovers),
+                  pluginRegistry: widget.pluginRegistry,
+                  onRenderBoxReady: (box) => _sectionBoxes[index] = box,
+                );
+
+          // RenderHyperBox is already an internal RepaintBoundary
+          // (isRepaintBoundary => true); the outer widget-layer wrapper adds
+          // explicit isolation that ListView's compositor recognises. On
+          // very low-RAM devices with many small chunks the extra layers can
+          // exhaust VRAM, so HyperRenderConfig.useRepaintBoundary lets users
+          // opt out.
+          if (_effectiveConfig.useRepaintBoundary) {
+            return RepaintBoundary(key: sectionKey, child: chunk);
+          }
+          return KeyedSubtree(key: sectionKey, child: chunk);
         },
       );
 
@@ -1686,13 +1698,14 @@ class _HyperViewerState extends State<HyperViewer>
           );
         }
 
-        return RepaintBoundary(
-          key: sectionKey,
-          child: SingleChildScrollView(
-            physics: widget.physics ?? const ClampingScrollPhysics(),
-            child: pageContent,
-          ),
+        final scrollable = SingleChildScrollView(
+          physics: widget.physics ?? const ClampingScrollPhysics(),
+          child: pageContent,
         );
+        if (_effectiveConfig.useRepaintBoundary) {
+          return RepaintBoundary(key: sectionKey, child: scrollable);
+        }
+        return KeyedSubtree(key: sectionKey, child: scrollable);
       },
     );
 
