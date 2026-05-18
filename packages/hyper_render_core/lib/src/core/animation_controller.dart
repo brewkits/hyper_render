@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../model/computed_style.dart';
@@ -356,11 +358,25 @@ class HyperAnimatedWidget extends StatefulWidget {
 }
 
 class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
-    with SingleTickerProviderStateMixin {
+    // TickerProviderStateMixin (not Single...) because didUpdateWidget below
+    // disposes the current AnimationController and creates a new one when
+    // the animation name / duration / curve / keyframes lookup changes.
+    // Single... asserts on the second `createTicker()` call and crashes the
+    // app in live-update scenarios (e.g. a markdown editor that swaps the
+    // animation prop on every keystroke).
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
   HyperKeyframes? _keyframes;
   int _currentIteration = 0;
+
+  /// Pending delayed-start timer, retained so [_cancelPendingStart] can
+  /// drop the callback when the widget rebuilds or unmounts. Without this
+  /// a fast didUpdateWidget cycle (e.g. live editor typing) would let an
+  /// older Future.delayed fire forward() on the freshly-installed
+  /// AnimationController — harmless under current Flutter semantics but
+  /// still an unintended duplicate start.
+  Timer? _pendingStart;
 
   @override
   void initState() {
@@ -409,14 +425,29 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
       }
     });
 
-    // Start animation after delay
+    // Start animation after delay.
+    //
+    // We use a [Timer] (retained in [_pendingStart]) instead of bare
+    // [Future.delayed] so that a subsequent [didUpdateWidget] which replaces
+    // [_controller] can cancel this pending start — otherwise the new
+    // controller would receive a stray forward() once the old delay
+    // resolves. NOTE for reviewers: the Dart closure here reads
+    // `this._controller` at call time, so the timer can NEVER touch a
+    // disposed controller — `mounted` already covers the unmount case and
+    // [_cancelPendingStart] covers the in-place rebuild case.
     if (widget.autoPlay && _keyframes != null) {
-      Future.delayed(widget.delay, () {
+      _pendingStart = Timer(widget.delay, () {
+        _pendingStart = null;
         if (mounted) {
           _controller.forward();
         }
       });
     }
+  }
+
+  void _cancelPendingStart() {
+    _pendingStart?.cancel();
+    _pendingStart = null;
   }
 
   @override
@@ -427,6 +458,7 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
         oldWidget.duration != widget.duration ||
         oldWidget.curve != widget.curve ||
         oldWidget.keyframesLookup != widget.keyframesLookup) {
+      _cancelPendingStart();
       _controller.dispose();
       _setupAnimation();
     }
@@ -434,6 +466,7 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
 
   @override
   void dispose() {
+    _cancelPendingStart();
     _controller.dispose();
     super.dispose();
   }

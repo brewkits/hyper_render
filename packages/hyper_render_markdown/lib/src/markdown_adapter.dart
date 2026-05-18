@@ -234,13 +234,13 @@ class MarkdownAdapter {
       // Link — sanitize href to block javascript:/vbscript: XSS
       case 'a':
         final rawHref = attributes['href'] ?? '#';
-        final href = _isSafeUrl(rawHref) ? rawHref : '#';
+        final href = UrlSafety.isSafe(rawHref) ? rawHref : '#';
         return InlineNode.a(href: href, children: children);
 
       // Image — sanitize src to block javascript:/data: XSS
       case 'img':
         final rawSrc = attributes['src'] ?? '';
-        final src = _isSafeUrl(rawSrc) ? rawSrc : '';
+        final src = UrlSafety.isSafe(rawSrc) ? rawSrc : '';
         final alt = attributes['alt'];
         return AtomicNode.img(src: src, alt: alt);
 
@@ -366,21 +366,6 @@ class MarkdownAdapter {
     }
     return result;
   }
-}
-
-/// URL safety guard — mirrors HtmlSanitizer.isSafeUrl in the root package.
-/// Strips ASCII control characters (incl. tab/newline bypass tricks) before
-/// checking the scheme, per WHATWG URL spec §4.1.
-bool _isSafeUrl(String url) {
-  final cleaned =
-      url.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '').trim().toLowerCase();
-  if (cleaned.startsWith('javascript:')) return false;
-  if (cleaned.startsWith('vbscript:')) return false;
-  if (cleaned.startsWith('data:image/svg')) return false;
-  if (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/')) {
-    return false;
-  }
-  return true;
 }
 
 /// Extension methods for MarkdownAdapter

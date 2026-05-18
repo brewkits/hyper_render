@@ -228,9 +228,6 @@ class RenderHyperBox extends RenderBox
   double? _cachedMinIntrinsicWidth;
   double? _cachedMaxIntrinsicWidth;
 
-  /// Character offset to fragment mapping
-  final Map<int, Fragment> _characterToFragment = {};
-
   /// Cumulative character count at the start of each line.
   ///
   /// `_lineStartOffsets[i]` is the number of text/ruby characters that
@@ -354,10 +351,6 @@ class RenderHyperBox extends RenderBox
 
   /// Track list item indices for ordered lists
   final Map<UDTNode, int> _listItemIndices = {};
-
-  /// Fragment range for efficient character lookup
-  final List<(int, int, Fragment)> _fragmentRanges =
-      []; // (startIndex, endIndex, fragment)
 
   /// Maps fragment → its linked child RenderBox for O(1) paint-time lookup.
   /// Rebuilt at the end of [_layoutChildren]; cleared by [_invalidateLayout].
@@ -703,8 +696,6 @@ class RenderHyperBox extends RenderBox
     _rightFloats.clear();
     _inlineDecorations.clear();
     _blockDecorations.clear();
-    _characterToFragment.clear();
-    _fragmentRanges.clear();
     _lineStartOffsets.clear();
     _fragmentChildMap.clear();
 
@@ -729,8 +720,6 @@ class RenderHyperBox extends RenderBox
     _rightFloats.clear();
     _inlineDecorations.clear();
     _blockDecorations.clear();
-    _characterToFragment.clear();
-    _fragmentRanges.clear();
     _lineStartOffsets.clear();
     _totalCharacterCount = 0;
     _cachedMinIntrinsicWidth = null;
@@ -1077,7 +1066,10 @@ class RenderHyperBox extends RenderBox
   double _computeHeightForWidth(double width) {
     if (_document == null) return 0;
 
-    _maxWidth = width;
+    // Same unbounded-constraint guard as performLayout: callers that pass
+    // double.infinity (intrinsic queries from unbounded parents) would
+    // propagate infinity into flex child layout and trip an assertion.
+    _maxWidth = width.isFinite ? width : _kUnboundedWidthFallback;
     _ensureFragments();
     _performLineLayout(intrinsicMode: true);
 
@@ -1109,7 +1101,15 @@ class RenderHyperBox extends RenderBox
     }
 
     try {
-      _maxWidth = constraints.maxWidth;
+      // Unbounded horizontal constraints (e.g. inside a horizontal
+      // SingleChildScrollView, an unconstrained Row, or an
+      // IntrinsicWidth that defers to maxWidth) would propagate
+      // double.infinity into child layouts — notably _FlexFragment.layout
+      // which fails the `minWidth < double.infinity` assertion. Fall back
+      // to a finite width so downstream measurement stays well-defined.
+      _maxWidth = constraints.maxWidth.isFinite
+          ? constraints.maxWidth
+          : _kUnboundedWidthFallback;
 
       // Step 1: Tokenization — rebuilds only if _fragments was cleared.
       _ensureFragments();

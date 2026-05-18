@@ -65,6 +65,19 @@ class Fragment {
   /// Ruby annotation height (for proper layout)
   double? rubyHeight;
 
+  /// Number of leading characters from [text] that are actually visible after
+  /// a CSS `text-overflow: ellipsis` truncation pass.
+  ///
+  /// `null` (the default) means the fragment is fully visible. A non-null
+  /// value means only `text[0..ellipsisVisibleLength]` reached the screen;
+  /// the rest was clipped (and replaced by a "…" glyph on the visible line).
+  /// `0` indicates the fragment was wholly suppressed by the truncation.
+  ///
+  /// Consumers that surface fragment text outside of paint (selection copy,
+  /// accessibility) must clamp the visible range against this value so that
+  /// hidden text is not leaked — "what you see is what you get".
+  int? ellipsisVisibleLength;
+
   Fragment({
     required this.type,
     this.text,

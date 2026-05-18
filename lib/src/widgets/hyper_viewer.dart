@@ -1262,6 +1262,21 @@ class _HyperViewerState extends State<HyperViewer>
           allowDataAttributes: widget.allowDataAttributes,
         );
       }
+    } else if (widget.contentType == HyperContentType.markdown &&
+        widget.sanitize) {
+      // Markdown with `enableInlineHtml: true` (the default) passes raw HTML
+      // straight to the renderer; `<script>` / `<style>` / `<iframe>` blocks
+      // would otherwise survive into inline nodes and either flash as visible
+      // garbage or — for plugin authors who self-execute embedded scripts —
+      // become a live XSS surface. Pre-sanitize the markdown string so the
+      // same blocklist used for HTML applies; plain markdown syntax (`#`,
+      // `*`, `[`) is left untouched because the HTML parser treats it as
+      // text content.
+      contentToRender = HtmlSanitizer.sanitize(
+        contentToRender,
+        allowedTags: widget.allowedTags,
+        allowDataAttributes: widget.allowDataAttributes,
+      );
     }
 
     final useVirtualization = widget.mode == HyperRenderMode.virtualized ||
