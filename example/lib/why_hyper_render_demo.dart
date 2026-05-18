@@ -537,8 +537,8 @@ class WhyHyperRenderDemo extends StatelessWidget {
                 Icons.check_circle_outline, const Color(0xFF2E7D32))),
         const SizedBox(width: 10),
         Expanded(
-            child: _buildStatCard(
-                '60 FPS', 'Scroll', Icons.speed, Colors.indigo)),
+            child:
+                _buildStatCard('60 FPS', 'Scroll', Icons.speed, Colors.indigo)),
         const SizedBox(width: 10),
         Expanded(
             child: _buildStatCard('<100ms', 'Parse', Icons.timer_outlined,

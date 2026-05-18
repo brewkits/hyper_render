@@ -1,5 +1,40 @@
 # Changelog
 
+## [1.3.2] - 2026-05-18
+
+### Bug Fixes (Critical)
+
+- **[C-1] HyperSelectionOverlay now forwards `config`, `pluginRegistry`, `enableComplexFilters`** — plugins, custom link schemes, keyframe animations and filter settings were silently ignored in sync+selectable and paged+selectable modes. All three params are now accepted by `HyperSelectionOverlay` and forwarded to the inner `HyperRenderWidget`.
+- **[C-2] Fixed GPU memory leak in image cache** — `_imageCache` was missing an `onEvict` callback, so `ui.Image` GPU textures were never disposed when entries were evicted from the LRU. Added `onEvict: (ci) => ci.image?.dispose()` to free GPU memory promptly on eviction.
+- **[C-3] Removed dead `_parseIsolate` / `_parseReceivePort` code** — these fields were declared but never assigned, making `_cancelParsing()` a no-op. Cleaned up unused `dart:isolate` import and fields; `_parseId` counter remains the mechanism for discarding stale parse results.
+- **[C-4] TextPainter global cache now respects `HyperRenderConfig.textPainterCacheSize`** — was hardcoded to 500 regardless of config (default 5000). Added `RenderHyperBox.setGlobalTextCacheSize()` static method; `HyperViewer` calls it in `initState` and `didUpdateWidget`.
+
+### Bug Fixes (High)
+
+- **[H-1] `HyperRenderConfig.operator==` and `hashCode` now include `useMicrotaskParsing`** — changing only this field no longer fails to trigger a re-parse.
+- **[H-2] `ComputedStyle.copyWith()` now copies `_explicitlySet`** — previously the result had an empty explicit-set, causing `inheritFrom()` to overwrite all copyWith'd properties with parent styles, breaking the CSS cascade.
+- **[H-3] `_containsFloatChild` detects `float:left` (no space) and Bootstrap/Tailwind class names** — `float:left`, `float-left`, `float-right`, `float-start`, `float-end`, `pull-left`, `pull-right` are now detected, preventing incorrect section splits in virtualized mode.
+- **[H-4] `isSafeUrl()` blocks `file:`, `mhtml:`, and `about:` schemes** — these can access local filesystem, trigger MHTML exploits, or enable sandbox-escape via `about:blank` on Android/iOS.
+
+### Bug Fixes (Medium)
+
+- **[M-1] `_effectiveConfig` is now cached** — was allocating a new `HyperRenderConfig` on every `build()` call (every scroll frame). Cache is invalidated when `renderConfig`, `allowedCustomSchemes`, or document keyframes change.
+- **[M-2] `HyperViewer.fromNode` now accepts `pluginRegistry` and `onError`** — previously hardcoded to `null`, making plugins and error handling unavailable for pre-parsed AST consumers.
+- **[M-3] `_buildPagedContent` no longer allocates a discarded `HyperRenderWidget`** — restructured to if/else so only one widget is built per page in selectable mode.
+- **[M-4] `_TextPainterKey` now includes `wordSpacing`** — two fragments with identical text but different `word-spacing` no longer share the same `TextPainter`, preventing incorrect layout widths.
+
+### Performance (Low)
+
+- **[L-1] `LazyImageQueue._findQueued` is now O(1)** — added `_urlToQueued` secondary index; previously O(N) causing O(N²) batch behavior with many simultaneous image loads.
+- **[L-2] `_hasDetailFragments` flag replaces O(N) scan** — `performLayout` no longer scans all fragments to check for `<details>` elements; flag is set during tokenization.
+
+### Fixes (Low)
+
+- **[L-3] `_splitIntoSections` no longer overwrites existing node parents** — changed `child.parent = current` to `if (child.parent == null) child.parent = current` to avoid corrupting ancestor-chain traversal on reused section nodes.
+- **[L-4] Removed dead `_draggingHandle` field** from `HyperSelectionOverlayState`.
+
+---
+
 ## [1.3.1] - 2026-05-14
 
 ### ⚠️ Migration from 1.3.0

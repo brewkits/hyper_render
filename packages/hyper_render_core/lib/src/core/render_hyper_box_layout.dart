@@ -247,6 +247,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         sourceNode: node,
         style: style,
       ));
+      _hasDetailFragments = true;
     } else {
       for (final child in node.children) {
         _tokenizeNode(child, node);
@@ -613,6 +614,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       fontFamily: style.fontFamily,
       lineHeight: style.lineHeight,
       letterSpacing: style.letterSpacing,
+      wordSpacing: style.wordSpacing,
       textDirection: fragmentDirection,
     );
 

@@ -180,6 +180,7 @@ class HyperRenderConfig {
         other.defaultImagePlaceholderWidth == defaultImagePlaceholderWidth &&
         other.imageConcurrency == imageConcurrency &&
         other.virtualizationChunkSize == virtualizationChunkSize &&
+        other.useMicrotaskParsing == useMicrotaskParsing &&
         other.codeHighlighter == codeHighlighter &&
         other.extraLinkSchemes == extraLinkSchemes &&
         _mapsEqual(other.keyframeRegistry, keyframeRegistry);
@@ -192,6 +193,7 @@ class HyperRenderConfig {
         defaultImagePlaceholderWidth,
         imageConcurrency,
         virtualizationChunkSize,
+        useMicrotaskParsing,
         codeHighlighter,
         Object.hashAll(extraLinkSchemes),
         Object.hashAll(keyframeRegistry.keys),

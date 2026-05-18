@@ -179,6 +179,7 @@ class _TextPainterKey {
   final String? fontFamily;
   final double? lineHeight;
   final double? letterSpacing;
+  final double? wordSpacing;
   final ui.TextDirection textDirection;
 
   const _TextPainterKey({
@@ -190,6 +191,7 @@ class _TextPainterKey {
     required this.fontFamily,
     required this.lineHeight,
     required this.letterSpacing,
+    required this.wordSpacing,
     required this.textDirection,
   });
 
@@ -205,6 +207,7 @@ class _TextPainterKey {
         other.fontFamily == fontFamily &&
         other.lineHeight == lineHeight &&
         other.letterSpacing == letterSpacing &&
+        other.wordSpacing == wordSpacing &&
         other.textDirection == textDirection;
   }
 
@@ -218,6 +221,7 @@ class _TextPainterKey {
         fontFamily,
         lineHeight,
         letterSpacing,
+        wordSpacing,
         textDirection,
       );
 }
@@ -276,6 +280,7 @@ class _LruCache<K, V> {
   }
 
   int get length => _cache.length;
+  int get maxSize => _maxSize;
 
   Iterable<V> get values => _cache.values;
 }

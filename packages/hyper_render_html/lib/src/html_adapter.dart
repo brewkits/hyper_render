@@ -437,9 +437,23 @@ class HtmlAdapter {
 
   bool _containsFloatChild(dom.Node node) {
     if (node is dom.Element) {
-      final style = node.attributes['style'];
-      if (style != null &&
-          (style.contains('float: left') || style.contains('float: right'))) {
+      // Inline style: match with or without space around the colon (float:left / float: left)
+      final style = node.attributes['style'] ?? '';
+      if (style.contains('float:left') ||
+          style.contains('float: left') ||
+          style.contains('float:right') ||
+          style.contains('float: right')) {
+        return true;
+      }
+      // CSS utility class names: Bootstrap 3 (pull-*), Bootstrap 4/5 (float-*,
+      // float-start, float-end), Tailwind (float-left, float-right).
+      final classes = node.attributes['class'] ?? '';
+      if (classes.contains('float-left') ||
+          classes.contains('float-right') ||
+          classes.contains('float-start') ||
+          classes.contains('float-end') ||
+          classes.contains('pull-left') ||
+          classes.contains('pull-right')) {
         return true;
       }
       for (final child in node.nodes) {
