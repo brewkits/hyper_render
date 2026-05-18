@@ -636,8 +636,15 @@ class RenderHyperBox extends RenderBox
   /// Releases in-memory caches without destroying the render object.
   ///
   /// Call this when the system signals low memory (e.g. from
-  /// [WidgetsBindingObserver.didHaveMemoryPressure]). Text painters and
-  /// images will be re-created on the next layout/paint pass.
+  /// [WidgetsBindingObserver.didHaveMemoryPressure]). TextPainters are
+  /// disposed; image cache is dropped AND re-queued so visible images
+  /// reload through the LazyImageQueue priority pipeline.
+  ///
+  /// Without the re-queue step, [_loadImages] would never run again for
+  /// this RenderObject (it's only called from [attach], [set document],
+  /// and [set imageLoader]) — leaving every on-screen image stuck in the
+  /// empty-placeholder state until the user scrolls the section out and
+  /// back into view to force a detach+attach cycle.
   ///
   /// ```dart
   /// // In your State:
@@ -649,6 +656,11 @@ class RenderHyperBox extends RenderBox
   void clearMemoryCaches() {
     _disposeTextPainters();
     _disposeImages();
+    // Re-queue image loads: cache was just cleared, so containsKey() is false
+    // for every src and _loadImages() will re-enqueue them. The LRU bound and
+    // concurrency cap on LazyImageQueue prevent re-OOMing on memory-pressed
+    // devices. Only run when attached — _loadImages() assumes a live RO.
+    if (attached) _loadImages();
     markNeedsLayout(); // Re-measure text after cache clear
   }
 

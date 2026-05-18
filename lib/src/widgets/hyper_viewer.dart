@@ -689,6 +689,16 @@ class _HyperViewerState extends State<HyperViewer>
   /// initialFloats to section N+1.
   final List<List<FloatCarryover>> _floatCarryovers = [];
 
+  /// Per-section [RenderHyperBox] registry, keyed by chunk index.
+  ///
+  /// Populated by the `onRenderBoxReady` callback fired in
+  /// [HyperRenderWidget.createRenderObject] / `updateRenderObject` whenever a
+  /// section's render object is created or updated. Lets [_onFloatCarryover]
+  /// synchronously push new `initialFloats` to section N+1's RenderObject
+  /// during section N's layout pass — eliminating the 1-frame visual flash
+  /// that an `addPostFrameCallback + setState` round-trip causes.
+  final Map<int, RenderHyperBox> _sectionBoxes = {};
+
   /// Monotonically-increasing counter that prevents stale isolate results
   /// from overwriting a newer parse when the content changes rapidly.
   int _parseId = 0;
@@ -867,14 +877,52 @@ class _HyperViewerState extends State<HyperViewer>
 
   /// Stable content fingerprint for a single [DocumentNode] section.
   ///
-  /// Hashes the concatenation of every top-level child's [UDTNode.textContent]
-  /// plus the child count.  Identical text structure → identical hash → the
-  /// existing [RenderHyperBox] instance is reused and skips re-layout.
+  /// Walks the entire subtree and accumulates:
+  ///   - Node tagName + type
+  ///   - TextNode text content
+  ///   - AtomicNode src/alt (so `<img src="a.jpg">` ≠ `<img src="b.jpg">`)
+  ///   - All HTML attributes (so class/id/style/href changes invalidate the cache)
+  ///   - Child count at every depth
+  ///
+  /// Without including attributes, two parses producing structurally identical
+  /// trees with different `src` / `class` / `style` hash to the same value,
+  /// causing [_mergeSections] to reuse the stale [DocumentNode] and silently
+  /// drop the new AST — freezing dynamic content (image swaps, theme toggles,
+  /// state class changes) at the first-rendered version.
   static int _hashSection(DocumentNode doc) {
-    return Object.hashAll([
-      doc.children.length,
-      ...doc.children.map((c) => c.textContent),
-    ]);
+    final parts = <Object?>[];
+    _accumulateHashParts(doc, parts);
+    return Object.hashAll(parts);
+  }
+
+  static void _accumulateHashParts(UDTNode node, List<Object?> out) {
+    out
+      ..add(node.type)
+      ..add(node.tagName);
+
+    if (node is TextNode) {
+      out.add(node.text);
+    } else if (node is AtomicNode) {
+      out
+        ..add(node.src)
+        ..add(node.alt);
+    }
+
+    // Attributes — keys sorted so map ordering doesn't change the hash.
+    final attrs = node.attributes;
+    if (attrs.isNotEmpty) {
+      final keys = attrs.keys.toList()..sort();
+      for (final k in keys) {
+        out
+          ..add(k)
+          ..add(attrs[k]);
+      }
+    }
+
+    out.add(node.children.length);
+    for (final child in node.children) {
+      _accumulateHashParts(child, out);
+    }
   }
 
   /// Merges freshly parsed [newSections] with the current [_sections] list,
@@ -1035,17 +1083,32 @@ class _HyperViewerState extends State<HyperViewer>
     return (UDTNode node) => buildSvgWidget(node) ?? userBuilder?.call(node);
   }
 
-  /// Stores dangling floats from section [index] and triggers a rebuild of
-  /// section [index+1] so it receives the updated [initialFloats].
+  /// Stores dangling floats from section [index] so section [index+1] picks
+  /// them up the next time it lays out.
+  ///
+  /// Called from `RenderHyperBox.performLayout` during section [index]'s
+  /// layout pass. We CANNOT call [setState] here ("setState during layout"
+  /// assertion) so we mutate [_floatCarryovers] silently and push the new
+  /// floats directly onto section [index+1]'s RenderObject (when registered
+  /// via [_sectionBoxes]). The RO's `initialFloats` setter calls
+  /// `markNeedsLayout()`, which Flutter's pipeline owner picks up — section
+  /// [index+1] then lays out with the correct initialFloats IN THE SAME
+  /// frame, avoiding the 1-frame visual flash that an
+  /// `addPostFrameCallback + setState` round-trip caused previously.
+  ///
+  /// When section [index+1] hasn't been built yet (outside viewport), the
+  /// direct-update path is skipped — but [_floatCarryovers] is still updated
+  /// so [ListView.builder]'s itemBuilder picks up the correct value when the
+  /// section eventually scrolls into view.
   void _onFloatCarryover(int index, List<FloatCarryover> carryovers) {
     if (!mounted) return;
     // Grow the list if needed.
     while (_floatCarryovers.length <= index) {
       _floatCarryovers.add(const []);
     }
-    // Only rebuild if the carryover actually changed.
+    // No-op short-circuit: nothing to propagate.
     final prev = _floatCarryovers[index];
-    if (prev.length == carryovers.length && prev.isEmpty) return;
+    if (prev.isEmpty && carryovers.isEmpty) return;
 
     bool isSame = prev.length == carryovers.length;
     if (isSame) {
@@ -1060,15 +1123,20 @@ class _HyperViewerState extends State<HyperViewer>
     }
     if (isSame) return;
 
-    // FIX: setState called during layout.
-    // Carryovers are often detected during a RenderBox layout pass.
-    // We must schedule the update to the next frame to avoid Flutter errors.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      setState(() {
-        _floatCarryovers[index] = carryovers;
-      });
-    });
+    // 1) Update storage immediately — itemBuilder closures capture this list,
+    //    so subsequent rebuilds (and any later widget reads) see the new value
+    //    without needing setState.
+    _floatCarryovers[index] = carryovers;
+
+    // 2) Push directly onto section N+1's RenderObject if it exists. Because
+    //    we're running inside section N's performLayout (i.e. before section
+    //    N+1's layout begins), the markNeedsLayout that fires from the setter
+    //    is consumed by the same frame's pipeline — section N+1 lays out with
+    //    the new initialFloats and the text wraps correctly on first paint.
+    final next = _sectionBoxes[index + 1];
+    if (next != null && next.attached) {
+      next.initialFloats = carryovers;
+    }
   }
 
   static const _kAllowedSchemes = {'http', 'https', 'mailto', 'tel'};
@@ -1144,6 +1212,10 @@ class _HyperViewerState extends State<HyperViewer>
     _cachedEffectiveConfig = null;
     _sectionHashes = const [];
     _lastNotifiedPageCount = -1;
+    // Drop stale section RenderBox references — new sections will re-register
+    // via onRenderBoxReady. Without this, _onFloatCarryover could write to a
+    // RenderObject belonging to the previous document.
+    _sectionBoxes.clear();
 
     String contentToRender = widget.content;
     // CSS collected from <style> tags + customCss (applied to resolver directly,
@@ -1411,6 +1483,7 @@ class _HyperViewerState extends State<HyperViewer>
                     onFloatCarryover: (carryovers) =>
                         _onFloatCarryover(index, carryovers),
                     pluginRegistry: widget.pluginRegistry,
+                    onRenderBoxReady: (box) => _sectionBoxes[index] = box,
                   )
                 : HyperRenderWidget(
                     document: _sections![index],
@@ -1426,6 +1499,7 @@ class _HyperViewerState extends State<HyperViewer>
                     onFloatCarryover: (carryovers) =>
                         _onFloatCarryover(index, carryovers),
                     pluginRegistry: widget.pluginRegistry,
+                    onRenderBoxReady: (box) => _sectionBoxes[index] = box,
                   ),
           );
         },

@@ -150,6 +150,13 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// See [HyperNodePlugin] for the block vs inline distinction.
   final HyperPluginRegistry? pluginRegistry;
 
+  /// Called synchronously with the [RenderHyperBox] right after it is created
+  /// or updated. Allows the parent to keep a registry of section render boxes
+  /// for cross-section communication (e.g. synchronous float-carryover propagation
+  /// from section N to section N+1 within the same layout pass — avoids the
+  /// 1-frame flash that an `addPostFrameCallback` + `setState` round-trip causes).
+  final void Function(RenderHyperBox box)? onRenderBoxReady;
+
   /// Creates a HyperRenderWidget
   ///
   /// The [document] parameter is required and contains the parsed UDT tree.
@@ -173,6 +180,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.config = HyperRenderConfig.defaults,
     this.initialFloats = const [],
     this.pluginRegistry,
+    this.onRenderBoxReady,
   }) : super(
             children: _buildChildren(document, widgetBuilder,
                 selectable: selectable,
@@ -750,7 +758,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
 
   @override
   RenderHyperBox createRenderObject(BuildContext context) {
-    return RenderHyperBox(
+    final box = RenderHyperBox(
       document: document,
       baseStyle: baseStyle,
       onLinkTap: onLinkTap,
@@ -769,6 +777,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       ..onFloatCarryover = onFloatCarryover
       ..blockPluginTags = pluginRegistry?.blockPluginTags ?? const {}
       ..inlinePluginTags = pluginRegistry?.inlinePluginTags ?? const {};
+    onRenderBoxReady?.call(box);
+    return box;
   }
 
   @override
@@ -826,6 +836,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (!_setEquals(renderObject.inlinePluginTags, newInlineTags)) {
       renderObject.inlinePluginTags = newInlineTags;
     }
+
+    // Re-register the box with the parent on every update so the registry
+    // tracks the current (possibly recycled) RenderObject for this index.
+    onRenderBoxReady?.call(renderObject);
   }
 }
 
