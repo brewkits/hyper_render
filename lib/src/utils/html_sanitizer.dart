@@ -303,6 +303,13 @@ class HtmlSanitizer {
     if (cleaned.startsWith('data:') && !cleaned.startsWith('data:image/')) {
       return false;
     }
+    // Mobile-specific dangerous schemes:
+    // file: — can read local filesystem, contacts, private app storage on Android/iOS.
+    // mhtml: — MHTML archive format; used as a XSS vector on Android WebView.
+    // about: — about:blank is a classic XSS sandbox escape vector.
+    if (cleaned.startsWith('file:')) return false;
+    if (cleaned.startsWith('mhtml:')) return false;
+    if (cleaned.startsWith('about:')) return false;
     return true;
   }
 

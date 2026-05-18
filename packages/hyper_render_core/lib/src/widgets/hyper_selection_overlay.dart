@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:hyper_render_core/hyper_render_core.dart' show DesignTokens;
+import '../core/hyper_render_config.dart';
 import '../core/render_hyper_box.dart';
+import '../interfaces/node_plugin.dart';
 import '../model/node.dart';
 import 'hyper_render_widget.dart';
 
@@ -82,6 +84,19 @@ class HyperSelectionOverlay extends StatefulWidget {
     List<({int level, String text, String? cssId, double yOffset})> headings,
   )? onAnchorLayout;
 
+  /// Engine configuration — cache sizes, link schemes, keyframe registry, etc.
+  /// Forwarded to the inner [HyperRenderWidget] so plugins, animations, and
+  /// scheme checks work correctly in selectable mode.
+  final HyperRenderConfig config;
+
+  /// Optional registry of custom HTML tag plugins.
+  /// Forwarded to the inner [HyperRenderWidget].
+  final HyperPluginRegistry? pluginRegistry;
+
+  /// When false, skips canvas.saveLayer for backdrop-filter / CSS filter.
+  /// Forwarded to the inner [HyperRenderWidget].
+  final bool enableComplexFilters;
+
   const HyperSelectionOverlay({
     super.key,
     required this.document,
@@ -99,6 +114,9 @@ class HyperSelectionOverlay extends StatefulWidget {
     this.autoShowMenu = true,
     this.debugShowBounds = false,
     this.onAnchorLayout,
+    this.config = HyperRenderConfig.defaults,
+    this.pluginRegistry,
+    this.enableComplexFilters = true,
   });
 
   @override
@@ -120,10 +138,6 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
   Rect? _startHandleRect;
   Rect? _endHandleRect;
   List<Rect> _selectionRects = const [];
-
-  /// Which handle is being dragged (for potential future animation/haptic feedback)
-  // ignore: unused_field
-  _HandlePosition? _draggingHandle;
 
   /// Holds the scroll position while a handle is being dragged, preventing
   /// the ancestor SingleChildScrollView / ListView from scrolling and stealing
@@ -395,6 +409,9 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
                     onSelectionChanged: _onSelectionChanged,
                     debugShowBounds: widget.debugShowBounds,
                     onAnchorLayout: widget.onAnchorLayout,
+                    config: widget.config,
+                    pluginRegistry: widget.pluginRegistry,
+                    enableComplexFilters: widget.enableComplexFilters,
                   ),
                 ),
               ),
@@ -491,7 +508,6 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
       top: top,
       child: GestureDetector(
         onPanStart: (_) {
-          _draggingHandle = position;
           _focusNode.requestFocus();
           _hideMenu(); // Hide menu while dragging
           // Freeze the ancestor scroll view so the handle drag wins the arena.
@@ -513,14 +529,12 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
           _autoScrollIfNearEdge(details.globalPosition);
         },
         onPanEnd: (_) {
-          _draggingHandle = null;
           _releaseScrollHold(); // Restore scroll after handle drag completes.
           if (hasSelection && widget.autoShowMenu) {
             _showMenu();
           }
         },
         onPanCancel: () {
-          _draggingHandle = null;
           _releaseScrollHold();
         },
         child: CustomPaint(

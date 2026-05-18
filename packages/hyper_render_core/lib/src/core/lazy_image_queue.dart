@@ -37,6 +37,10 @@ class LazyImageQueue {
 
   final _queue = SplayTreeMap<_QueueKey, _PendingLoad>();
 
+  /// Secondary index: url → queued load for O(1) duplicate detection.
+  /// Kept in sync with [_queue] in [enqueue], [cancel], and [_pump].
+  final Map<String, _PendingLoad> _urlToQueued = {};
+
   /// Loads currently in-flight (loader called, result not yet received).
   final Set<_PendingLoad> _inFlight = {};
 
@@ -76,16 +80,18 @@ class LazyImageQueue {
       }
     }
 
-    // Check queued — merge or re-prioritise.
+    // Check queued — merge or re-prioritise (O(1) via secondary index).
     final existing = _findQueued(url);
     if (existing != null) {
       if (priority < existing.priority) {
         // Re-prioritise: remove and re-insert with new priority.
         _queue.remove(existing.key);
+        _urlToQueued.remove(url);
         final updated = existing.copyWithPriority(priority, _sequenceCounter++);
         updated.onLoadCallbacks[token] = onLoad;
         updated.onErrorCallbacks[token] = onError;
         _queue[updated.key] = updated;
+        _urlToQueued[url] = updated;
       } else {
         existing.onLoadCallbacks[token] = onLoad;
         existing.onErrorCallbacks[token] = onError;
@@ -94,7 +100,7 @@ class LazyImageQueue {
     }
 
     final key = _QueueKey(priority, _sequenceCounter++);
-    _queue[key] = _PendingLoad(
+    final load = _PendingLoad(
       key: key,
       url: url,
       priority: priority,
@@ -102,6 +108,8 @@ class LazyImageQueue {
       onLoadCallbacks: {token: onLoad},
       onErrorCallbacks: {token: onError},
     );
+    _queue[key] = load;
+    _urlToQueued[url] = load;
 
     _pump();
     return token;
@@ -118,18 +126,17 @@ class LazyImageQueue {
     final url = _tokenToUrl.remove(token);
     if (url == null) return; // already completed or invalid token
 
-    // Search queued loads.
-    for (final entry in _queue.entries) {
-      if (entry.value.url == url) {
-        final load = entry.value;
-        load.onLoadCallbacks.remove(token);
-        load.onErrorCallbacks.remove(token);
-        // Remove the queue entry if no subscribers remain — no point loading.
-        if (load.onLoadCallbacks.isEmpty) {
-          _queue.remove(entry.key);
-        }
-        return;
+    // Search queued loads (O(1) via secondary index).
+    final load = _urlToQueued[url];
+    if (load != null) {
+      load.onLoadCallbacks.remove(token);
+      load.onErrorCallbacks.remove(token);
+      // Remove the queue entry if no subscribers remain — no point loading.
+      if (load.onLoadCallbacks.isEmpty) {
+        _queue.remove(load.key);
+        _urlToQueued.remove(url);
       }
+      return;
     }
 
     // Search in-flight loads.
@@ -174,6 +181,7 @@ class LazyImageQueue {
       }
     }
     _queue.clear();
+    _urlToQueued.clear();
   }
 
   /// Resets all internal state for testing purposes.
@@ -188,6 +196,7 @@ class LazyImageQueue {
     }
     _inFlight.clear();
     _queue.clear();
+    _urlToQueued.clear();
     _tokenToUrl.clear();
     _active = 0;
     _sequenceCounter = 0;
@@ -198,6 +207,7 @@ class LazyImageQueue {
     while (_active < maxConcurrent && _queue.isNotEmpty) {
       final entry = _queue.entries.first;
       _queue.remove(entry.key);
+      _urlToQueued.remove(entry.value.url);
       _startLoad(entry.value);
     }
   }
@@ -248,12 +258,7 @@ class LazyImageQueue {
     );
   }
 
-  _PendingLoad? _findQueued(String url) {
-    for (final load in _queue.values) {
-      if (load.url == url) return load;
-    }
-    return null;
-  }
+  _PendingLoad? _findQueued(String url) => _urlToQueued[url];
 }
 
 // ---------------------------------------------------------------------------

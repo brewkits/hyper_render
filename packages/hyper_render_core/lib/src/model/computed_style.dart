@@ -935,6 +935,12 @@ class ComputedStyle {
       flexBasis: flexBasis ?? this.flexBasis,
       alignSelf: alignSelf ?? this.alignSelf,
     );
+    // Preserve CSS cascade tracking: properties explicitly set on this element
+    // must not be overwritten by inheritFrom() on the result. Without this,
+    // every property copied via copyWith() appears "not explicitly set" and gets
+    // overridden by parent styles — breaking the CSS specificity cascade.
+    result._explicitlySet.addAll(_explicitlySet);
+
     // Copy non-constructor grid fields and custom properties
     result.gridTemplateColumns =
         gridTemplateColumns ?? this.gridTemplateColumns;

@@ -1,5 +1,3 @@
-import 'dart:isolate';
-
 import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -610,6 +608,8 @@ class HyperViewer extends StatefulWidget {
     this.physics,
     this.controller,
     this.renderConfig = HyperRenderConfig.defaults,
+    this.pluginRegistry,
+    this.onError,
   })  : content = '',
         contentType = HyperContentType.html,
         mode = HyperRenderMode.sync,
@@ -622,9 +622,7 @@ class HyperViewer extends StatefulWidget {
         allowDataAttributes = false,
         baseUrl = null,
         customCss = null,
-        onError = null,
         pageController = null,
-        pluginRegistry = null,
         _prebuiltDocument = document;
 
   @override
@@ -661,11 +659,6 @@ class _HyperViewerState extends State<HyperViewer>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _contentFadeController;
   late final Animation<double> _contentFadeAnimation;
-
-  /// Active parse isolate — killed immediately when content changes or widget
-  /// is disposed, preventing CPU waste from abandoned parses.
-  Isolate? _parseIsolate;
-  ReceivePort? _parseReceivePort;
 
   // Used for Sync mode
   DocumentNode? _syncDocument;
@@ -712,6 +705,13 @@ class _HyperViewerState extends State<HyperViewer>
   /// automatically work without any extra configuration.
   Map<String, HyperKeyframes> _docKeyframes = const {};
 
+  /// Cached result of [_buildEffectiveConfig].
+  ///
+  /// Invalidated whenever [widget.renderConfig], [widget.allowedCustomSchemes],
+  /// or [_docKeyframes] changes. Avoids allocating a new [HyperRenderConfig]
+  /// on every [build()] call (which runs on every scroll frame).
+  HyperRenderConfig? _cachedEffectiveConfig;
+
   /// GlobalKey placed on the Stack that wraps the virtualized ListView.
   /// Used by [VirtualizedSelectionController] to convert chunk-local
   /// coordinates to Stack coordinates for handle and menu positioning.
@@ -726,9 +726,13 @@ class _HyperViewerState extends State<HyperViewer>
   ///      so the render layer's scheme check in [RenderHyperBox.handleEvent] allows
   ///      the same custom deep-link schemes as the widget-layer [_safeOnLinkTap].
   ///
-  /// Without (2), a scheme present only in [allowedCustomSchemes] is silently
-  /// blocked by the render layer before [_safeOnLinkTap] ever sees the tap.
-  HyperRenderConfig get _effectiveConfig {
+  /// Result is cached in [_cachedEffectiveConfig] and invalidated when
+  /// [widget.renderConfig], [widget.allowedCustomSchemes], or [_docKeyframes] changes,
+  /// avoiding per-frame allocations during scroll/animation.
+  HyperRenderConfig get _effectiveConfig =>
+      _cachedEffectiveConfig ??= _buildEffectiveConfig();
+
+  HyperRenderConfig _buildEffectiveConfig() {
     final rc = widget.renderConfig;
     final customSchemes = widget.allowedCustomSchemes;
     final hasDocKeyframes = _docKeyframes.isNotEmpty;
@@ -763,6 +767,8 @@ class _HyperViewerState extends State<HyperViewer>
   @override
   void initState() {
     super.initState();
+    RenderHyperBox.setGlobalTextCacheSize(
+        widget.renderConfig.textPainterCacheSize);
     WidgetsBinding.instance.addObserver(this);
     _contentFadeController = AnimationController(
       vsync: this,
@@ -807,6 +813,18 @@ class _HyperViewerState extends State<HyperViewer>
       _sectionHashes = const [];
     }
 
+    if (oldWidget.renderConfig.textPainterCacheSize !=
+        widget.renderConfig.textPainterCacheSize) {
+      RenderHyperBox.setGlobalTextCacheSize(
+          widget.renderConfig.textPainterCacheSize);
+    }
+
+    // Invalidate effective-config cache when any input that affects it changes.
+    if (oldWidget.renderConfig != widget.renderConfig ||
+        oldWidget.allowedCustomSchemes != widget.allowedCustomSchemes) {
+      _cachedEffectiveConfig = null;
+    }
+
     if (oldWidget.content != widget.content ||
         oldWidget.contentType != widget.contentType ||
         oldWidget.mode != widget.mode ||
@@ -833,15 +851,16 @@ class _HyperViewerState extends State<HyperViewer>
     super.dispose();
   }
 
-  /// Kills any in-flight parse isolate and closes its ReceivePort.
+  /// Signals that any in-flight parse result should be discarded.
   ///
-  /// Called before spawning a new parse and in [dispose] so we never leave
-  /// a CPU-burning isolate running after the widget is gone.
+  /// [compute()] futures cannot be cancelled after they start — the isolate
+  /// will run to completion regardless. The [_parseId] counter ensures stale
+  /// results are silently dropped when they arrive after content changes.
+  /// Use [HyperRenderConfig.useMicrotaskParsing] in tests to avoid real
+  /// isolate spawning.
   void _cancelParsing() {
-    _parseIsolate?.kill(priority: Isolate.immediate);
-    _parseIsolate = null;
-    _parseReceivePort?.close();
-    _parseReceivePort = null;
+    // Incrementing _parseId is handled by _parseContent() before each parse.
+    // Nothing else to cancel here — compute() is fire-and-forget.
   }
 
   // ── Dirty-flag incremental layout ────────────────────────────────────────
@@ -914,7 +933,10 @@ class _HyperViewerState extends State<HyperViewer>
     for (int i = 0; i < children.length; i++) {
       final child = children[i];
       current.children.add(child);
-      child.parent = current;
+      // Only set parent when the node hasn't been assigned yet — avoids
+      // overwriting the parent pointer of reused nodes from _mergeSections,
+      // which would corrupt ancestor-chain traversal (e.g. link resolution).
+      child.parent ??= current;
       currentSize += child.textContent.length;
 
       if (currentSize >= chunkSize && child.isBlock) {
@@ -1119,6 +1141,7 @@ class _HyperViewerState extends State<HyperViewer>
     // Reset extracted keyframes and section hash cache so stale animations /
     // dirty-flag data don't persist across full content changes.
     _docKeyframes = const {};
+    _cachedEffectiveConfig = null;
     _sectionHashes = const [];
     _lastNotifiedPageCount = -1;
 
@@ -1146,6 +1169,7 @@ class _HyperViewerState extends State<HyperViewer>
         final extracted = cssParser.parseKeyframes(docCss);
         if (extracted.isNotEmpty) {
           _docKeyframes = extracted;
+          _cachedEffectiveConfig = null;
         }
       }
 
@@ -1463,6 +1487,9 @@ class _HyperViewerState extends State<HyperViewer>
           autoShowMenu: true,
           debugShowBounds: widget.debugShowHyperRenderBounds,
           onAnchorLayout: widget.controller?._onAnchorLayout,
+          config: _effectiveConfig,
+          pluginRegistry: widget.pluginRegistry,
+          enableComplexFilters: widget.enableComplexFilters,
         );
       } else {
         // Use HyperRenderWidget directly (no popup menu)
@@ -1548,19 +1575,7 @@ class _HyperViewerState extends State<HyperViewer>
             : ValueKey(index);
         // Each page: full available height, with vertical scroll for overflowing
         // sections (e.g. a single very long chapter).
-        Widget pageContent = HyperRenderWidget(
-          document: sections[index],
-          selectable: widget.selectable,
-          textDirection: dir,
-          onLinkTap: _safeOnLinkTap,
-          widgetBuilder: _effectiveWidgetBuilder,
-          debugShowBounds: widget.debugShowHyperRenderBounds,
-          enableComplexFilters: widget.enableComplexFilters,
-          config: _effectiveConfig,
-          suppressFirstBlockMarginTop: index > 0,
-          pluginRegistry: widget.pluginRegistry,
-        );
-
+        final Widget pageContent;
         if (widget.selectable && widget.showSelectionMenu) {
           pageContent = HyperSelectionOverlay(
             document: sections[index],
@@ -1578,6 +1593,22 @@ class _HyperViewerState extends State<HyperViewer>
             showHandles: true,
             autoShowMenu: true,
             debugShowBounds: widget.debugShowHyperRenderBounds,
+            config: _effectiveConfig,
+            pluginRegistry: widget.pluginRegistry,
+            enableComplexFilters: widget.enableComplexFilters,
+          );
+        } else {
+          pageContent = HyperRenderWidget(
+            document: sections[index],
+            selectable: widget.selectable,
+            textDirection: dir,
+            onLinkTap: _safeOnLinkTap,
+            widgetBuilder: _effectiveWidgetBuilder,
+            debugShowBounds: widget.debugShowHyperRenderBounds,
+            enableComplexFilters: widget.enableComplexFilters,
+            config: _effectiveConfig,
+            suppressFirstBlockMarginTop: index > 0,
+            pluginRegistry: widget.pluginRegistry,
           );
         }
 

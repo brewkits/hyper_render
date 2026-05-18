@@ -270,8 +270,10 @@ class DemoHomePage extends StatelessWidget {
             subtitle:
                 'Edge-to-edge images with no padding relative to the device edges',
             color: DemoColors.warning,
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const ZeroPaddingImageDemo())),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const ZeroPaddingImageDemo())),
           ),
           _buildDemoCard(
             context,
@@ -569,8 +571,8 @@ class DemoHomePage extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: Colors.white.withValues(alpha: 0.2), width: 1),
+          border:
+              Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
         ),
         child: Column(
           children: [
