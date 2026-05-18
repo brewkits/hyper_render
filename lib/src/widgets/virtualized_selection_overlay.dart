@@ -29,6 +29,7 @@ class VirtualizedChunk extends StatefulWidget {
     this.initialFloats = const [],
     this.onFloatCarryover,
     this.pluginRegistry,
+    this.onRenderBoxReady,
   });
 
   final int chunkIndex;
@@ -50,6 +51,7 @@ class VirtualizedChunk extends StatefulWidget {
   final List<FloatCarryover> initialFloats;
   final void Function(List<FloatCarryover>)? onFloatCarryover;
   final HyperPluginRegistry? pluginRegistry;
+  final void Function(RenderHyperBox box)? onRenderBoxReady;
 
   @override
   State<VirtualizedChunk> createState() => _VirtualizedChunkState();
@@ -162,6 +164,7 @@ class _VirtualizedChunkState extends State<VirtualizedChunk> {
         initialFloats: widget.initialFloats,
         onFloatCarryover: widget.onFloatCarryover,
         pluginRegistry: widget.pluginRegistry,
+        onRenderBoxReady: widget.onRenderBoxReady,
       ),
     );
 
