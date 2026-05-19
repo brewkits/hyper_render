@@ -1,5 +1,35 @@
 # Changelog — hyper_render_core
 
+## [1.3.2] - 2026-05-19
+
+### 🔒 Security
+
+- **`UrlSafety.isSafe` added** (`lib/src/util/url_safety.dart`) — canonical scheme blocklist (`javascript:`, `vbscript:`, `data:image/svg`, non-image `data:`, `file:`, `mhtml:`, `about:`) with control-character smuggling defence. The root `HtmlSanitizer.isSafeUrl` and the markdown sub-package's URL gate now both delegate here so no scheme can drift between adapters.
+- **`HyperViewer.markdown(sanitize:true)`** pre-sanitises markdown content via `HtmlSanitizer` so raw `<script>`/`<style>`/`<iframe>` blocks can no longer survive `enableInlineHtml`.
+
+### 🐛 Critical Layout Fix
+
+- **Unbounded-width crash eliminated** — `RenderHyperBox.performLayout` and `_computeHeightForWidth` now clamp `_maxWidth` to `_kUnboundedWidthFallback = 800.0` when constraints are `double.infinity` (Row without Expanded, horizontal `SingleChildScrollView`, intrinsic queries from unbounded parents). Previously `_FlexFragment.layout` propagated infinity into `BoxConstraints(minWidth: ∞)` and tripped Flutter's `minWidth < double.infinity` assertion.
+
+### 🐛 Selection & Ellipsis
+
+- **`text-overflow: ellipsis` no longer leaks hidden text via copy** — `Fragment.ellipsisVisibleLength` records how many leading characters survive each truncation pass; `getSelectedText` clamps the visible range against it and skips fully-suppressed fragments. State is reset at the top of every `_performLineLayout` so a wider re-layout un-hides text that was previously truncated.
+- **Selection drag is now lenient on edge overshoot** — `_lineIndexAt(dy, clampOutOfBounds: true)` is used during handle drag, so a finger that drifts past the first/last line by a pixel snaps to the nearest line instead of freezing. Tap hit-testing (`_findFragmentAtPosition`) keeps the strict semantics.
+- **Dead `_characterToFragment` / `_fragmentRanges` fields removed** — they were populated in `_buildCharacterMapping` each layout but never read. Layout micro-saving and one less GC pressure point.
+
+### 🐛 Table
+
+- **Cell BlockNode content no longer disappears** — when `cellContentBuilder` is `null` and a cell contains `<div>`/`<p>` children, `_buildCellContent` now renders the inline run plus each block child via a default `Column`/`Text` fallback. Previously only callers that went through `HyperRenderWidget` (which auto-supplies a builder) were safe.
+- **Total-cell cap `_kMaxTotalCells = 100 000`** — a pathological `<table>` whose `rowCount × columnCount` exceeds the cap now renders a visible "Table too large to render" placeholder instead of allocating an 8 MB `null` grid on the UI thread.
+
+### 🐛 Animations
+
+- **`HyperAnimatedWidget` controller lifecycle hardened** — switched from `SingleTickerProviderStateMixin` to `TickerProviderStateMixin`; the previous mixin asserted on the second `createTicker()` when `didUpdateWidget` recreated the controller. The start delay now uses a retained `Timer` that is cancelled on `didUpdateWidget` / `dispose`, eliminating duplicate `forward()` calls in fast-rebuild scenarios.
+
+### 🧪 Tests
+
+- **+27 tests added** across `url_safety_test`, `animation_controller_race_test`, `table_review_fixes_test`. Full sub-package suite green.
+
 ## [1.3.1] - 2026-05-14
 
 ### ✨ New CSS Properties

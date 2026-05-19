@@ -1,5 +1,11 @@
 # Changelog — hyper_render_highlight
 
+## [1.3.2] - 2026-05-19
+
+### 🧪 Tests
+
+- **+9 edge-case tests added** in `code_highlighter_edge_cases_test`: empty / whitespace-only input round-trips, unknown-language fallback to auto-detect, malformed source (unterminated string) doesn't throw, 5 KB block highlights in linear time, every popular language identifier resolves, every `HighlightTheme` enum value produces a non-empty `themeName`. No behavioural changes to the highlighter itself.
+
 ## [1.3.1] - 2026-05-14
 
 ### 🏗️ Maintenance

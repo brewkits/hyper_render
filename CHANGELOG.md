@@ -49,6 +49,42 @@
 
 - **`HyperRenderConfig.useRepaintBoundary`** (default `true`) — opt out of the outer-section `RepaintBoundary` wrapper. `RenderHyperBox` is already an internal repaint boundary, so this is mostly an escape hatch for very low-RAM Android devices (≤ 1.5 GB) rendering image-heavy long documents with a custom small `virtualizationChunkSize`, where many concurrent GPU layers could exhaust VRAM before the texture cache evicts.
 
+### Second-Pass Senior Review (2026-05-18 → 2026-05-19)
+
+A second multi-disciplinary review (PM/BA/SA/principal mobile) surfaced a further batch of issues addressed in this same release. Highlights:
+
+#### Security
+
+- **`UrlSafety` consolidated in `hyper_render_core/util/url_safety.dart`** — root `HtmlSanitizer.isSafeUrl` and the `hyper_render_markdown` sub-package's URL gate previously had independent copies that drifted: the sub-package missed `file:`/`mhtml:`/`about:`. Both now delegate to the shared helper; no future drift is possible.
+- **`HtmlAdapter` defence-in-depth URL gate** — `<img src>` and `<a href>` are now routed through `UrlSafety.isSafe` even when the upstream `HtmlSanitizer` is bypassed (callers that invoke `HtmlAdapter().parse()` directly or render with `sanitize: false`). Blocked `href` collapses to `#`; blocked `src` collapses to `''`.
+- **`hyper_render_clipboard` filename hardening (path traversal)** — `_getFilenameFromUrl` already stripped path separators from URL-decoded filenames, but `saveImageBytes(filename:)` and `shareImageBytes(filename:)` concatenated caller-supplied strings raw. Every save/share path now runs through a single `_sanitiseFilename` helper.
+- **Markdown inline HTML pre-sanitised** — when `HyperViewer.markdown(sanitize: true)` (default) is used with `enableInlineHtml: true` (default), raw `<script>`/`<style>`/`<iframe>` blocks are now stripped via `HtmlSanitizer` before reaching the markdown parser, so they can no longer flash as visible text or become a self-rendering plugin's XSS surface.
+
+#### Layout & Selection
+
+- **Unbounded-width crash fixed** — `RenderHyperBox.performLayout` and `_computeHeightForWidth` clamp `_maxWidth` to a finite fallback when the constraint is `double.infinity` (Row without Expanded, horizontal `SingleChildScrollView`). Before this, `_FlexFragment.layout` propagated infinity into a `BoxConstraints(minWidth: ∞)` and tripped Flutter's `minWidth < double.infinity` assertion.
+- **`text-overflow: ellipsis` no longer leaks hidden text via copy** — `Fragment.ellipsisVisibleLength` tracks how many leading characters survive each truncation pass; `getSelectedText` clamps the visible range against it and skips fully-suppressed fragments. State is reset at the top of every `_performLineLayout` so a wider re-layout un-hides previously truncated text.
+- **Selection-drag hit-test made lenient** — `_lineIndexAt` accepts a `clampOutOfBounds` flag (`true` for drag, `false` for tap). When a selection handle drags past the first/last line by a pixel, the index now snaps to the nearest line instead of returning `-1` and freezing.
+- **Dead-code removal** — `_characterToFragment` / `_fragmentRanges` fields in `RenderHyperBox` were populated each layout but never read; deleted along with their `clear()` and populate loops.
+- **Table cell block-content fallback** — when `cellContentBuilder` is `null` and a cell contains `<div>`/`<p>` children, `_buildCellContent` now renders the inline run plus each block child via a default `Column`/`Text` fallback instead of dropping the content. (Previously only `HyperRenderWidget` callers were safe.)
+- **Table grid total-cell cap** — added `_kMaxTotalCells = 100 000`. A pathological `<table>` whose `rowCount × columnCount` exceeds the cap now renders a visible "Table too large to render" placeholder instead of allocating an 8 MB `null` grid on the UI thread.
+- **`HyperAnimatedWidget` controller lifecycle hardened** — switched from `SingleTickerProviderStateMixin` to `TickerProviderStateMixin` (the previous mixin asserted on the second `createTicker()` when `didUpdateWidget` recreated the controller after a prop change). Start delay now uses a retained `Timer` that is cancelled on `didUpdateWidget` / `dispose`, eliminating duplicate `forward()` calls in fast-rebuild scenarios (live editor typing).
+
+#### Performance
+
+- **`HtmlAdapter.extractCss` regex fast-path** — for inputs ≥ 32 KB or with no `<style` tag at all (the common Markdown/Delta case), `extractCss` now skips the full html5lib parse on the UI thread and uses a focused regex. Saves 50–300 ms on a 200 KB document on a mid-range Android.
+
+#### Cross-package Polish
+
+- **`MarkdownContentParser` renamed to `DefaultMarkdownParser`** — aligns with `DefaultHtmlParser` / `DefaultCssParser`. The old name remains as a `@Deprecated` typedef so existing callers compile; new code should use the new name.
+- **`hyper_render_devtools` now has tests + `dev_dependencies` block** — `UdtSerializer` round-trip + truncation cap + `register()` idempotency. Previously the package shipped zero tests.
+- **`hyper_render_math` pubspec description normalised** — replaced the YAML folded-scalar (`>`) form with a plain string for consistency with the other six packages.
+- **`pubspec_publish_ready.yaml` and `scripts/prepare_publish.sh` version sync** — both now pin `^1.3.2`, eliminating the previous 1.3.1/1.3.2 mismatch that would have failed `dart pub publish --dry-run`.
+
+#### Tests
+
+71 new tests added across 11 files covering every fix above: URL safety scheme blocklist (core), HTML adapter URL gate, CSS parser edge cases, markdown GFM (tables/task-lists/autolinks/code-fence/heading), highlight edge cases (malformed source, 5 KB load, every theme), clipboard filename sanitisation, UDT serializer shape + truncation, animation controller race / dispose, table cell fallback + total-cell cap, extractCss perf, ellipsis copy + selection clamp regressions. Full suite: 1764 passing, 0 failing.
+
 ---
 
 ## [1.3.1] - 2026-05-14

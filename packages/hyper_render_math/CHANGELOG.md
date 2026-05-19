@@ -1,5 +1,13 @@
 # Changelog — hyper_render_math
 
+## [1.3.2] - 2026-05-19
+
+### 🏗️ Packaging
+
+- **`pubspec.yaml` description format normalised** — replaced the YAML folded-scalar (`>`) form with a plain string, matching the other six sub-packages and removing a pana cosmetic warning.
+
+No code changes — the plugin's tag handlers (`<math>` / `<latex>`) and `flutter_math_fork` integration are unchanged.
+
 ## [1.3.1] - 2026-05-14
 
 ### 🏗️ Packaging

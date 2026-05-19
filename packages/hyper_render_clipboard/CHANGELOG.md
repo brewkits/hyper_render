@@ -1,5 +1,15 @@
 # Changelog — hyper_render_clipboard
 
+## [1.3.2] - 2026-05-19
+
+### 🔒 Security — Path Traversal
+
+- **`saveImageBytes(filename:)` and `shareImageBytes(filename:)` now sanitise the caller-supplied filename.** `_getFilenameFromUrl` already stripped URL-decoded path separators (`%2F` → `/`), but a malicious app dev who passed `filename: '../../etc/passwd.png'` through to the public API would still escape the storage directory. Every code path that lands in `File('${dir.path}/$name')` now runs through a single `_sanitiseFilename` helper that replaces `/` and `\` with `_`. Self-supplied filenames remain untouched in spirit (extensions, dots, dashes preserved).
+
+### 🧪 Tests
+
+- **+8 tests added** in `filename_safety_test`: URL-encoded slash, URL-encoded backslash, plain filename pass-through, extensionless URL fallback, caller-supplied traversal payloads (`../../etc/passwd.png`, Windows backslash variants), safe filename round-trip, mixed separator handling.
+
 ## [1.3.1] - 2026-05-14
 
 ### 🏗️ Packaging
