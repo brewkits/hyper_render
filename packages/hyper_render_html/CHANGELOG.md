@@ -1,5 +1,19 @@
 # Changelog — hyper_render_html
 
+## [1.3.2] - 2026-05-19
+
+### 🔒 Security
+
+- **`HtmlAdapter` URL scheme gate (defence-in-depth)** — `<img src>` and `<a href>` are now routed through `UrlSafety.isSafe` (from `hyper_render_core`) **after** `_resolveUrl` runs. Even when callers bypass `HtmlSanitizer` (calling `HtmlAdapter().parse(...)` directly, or rendering with `sanitize: false`), `javascript:`, `vbscript:`, `file:`, `mhtml:`, `about:`, `data:image/svg`, and control-character smuggling variants now collapse to inert `#` (links) or `''` (images). Mirrors the same gate the Markdown and Delta adapters already applied.
+
+### 🚀 Performance
+
+- **`HtmlAdapter.extractCss` regex fast-path** — for inputs ≥ 32 KB or with no `<style` tag at all (the common Markdown/Delta case), `extractCss` skips the full html5lib parse on the UI thread and uses a focused regex. Saves 50–300 ms on a 200 KB document on a mid-range Android, eliminating the synchronous parse stall that occurred on every initial render. Small inputs continue to use the full DOM parser for fidelity.
+
+### 🧪 Tests
+
+- **+29 tests added** across `html_url_safety_test`, `css_parser_test`, `extract_css_perf_test`. Covers scheme blocklist, smuggling, multiple `<style>` blocks, case-insensitive matching, fast-path threshold behaviour, comma/class/id selectors, keyframes round-trip.
+
 ## [1.3.1] - 2026-05-14
 
 ### 🏗️ Maintenance

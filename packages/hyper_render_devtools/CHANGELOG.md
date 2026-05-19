@@ -1,5 +1,15 @@
 # Changelog — hyper_render_devtools
 
+## [1.3.2] - 2026-05-19
+
+### 🧪 First Test Coverage
+
+- **`dev_dependencies` block added** (`flutter_test`, `flutter_lints`) — the package shipped previous releases with zero tests; a senior review flagged this as a release blocker for VM-service-extension code.
+- **`udt_serializer_test`** — UDT → JSON round-trip for `BlockNode`, `TextNode`, `AtomicNode`; tree-depth cap at 20 levels enforced; text payload truncation at 200 chars; style key shape stable across calls.
+- **`service_extensions_test`** — `HyperRenderDevtools.register()` is exception-free on first call and idempotent on subsequent calls (the `kDebugMode` guard short-circuits in the test runner, but the contract is now pinned).
+
+No behavioural changes to the DevTools surface — this release is purely test-coverage hardening.
+
 ## [1.3.1] - 2026-05-14
 
 ### 🏗️ Maintenance
