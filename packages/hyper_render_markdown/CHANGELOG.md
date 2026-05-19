@@ -14,10 +14,10 @@
 
 - **+19 tests added** across `markdown_url_safety_test` (per-scheme link/image neutralisation, scheme casing) and `markdown_gfm_test` (pipe tables, task lists, autolinks, fenced code blocks, `enableGfm:false` opt-out behaviour, heading + blockquote shapes).
 
-## [1.3.2] - 2026-05-14
+## [1.3.1] - 2026-05-14
 
 ### 🏗️ Maintenance
-- Updated `hyper_render_core` dependency to `^1.3.2`
+- Updated `hyper_render_core` dependency to `^1.3.1`
 
 ## [1.3.0] - 2026-05-03
 
