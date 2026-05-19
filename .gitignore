@@ -84,5 +84,6 @@ test/golden/failures/
 
 # Local working notes — review responses, decision drafts, scratch analyses.
 # Belong in conversation / PR descriptions, not in the published library.
-docs/review/
+# (Note: top-level `docs/` was removed in v1.3.2 — pub.dev convention is `doc/`.
+# Internal-only review notes live in `doc/internal/` which is gitignored above.)
 *.scratch.md
