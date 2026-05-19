@@ -87,7 +87,7 @@ A second multi-disciplinary review (PM/BA/SA/principal mobile) surfaced a furthe
 
 ---
 
-## [1.3.2] - 2026-05-14
+## [1.3.1] - 2026-05-14
 
 ### ⚠️ Migration from 1.3.0
 
@@ -95,9 +95,9 @@ A second multi-disciplinary review (PM/BA/SA/principal mobile) surfaced a furthe
 
 ```yaml
 dependencies:
-  hyper_render: ^1.3.2
-  hyper_render_clipboard: ^1.3.2   # only if you use SuperClipboardHandler
-  hyper_render_math: ^1.3.2        # only if you use MathNodePlugin / LatexNodePlugin
+  hyper_render: ^1.3.1
+  hyper_render_clipboard: ^1.3.1   # only if you use SuperClipboardHandler
+  hyper_render_math: ^1.3.1        # only if you use MathNodePlugin / LatexNodePlugin
 ```
 
 ### ✨ New CSS Properties
