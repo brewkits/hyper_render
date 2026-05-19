@@ -1,8 +1,8 @@
 # Migration Guide
 
-> **Current version: v1.3.1**
+> **Current version: v1.3.2**
 
-## Upgrading to 1.3.1
+## Upgrading to 1.3.2
 
 ### ⚠️ Breaking change — clipboard and math are now opt-in
 
@@ -10,14 +10,14 @@
 
 ```yaml
 dependencies:
-  hyper_render: ^1.3.1
-  hyper_render_clipboard: ^1.3.1   # only if you use SuperClipboardHandler
-  hyper_render_math: ^1.3.1        # only if you use MathNodePlugin / LatexNodePlugin
+  hyper_render: ^1.3.2
+  hyper_render_clipboard: ^1.3.2   # only if you use SuperClipboardHandler
+  hyper_render_math: ^1.3.2        # only if you use MathNodePlugin / LatexNodePlugin
 ```
 
 If you don't use either feature, **no changes are needed** — just bump the version and your Android build will no longer require a `compileSdk = 35` workaround.
 
-### New in 1.3.1
+### New in 1.3.2
 
 - `list-style-type`, `list-style-position`, `list-style` shorthand CSS support
 - `background-repeat`, `background-position` CSS support
@@ -26,16 +26,16 @@ If you don't use either feature, **no changes are needed** — just bump the ver
 
 ---
 
-## Starting fresh with 1.3.1
+## Starting fresh with 1.3.2
 
 **No migration needed!** If you're starting fresh:
 
 ```yaml
 dependencies:
-  hyper_render: ^1.3.1
+  hyper_render: ^1.3.2
   # opt-in extras:
-  hyper_render_clipboard: ^1.3.1   # image copy/save/share
-  hyper_render_math: ^1.3.1        # LaTeX/MathML
+  hyper_render_clipboard: ^1.3.2   # image copy/save/share
+  hyper_render_math: ^1.3.2        # LaTeX/MathML
 ```
 
 ```dart
@@ -180,7 +180,7 @@ These APIs are stable and will remain backward-compatible in v2.0:
 
 ## Getting Help
 
-For the current v1.3.1 release:
+For the current v1.3.2 release:
 - See [README](../README.md) for usage
 - Check [CHANGELOG](../CHANGELOG.md) for version history
 - Review [Plugin Development Guide](PLUGIN_DEVELOPMENT.md) for extending
@@ -188,4 +188,4 @@ For the current v1.3.1 release:
 
 ---
 
-*Last Updated: May 14, 2026 for v1.3.1*
+*Last Updated: May 14, 2026 for v1.3.2*

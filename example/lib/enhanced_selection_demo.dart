@@ -466,6 +466,7 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
           ShareParams(text: text, subject: 'Shared from HyperRender'),
         );
 
+        if (!mounted) return;
         if (result.status == ShareResultStatus.success) {
           _showSnackBar('✅ Shared successfully', Colors.green);
         } else if (result.status == ShareResultStatus.dismissed) {
@@ -474,7 +475,8 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
           _showSnackBar('📤 Share dialog opened', Colors.blue);
         }
       } catch (e) {
-        print('Share error: $e');
+        if (!mounted) return;
+        debugPrint('Share error: $e');
         _showSnackBar('❌ Share not available: ${e.toString()}', Colors.red);
       }
 
@@ -495,10 +497,11 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
       final url = Uri.parse('https://www.google.com/search?q=$query');
 
       try {
-        print('Attempting to launch: $url');
+        debugPrint('Attempting to launch: $url');
         if (await canLaunchUrl(url)) {
           final launched =
               await launchUrl(url, mode: LaunchMode.externalApplication);
+          if (!mounted) return;
           if (launched) {
             _showSnackBar('🔍 Opened Google search', Colors.green);
           } else {
@@ -506,11 +509,13 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
                 '⚠️ Browser opened but URL may not load', Colors.orange);
           }
         } else {
+          if (!mounted) return;
           _showSnackBar(
               '❌ Cannot open browser - URL not supported', Colors.red);
         }
       } catch (e) {
-        print('Search error: $e');
+        if (!mounted) return;
+        debugPrint('Search error: $e');
         _showSnackBar('❌ Failed to open browser: ${e.toString()}', Colors.red);
       }
 
@@ -534,9 +539,11 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
       try {
         if (await canLaunchUrl(url)) {
           await launchUrl(url, mode: LaunchMode.externalApplication);
+          if (!mounted) return;
           _showSnackBar('🌐 Opened Google Translate', Colors.blue);
         }
       } catch (e) {
+        if (!mounted) return;
         _showSnackBar('❌ Failed to open translator', Colors.red);
       }
 
@@ -559,9 +566,11 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
       try {
         if (await canLaunchUrl(url)) {
           await launchUrl(url, mode: LaunchMode.externalApplication);
+          if (!mounted) return;
           _showSnackBar('📚 Opened dictionary', Colors.blue);
         }
       } catch (e) {
+        if (!mounted) return;
         _showSnackBar('❌ Failed to open dictionary', Colors.red);
       }
 

@@ -44,17 +44,21 @@ class _Sprint3DemoState extends State<Sprint3Demo>
 
   @override
   Widget build(BuildContext context) {
+    final bg = DemoColors.forBrightness(
+        DemoColors.primary, Theme.of(context).brightness);
+    final fg = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
     return Scaffold(
       appBar: AppBar(
         title: const Text('CSS Variables, Grid & More'),
-        backgroundColor: DemoColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: bg,
+        foregroundColor: fg,
         bottom: TabBar(
           controller: _tabs,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white,
-          indicatorColor: Colors.white,
+          labelColor: fg,
+          unselectedLabelColor: fg.withValues(alpha: 0.72),
+          indicatorColor: fg,
           isScrollable: true,
           tabs: const [
             Tab(icon: Icon(Icons.data_object, size: 16), text: 'CSS Vars'),

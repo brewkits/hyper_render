@@ -137,7 +137,8 @@ class _MultimediaExamplesPageState extends State<MultimediaExamplesPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('HyperRender Multimedia Examples'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
       ),
       body: Row(
         children: [

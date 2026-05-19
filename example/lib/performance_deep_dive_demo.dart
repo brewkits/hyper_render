@@ -34,18 +34,22 @@ class _PerformanceDeepDiveDemoState extends State<PerformanceDeepDiveDemo>
 
   @override
   Widget build(BuildContext context) {
+    final bg = DemoColors.forBrightness(
+        DemoColors.success, Theme.of(context).brightness);
+    final fg = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Performance Deep Dive'),
-        backgroundColor: DemoColors.success,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: bg,
+        foregroundColor: fg,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white,
-          indicatorColor: Colors.white,
+          labelColor: fg,
+          unselectedLabelColor: fg.withValues(alpha: 0.72),
+          indicatorColor: fg,
           tabs: const [
             Tab(icon: Icon(Icons.waterfall_chart), text: 'Pipeline'),
             Tab(icon: Icon(Icons.compare_arrows), text: 'Isolate'),

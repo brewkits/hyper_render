@@ -74,7 +74,7 @@ DocumentNode parseMarkdown(String markdown, {bool enableGfm = true}) {
 
 /// Backwards-compatible alias.
 ///
-/// Renamed to [DefaultMarkdownParser] in v1.3.3 so the class lines up with
+/// Renamed to [DefaultMarkdownParser] in v1.3.2 so the class lines up with
 /// [DefaultHtmlParser] / [DefaultCssParser] in the HTML sub-package — the
 /// review found the old name was the only `…ContentParser` in the codebase
 /// and it broke pattern recognition for consumers. The alias keeps existing

@@ -8,11 +8,11 @@
 
 No code changes — the plugin's tag handlers (`<math>` / `<latex>`) and `flutter_math_fork` integration are unchanged.
 
-## [1.3.1] - 2026-05-14
+## [1.3.2] - 2026-05-14
 
 ### 🏗️ Packaging
 - **Opt-in add-on**: `hyper_render_math` is no longer bundled with the root `hyper_render` package. Add it explicitly to your `pubspec.yaml` to use `MathNodePlugin` / `LatexNodePlugin`.
-- Updated `hyper_render_core` dependency to `^1.3.1`
+- Updated `hyper_render_core` dependency to `^1.3.2`
 
 ## [1.3.0] - 2026-05-03
 

@@ -144,12 +144,13 @@ class _UltraShowcase2026State extends State<UltraShowcase2026> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ultra Showcase 2026',
             style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.black87,
-        foregroundColor: Colors.white,
+        backgroundColor: scheme.inverseSurface,
+        foregroundColor: scheme.onInverseSurface,
         actions: [
           IconButton(
             icon: Icon(_viewMode == 0 ? Icons.menu_book : Icons.view_stream),
@@ -168,7 +169,7 @@ class _UltraShowcase2026State extends State<UltraShowcase2026> {
         children: [
           Expanded(
             child: Container(
-              color: const Color(0xFFFAFAFA),
+              color: scheme.surfaceContainerLow,
               child: _viewMode == 0 ? _buildScrollMode() : _buildPagedMode(),
             ),
           ),

@@ -15,12 +15,10 @@ class AnimationDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Animations'),
-        backgroundColor: DemoColors.accent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
+      appBar: buildDemoAppBar(
+        context,
+        title: 'Animations',
+        accent: DemoColors.accent,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

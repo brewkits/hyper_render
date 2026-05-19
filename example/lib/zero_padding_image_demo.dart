@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 
+import 'demo_colors.dart';
+
 class ZeroPaddingImageDemo extends StatelessWidget {
   const ZeroPaddingImageDemo({super.key});
 
@@ -130,20 +132,22 @@ class ZeroPaddingImageDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: const Text('Edge-to-Edge Layout'),
-        backgroundColor: const Color(0xFF1A56DB),
-        foregroundColor: Colors.white,
-        elevation: 0,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      appBar: buildDemoAppBar(
+        context,
+        title: 'Edge-to-Edge Layout',
+        accent: const Color(0xFF1A56DB),
       ),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: const HyperViewer(
-            html: html,
-            selectable: true,
+      body: SafeArea(
+        top: false,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: const HyperViewer(
+              html: html,
+              selectable: true,
+            ),
           ),
         ),
       ),

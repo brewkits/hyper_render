@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_html/hyper_render_html.dart';
 
-/// Regression tests for the v1.3.3 review Issue 4 fix: `HtmlAdapter.extractCss`
+/// Regression tests for the v1.3.2 review Issue 4 fix: `HtmlAdapter.extractCss`
 /// now short-circuits with a regex when the document is large enough that
 /// full html5lib parsing would jank the UI thread, and with a literal-text
 /// probe when there is no `<style>` block at all.

@@ -36,17 +36,21 @@ class _EnterpriseFeaturesDemoState extends State<EnterpriseFeaturesDemo>
 
   @override
   Widget build(BuildContext context) {
+    final bg = DemoColors.forBrightness(
+        const Color(0xFF1A237E), Theme.of(context).brightness);
+    final fg = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Enterprise Features'),
-        backgroundColor: const Color(0xFF1A237E),
-        foregroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: bg,
+        foregroundColor: fg,
         bottom: TabBar(
           controller: _tabs,
           isScrollable: true,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
+          labelColor: fg,
+          unselectedLabelColor: fg.withValues(alpha: 0.65),
           indicatorColor: Colors.amberAccent,
           tabs: const [
             Tab(icon: Icon(Icons.memory), text: 'Resources'),

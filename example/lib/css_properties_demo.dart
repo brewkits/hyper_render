@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 
+import 'demo_colors.dart';
+
 /// Comprehensive CSS Properties Demo
 /// Shows all CSS properties supported by HyperRender
 class CssPropertiesDemo extends StatelessWidget {
@@ -9,12 +11,9 @@ class CssPropertiesDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('CSS Properties Demo'),
-        centerTitle: false,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: buildDemoAppBar(
+        context,
+        title: 'CSS Properties Demo',
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

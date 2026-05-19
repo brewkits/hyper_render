@@ -534,10 +534,9 @@ class _StressTestDemoState extends State<StressTestDemo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Stress Test'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+      appBar: buildDemoAppBar(
+        context,
+        title: 'Stress Test',
         actions: [
           if (_loadedContent != null)
             IconButton(

@@ -40,16 +40,21 @@ class _HtmlHeuristicsDemoState extends State<HtmlHeuristicsDemo>
 
   @override
   Widget build(BuildContext context) {
+    final bg = DemoColors.forBrightness(
+        DemoColors.warning, Theme.of(context).brightness);
+    final fg = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
     return Scaffold(
       appBar: AppBar(
         title: const Text('HtmlHeuristics & fallbackBuilder'),
-        backgroundColor: DemoColors.warning,
-        foregroundColor: Colors.white,
+        backgroundColor: bg,
+        foregroundColor: fg,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white,
-          indicatorColor: Colors.white,
+          labelColor: fg,
+          unselectedLabelColor: fg.withValues(alpha: 0.72),
+          indicatorColor: fg,
           tabs: const [
             Tab(icon: Icon(Icons.check_circle, size: 18), text: 'Simple HTML'),
             Tab(icon: Icon(Icons.warning, size: 18), text: 'Complex HTML'),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 
+import 'demo_colors.dart';
+
 // Flexbox Demo
 // Design principle: every example shows ONE property change, all other
 // properties are held constant so the visual difference is unambiguous.
@@ -28,12 +30,9 @@ class FlexboxDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Flexbox Layout'),
-        centerTitle: false,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: buildDemoAppBar(
+        context,
+        title: 'Flexbox Layout',
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
