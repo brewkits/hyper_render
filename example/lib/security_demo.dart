@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 
+import 'demo_colors.dart';
+
 /// Security Demo - Showcasing HTML Sanitization Features
 class SecurityDemo extends StatefulWidget {
   const SecurityDemo({super.key});
@@ -117,53 +119,62 @@ class _SecurityDemoState extends State<SecurityDemo> {
     final preset = _presets[_selectedPreset]!;
     final isDangerous = HtmlSanitizer.containsDangerousContent(preset['html']!);
 
+    final warningBg = DemoColors.forBrightness(
+        Colors.red.shade900, Theme.of(context).brightness);
+    final warningFg =
+        ThemeData.estimateBrightnessForColor(warningBg) == Brightness.dark
+            ? Colors.white
+            : Colors.black87;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Security Demo'),
-        centerTitle: false,
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: buildDemoAppBar(
+        context,
+        title: 'Security Demo',
+        accent: Colors.red.shade700,
       ),
       body: Column(
         children: [
           // Warning banner
           if (isDangerous && !_sanitizeEnabled)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              color: Colors.red.shade900,
-              child: Row(
-                children: [
-                  const Icon(Icons.warning, color: Colors.white, size: 32),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '⚠️ SECURITY WARNING',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+            Semantics(
+              liveRegion: true,
+              label: 'Security warning: dangerous HTML detected',
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: warningBg,
+                child: Row(
+                  children: [
+                    Icon(Icons.warning, color: warningFg, size: 32),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '⚠️ SECURITY WARNING',
+                            style: TextStyle(
+                              color: warningFg,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Dangerous content detected! Enable sanitization to protect against XSS attacks.',
-                          style: TextStyle(color: Colors.red.shade100),
-                        ),
-                      ],
+                          Text(
+                            'Dangerous content detected! Enable sanitization to protect against XSS attacks.',
+                            style: TextStyle(
+                                color: warningFg.withValues(alpha: 0.85)),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
           // Controls
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.grey.shade100,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

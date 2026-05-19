@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 
+import 'demo_colors.dart';
+
 /// Demonstrates aesthetic quality improvements in HyperRender
 ///
 /// Phase 1 Improvements:
@@ -14,12 +16,9 @@ class AestheticDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Aesthetic Quality Demo'),
-        centerTitle: false,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: buildDemoAppBar(
+        context,
+        title: 'Aesthetic Quality Demo',
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

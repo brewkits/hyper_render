@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 
-/// Repro / falsification test for the v1.3.3 review claim that
+/// Repro / falsification test for the v1.3.2 review claim that
 /// [HyperAnimatedWidget] crashes when a fast `didUpdateWidget` cycle
 /// replaces the [AnimationController] while a `Future.delayed`-based
 /// start is still pending.

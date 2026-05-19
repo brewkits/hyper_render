@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 
+import 'demo_colors.dart';
+
 /// Accessibility Demo - Showcasing Screen Reader Support
 ///
 /// Updated for WCAG 2.1 AA:
@@ -215,10 +217,19 @@ MyWidget()        // Not as good</code></pre>
         ? _customLabel
         : example['defaultLabel']!;
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final bannerBg =
+        DemoColors.forBrightness(Colors.blue.shade700, theme.brightness);
+    final bannerFg =
+        ThemeData.estimateBrightnessForColor(bannerBg) == Brightness.dark
+            ? Colors.white
+            : Colors.black87;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Accessibility Demo'),
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: bannerBg,
+        foregroundColor: bannerFg,
         actions: [
           IconButton(
             icon: const Icon(Icons.accessibility_new),
@@ -233,26 +244,26 @@ MyWidget()        // Not as good</code></pre>
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            color: Colors.blue.shade900,
+            color: bannerBg,
             child: Row(
               children: [
-                const Icon(Icons.accessibility, color: Colors.white, size: 32),
+                Icon(Icons.accessibility, color: bannerFg, size: 32),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Screen Reader Support',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: bannerFg,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
                       ),
                       Text(
                         'Enable TalkBack/VoiceOver to test accessibility',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
+                        style: TextStyle(color: bannerFg, fontSize: 12),
                       ),
                     ],
                   ),
@@ -264,7 +275,7 @@ MyWidget()        // Not as good</code></pre>
           // Controls
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.grey.shade100,
+            color: scheme.surfaceContainerHighest,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

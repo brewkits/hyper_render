@@ -12,7 +12,7 @@ DocumentNode _parseAndResolve(String html) {
   return doc;
 }
 
-/// Regression tests for the v1.3.3 deep-dive review findings:
+/// Regression tests for the v1.3.2 deep-dive review findings:
 ///   #1 — Dead `_characterToFragment` / `_fragmentRanges` removal must not
 ///        break selection (covered indirectly: any selection works).
 ///   #4 — Unbounded horizontal constraints must not crash _FlexFragment.layout
@@ -21,7 +21,7 @@ DocumentNode _parseAndResolve(String html) {
 ///   #6 — Selection drag past the top/bottom edge must extend the selection
 ///        instead of freezing (lenient hit-test).
 void main() {
-  group('v1.3.3 review fixes', () {
+  group('v1.3.2 review fixes', () {
     testWidgets(
       '#4 — unbounded horizontal constraint does not crash flex layout',
       (tester) async {
@@ -190,7 +190,7 @@ void main() {
     );
   });
 
-  group('v1.3.3 security review fixes', () {
+  group('v1.3.2 security review fixes', () {
     testWidgets(
       'markdown with sanitize=true strips inline <script>/<style>',
       (tester) async {

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'demo_colors.dart';
+
 /// Improved Video Demo with Functional Video Playback
 ///
 /// Features:
@@ -16,12 +18,10 @@ class ImprovedVideoDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Video & Media Demo (Improved)'),
-        centerTitle: false,
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: buildDemoAppBar(
+        context,
+        title: 'Video & Media Demo (Improved)',
+        accent: Colors.red.shade700,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

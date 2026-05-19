@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# HyperRender publish helper — v1.3.1
+# HyperRender publish helper — v1.3.2
 #
 # Usage:
 #   ./scripts/publish.sh dry-run   # verify all packages (no upload)
@@ -21,7 +21,7 @@
 
 set -euo pipefail
 
-VERSION="1.3.1"
+VERSION="1.3.2"
 MODE="${1:-dry-run}"   # dry-run | publish
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 

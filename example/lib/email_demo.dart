@@ -42,16 +42,21 @@ class _EmailDemoState extends State<EmailDemo>
 
   @override
   Widget build(BuildContext context) {
+    final bg = DemoColors.forBrightness(
+        DemoColors.primary, Theme.of(context).brightness);
+    final fg = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
     return Scaffold(
       appBar: AppBar(
         title: const Text('HTML Email Renderer'),
-        backgroundColor: DemoColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: bg,
+        foregroundColor: fg,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white,
-          indicatorColor: Colors.white,
+          labelColor: fg,
+          unselectedLabelColor: fg.withValues(alpha: 0.72),
+          indicatorColor: fg,
           isScrollable: true,
           tabs: const [
             Tab(icon: Icon(Icons.waving_hand, size: 16), text: 'Welcome'),

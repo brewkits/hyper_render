@@ -284,18 +284,12 @@ class WhyHyperRenderDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text('Why HyperRender?'),
-        backgroundColor: DemoColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: buildDemoAppBar(
+        context,
+        title: 'Why HyperRender?',
+        accent: DemoColors.primary,
       ),
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

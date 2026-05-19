@@ -14,10 +14,10 @@
 
 - **+29 tests added** across `html_url_safety_test`, `css_parser_test`, `extract_css_perf_test`. Covers scheme blocklist, smuggling, multiple `<style>` blocks, case-insensitive matching, fast-path threshold behaviour, comma/class/id selectors, keyframes round-trip.
 
-## [1.3.1] - 2026-05-14
+## [1.3.2] - 2026-05-14
 
 ### 🏗️ Maintenance
-- Updated `hyper_render_core` dependency to `^1.3.1`
+- Updated `hyper_render_core` dependency to `^1.3.2`
 
 ## [1.3.0] - 2026-05-03
 

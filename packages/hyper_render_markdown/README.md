@@ -8,8 +8,8 @@ Markdown parsing plugin for [HyperRender](https://pub.dev/packages/hyper_render)
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.3.1
-  hyper_render_markdown: ^1.3.1
+  hyper_render_core: ^1.3.2
+  hyper_render_markdown: ^1.3.2
 ```
 
 ---

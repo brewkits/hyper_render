@@ -30,7 +30,7 @@
 
 - **+27 tests added** across `url_safety_test`, `animation_controller_race_test`, `table_review_fixes_test`. Full sub-package suite green.
 
-## [1.3.1] - 2026-05-14
+## [1.3.2] - 2026-05-14
 
 ### ✨ New CSS Properties
 - **`list-style-type`**: All 11 values — `disc`, `circle`, `square`, `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-latin`, `upper-latin`, `lower-roman`, `upper-roman`, `none`

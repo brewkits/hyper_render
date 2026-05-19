@@ -38,7 +38,10 @@ import 'reader_app/library_screen.dart';
 import 'float_hell_demo.dart';
 import 'zero_padding_image_demo.dart';
 
-/// Optimized base TextStyle for better readability
+/// Optimized base TextStyle for better readability.
+///
+/// Intentionally has no `color` so it inherits from the surrounding
+/// DefaultTextStyle / Theme — keeps demos legible in both light and dark mode.
 /// - fontSize: 16 (comfortable reading size)
 /// - height: 1.6 (generous line spacing for readability)
 /// - letterSpacing: 0.15 (slight spacing for clarity)
@@ -46,7 +49,6 @@ const kOptimizedTextStyle = TextStyle(
   fontSize: 16,
   height: 1.6,
   letterSpacing: 0.15,
-  color: Color(0xFF212121),
 );
 
 void main() {
@@ -66,13 +68,24 @@ class HyperRenderDemoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const seed = Color(0xFF1A56DB);
     return MaterialApp(
       title: 'HyperRender Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1A56DB)),
+        colorScheme: ColorScheme.fromSeed(seedColor: seed),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(elevation: 0, centerTitle: false),
       ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: seed,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+        appBarTheme: const AppBarTheme(elevation: 0, centerTitle: false),
+      ),
+      themeMode: ThemeMode.system,
       scrollBehavior: const MaterialScrollBehavior().copyWith(
         dragDevices: {
           ui.PointerDeviceKind.mouse,
@@ -95,15 +108,14 @@ class DemoHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('HyperRender'),
-        centerTitle: false,
-        backgroundColor: const Color(0xFF1A56DB),
-        foregroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
       ),
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: scheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -660,84 +672,95 @@ class DemoHomePage extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Left accent bar
-                  Container(
-                    width: 4,
-                    color: color,
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 14),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(11),
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final accent = DemoColors.forBrightness(color, theme.brightness);
+    final isDark = theme.brightness == Brightness.dark;
+    return Semantics(
+      button: true,
+      label: title,
+      hint: subtitle,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Left accent bar
+                    Container(
+                      width: 4,
+                      color: accent,
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 14),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                              child: Icon(icon, color: accent, size: 22),
                             ),
-                            child: Icon(icon, color: color, size: 22),
-                          ),
-                          const SizedBox(width: 13),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  title,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0D1B3E),
-                                    letterSpacing: -0.1,
+                            const SizedBox(width: 13),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: scheme.onSurface,
+                                      letterSpacing: -0.1,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  subtitle,
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    color: Colors.grey.shade500,
-                                    height: 1.35,
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    subtitle,
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      color: scheme.onSurfaceVariant,
+                                      height: 1.35,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          Icon(Icons.chevron_right_rounded,
-                              color: Colors.grey.shade300, size: 20),
-                        ],
+                            const SizedBox(width: 6),
+                            Icon(Icons.chevron_right_rounded,
+                                color: scheme.onSurfaceVariant
+                                    .withValues(alpha: 0.5),
+                                size: 20),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -806,7 +829,7 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
       appBar: AppBar(
         title: const Text('Kitchen Sink Demo'),
         backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -852,31 +875,29 @@ class _KitchenSinkDemoState extends State<KitchenSinkDemo> {
   }
 
   Future<void> _handleLinkTap(String url) async {
-    print('[KitchenSinkDemo] _handleLinkTap called with URL: $url');
+    debugPrint('[KitchenSinkDemo] _handleLinkTap called with URL: $url');
 
     final uri = Uri.tryParse(url);
     if (uri == null) {
-      print('[KitchenSinkDemo] Invalid URL: $url');
+      if (!mounted) return;
       _showSnackBar('❌ Invalid URL: $url');
       return;
     }
 
-    // Try to launch the URL
     try {
-      print('[KitchenSinkDemo] Checking if can launch: $uri');
       final canLaunch = await canLaunchUrl(uri);
-      print('[KitchenSinkDemo] canLaunch result: $canLaunch');
+      if (!mounted) return;
 
       if (canLaunch) {
-        print('[KitchenSinkDemo] Launching URL...');
         await launchUrl(uri, mode: LaunchMode.platformDefault);
+        if (!mounted) return;
         _showSnackBar(
             '🚀 Opening: ${uri.toString().length > 40 ? '${uri.toString().substring(0, 40)}...' : uri.toString()}');
       } else {
         _showSnackBar('❌ Cannot open URL: $url');
       }
     } catch (e) {
-      print('[KitchenSinkDemo] Error: $e');
+      if (!mounted) return;
       _showSnackBar('❌ Error opening URL: $e');
     }
   }
@@ -1077,7 +1098,7 @@ class RubyDemo extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Ruby Annotation Demo'),
         backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
       body: const Padding(
         padding: EdgeInsets.all(16.0),
@@ -1136,7 +1157,7 @@ class _WidgetInjectionDemoState extends State<WidgetInjectionDemo> {
       appBar: AppBar(
         title: const Text('Widget Injection Demo'),
         backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1177,56 +1198,74 @@ class _WidgetInjectionDemoState extends State<WidgetInjectionDemo> {
   }
 
   Widget _buildLikeButton() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          onPressed: () => setState(() => _likeCount++),
-          icon: const Icon(Icons.favorite, color: Colors.pink),
-          iconSize: 32,
-        ),
-        Text('$_likeCount',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-      ],
+    return Semantics(
+      container: true,
+      label: 'Like this post, currently $_likeCount likes',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: 'Like',
+            onPressed: () => setState(() => _likeCount++),
+            icon: const Icon(Icons.favorite, color: Colors.pink),
+            iconSize: 32,
+          ),
+          Text('$_likeCount',
+              style:
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 
   Widget _buildRatingWidget() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (i) {
-        return IconButton(
-          onPressed: () => setState(() => _rating = i + 1.0),
-          icon: Icon(
-            i < _rating ? Icons.star : Icons.star_border,
-            color: Colors.amber,
-          ),
-          iconSize: 32,
-        );
-      }),
+    return Semantics(
+      container: true,
+      label: 'Rate this article, $_rating out of 5 stars',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(5, (i) {
+          return IconButton(
+            tooltip: 'Rate ${i + 1} star${i == 0 ? '' : 's'}',
+            onPressed: () => setState(() => _rating = i + 1.0),
+            icon: Icon(
+              i < _rating ? Icons.star : Icons.star_border,
+              color: Colors.amber,
+            ),
+            iconSize: 32,
+          );
+        }),
+      ),
     );
   }
 
   Widget _buildShareButtons() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          onPressed: () => _showSnackBar('Share to Facebook'),
-          icon: const Icon(Icons.facebook, color: Colors.blue),
-          iconSize: 32,
-        ),
-        IconButton(
-          onPressed: () => _showSnackBar('Share to Twitter'),
-          icon: const Icon(Icons.alternate_email, color: Colors.lightBlue),
-          iconSize: 32,
-        ),
-        IconButton(
-          onPressed: () => _showSnackBar('Copy link'),
-          icon: const Icon(Icons.link, color: Colors.grey),
-          iconSize: 32,
-        ),
-      ],
+    return Semantics(
+      container: true,
+      label: 'Share this post',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: 'Share to Facebook',
+            onPressed: () => _showSnackBar('Share to Facebook'),
+            icon: const Icon(Icons.facebook, color: Colors.blue),
+            iconSize: 32,
+          ),
+          IconButton(
+            tooltip: 'Share to Twitter',
+            onPressed: () => _showSnackBar('Share to Twitter'),
+            icon: const Icon(Icons.alternate_email, color: Colors.lightBlue),
+            iconSize: 32,
+          ),
+          IconButton(
+            tooltip: 'Copy link',
+            onPressed: () => _showSnackBar('Copy link'),
+            icon: const Icon(Icons.link, color: Colors.grey),
+            iconSize: 32,
+          ),
+        ],
+      ),
     );
   }
 
@@ -1967,7 +2006,7 @@ class HyperViewer extends StatefulWidget {
       appBar: AppBar(
         title: const Text('Zoom & Pan Demo'),
         backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -2267,7 +2306,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
       appBar: AppBar(
         title: const Text('Library Comparison'),
         backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -2843,7 +2882,7 @@ class QuillDeltaDemo extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Quill Delta Demo'),
         backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.code),
@@ -3153,7 +3192,7 @@ class FeedScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Markdown Demo'),
         backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.code),
@@ -3204,12 +3243,15 @@ class VideoDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('🚨🚨🚨 [VideoDemo] BUILD CALLED - YOU SHOULD SEE THIS! 🚨🚨🚨');
+    assert(() {
+      debugPrint('[VideoDemo] build');
+      return true;
+    }());
     return Scaffold(
       appBar: AppBar(
         title: const Text('Video & Media Demo'),
         backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -3499,7 +3541,7 @@ Widget _hubCard(
 AppBar _hubAppBar(BuildContext context, String title) => AppBar(
       title: Text(title),
       backgroundColor: Theme.of(context).colorScheme.primary,
-      foregroundColor: Colors.white,
+      foregroundColor: Theme.of(context).colorScheme.onPrimary,
       automaticallyImplyLeading: true,
     );
 
@@ -3510,7 +3552,7 @@ class _TablesHubPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _hubAppBar(context, 'Tables'),
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -3543,7 +3585,7 @@ class _MediaHubPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _hubAppBar(context, 'Images & Video'),
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -3588,7 +3630,7 @@ class _WidgetIntegrationHubPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _hubAppBar(context, 'Widget Injection & Animation'),
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -3623,7 +3665,7 @@ class _InputFormatsHubPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _hubAppBar(context, 'Input Formats'),
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -3655,7 +3697,7 @@ class _ComparisonPerfHubPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _hubAppBar(context, 'Comparison & Performance'),
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -3710,7 +3752,7 @@ class _QualityHubPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _hubAppBar(context, 'Security & Accessibility'),
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

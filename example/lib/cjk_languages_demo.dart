@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 
+import 'demo_colors.dart';
+
 // =============================================================================
 // CJK Languages Demo
 //
@@ -35,16 +37,21 @@ class _CjkLanguagesDemoState extends State<CjkLanguagesDemo>
 
   @override
   Widget build(BuildContext context) {
+    final bg = DemoColors.forBrightness(
+        const Color(0xFF1565C0), Theme.of(context).brightness);
+    final fg = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
     return Scaffold(
       appBar: AppBar(
         title: const Text('中文 · 繁體 · 한국어'),
-        backgroundColor: const Color(0xFF1565C0),
-        foregroundColor: Colors.white,
+        backgroundColor: bg,
+        foregroundColor: fg,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          indicatorColor: Colors.white,
+          labelColor: fg,
+          unselectedLabelColor: fg.withValues(alpha: 0.65),
+          indicatorColor: fg,
           tabs: const [
             Tab(text: '简体中文'),
             Tab(text: '繁體中文'),

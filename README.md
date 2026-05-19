@@ -39,7 +39,7 @@
 
 ```yaml
 dependencies:
-  hyper_render: ^1.3.1
+  hyper_render: ^1.3.2
 ```
 
 ```dart
@@ -414,7 +414,7 @@ These packages bring native dependencies and are **not bundled** by default. Ins
 
 ```yaml
 dependencies:
-  hyper_render_clipboard: ^1.3.1
+  hyper_render_clipboard: ^1.3.2
 ```
 
 ```dart
@@ -444,7 +444,7 @@ HyperViewer(
 
 ```yaml
 dependencies:
-  hyper_render_math: ^1.3.1
+  hyper_render_math: ^1.3.2
 ```
 
 ```dart

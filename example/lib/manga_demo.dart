@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 
+import 'demo_colors.dart';
+
 // =============================================================================
 // Manga Demo
 //
@@ -36,16 +38,21 @@ class _MangaDemoState extends State<MangaDemo>
 
   @override
   Widget build(BuildContext context) {
+    final bg = DemoColors.forBrightness(
+        const Color(0xFFB71C1C), Theme.of(context).brightness);
+    final fg = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manga & CJK Typography'),
-        backgroundColor: const Color(0xFFB71C1C),
-        foregroundColor: Colors.white,
+        backgroundColor: bg,
+        foregroundColor: fg,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white,
-          indicatorColor: Colors.white,
+          labelColor: fg,
+          unselectedLabelColor: fg.withValues(alpha: 0.72),
+          indicatorColor: fg,
           isScrollable: true,
           tabs: const [
             Tab(icon: Icon(Icons.person, size: 16), text: 'キャラ'),

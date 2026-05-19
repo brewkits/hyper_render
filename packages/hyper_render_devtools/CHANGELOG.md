@@ -10,10 +10,10 @@
 
 No behavioural changes to the DevTools surface — this release is purely test-coverage hardening.
 
-## [1.3.1] - 2026-05-14
+## [1.3.2] - 2026-05-14
 
 ### 🏗️ Maintenance
-- Updated `hyper_render_core` dependency to `^1.3.1`
+- Updated `hyper_render_core` dependency to `^1.3.2`
 
 ## [1.3.0] - 2026-05-03
 

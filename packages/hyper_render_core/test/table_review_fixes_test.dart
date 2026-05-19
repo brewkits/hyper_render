@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 
-/// Regression tests for the v1.3.3 table review:
+/// Regression tests for the v1.3.2 table review:
 ///   Bug 1 — when no `cellContentBuilder` is supplied, a cell containing
 ///           a `<div>` (BlockNode) must NOT silently disappear.
 ///   Issue 3 — a table whose `rowCount * columnCount` exceeds the

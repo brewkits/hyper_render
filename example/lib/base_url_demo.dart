@@ -72,11 +72,10 @@ class _BaseUrlDemoState extends State<BaseUrlDemo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Base URL & Links'),
-        backgroundColor: DemoColors.secondary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: buildDemoAppBar(
+        context,
+        title: 'Base URL & Links',
+        accent: DemoColors.secondary,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

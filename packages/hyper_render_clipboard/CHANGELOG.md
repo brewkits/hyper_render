@@ -10,7 +10,7 @@
 
 - **+8 tests added** in `filename_safety_test`: URL-encoded slash, URL-encoded backslash, plain filename pass-through, extensionless URL fallback, caller-supplied traversal payloads (`../../etc/passwd.png`, Windows backslash variants), safe filename round-trip, mixed separator handling.
 
-## [1.3.1] - 2026-05-14
+## [1.3.2] - 2026-05-14
 
 ### 🏗️ Packaging
 - **Opt-in add-on**: `hyper_render_clipboard` is no longer bundled with the root `hyper_render` package. Add it explicitly to your `pubspec.yaml` if you use `SuperClipboardHandler`. This removes the `compileSdk = 34` requirement from default `hyper_render` users.

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
 
+import 'demo_colors.dart';
+
 /// Real-world HTML rendering showcase.
 /// Each card shows a realistic HTML use case and highlights where
 /// flutter_widget_from_html struggles but HyperRender handles correctly.
@@ -10,10 +12,10 @@ class FWFHIssuesTestDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('HTML Rendering Showcase'),
-        backgroundColor: Colors.deepOrange.shade700,
-        foregroundColor: Colors.white,
+      appBar: buildDemoAppBar(
+        context,
+        title: 'HTML Rendering Showcase',
+        accent: Colors.deepOrange.shade700,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
