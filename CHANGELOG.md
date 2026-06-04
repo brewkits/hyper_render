@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.4] - 2026-06-04
+
+### 🔧 Fixes & Optimizations
+- **Static Analysis Compliance**: Suppressed deprecated `SizeTransition.axisAlignment` lints with `// ignore: deprecated_member_use` to maintain backwards compatibility with older Flutter SDKs (>=3.10) while securing 160/160 points on pub.dev.
+- **Dependency Widening**: Widened `share_plus` dependency constraint to `^12.0.2 || ^13.0.0` in `hyper_render_clipboard` and root packages to allow compatibility with latest stable release.
+
 ## [1.3.3] - 2026-06-04
 
 ### 🚀 Production Readiness

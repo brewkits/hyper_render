@@ -1,5 +1,10 @@
 # Changelog — hyper_render_html
 
+## [1.3.4] - 2026-06-04
+
+### 🏗️ Maintenance
+- Updated `hyper_render_core` dependency to `^1.3.4`
+
 ## [1.3.3] - 2026-06-04
 
 ### ✨ New CSS Features

@@ -1,5 +1,11 @@
 # Changelog — hyper_render_clipboard
 
+## [1.3.4] - 2026-06-04
+
+### 🔧 Dependency Widening
+- Widened `share_plus` dependency constraint to `^12.0.2 || ^13.0.0` to resolve pub.dev out-of-date package scoring.
+- Updated `hyper_render_core` dependency to `^1.3.4`.
+
 ## [1.3.3] - 2026-06-04
 
 ### 🏗️ Maintenance

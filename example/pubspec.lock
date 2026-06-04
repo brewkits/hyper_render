@@ -342,35 +342,35 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.3.3"
+    version: "1.3.4"
   hyper_render_core:
     dependency: "direct main"
     description:
       path: "../packages/hyper_render_core"
       relative: true
     source: path
-    version: "1.3.3"
+    version: "1.3.4"
   hyper_render_highlight:
     dependency: "direct overridden"
     description:
       path: "../packages/hyper_render_highlight"
       relative: true
     source: path
-    version: "1.3.3"
+    version: "1.3.4"
   hyper_render_html:
     dependency: "direct overridden"
     description:
       path: "../packages/hyper_render_html"
       relative: true
     source: path
-    version: "1.3.3"
+    version: "1.3.4"
   hyper_render_markdown:
     dependency: "direct overridden"
     description:
       path: "../packages/hyper_render_markdown"
       relative: true
     source: path
-    version: "1.3.3"
+    version: "1.3.4"
   jni:
     dependency: transitive
     description:

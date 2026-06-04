@@ -1,5 +1,10 @@
 # Changelog — hyper_render_core
 
+## [1.3.4] - 2026-06-04
+
+### 🔧 Fixes
+- **Static Analysis Compliance**: Suppressed deprecated `SizeTransition.axisAlignment` lints with `// ignore: deprecated_member_use` to maintain backwards compatibility with older Flutter SDKs (>=3.10) while securing 160/160 points on pub.dev.
+
 ## [1.3.3] - 2026-06-04
 
 ### ✨ New CSS & Layout

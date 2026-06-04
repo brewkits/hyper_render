@@ -123,6 +123,7 @@ class _HyperDetailsWidgetState extends State<HyperDetailsWidget>
         // ── Collapsible body ─────────────────────────────────────────────────
         SizeTransition(
           sizeFactor: _expandAnimation,
+          // ignore: deprecated_member_use
           axisAlignment: -1,
           child: Padding(
             padding: const EdgeInsets.only(left: 24, top: 4, bottom: 4),
