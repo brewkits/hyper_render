@@ -88,8 +88,10 @@ Widget? _safeWidgetBuilder(
   } catch (e, stackTrace) {
     // Log error in debug mode
     assert(() {
-      print('Error in $context: $e');
-      print(stackTrace);
+      // MED-01: debugPrint is rate-limited and suppressed in release builds,
+      // unlike print() which outputs to console in all build modes.
+      debugPrint('Error in $context: $e');
+      debugPrint(stackTrace.toString());
       return true;
     }());
 

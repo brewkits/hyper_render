@@ -452,9 +452,14 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
     _showSnackBar('✅ Copied to clipboard', Colors.green);
   }
 
-  void _handleShare(HyperSelectionState state) async {
+  // MED-01: Declared as Future<void> so exceptions propagate to the caller and
+  // are not silently swallowed (void async discards unhandled Future errors).
+  Future<void> _handleShare(HyperSelectionState state) async {
     final text = state.selectedText;
     if (text != null && text.isNotEmpty) {
+      // CRIT-02: Check mounted BEFORE setState — user may have popped the screen
+      // between the gesture callback and this synchronous execution path.
+      if (!mounted) return;
       setState(() {
         _lastAction = 'Share';
         _selectedText = text;
@@ -484,9 +489,10 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
     }
   }
 
-  void _handleSearch(HyperSelectionState state) async {
+  Future<void> _handleSearch(HyperSelectionState state) async {
     final text = state.selectedText;
     if (text != null && text.isNotEmpty) {
+      if (!mounted) return; // CRIT-02
       setState(() {
         _lastAction = 'Search on Google';
         _selectedText = text;
@@ -523,9 +529,10 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
     }
   }
 
-  void _handleTranslate(HyperSelectionState state) async {
+  Future<void> _handleTranslate(HyperSelectionState state) async {
     final text = state.selectedText;
     if (text != null && text.isNotEmpty) {
+      if (!mounted) return; // CRIT-02
       setState(() {
         _lastAction = 'Translate';
         _selectedText = text;
@@ -551,9 +558,10 @@ class _EnhancedSelectionDemoState extends State<EnhancedSelectionDemo> {
     }
   }
 
-  void _handleDefine(HyperSelectionState state) async {
+  Future<void> _handleDefine(HyperSelectionState state) async {
     final text = state.selectedText;
     if (text != null && text.isNotEmpty) {
+      if (!mounted) return; // CRIT-02
       setState(() {
         _lastAction = 'Dictionary Lookup';
         _selectedText = text;

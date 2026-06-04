@@ -216,7 +216,12 @@ class HyperRenderConfig {
         useRepaintBoundary,
         codeHighlighter,
         Object.hashAll(extraLinkSchemes),
-        Object.hashAll(keyframeRegistry.keys),
+        // HIGH-02: Hash both keys AND values so that two configs with the same
+        // keyframe names but different keyframe data produce different hashCodes.
+        // Previously only keys were hashed, violating the a==b → a.hashCode==b.hashCode
+        // contract when values differed (same keys, different HyperKeyframes).
+        Object.hashAll(keyframeRegistry.entries
+            .map((e) => Object.hash(e.key, e.value.hashCode))),
       );
 
   static bool _mapsEqual(Map<String, dynamic> a, Map<String, dynamic> b) {

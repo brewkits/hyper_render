@@ -1,8 +1,8 @@
-# HyperRender v1.0 - Detailed Comparison Matrix
+# HyperRender v1.3 - Detailed Comparison Matrix
 
 **Feature-by-feature comparison with other libraries**
 
-Last Updated: February 2026
+Last Updated: June 2026
 
 ---
 
@@ -18,7 +18,7 @@ Last Updated: February 2026
 
 ## Performance Metrics
 
-| Metric | FWFH | WebView | super_editor | HyperRender v1.0 |
+| Metric | FWFH | WebView | super_editor | HyperRender v1.3.3 |
 |--------|------|---------|--------------|------------------|
 | **Parse Time (10K chars)** | 250ms ⚠️ | 400ms ⚠️ | N/A | **60ms ✅** |
 | **Parse Time (25K chars)** | 420ms ❌ | 800ms ❌ | N/A | **95ms ✅** |
@@ -40,7 +40,7 @@ Last Updated: February 2026
 
 ## HTML Support
 
-| Feature | FWFH | WebView | HyperRender v1.0 |
+| Feature | FWFH | WebView | HyperRender v1.3.3 |
 |---------|------|---------|------------------|
 | **Basic Tags** | | | |
 | `<p>`, `<div>`, `<span>` | ✅ | ✅ | ✅ |
@@ -77,7 +77,7 @@ Last Updated: February 2026
 | `<ruby>`, `<rt>` | ❌ | ✅ | **✅ Full** |
 | Kinsoku shori | ❌ | ✅ | **✅ Full** |
 | Vertical text | ❌ | ✅ | 🔜 v1.1 |
-| **Interactive (v1.0)** | | | |
+| **Interactive (v1.3)** | | | |
 | `<details>`, `<summary>` | ❌ | ✅ | **✅ Full** |
 | `<button>` | ⚠️ | ✅ | 🔜 v1.2 |
 | `<input>` | ⚠️ | ✅ | 🔜 v1.2 |
@@ -87,7 +87,7 @@ Last Updated: February 2026
 
 ## CSS Support
 
-| Property | FWFH | WebView | HyperRender v1.0 |
+| Property | FWFH | WebView | HyperRender v1.3.3 |
 |----------|------|---------|------------------|
 | **Text Properties** | | | |
 | `color` | ✅ | ✅ | ✅ |
@@ -136,13 +136,13 @@ Last Updated: February 2026
 **CSS Coverage Summary**:
 - FWFH: ~50 properties
 - WebView: ~300 properties (full spec)
-- HyperRender v1.0: ~40 essential properties
+- HyperRender v1.3.3: ~50 essential properties
 
 ---
 
 ## Accessibility
 
-| Aspect | FWFH | WebView | HyperRender v1.0 |
+| Aspect | FWFH | WebView | HyperRender v1.3.3 |
 |--------|------|---------|------------------|
 | **Screen reader support** | ⚠️ Basic | ✅ Full (browser a11y) | ✅ Semantics tree |
 | **Headings (h1–h6)** | ⚠️ | ✅ | ✅ `isHeader` + level hint |
@@ -161,7 +161,7 @@ does not implement keyboard focus management or ARIA live regions.
 
 ## Platform Support
 
-| Platform | FWFH | WebView | super_editor | HyperRender v1.0 |
+| Platform | FWFH | WebView | super_editor | HyperRender v1.3.3 |
 |----------|------|---------|--------------|------------------|
 | **Mobile** | | | | |
 | iOS | ✅ | ✅ | ✅ | ✅ |
@@ -178,7 +178,7 @@ does not implement keyboard focus management or ARIA live regions.
 
 ## Developer Experience
 
-| Aspect | FWFH | WebView | super_editor | HyperRender v1.0 |
+| Aspect | FWFH | WebView | super_editor | HyperRender v1.3.3 |
 |--------|------|---------|--------------|------------------|
 | **Ease of Use** | | | | |
 | Learning curve | Easy ✅ | Medium ⚠️ | Hard ❌ | Medium ⚠️ |
@@ -200,7 +200,7 @@ does not implement keyboard focus management or ARIA live regions.
 
 ## Use Case Suitability
 
-| Use Case | FWFH | WebView | super_editor | HyperRender v1.0 |
+| Use Case | FWFH | WebView | super_editor | HyperRender v1.3.3 |
 |----------|------|---------|--------------|------------------|
 | **Content Display** | | | | |
 | News articles (5K+ chars) | ⚠️ Slow | ✅ | N/A | **✅ Fast** |
@@ -228,7 +228,7 @@ does not implement keyboard focus management or ARIA live regions.
 
 ## Security & Safety
 
-| Aspect | FWFH | WebView | HyperRender v1.0 |
+| Aspect | FWFH | WebView | HyperRender v1.3.3 |
 |--------|------|---------|------------------|
 | **XSS Protection** | ⚠️ Manual | ⚠️ Sandboxed | ✅ Built-in `HtmlSanitizer` |
 | **JavaScript Execution** | ❌ None | ✅ Full (risk) | ❌ None (safe) |
@@ -247,7 +247,7 @@ Enable `sanitize: true` (default in HyperRender) when rendering user-generated c
 
 ## Cost Analysis
 
-| Factor | FWFH | WebView | HyperRender v1.0 |
+| Factor | FWFH | WebView | HyperRender v1.3.3 |
 |--------|------|---------|------------------|
 | **License** | MIT (Free) | Apache (Free) | MIT (Free) |
 | **Development Time** | Low ✅ | Medium ⚠️ | Medium ⚠️ |
@@ -289,7 +289,7 @@ Enable `sanitize: true` (default in HyperRender) when rendering user-generated c
 - ✅ Need caret, keyboard, selection
 - ✅ Rich text composition required
 
-### Choose HyperRender v1.0 if:
+### Choose HyperRender v1.3.3 if:
 - ✅ **Large documents (5K+ chars)**
 - ✅ **Performance critical (60fps required)**
 - ✅ **CJK content (Japanese, Korean, Chinese)**
@@ -301,7 +301,7 @@ Enable `sanitize: true` (default in HyperRender) when rendering user-generated c
 
 ## Version Comparison (HyperRender Roadmap)
 
-| Feature | v1.0 (Now) | v1.1 (Q2'26) | v1.2 (Q3'26) | v1.3 (Q4'26) | v2.0 (2027+) |
+| Feature | v1.0 | v1.1 | v1.2 | v1.3 (Stable) | v2.0 (Planned) |
 |---------|-----------|--------------|--------------|--------------|--------------|
 | InlineSpan paradigm | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Performance (60fps) | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -325,8 +325,8 @@ Devices:
   - Pixel 6 (Android 13)
   - MacBook Pro M1 (macOS 14)
 
-Flutter Version: 3.19.0
-Dart Version: 3.3.0
+Flutter Version: 3.22.0+
+Dart Version: 3.5.0+
 
 Test Documents:
   - Small: 1,000 characters
@@ -361,7 +361,7 @@ Results available in: `benchmark/RESULTS.md`
 | **FWFH** | Short docs, custom widgets | Large docs, performance-critical |
 | **WebView** | JS required, 100% CSS | Bundle size, native feel matters |
 | **super_editor** | Text editing | Read-only content display |
-| **HyperRender v1.0** | **Large docs, CJK, performance** | Need JavaScript, full CSS |
+| **HyperRender v1.3.3** | **Large docs, CJK, performance** | Need JavaScript, full CSS |
 
 **Recommendation**:
 - **Migrate to HyperRender** if you have performance issues with FWFH or bundle size issues with WebView
@@ -375,7 +375,7 @@ Results available in: `benchmark/RESULTS.md`
 For import into spreadsheet:
 
 ```csv
-Category,Feature,FWFH,WebView,HyperRender v1.0
+Category,Feature,FWFH,WebView,HyperRender v1.3.3
 Performance,Parse (10K chars),250ms,400ms,60ms
 Performance,Memory (10K),15MB,30MB,5MB
 Performance,Scroll FPS,35,55,60
@@ -394,5 +394,5 @@ Full CSV available at: `COMPARISON_MATRIX.csv` (if needed)
 
 *This comparison matrix is maintained by the HyperRender team and updated with each release.*
 
-*Last Updated: 2026-01-18*
-*Next Review: 2026-04-01*
+*Last Updated: 2026-06-04*
+*Next Review: 2026-09-01*

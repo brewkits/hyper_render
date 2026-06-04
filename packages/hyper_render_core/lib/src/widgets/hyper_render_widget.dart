@@ -1140,8 +1140,9 @@ class HyperImage extends StatelessWidget {
           break;
       }
 
+      // HIGH-01: Use maybeOf — HyperViewer may be embedded without a Scaffold.
       if (context.mounted && message.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           SnackBar(
             content: Text(message),
             duration: const Duration(seconds: 2),

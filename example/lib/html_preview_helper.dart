@@ -79,7 +79,7 @@ class HtmlPreviewHelper {
           throw Exception('Could not launch browser');
         }
       } else {
-        // On desktop: create temp file and open
+        // On desktop: create temp file, open it, then schedule deletion.
         final tempDir = await getTemporaryDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final file =
@@ -89,7 +89,16 @@ class HtmlPreviewHelper {
         final uri = Uri.file(file.path);
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri);
+          // MED-02: Clean up temp file after a short delay so the browser has
+          // time to read it. The OS temp dir is eventually purged regardless,
+          // but explicit deletion avoids accumulation during demo sessions.
+          Future.delayed(const Duration(seconds: 5), () {
+            file.exists().then((exists) {
+              if (exists) file.delete().ignore();
+            });
+          });
         } else {
+          await file.delete().onError((_, __) => file); // best-effort cleanup
           throw Exception('Could not launch browser');
         }
       }

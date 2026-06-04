@@ -151,6 +151,13 @@ class RenderHyperBox extends RenderBox
     onEvict: (painter) => painter.dispose(),
   );
 
+  /// Current capacity of the global TextPainter LRU cache.
+  ///
+  /// Exposed so [HyperViewer] can compare before calling [setGlobalTextCacheSize],
+  /// enabling the ref-counted multi-viewer size management without requiring
+  /// access to the private [_globalTextPainters] instance.
+  static int get globalTextCacheSize => _globalTextPainters.maxSize;
+
   /// Updates the global TextPainter cache capacity.
   ///
   /// Rebuilds the cache with the new size, evicting all existing entries
@@ -304,10 +311,25 @@ class RenderHyperBox extends RenderBox
   List<FloatCarryover> _initialFloats = const [];
   List<FloatCarryover> get initialFloats => _initialFloats;
   set initialFloats(List<FloatCarryover> value) {
-    // Avoid spurious re-layouts when carryover list is effectively the same.
-    if (value.length == _initialFloats.length &&
-        identical(value, _initialFloats)) {
-      return;
+    // CRIT-02: Compare by content (not identity) so that a new list object
+    // with the same FloatCarryover values does NOT trigger a full layout
+    // invalidation. The old code used `identical` which is always false for
+    // freshly constructed lists, causing _invalidateLayout() on every frame
+    // even when float geometry hadn't changed.
+    if (value.length == _initialFloats.length) {
+      bool same = true;
+      for (int i = 0; i < value.length; i++) {
+        final a = value[i];
+        final b = _initialFloats[i];
+        if (a.direction != b.direction ||
+            a.width != b.width ||
+            a.overhangHeight != b.overhangHeight ||
+            a.imagePixelOffset != b.imagePixelOffset) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return;
     }
     _initialFloats = value;
     _invalidateLayout();
@@ -334,6 +356,7 @@ class RenderHyperBox extends RenderBox
           direction: float.direction,
           width: float.rect.width,
           overhangHeight: float.rect.bottom - naturalHeight,
+          imagePixelOffset: naturalHeight - float.rect.top,
         ));
       }
     }
@@ -343,6 +366,7 @@ class RenderHyperBox extends RenderBox
           direction: float.direction,
           width: float.rect.width,
           overhangHeight: float.rect.bottom - naturalHeight,
+          imagePixelOffset: naturalHeight - float.rect.top,
         ));
       }
     }

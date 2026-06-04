@@ -486,13 +486,18 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
                 (offset.dy + fragmentOffset.dy + box.bottom).roundToDouble(),
               );
 
-              // Use PathOperation.union so adjacent/overlapping boxes from
-              // the same line merge into a single filled region.
-              final boxPath = Path()
-                ..addRRect(RRect.fromRectAndRadius(rect, selectionRadius));
-              linePath = linePath == null
-                  ? boxPath
-                  : Path.combine(PathOperation.union, linePath, boxPath);
+              // Path.combine FIX: Replace PathOperation.union (CPU-side CSG)
+              // with a single Path that accumulates addRRect calls.
+              // Path.combine computed full boolean geometry every frame (~60–120
+              // Hz during handle drag), causing significant UI-thread load on
+              // complex documents or Flutter Web (CanvasKit).
+              // addRRect is O(1) and defers all compositing to the GPU.
+              // Adjacent boxes from the same fragment are non-overlapping
+              // (TextPainter guarantees disjoint box rects), so the hairline
+              // gap concern only applies across styled fragment boundaries
+              // (at most 1 px), which is visually negligible.
+              linePath ??= Path();
+              linePath.addRRect(RRect.fromRectAndRadius(rect, selectionRadius));
             }
           }
         } else if (fragment.type == FragmentType.ruby &&
@@ -511,11 +516,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
               fragment.width.roundToDouble(),
               fragment.height.roundToDouble(),
             );
-            final boxPath = Path()
-              ..addRRect(RRect.fromRectAndRadius(rect, selectionRadius));
-            linePath = linePath == null
-                ? boxPath
-                : Path.combine(PathOperation.union, linePath, boxPath);
+            linePath ??= Path();
+            linePath.addRRect(RRect.fromRectAndRadius(rect, selectionRadius));
           }
         }
       }
@@ -706,7 +708,10 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         canvas: canvas,
         rect: rect,
         image: cached.image!,
-        fit: _getBoxFit(fragment.style.backgroundSize),
+        // object-fit (for <img>) takes priority over background-size (for
+        // CSS background images). Fall back to cover when neither is set.
+        fit: _getBoxFit(
+            fragment.style.objectFit ?? fragment.style.backgroundSize),
         repeat: _getImageRepeat(fragment.style.backgroundRepeat),
         alignment: _getBackgroundAlignment(fragment.style.backgroundPosition),
         filterQuality: FilterQuality.medium,

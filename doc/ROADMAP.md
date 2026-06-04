@@ -1,7 +1,7 @@
 # HyperRender — Product Roadmap
 
-**Last Updated**: 2026-05-19
-**Current Stable**: v1.3.2
+**Last Updated**: 2026-06-04
+**Current Stable**: v1.3.3
 **Repository**: [github.com/brewkits/hyper_render](https://github.com/brewkits/hyper_render)
 
 This document tracks the long-term direction of the HyperRender ecosystem.
@@ -100,7 +100,7 @@ Scope:
 
 Scope:
 - [x] Implement `WidgetsBindingObserver` in `HyperViewer` — `didHaveMemoryPressure` clears TextPainter cache, `LazyImageQueue.clearPending()`, and `PaintingBinding.imageCache.clear()`
-- [ ] Expose `onMemoryPressure` callback for host-app customization
+- [x] Expose `onMemoryPressure` callback for host-app customization (v1.3.3)
 - [ ] Debug-mode metrics: eviction count, bytes freed
 - [ ] Smoke test on a 2 GB RAM device
 
@@ -112,7 +112,7 @@ Properties deferred from Phase 3 in [`internal/CSS_SUPPORT_ROADMAP.md`](internal
 - [x] `text-overflow: ellipsis` — parsed + executed in `render_hyper_box_fragments.dart`
 - [x] `box-shadow` — parsed + applied in `render_hyper_box_paint.dart`
 - [x] `word-break`, `overflow-wrap` — parsed + executed in `render_hyper_box_layout.dart` (L1339–1375)
-- [ ] `list-style-type`, `list-style-position` — not yet in resolver or painter
+- [x] `list-style-type`, `list-style-position` — fully parsed, resolved, and painted (v1.3.1)
 - [x] `background-repeat` — parsed + mapped to `ImageRepeat` in `paintImage()`
 - [x] `background-position` — parsed + mapped to `Alignment` in `paintImage()` (keyword values: top/center/bottom/left/right and combinations)
 - [x] `background-size` — parsed and applied
@@ -223,7 +223,7 @@ Items under consideration, not yet scheduled:
 |------|-------|
 | `position: absolute / fixed / sticky` | Complex with single-RenderObject model |
 | `clip-path`, `filter` | Advanced visual effects |
-| `object-fit` for `<img>` | Requires changes to image layout pass |
+| ~~`object-fit` for `<img>`~~ | ✅ Completed in v1.3.3 |
 | `aspect-ratio` | Responsive media sizing |
 | Server-side UDT snapshot | Pre-render on server, hydrate on client |
 
