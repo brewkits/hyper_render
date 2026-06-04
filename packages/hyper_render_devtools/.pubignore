@@ -6,6 +6,8 @@
 
 # Build artifacts — exclude everything except the devtools extension build
 devtools_ui/build/
+!extension/devtools/build/
+!extension/devtools/build/**
 
 # Dart tool caches
 .dart_tool/
