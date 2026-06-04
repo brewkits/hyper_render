@@ -44,6 +44,12 @@ dependency_overrides:
     path: ../
   hyper_render_core:
     path: ../packages/hyper_render_core
+  hyper_render_html:
+    path: ../packages/hyper_render_html
+  hyper_render_markdown:
+    path: ../packages/hyper_render_markdown
+  hyper_render_highlight:
+    path: ../packages/hyper_render_highlight
 
 dev_dependencies:
   flutter_test:

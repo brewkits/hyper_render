@@ -1,5 +1,19 @@
 # Changelog — hyper_render_core
 
+## [1.3.3] - 2026-06-04
+
+### ✨ New CSS & Layout
+- **`object-fit` support**: Added `object-fit` property parsing (`cover`, `contain`, `fill`, `none`, `scale-down`) to control image resizing within its block container.
+- **Float carryover `imagePixelOffset`**: Enhanced `FloatCarryover` to carry `imagePixelOffset` across sections to allow precise partial painting of tall floated images.
+
+### ✨ New APIs & Configs
+- **`onMemoryPressure` callback**: Added `onMemoryPressure` parameter to widgets to allow host applications to coordinate resource disposal with HyperRender's cache invalidation.
+- **`imageConcurrency`**: Configured `imageConcurrency` setting in `HyperRenderConfig` and wired it into `LazyImageQueue`.
+
+### 🐛 Bug Fixes & Refinement
+- **TextPainter Cache**: Replaced the global `TextPainter` cache with a reference-counted multi-viewer safe cache.
+- **Color Parsing**: Fixed rgb/rgba parsing bugs by properly mapping `csslib` function parameters.
+
 ## [1.3.2] - 2026-05-19
 
 ### 🔒 Security

@@ -168,8 +168,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   width: 80,
                   height: 120,
                   color: Colors.grey.shade200,
-                  child: const Icon(Icons.menu_book,
-                      color: Colors.grey, size: 32),
+                  child:
+                      const Icon(Icons.menu_book, color: Colors.grey, size: 32),
                 ),
               ),
             ),
@@ -188,8 +188,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   const Spacer(),
                   // HIGH-04: Show actual page count instead of hardcoded string.
                   Text('Page ${book.lastPage + 1} visited',
-                      style:
-                          const TextStyle(fontSize: 10, color: Colors.grey)),
+                      style: const TextStyle(fontSize: 10, color: Colors.grey)),
                   const SizedBox(height: 4),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(2),

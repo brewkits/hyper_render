@@ -31,10 +31,10 @@ dependencies:
   # Version deps declared for pub.dev pana score (160/160).
   # dependency_overrides below redirect to local monorepo paths during dev.
 
-  hyper_render_core: ^1.3.2
-  hyper_render_html: ^1.3.2
-  hyper_render_markdown: ^1.3.2
-  hyper_render_highlight: ^1.3.2
+  hyper_render_core: ^1.3.3
+  hyper_render_html: ^1.3.3
+  hyper_render_markdown: ^1.3.3
+  hyper_render_highlight: ^1.3.3
 
   # Fixed version constraints for pub.dev compliance
   flutter_highlight: ^0.7.0

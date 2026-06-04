@@ -521,8 +521,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       ListTile(
                         title: const Text('Start'),
                         trailing: const Text('p. 1',
-                            style:
-                                TextStyle(color: Colors.grey, fontSize: 12)),
+                            style: TextStyle(color: Colors.grey, fontSize: 12)),
                         onTap: () {
                           _pageController.jumpToPage(0);
                           Navigator.pop(context);
@@ -546,8 +545,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontWeight:
-                              h.level <= 2 ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: h.level <= 2
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                           fontSize: h.level <= 2 ? 14 : 13,
                         ),
                       ),
@@ -568,5 +568,4 @@ class _ReaderScreenState extends State<ReaderScreen> {
       ),
     );
   }
-
 }

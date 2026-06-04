@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';
 
-
 UDTNode? findNodeByTagName(UDTNode node, String tagName) {
   if (node.tagName == tagName) return node;
   for (final child in node.children) {
@@ -88,7 +87,8 @@ void main() {
       expect(triggerCount, equals(1));
     });
 
-    testWidgets('onMemoryPressure triggers in Virtualized mode', (tester) async {
+    testWidgets('onMemoryPressure triggers in Virtualized mode',
+        (tester) async {
       int triggerCount = 0;
 
       await tester.pumpWidget(
@@ -122,12 +122,14 @@ void main() {
   // 3. SYSTEM TESTING
   // ═══════════════════════════════════════════════════════════════════════════
   group('v1.3.3 System Tests', () {
-    testWidgets('Renders image with valid object-fit inside HyperViewer', (tester) async {
+    testWidgets('Renders image with valid object-fit inside HyperViewer',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: HyperViewer(
-              html: '<img src="https://example.com/logo.png" style="object-fit: cover; width: 100px; height: 100px;" />',
+              html:
+                  '<img src="https://example.com/logo.png" style="object-fit: cover; width: 100px; height: 100px;" />',
               mode: HyperRenderMode.sync,
             ),
           ),
@@ -156,7 +158,8 @@ void main() {
       final doc = adapter.parse(html.toString());
       stopwatch.stop();
 
-      print('Parsed 500 image nodes with object-fit: ${stopwatch.elapsedMilliseconds}ms');
+      print(
+          'Parsed 500 image nodes with object-fit: ${stopwatch.elapsedMilliseconds}ms');
       expect(doc.children, isNotEmpty);
       expect(stopwatch.elapsedMilliseconds, lessThan(150),
           reason: 'Parsing 500 image tags must be fast');
@@ -167,10 +170,12 @@ void main() {
   // 5. STRESS TESTING
   // ═══════════════════════════════════════════════════════════════════════════
   group('v1.3.3 Stress Tests', () {
-    testWidgets('Handles a document containing multiple floated images', (tester) async {
+    testWidgets('Handles a document containing multiple floated images',
+        (tester) async {
       final buffer = StringBuffer('<div>');
       for (int i = 0; i < 100; i++) {
-        buffer.write('<img src="https://example.com/img$i.png" style="float: left; width: 20px; height: 20px;" />');
+        buffer.write(
+            '<img src="https://example.com/img$i.png" style="float: left; width: 20px; height: 20px;" />');
         buffer.write('<p>Text content wrapper $i</p>');
       }
       buffer.write('</div>');
@@ -200,17 +205,21 @@ void main() {
   // 6. SECURITY TESTING
   // ═══════════════════════════════════════════════════════════════════════════
   group('v1.3.3 Security Testing', () {
-    test('XSS sanitization strips or invalidates malformed object-fit values', () {
+    test('XSS sanitization strips or invalidates malformed object-fit values',
+        () {
       final doc = _parseAndResolve(
         '<img style="object-fit: expression(alert(1));" />',
       );
       final img = findNodeByTagName(doc, 'img');
       expect(img, isNotNull);
       expect(img!.style.objectFit, isNull,
-          reason: 'Malformed object-fit value with potential script execution must be filtered');
+          reason:
+              'Malformed object-fit value with potential script execution must be filtered');
     });
 
-    test('Valid CSS properties are retained while unknown / malicious are stripped', () {
+    test(
+        'Valid CSS properties are retained while unknown / malicious are stripped',
+        () {
       final doc = _parseAndResolve(
         '<img style="object-fit: cover; width: url(javascript:alert(1));" />',
       );

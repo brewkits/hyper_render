@@ -1,5 +1,20 @@
 # Changelog — hyper_render_html
 
+## [1.3.3] - 2026-06-04
+
+### ✨ New CSS Features
+- **CSS Attribute Selectors**: Added full support for attribute selectors in CSS parsing and matching rules:
+  - Presence: `[attr]`
+  - Exact match: `[attr="value"]`
+  - Starts with prefix: `[attr^="value"]`
+  - Ends with suffix: `[attr$="value"]`
+  - Substring match: `[attr*="value"]`
+  - Whitespace-separated word: `[attr~="value"]`
+  - Hyphen-separated prefix: `[attr|="value"]`
+
+### 🏗️ Maintenance
+- Updated `hyper_render_core` dependency to `^1.3.3`
+
 ## [1.3.2] - 2026-05-19
 
 ### 🔒 Security
