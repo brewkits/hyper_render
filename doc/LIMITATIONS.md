@@ -23,7 +23,7 @@ are silently ignored.
 | `background-repeat` | Not parsed | N/A |
 | `columns` / `column-count` | Multi-column layout not rendered | Use a CSS Grid layout (supported) |
 
-### Supported in v1.2.0
+### Supported in v1.2.0 - v1.3.3
 
 | Property | Status |
 |----------|--------|
@@ -34,6 +34,7 @@ are silently ignored.
 | `background-image` | ✅ url() and `linear-gradient()` supported |
 | `background-size` | ✅ cover, contain, fill supported |
 | `display: grid` | ✅ full auto-placement, fr-units, and gap support |
+| `object-fit` | ✅ cover, contain, fill, none, scale-down supported |
 
 ### Partial support
 
@@ -147,4 +148,4 @@ final registry = HyperPluginRegistry()
 
 ---
 
-*Last updated: April 29, 2026 — HyperRender v1.3.0*
+*Last updated: June 4, 2026 — HyperRender v1.3.3*

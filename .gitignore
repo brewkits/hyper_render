@@ -30,6 +30,7 @@ TEST_FIX_SUMMARY.md
 TEST_SUMMARY.md
 IMPROVEMENTS_SUMMARY.md
 PRIORITY_ACTION_PLAN.md
+release_notes.txt
 
 # User-specific / Local config
 .vscode/

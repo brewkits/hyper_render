@@ -985,6 +985,11 @@ class _StressTestDemoState extends State<StressTestDemo> {
             html: content,
             mode: HyperRenderMode.auto,
             selectable: true,
+            // CRIT-03: Explicit sanitize:true even though it is the default.
+            // This demo renders arbitrary user-supplied URLs — keeping sanitize
+            // explicit makes the security posture clear to anyone reading the code
+            // and prevents accidental removal when copy-pasting to production.
+            sanitize: true,
             placeholderBuilder: (context) =>
                 _buildLoadingPlaceholder(content.length),
           ),

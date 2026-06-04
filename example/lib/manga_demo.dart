@@ -285,7 +285,11 @@ class _CharacterTab extends StatelessWidget {
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).padding.bottom + 16,
           ),
-          child: HyperViewer(html: _html, selectable: true),
+          // shrinkWrap: true prevents HyperViewer from creating its own inner
+          // SingleChildScrollView (sync mode default). Without it, the inner
+          // scroll captures all gestures and the outer scroll never activates,
+          // making it impossible to scroll to content at the bottom.
+          child: HyperViewer(html: _html, selectable: true, shrinkWrap: true),
         ),
       ),
     );
@@ -451,7 +455,7 @@ class _SynopsisTab extends StatelessWidget {
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).padding.bottom + 16,
           ),
-          child: HyperViewer(html: _html, selectable: true),
+          child: HyperViewer(html: _html, selectable: true, shrinkWrap: true),
         ),
       ),
     );
@@ -565,9 +569,13 @@ class _PanelsTab extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 800),
         child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).padding.bottom + 16,
+          ),
           child: HyperViewer(
             html: _html,
             selectable: false,
+            shrinkWrap: true,
           ),
         ),
       ),
@@ -723,9 +731,13 @@ class _FuriganaTab extends StatelessWidget {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 800),
               child: SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).padding.bottom + 16,
+                ),
                 child: HyperViewer(
                   html: _html,
                   selectable: true,
+                  shrinkWrap: true,
                 ),
               ),
             ),

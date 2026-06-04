@@ -56,13 +56,15 @@ class ReaderScreen extends StatefulWidget {
 
 class _ReaderScreenState extends State<ReaderScreen> {
   late HyperPageController _pageController;
-  late Book _currentBook; // Local state for the book to handle updates
-  final GlobalKey<ScaffoldMessengerState> _messengerKey =
-      GlobalKey<ScaffoldMessengerState>();
+  late Book _currentBook;
 
-  // Settings grouped into a single ValueNotifier
+  // Settings grouped into a single ValueNotifier to minimise rebuilds.
   final ValueNotifier<ReaderSettings> _settings =
       ValueNotifier(const ReaderSettings());
+
+  // HIGH-05: A real HyperViewerController so the TOC drawer is populated from
+  // actual heading anchors extracted by the renderer — not hardcoded strings.
+  final HyperViewerController _viewerController = HyperViewerController();
 
   static const double _fontSizeMin = 12.0;
   static const double _fontSizeMax = 36.0;
@@ -73,22 +75,33 @@ class _ReaderScreenState extends State<ReaderScreen> {
     super.initState();
     _currentBook = widget.book;
     _pageController = HyperPageController(initialPage: _currentBook.lastPage);
+    // CRIT-01: listener removed in dispose(); mounted guard inside callback.
     _pageController.currentPage.addListener(_onPageChanged);
   }
 
   void _onPageChanged() {
-    // Only update progress if the page actually changed to avoid redundant writes
-    if (_currentBook.lastPage != _pageController.currentPage.value) {
-      _currentBook =
-          _currentBook.copyWith(lastPage: _pageController.currentPage.value);
+    // CRIT-01: ValueNotifier callbacks can fire during Flutter teardown.
+    if (!mounted) return;
+    final newPage = _pageController.currentPage.value;
+    if (_currentBook.lastPage != newPage) {
+      _currentBook = _currentBook.copyWith(lastPage: newPage);
+      // HIGH-01: Write back so LibraryScreen sees updated progress on pop.
+      _persistBook(_currentBook);
     }
   }
 
   void _toggleBookmark() {
-    setState(() {
-      _currentBook =
-          _currentBook.copyWith(isBookmarked: !_currentBook.isBookmarked);
-    });
+    final updated =
+        _currentBook.copyWith(isBookmarked: !_currentBook.isBookmarked);
+    setState(() => _currentBook = updated);
+    // HIGH-01: Persist bookmark to shared library immediately.
+    _persistBook(updated);
+  }
+
+  /// Writes [book] back into [MockLibrary.books] by matching id.
+  static void _persistBook(Book book) {
+    final idx = MockLibrary.books.indexWhere((b) => b.id == book.id);
+    if (idx != -1) MockLibrary.books[idx] = book;
   }
 
   void _updateFontSize(double delta) {
@@ -102,6 +115,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _pageController.currentPage.removeListener(_onPageChanged);
     _pageController.dispose();
     _settings.dispose();
+    _viewerController.dispose();
     super.dispose();
   }
 
@@ -291,6 +305,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         html: _currentBook.content,
                         mode: HyperRenderMode.paged,
                         pageController: _pageController,
+                        // HIGH-05: _viewerController is owned by this State and
+                        // disposed in dispose(). Its headings list drives the
+                        // TOC drawer via ListenableBuilder below.
+                        controller: _viewerController,
                         customCss: settings.toCss(),
                         widgetBuilder: _videoWidgetBuilder,
                         onError: (e, st) {
@@ -323,7 +341,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
         valueListenable: _pageController.currentPage,
         builder: (context, page, _) {
           final pageCount = _pageController.pageCount;
-          final progress = pageCount > 0 ? (page + 1) / pageCount : 0.0;
+          // HIGH-03: pageCount is 0 until the document finishes parsing.
+          // Show a loading placeholder ("…") instead of "Page 1 of 0".
+          final ready = pageCount > 0;
+          final progress = ready ? (page + 1) / pageCount : 0.0;
 
           return Column(
             mainAxisSize: MainAxisSize.min,
@@ -331,11 +352,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${(progress * 100).toInt()}% read',
+                  Text(ready ? '${(progress * 100).toInt()}% read' : '…',
                       style: TextStyle(
                           color: settings.textColor.withValues(alpha: 0.5),
                           fontSize: 10)),
-                  Text('Page ${page + 1} of $pageCount',
+                  Text(ready ? 'Page ${page + 1} of $pageCount' : '…',
                       style: TextStyle(
                           color: settings.textColor.withValues(alpha: 0.7),
                           fontSize: 11,
@@ -486,13 +507,61 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold)),
           ),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _tocItem('Chapter I', 0),
-                _tocItem('The West Egg', 2),
-                _tocItem('Chapter II', 5),
-              ],
+            // HIGH-05: Real TOC from HyperViewerController.headings.
+            // ListenableBuilder rebuilds whenever _viewerController notifies
+            // (i.e. after each layout pass that discovers heading anchors).
+            child: ListenableBuilder(
+              listenable: _viewerController,
+              builder: (context, _) {
+                final headings = _viewerController.headings;
+                if (headings.isEmpty) {
+                  return ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      ListTile(
+                        title: const Text('Start'),
+                        trailing: const Text('p. 1',
+                            style:
+                                TextStyle(color: Colors.grey, fontSize: 12)),
+                        onTap: () {
+                          _pageController.jumpToPage(0);
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  );
+                }
+                return ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: headings.length,
+                  itemBuilder: (context, i) {
+                    final h = headings[i];
+                    return ListTile(
+                      contentPadding: EdgeInsets.only(
+                        left: 16.0 + (h.level - 1) * 12.0,
+                        right: 16.0,
+                      ),
+                      title: Text(
+                        h.text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight:
+                              h.level <= 2 ? FontWeight.bold : FontWeight.normal,
+                          fontSize: h.level <= 2 ? 14 : 13,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        // Scroll to anchor if the heading has a CSS id.
+                        if (h.cssId != null) {
+                          _viewerController.scrollToId(h.cssId!);
+                        }
+                      },
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -500,15 +569,4 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
-  Widget _tocItem(String title, int page) {
-    return ListTile(
-      title: Text(title),
-      trailing: Text('p. ${page + 1}',
-          style: const TextStyle(color: Colors.grey, fontSize: 12)),
-      onTap: () {
-        _pageController.jumpToPage(page);
-        Navigator.pop(context);
-      },
-    );
-  }
 }

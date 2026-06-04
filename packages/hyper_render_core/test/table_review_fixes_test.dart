@@ -51,15 +51,11 @@ void main() {
 
       // Inline part is in a Text.rich (combined with block-fallback Text).
       // We assert both visible strings appear somewhere in the tree.
-      final allText = find
-          .byType(Text)
-          .evaluate()
-          .map((e) {
-            final w = e.widget as Text;
-            if (w.data != null) return w.data!;
-            return w.textSpan?.toPlainText() ?? '';
-          })
-          .join('|');
+      final allText = find.byType(Text).evaluate().map((e) {
+        final w = e.widget as Text;
+        if (w.data != null) return w.data!;
+        return w.textSpan?.toPlainText() ?? '';
+      }).join('|');
       expect(allText, contains('inline first'));
       expect(allText, contains('then block'));
     });

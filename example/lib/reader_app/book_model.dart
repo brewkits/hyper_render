@@ -44,6 +44,8 @@ class Book {
 }
 
 class MockLibrary {
+  // HIGH-01: Mutable list so ReaderScreen can write back lastPage / isBookmarked
+  // changes that LibraryScreen observes after pop (via the setState in _openBook).
   static final List<Book> books = [
     Book(
       id: '1',

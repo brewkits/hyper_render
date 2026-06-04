@@ -1,21 +1,28 @@
 # Migration Guide
 
-> **Current version: v1.3.2**
+> **Current version: v1.3.3**
 
-## Upgrading to 1.3.2
+## Upgrading to v1.3.3 / v1.3.2
 
-### ⚠️ Breaking change — clipboard and math are now opt-in
+### ⚠️ Breaking change — clipboard and math are now opt-in (since v1.3.2)
 
 `hyper_render_clipboard` and `hyper_render_math` are no longer transitive dependencies of the root `hyper_render` package. If you use either, add them explicitly:
 
 ```yaml
 dependencies:
-  hyper_render: ^1.3.2
-  hyper_render_clipboard: ^1.3.2   # only if you use SuperClipboardHandler
-  hyper_render_math: ^1.3.2        # only if you use MathNodePlugin / LatexNodePlugin
+  hyper_render: ^1.3.3
+  hyper_render_clipboard: ^1.3.3   # only if you use SuperClipboardHandler
+  hyper_render_math: ^1.3.3        # only if you use MathNodePlugin / LatexNodePlugin
 ```
 
 If you don't use either feature, **no changes are needed** — just bump the version and your Android build will no longer require a `compileSdk = 35` workaround.
+
+### New in v1.3.3
+
+- `onMemoryPressure` public callback for low-memory resource management
+- CSS `object-fit` support for `<img>` elements (`cover`, `contain`, `fill`, `none`, `scale-down`)
+- Performance: replaced CPU-side `Path.combine` with fast GPU-deferred `addRRect` calls in `_paintSelection`
+- Version bumped across all sub-packages
 
 ### New in 1.3.2
 
@@ -26,16 +33,16 @@ If you don't use either feature, **no changes are needed** — just bump the ver
 
 ---
 
-## Starting fresh with 1.3.2
+## Starting fresh with 1.3.3
 
 **No migration needed!** If you're starting fresh:
 
 ```yaml
 dependencies:
-  hyper_render: ^1.3.2
+  hyper_render: ^1.3.3
   # opt-in extras:
-  hyper_render_clipboard: ^1.3.2   # image copy/save/share
-  hyper_render_math: ^1.3.2        # LaTeX/MathML
+  hyper_render_clipboard: ^1.3.3   # image copy/save/share
+  hyper_render_math: ^1.3.3        # LaTeX/MathML
 ```
 
 ```dart
@@ -180,7 +187,7 @@ These APIs are stable and will remain backward-compatible in v2.0:
 
 ## Getting Help
 
-For the current v1.3.2 release:
+For the current v1.3.3 release:
 - See [README](../README.md) for usage
 - Check [CHANGELOG](../CHANGELOG.md) for version history
 - Review [Plugin Development Guide](PLUGIN_DEVELOPMENT.md) for extending
@@ -188,4 +195,4 @@ For the current v1.3.2 release:
 
 ---
 
-*Last Updated: May 14, 2026 for v1.3.2*
+*Last Updated: June 4, 2026 for v1.3.3*

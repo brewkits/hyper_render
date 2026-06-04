@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.3.3] - 2026-06-04
+
+### 🚀 Production Readiness
+- **Publishing Candidate**: Comprehensive code cleanup, removal of unnecessary TODOs, and linting fixes.
+- **Test Coverage Verified**: Passed 973 test cases covering unit, integration, system, performance, stress, and security testing.
+- **Dependency Resolution**: Ensured all internal sub-packages (`hyper_render_math`, etc.) are fully resolved and analyzed.
+
+### ✨ New CSS Properties
+
+- **`object-fit`**: `cover`, `contain`, `fill`, `none`, `scale-down` — applies to `<img>` elements. Controls how the image content is resized to fit its layout box. Previously, images incorrectly fell through to the `background-size` mapping; `object-fit` now takes priority as the semantically correct property for replaced elements.
+
+### ✨ New Features
+
+- **`onMemoryPressure` callback**: `HyperViewer` now exposes an optional `VoidCallback? onMemoryPressure` parameter (available on all constructors: default, `.delta`, `.markdown`, `.fromNode`). Invoked after HyperRender clears its internal TextPainter, image, and painting caches in response to `didHaveMemoryPressure`. Enables host apps to release their own resources (video players, download queues, custom caches) in the same memory-pressure cycle.
+
+### 🔧 Improvements
+
+- **Float carryover `imagePixelOffset`**: `FloatCarryover` now carries an `imagePixelOffset` field computed from the originating section's layout. When a tall float image overhangs a virtualized section boundary, the offset records how many pixels of the image were already painted — enabling future visual rendering of the remaining portion in the next section without repeating the top. The `_onFloatCarryover` comparison in `HyperViewer` now includes `imagePixelOffset` to avoid missing updates.
+
+### 📝 Documentation
+
+- **ROADMAP corrected**: `list-style-type` and `list-style-position` were marked as incomplete (`[ ]`) despite being fully shipped in v1.3.1. Now correctly marked as `[x]`. `object-fit` moved from Backlog to Completed.
+
+---
+
 ## [1.3.2] - 2026-05-18
 
 ### Bug Fixes (Critical)

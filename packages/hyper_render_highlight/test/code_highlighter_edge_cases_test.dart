@@ -48,9 +48,23 @@ void main() {
   group('language coverage sanity', () {
     test('common language identifiers all resolve', () {
       const popular = [
-        'dart', 'javascript', 'typescript', 'python', 'java',
-        'kotlin', 'swift', 'go', 'rust', 'cpp', 'csharp',
-        'ruby', 'php', 'shell', 'json', 'xml', 'yaml',
+        'dart',
+        'javascript',
+        'typescript',
+        'python',
+        'java',
+        'kotlin',
+        'swift',
+        'go',
+        'rust',
+        'cpp',
+        'csharp',
+        'ruby',
+        'php',
+        'shell',
+        'json',
+        'xml',
+        'yaml',
       ];
       for (final lang in popular) {
         expect(highlighter.isLanguageSupported(lang), isTrue,

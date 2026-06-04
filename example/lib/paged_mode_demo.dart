@@ -121,7 +121,12 @@ class _PageBarState extends State<_PageBar> {
     super.dispose();
   }
 
-  void _onPageChanged() => setState(() {});
+  // CRIT-01: Guard against setState after dispose — the ValueNotifier listener
+  // can fire during Flutter's teardown sequence (e.g. page transition animation)
+  // after dispose() has already run, causing "setState called after dispose".
+  void _onPageChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {

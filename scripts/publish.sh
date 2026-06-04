@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# HyperRender publish helper — v1.3.2
+# HyperRender publish helper — v1.3.3
 #
 # Usage:
 #   ./scripts/publish.sh dry-run   # verify all packages (no upload)
@@ -12,16 +12,17 @@
 #   3. hyper_render_clipboard, hyper_render_devtools, hyper_render_math
 #   4. hyper_render (root wrapper)
 #
-# What the script does:
-#   - Temporarily patches each pubspec.yaml:
-#       • Replaces path: ../hyper_render_core with hyper_render_core: ^VERSION
-#   - Runs `dart pub publish [--dry-run]`
-#   - Restores the original pubspec.yaml from git after each step
+# Strategy:
+#   Each pubspec.yaml already has version deps (e.g. hyper_render_core: ^1.3.2)
+#   in `dependencies:`. The `dependency_overrides:` block redirects to local
+#   paths for monorepo dev. Before publishing each package, we remove the
+#   `dependency_overrides:` block, run `dart pub publish`, then restore the
+#   pubspec from git.
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
 
-VERSION="1.3.2"
+VERSION="1.3.3"
 MODE="${1:-dry-run}"   # dry-run | publish
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
@@ -46,70 +47,90 @@ fi
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
-patch_pubspec() {
-  local dir="$1"
-  local pubspec="$dir/pubspec.yaml"
-
-  cp "$pubspec" "/tmp/$(basename "$dir")_pubspec.bak"
-
-  # Replace multi-line path dep with version constraint via python3
-  python3 - "$pubspec" "$VERSION" <<'PYEOF'
-import sys, re
-
-path = sys.argv[1]
-version = sys.argv[2]
-
-with open(path) as f:
-    content = f.read()
-
-# Replace:
-#   hyper_render_core:
-#     path: ../hyper_render_core
-# With:
-#   hyper_render_core: ^VERSION
+# Remove the dependency_overrides: block from a pubspec.yaml.
+# The block starts with "^dependency_overrides:" and includes all indented
+# lines beneath it, up to the next top-level key or EOF.
+_remove_overrides() {
+  local f="$1"
+  if [ -f "$f" ] && grep -q "^dependency_overrides:" "$f"; then
+    python3 - "$f" <<'PYEOF'
+import re, sys
+with open(sys.argv[1]) as fh:
+    content = fh.read()
+# Remove dependency_overrides block: top-level key + all following indented/blank lines
 content = re.sub(
-    r'hyper_render_core:\s*\n\s+path:\s+\.\./hyper_render_core',
-    f'hyper_render_core: ^{version}',
-    content
+    r'\ndependency_overrides:\n(?:[ \t]+[^\n]*\n|\n)*',
+    '\n',
+    content,
 )
-
-with open(path, 'w') as f:
-    f.write(content)
-
-print(f"  patched: {path}")
+with open(sys.argv[1], 'w') as fh:
+    fh.write(content)
 PYEOF
+    echo "  ✓ Removed dependency_overrides from $f"
+  fi
 }
 
-restore_pubspec() {
-  local dir="$1"
-  local pubspec="$dir/pubspec.yaml"
-  local bak="/tmp/$(basename "$dir")_pubspec.bak"
-  if [[ -f "$bak" ]]; then
-    mv "$bak" "$pubspec"
-    echo "  restored: $pubspec"
+# Remove publish_to: none if present
+_remove_publish_to_none() {
+  local f="$1"
+  if [ -f "$f" ] && grep -q "^publish_to: none" "$f"; then
+    sed -i '' '/^publish_to: none/d' "$f" 2>/dev/null || sed -i '/^publish_to: none/d' "$f"
+    echo "  ✓ Removed publish_to: none from $f"
   fi
+}
+
+# Restore a pubspec.yaml from git (undo all local modifications)
+_restore_pubspec() {
+  local f="$1"
+  git checkout -- "$f" 2>/dev/null && echo "  ✓ Restored $f" || true
 }
 
 publish_package() {
   local name="$1"
   local dir="$ROOT/packages/$name"
+  local pubspec="$dir/pubspec.yaml"
 
   echo ""
   echo "════════════════════════════════════════"
   echo "  Package: $name"
   echo "════════════════════════════════════════"
 
-  patch_pubspec "$dir"
+  _remove_overrides "$pubspec"
+  _remove_publish_to_none "$pubspec"
 
-  trap "restore_pubspec '$dir'" EXIT
+  # Ensure restore even on failure
+  trap "_restore_pubspec '$pubspec'" EXIT
 
   (
     cd "$dir"
-    echo "  Running: dart pub publish $DRY_FLAG $FORCE_FLAG"
+    echo "  Running: $FLUTTER pub publish $DRY_FLAG $FORCE_FLAG"
     $FLUTTER pub publish $DRY_FLAG $FORCE_FLAG
   )
 
-  restore_pubspec "$dir"
+  _restore_pubspec "$pubspec"
+  trap - EXIT
+}
+
+publish_root() {
+  local pubspec="$ROOT/pubspec.yaml"
+
+  echo ""
+  echo "════════════════════════════════════════"
+  echo "  Package: hyper_render (root)"
+  echo "════════════════════════════════════════"
+
+  _remove_overrides "$pubspec"
+  _remove_publish_to_none "$pubspec"
+
+  trap "_restore_pubspec '$pubspec'" EXIT
+
+  (
+    cd "$ROOT"
+    echo "  Running: $FLUTTER pub publish $DRY_FLAG $FORCE_FLAG"
+    $FLUTTER pub publish $DRY_FLAG $FORCE_FLAG
+  )
+
+  _restore_pubspec "$pubspec"
   trap - EXIT
 }
 
@@ -193,25 +214,7 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Step 4: hyper_render (root wrapper)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-ROOT_PUBSPEC="$ROOT/pubspec.yaml"
-ROOT_PUBSPEC_BAK="$ROOT/pubspec.yaml.bak"
-READY_PUBSPEC="$ROOT/pubspec_publish_ready.yaml"
-
-cp "$ROOT_PUBSPEC" "$ROOT_PUBSPEC_BAK"
-cp "$READY_PUBSPEC" "$ROOT_PUBSPEC"
-trap "mv '$ROOT_PUBSPEC_BAK' '$ROOT_PUBSPEC'" EXIT
-
-echo "  Swapped pubspec.yaml → pubspec_publish_ready.yaml"
-(
-  cd "$ROOT"
-  echo "  Running: flutter pub publish $DRY_FLAG $FORCE_FLAG"
-  flutter pub publish $DRY_FLAG $FORCE_FLAG
-)
-
-mv "$ROOT_PUBSPEC_BAK" "$ROOT_PUBSPEC"
-trap - EXIT
-echo "  Restored pubspec.yaml"
+publish_root
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

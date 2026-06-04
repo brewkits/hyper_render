@@ -1047,66 +1047,8 @@ class SelectionDemo extends StatelessWidget {
 // RUBY DEMO
 // =============================================================================
 
-class RubyDemo extends StatelessWidget {
-  const RubyDemo({super.key});
-
-  static const html = '''
-<div style="font-family: sans-serif; line-height: 2;">
-  <h2 style="color: #E91E63;">Ruby Annotation (振り仮名)</h2>
-  <p>Ruby annotations display reading aids (furigana) above Chinese or Japanese characters.</p>
-
-  <div style="background: #FCE4EC; padding: 16px; border-radius: 12px; margin: 16px 0;">
-    <h3 style="margin: 0 0 12px 0;">基本的な例 (Basic Examples)</h3>
-    <p style="font-size: 22px; margin: 8px 0;">
-      <ruby>日本語<rt>にほんご</rt></ruby>を<ruby>勉強<rt>べんきょう</rt></ruby>しています。
-    </p>
-    <p style="color: #666; font-size: 14px; margin: 0;">= I am studying Japanese.</p>
-  </div>
-
-  <div style="background: #E8F5E9; padding: 16px; border-radius: 12px; margin: 16px 0;">
-    <h3 style="margin: 0 0 12px 0;">文学作品 (Literature)</h3>
-    <p style="font-size: 20px; margin: 8px 0; font-style: italic;">
-      <ruby>吾輩<rt>わがはい</rt></ruby>は<ruby>猫<rt>ねこ</rt></ruby>である。
-      <ruby>名前<rt>なまえ</rt></ruby>はまだない。
-    </p>
-    <p style="color: #666; font-size: 14px; margin: 0;">— 夏目漱石「吾輩は猫である」</p>
-  </div>
-
-  <div style="background: #E3F2FD; padding: 16px; border-radius: 12px; margin: 16px 0;">
-    <h3 style="margin: 0 0 12px 0;">地名 (Place Names)</h3>
-    <p style="font-size: 20px; margin: 4px 0;">
-      <ruby>東京<rt>とうきょう</rt></ruby> •
-      <ruby>大阪<rt>おおさか</rt></ruby> •
-      <ruby>京都<rt>きょうと</rt></ruby> •
-      <ruby>北海道<rt>ほっかいどう</rt></ruby>
-    </p>
-  </div>
-
-  <div style="background: #FFF3E0; padding: 16px; border-radius: 12px; margin: 16px 0;">
-    <h3 style="margin: 0 0 12px 0;">中文拼音 (Chinese Pinyin)</h3>
-    <p style="font-size: 20px; margin: 4px 0;">
-      <ruby>你好<rt>nǐ hǎo</rt></ruby> •
-      <ruby>谢谢<rt>xiè xiè</rt></ruby> •
-      <ruby>中国<rt>zhōng guó</rt></ruby>
-    </p>
-  </div>
-</div>
-''';
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ruby Annotation Demo'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-      ),
-      body: const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: HyperViewer(html: html, selectable: true),
-      ),
-    );
-  }
-}
+// MED-04: RubyDemo removed — it was dead code (never navigated to from any
+// screen). Ruby annotation content is covered by MangaDemo and CjkLanguagesDemo.
 
 // =============================================================================
 // WIDGET INJECTION DEMO
@@ -3243,10 +3185,7 @@ class VideoDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    assert(() {
-      debugPrint('[VideoDemo] build');
-      return true;
-    }());
+    // MED-05: assert(debugPrint) removed — it spammed console on every rebuild.
     return Scaffold(
       appBar: AppBar(
         title: const Text('Video & Media Demo'),

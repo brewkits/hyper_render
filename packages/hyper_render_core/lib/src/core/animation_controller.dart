@@ -222,6 +222,21 @@ class HyperKeyframe {
     this.scale,
     this.rotation,
   });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HyperKeyframe &&
+          offset == other.offset &&
+          opacity == other.opacity &&
+          translateX == other.translateX &&
+          translateY == other.translateY &&
+          scale == other.scale &&
+          rotation == other.rotation);
+
+  @override
+  int get hashCode =>
+      Object.hash(offset, opacity, translateX, translateY, scale, rotation);
 }
 
 /// A collection of keyframes that define an animation
@@ -283,6 +298,24 @@ class HyperKeyframes {
     if (b == null) return a;
     return a + (b - a) * t;
   }
+
+  // HIGH-02: Value equality so HyperRenderConfig.hashCode / == can compare
+  // keyframeRegistry entries by content rather than object identity.
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! HyperKeyframes) return false;
+    if (name != other.name || keyframes.length != other.keyframes.length) {
+      return false;
+    }
+    for (int i = 0; i < keyframes.length; i++) {
+      if (keyframes[i] != other.keyframes[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hash(name, Object.hashAll(keyframes));
 }
 
 /// Widget that applies CSS-like animations to its child
@@ -364,7 +397,8 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
     // Single... asserts on the second `createTicker()` call and crashes the
     // app in live-update scenarios (e.g. a markdown editor that swaps the
     // animation prop on every keystroke).
-    with TickerProviderStateMixin {
+    with
+        TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
   HyperKeyframes? _keyframes;

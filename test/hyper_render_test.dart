@@ -679,4 +679,42 @@ void main() {
       }
     });
   });
+
+  group('HyperViewer onMemoryPressure', () {
+    testWidgets('callback is invoked on didHaveMemoryPressure',
+        (WidgetTester tester) async {
+      bool callbackFired = false;
+
+      await tester.pumpWidget(MaterialApp(
+        home: HyperViewer(
+          html: '<p>Test</p>',
+          onMemoryPressure: () {
+            callbackFired = true;
+          },
+        ),
+      ));
+
+      // Simulate memory pressure
+      tester.binding.handleMemoryPressure();
+
+      // Wait for any microtasks
+      await tester.pump();
+
+      expect(callbackFired, isTrue);
+    });
+  });
+
+  group('FloatCarryover', () {
+    test('supports imagePixelOffset', () {
+      const carryover = FloatCarryover(
+        direction: HyperFloat.left,
+        width: 100,
+        overhangHeight: 50,
+        imagePixelOffset: 25.5,
+      );
+
+      expect(carryover.imagePixelOffset, equals(25.5));
+      expect(carryover.toString(), contains('imgOffset=25.5'));
+    });
+  });
 }

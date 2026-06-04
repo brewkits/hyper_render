@@ -67,34 +67,45 @@ done
 [ "$missing_shots" -eq 0 ] && ok "All 6 screenshot GIFs present" || \
   warn "$missing_shots screenshot(s) missing — pub.dev gallery will show placeholders"
 
-# ── 5. pubspec swap ──────────────────────────────────────────────────────────
-step "Swapping pubspec.yaml for pub.dev..."
-if grep -q "path: packages/" pubspec.yaml; then
-  cp pubspec.yaml pubspec.yaml.backup
-  cp pubspec_publish_ready.yaml pubspec.yaml
-  ok "pubspec.yaml swapped from publish_ready template (backup saved)"
-else
-  ok "pubspec.yaml already has version deps"
-fi
+# ── 5. Remove dependency_overrides from pubspec files ────────────────────────
+# The monorepo now uses version deps in `dependencies` (for 160/160 pana score)
+# and path deps in `dependency_overrides` (for local development).
+# For publishing, only the `dependency_overrides` block needs to be removed —
+# the `dependencies` section already has the correct version constraints.
+step "Removing dependency_overrides for pub.dev publish..."
 
-# Swap path: ../hyper_render_core → hyper_render_core: ^1.3.2 in sub-packages
-# BSD sed (macOS) requires '' after -i; GNU sed does not
 _sed() { sed -i '' "$@" 2>/dev/null || sed -i "$@"; }
 
-for f in packages/hyper_render_html/pubspec.yaml \
+# Remove the dependency_overrides block from each pubspec.
+# The block is delimited by "^dependency_overrides:" ... next top-level key.
+# Python one-liner handles multi-line block removal portably.
+_remove_overrides() {
+  local f="$1"
+  if [ -f "$f" ] && grep -q "^dependency_overrides:" "$f"; then
+    python3 - "$f" << 'PYEOF'
+import re, sys
+with open(sys.argv[1]) as fh:
+    content = fh.read()
+# Remove the dependency_overrides: block (top-level key, all indented lines after it)
+content = re.sub(r'\ndependency_overrides:(\n  [^\n]*)*', '', content)
+with open(sys.argv[1], 'w') as fh:
+    fh.write(content)
+PYEOF
+    ok "Removed dependency_overrides from $f"
+  fi
+}
+
+for f in pubspec.yaml \
+          packages/hyper_render_html/pubspec.yaml \
           packages/hyper_render_markdown/pubspec.yaml \
           packages/hyper_render_highlight/pubspec.yaml \
           packages/hyper_render_clipboard/pubspec.yaml \
           packages/hyper_render_devtools/pubspec.yaml \
           packages/hyper_render_math/pubspec.yaml; do
-  if [ -f "$f" ] && grep -q "path: \.\./hyper_render_core" "$f"; then
-    _sed '/hyper_render_core:/{n;/path: \.\.\/hyper_render_core/d;}' "$f"
-    _sed 's|hyper_render_core:$|hyper_render_core: ^1.3.2|' "$f"
-    ok "Swapped path dep → version dep in $f"
-  fi
+  _remove_overrides "$f"
 done
 
-# Remove publish_to: none from root and all sub-packages
+# Remove publish_to: none from root and all sub-packages (if any remain)
 for f in pubspec.yaml \
           packages/hyper_render_core/pubspec.yaml \
           packages/hyper_render_html/pubspec.yaml \
@@ -109,25 +120,30 @@ for f in pubspec.yaml \
   fi
 done
 
-# ── 6. Verify no path: deps remain ──────────────────────────────────────────
-step "Verifying path: dependencies removed..."
-remaining=$(grep -rE "path:\s+\.\.\/" packages/*/pubspec.yaml pubspec.yaml 2>/dev/null || true)
-if [ -n "$remaining" ]; then
-  echo "$remaining"
-  fail "Path deps still present. Fix before publishing."
-fi
-ok "No path: dependencies in any pubspec"
+# ── 6. Verify no path: deps remain in dependencies: block ────────────────────
+step "Verifying no path: deps in dependencies: section..."
+# Check only the 'dependencies:' block (not dependency_overrides or dev_dependencies)
+for f in pubspec.yaml packages/*/pubspec.yaml; do
+  [ -f "$f" ] || continue
+  if python3 - "$f" << 'PYEOF' 2>/dev/null; then
+import sys, re
+with open(sys.argv[1]) as fh:
+    content = fh.read()
+# Find just the dependencies: block
+m = re.search(r'\bdependencies:(.*?)(?=\n\w|\Z)', content, re.DOTALL)
+if m and 'path:' in m.group(1):
+    sys.exit(1)
+PYEOF
+    : # OK
+  else
+    fail "Path dep found in dependencies: section of $f — fix before publishing."
+  fi
+done
+ok "No path: dependencies in dependencies: section"
 
 # ── 7. dart pub publish --dry-run ────────────────────────────────────────────
 step "Running dart pub publish --dry-run..."
-dart pub publish --dry-run 2>&1 | tee /tmp/hr_dry_run.txt || {
-  path_errors=$(grep -c "path dependency" /tmp/hr_dry_run.txt 2>/dev/null || true)
-  if [ "$path_errors" -gt 0 ]; then
-    warn "Dry-run shows path-dep errors — expected until sub-packages are on pub.dev"
-  else
-    fail "Dry-run failed unexpectedly. Check /tmp/hr_dry_run.txt"
-  fi
-}
+dart pub publish --dry-run 2>&1 | tee /tmp/hr_dry_run.txt
 ok "Dry-run complete"
 
 # ── 8. Summary ───────────────────────────────────────────────────────────────

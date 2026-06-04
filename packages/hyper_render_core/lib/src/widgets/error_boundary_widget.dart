@@ -273,8 +273,9 @@ class _ErrorBoundaryWidgetState extends State<ErrorBoundaryWidget> {
 
     // Show snackbar immediately (before clipboard finishes) so the UI responds
     // promptly. Clipboard copy is best-effort — failures are silently ignored.
+    // HIGH-01: Use maybeOf — widget may be used without a Scaffold ancestor.
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(
           content: Text('Error details copied to clipboard'),
           duration: Duration(seconds: 2),

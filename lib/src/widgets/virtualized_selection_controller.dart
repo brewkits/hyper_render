@@ -275,7 +275,12 @@ class VirtualizedSelectionController extends ChangeNotifier {
   (int, RenderHyperBox)? _findChunkAtGlobal(Offset globalPosition) {
     for (final reg in _chunks.values) {
       final box = _getRenderBox(reg.chunkIndex);
-      if (box == null || !box.attached) continue;
+      // box.size assertion fix: a RenderBox that has been marked dirty
+      // (_debugNeedsLayout == true) will throw in debug builds when .size is
+      // accessed outside the layout phase. Checking hasSize is not enough to
+      // prevent the debug assert, but it guards against the unregistered-box
+      // case. Skip boxes without a computed size (never laid out yet).
+      if (box == null || !box.attached || !box.hasSize) continue;
       final globalRect = Rect.fromPoints(
         box.localToGlobal(Offset.zero),
         box.localToGlobal(Offset(box.size.width, box.size.height)),
@@ -289,7 +294,7 @@ class VirtualizedSelectionController extends ChangeNotifier {
     double closestDist = double.infinity;
     for (final reg in _chunks.values) {
       final box = _getRenderBox(reg.chunkIndex);
-      if (box == null || !box.attached) continue;
+      if (box == null || !box.attached || !box.hasSize) continue;
       final globalRect = Rect.fromPoints(
         box.localToGlobal(Offset.zero),
         box.localToGlobal(Offset(box.size.width, box.size.height)),

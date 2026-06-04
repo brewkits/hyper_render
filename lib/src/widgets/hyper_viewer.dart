@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:hyper_render_core/hyper_render_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -418,6 +420,24 @@ class HyperViewer extends StatefulWidget {
   /// See [HyperNodePlugin] and [HyperPluginRegistry] for full API docs.
   final HyperPluginRegistry? pluginRegistry;
 
+  /// Called when the system signals low memory and HyperRender has cleared
+  /// its internal TextPainter, image, and painting caches.
+  ///
+  /// Use this to release your own resources (e.g., drop video players,
+  /// pause downloads, clear custom image caches) in response to memory
+  /// pressure on low-end devices.
+  ///
+  /// ```dart
+  /// HyperViewer(
+  ///   html: content,
+  ///   onMemoryPressure: () {
+  ///     myVideoController.pause();
+  ///     myCustomCache.clear();
+  ///   },
+  /// )
+  /// ```
+  final VoidCallback? onMemoryPressure;
+
   /// Pre-parsed document node. When set, the parse step is skipped entirely.
   /// Used by [HyperViewer.fromNode] and by consumers who pre-process the AST.
   final DocumentNode? _prebuiltDocument;
@@ -470,6 +490,7 @@ class HyperViewer extends StatefulWidget {
     this.controller,
     this.pageController,
     this.pluginRegistry,
+    this.onMemoryPressure,
     this.renderConfig = HyperRenderConfig.defaults,
   })  : content = html,
         contentType = HyperContentType.html,
@@ -519,6 +540,7 @@ class HyperViewer extends StatefulWidget {
     this.controller,
     this.pageController,
     this.pluginRegistry,
+    this.onMemoryPressure,
     this.renderConfig = HyperRenderConfig.defaults,
   })  : content = delta,
         contentType = HyperContentType.delta,
@@ -568,6 +590,7 @@ class HyperViewer extends StatefulWidget {
     this.controller,
     this.pageController,
     this.pluginRegistry,
+    this.onMemoryPressure,
     this.renderConfig = HyperRenderConfig.defaults,
   })  : content = markdown,
         contentType = HyperContentType.markdown,
@@ -610,6 +633,7 @@ class HyperViewer extends StatefulWidget {
     this.renderConfig = HyperRenderConfig.defaults,
     this.pluginRegistry,
     this.onError,
+    this.onMemoryPressure,
   })  : content = '',
         contentType = HyperContentType.html,
         mode = HyperRenderMode.sync,
@@ -659,6 +683,39 @@ class _HyperViewerState extends State<HyperViewer>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _contentFadeController;
   late final Animation<double> _contentFadeAnimation;
+
+  // ── CRIT-03: Global text-cache-size ref-counting ─────────────────────────
+  //
+  // RenderHyperBox._globalTextPainters is a process-wide static LRU cache.
+  // Each HyperViewer registers its desired textPainterCacheSize here; when it
+  // disposes we restore the maximum remaining size so peer HyperViewers are
+  // not left with a smaller cache than they requested.
+  //
+  // Without this, the LAST HyperViewer to call initState() "wins" and can
+  // silently shrink the cache for all other live viewers.
+  static final Map<int, int> _textCacheSizeRefs = {};
+
+  int _ownedTextCacheSize = 0;
+
+  static void _acquireTextCacheSize(int size) {
+    _textCacheSizeRefs[size] = (_textCacheSizeRefs[size] ?? 0) + 1;
+    if (size > RenderHyperBox.globalTextCacheSize) {
+      RenderHyperBox.setGlobalTextCacheSize(size);
+    }
+  }
+
+  static void _releaseTextCacheSize(int size) {
+    final count = _textCacheSizeRefs[size] ?? 0;
+    if (count <= 1) {
+      _textCacheSizeRefs.remove(size);
+    } else {
+      _textCacheSizeRefs[size] = count - 1;
+    }
+    final targetSize = _textCacheSizeRefs.isEmpty
+        ? HyperRenderConfig.defaults.textPainterCacheSize
+        : _textCacheSizeRefs.keys.reduce(math.max);
+    RenderHyperBox.setGlobalTextCacheSize(targetSize);
+  }
 
   // Used for Sync mode
   DocumentNode? _syncDocument;
@@ -778,8 +835,13 @@ class _HyperViewerState extends State<HyperViewer>
   @override
   void initState() {
     super.initState();
-    RenderHyperBox.setGlobalTextCacheSize(
-        widget.renderConfig.textPainterCacheSize);
+    // CRIT-03: Use ref-counted helper so multiple HyperViewers with different
+    // cache sizes don't clobber each other.
+    _ownedTextCacheSize = widget.renderConfig.textPainterCacheSize;
+    _acquireTextCacheSize(_ownedTextCacheSize);
+    // CRIT-01: Wire imageConcurrency config to the singleton image queue.
+    LazyImageQueue.instance.maxConcurrent =
+        widget.renderConfig.imageConcurrency;
     WidgetsBinding.instance.addObserver(this);
     _contentFadeController = AnimationController(
       vsync: this,
@@ -826,8 +888,17 @@ class _HyperViewerState extends State<HyperViewer>
 
     if (oldWidget.renderConfig.textPainterCacheSize !=
         widget.renderConfig.textPainterCacheSize) {
-      RenderHyperBox.setGlobalTextCacheSize(
-          widget.renderConfig.textPainterCacheSize);
+      // CRIT-03: Use ref-counted helper to avoid clobbering peer HyperViewers.
+      _releaseTextCacheSize(_ownedTextCacheSize);
+      _ownedTextCacheSize = widget.renderConfig.textPainterCacheSize;
+      _acquireTextCacheSize(_ownedTextCacheSize);
+    }
+
+    // CRIT-01: Keep imageConcurrency in sync with config.
+    if (oldWidget.renderConfig.imageConcurrency !=
+        widget.renderConfig.imageConcurrency) {
+      LazyImageQueue.instance.maxConcurrent =
+          widget.renderConfig.imageConcurrency;
     }
 
     // Invalidate effective-config cache when any input that affects it changes.
@@ -854,6 +925,9 @@ class _HyperViewerState extends State<HyperViewer>
 
   @override
   void dispose() {
+    // CRIT-03: Release our size from the global ref-count so peer HyperViewers
+    // see the correct maximum cache size after we're gone.
+    _releaseTextCacheSize(_ownedTextCacheSize);
     WidgetsBinding.instance.removeObserver(this);
     _cancelParsing();
     _contentFadeController.dispose();
@@ -1059,6 +1133,10 @@ class _HyperViewerState extends State<HyperViewer>
     // Release Flutter's own decoded-image cache.  This covers any images
     // loaded via Image.network / precacheImage that HyperRender didn't track.
     PaintingBinding.instance.imageCache.clear();
+
+    // Notify the host app so it can release its own resources (video players,
+    // custom caches, download queues, etc.) in the same memory-pressure cycle.
+    widget.onMemoryPressure?.call();
   }
 
   /// Routes a parse/render error to [HyperViewer.onError] when provided,
@@ -1122,7 +1200,8 @@ class _HyperViewerState extends State<HyperViewer>
       for (int i = 0; i < prev.length; i++) {
         if (prev[i].direction != carryovers[i].direction ||
             prev[i].width != carryovers[i].width ||
-            prev[i].overhangHeight != carryovers[i].overhangHeight) {
+            prev[i].overhangHeight != carryovers[i].overhangHeight ||
+            prev[i].imagePixelOffset != carryovers[i].imagePixelOffset) {
           isSame = false;
           break;
         }
@@ -1681,6 +1760,9 @@ class _HyperViewerState extends State<HyperViewer>
           pageContent = HyperSelectionOverlay(
             document: sections[index],
             selectable: true,
+            // MED-06: Pass textDirection so RTL documents (Arabic, Hebrew) have
+            // correct selection handle placement and hit-test direction in paged mode.
+            textDirection: dir,
             onLinkTap: _safeOnLinkTap,
             widgetBuilder: _effectiveWidgetBuilder,
             handleColor:
@@ -1694,6 +1776,9 @@ class _HyperViewerState extends State<HyperViewer>
             showHandles: true,
             autoShowMenu: true,
             debugShowBounds: widget.debugShowHyperRenderBounds,
+            // MED-02: Forward anchor layout callback so HyperViewerController
+            // .scrollToId() and TOC generation work in paged mode.
+            onAnchorLayout: widget.controller?._onAnchorLayout,
             config: _effectiveConfig,
             pluginRegistry: widget.pluginRegistry,
             enableComplexFilters: widget.enableComplexFilters,
@@ -1709,6 +1794,9 @@ class _HyperViewerState extends State<HyperViewer>
             enableComplexFilters: widget.enableComplexFilters,
             config: _effectiveConfig,
             suppressFirstBlockMarginTop: index > 0,
+            // MED-02: Forward anchor layout callback for HyperViewerController
+            // in paged mode (previously missing, scrollToId always returned null).
+            onAnchorLayout: widget.controller?._onAnchorLayout,
             pluginRegistry: widget.pluginRegistry,
           );
         }

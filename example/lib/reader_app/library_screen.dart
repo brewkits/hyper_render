@@ -157,8 +157,21 @@ class _LibraryScreenState extends State<LibraryScreen> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(book.coverUrl,
-                  width: 80, height: 120, fit: BoxFit.cover),
+              // LOW-03: errorBuilder prevents the ugly broken-image icon when
+              // offline or when picsum.photos is unavailable.
+              child: Image.network(
+                book.coverUrl,
+                width: 80,
+                height: 120,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 80,
+                  height: 120,
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.menu_book,
+                      color: Colors.grey, size: 32),
+                ),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -173,13 +186,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   Text(book.author,
                       style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const Spacer(),
-                  const Text('Last read: 2 hours ago',
-                      style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  // HIGH-04: Show actual page count instead of hardcoded string.
+                  Text('Page ${book.lastPage + 1} visited',
+                      style:
+                          const TextStyle(fontSize: 10, color: Colors.grey)),
                   const SizedBox(height: 4),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(2),
                     child: LinearProgressIndicator(
-                      value: 0.4, // Mock progress
+                      // HIGH-04: Use real lastPage for progress.
+                      // We cap at page 100 as a reasonable chapter estimate;
+                      // accurate progress requires HyperPageController.pageCount
+                      // which isn't available here (no live viewer context).
+                      value: (book.lastPage / 100).clamp(0.0, 1.0),
                       backgroundColor: Colors.grey.shade200,
                       minHeight: 4,
                     ),
@@ -202,6 +221,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
           Expanded(
             child: Stack(
               children: [
+                // LOW-03: Use Image.network + errorBuilder instead of
+                // DecorationImage (which has no error callback) so that offline
+                // or slow-network states show a graceful placeholder.
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      book.coverUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Colors.grey.shade300,
+                        child: const Center(
+                          child: Icon(Icons.menu_book,
+                              color: Colors.grey, size: 40),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
@@ -212,10 +250,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         offset: const Offset(0, 5),
                       ),
                     ],
-                    image: DecorationImage(
-                      image: NetworkImage(book.coverUrl),
-                      fit: BoxFit.cover,
-                    ),
                   ),
                 ),
                 if (book.isBookmarked)

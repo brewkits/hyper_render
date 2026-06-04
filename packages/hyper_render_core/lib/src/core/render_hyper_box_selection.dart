@@ -123,7 +123,8 @@ extension RenderHyperBoxSelection on RenderHyperBox {
       // were clipped at paint time. ellipsisVisibleLength == 0 means the
       // whole fragment was swallowed by the "…"; a positive value caps
       // the visible prefix.
-      final fragmentLength = fragment.ellipsisVisibleLength ?? fragment.text!.length;
+      final fragmentLength =
+          fragment.ellipsisVisibleLength ?? fragment.text!.length;
       if (fragmentLength == 0) continue;
       final fragmentStart = fragment.globalOffset;
       final fragmentEnd = fragmentStart + fragmentLength;

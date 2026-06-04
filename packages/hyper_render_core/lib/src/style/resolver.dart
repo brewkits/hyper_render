@@ -459,10 +459,34 @@ class StyleResolver {
         String value = '';
 
         if (expression is css_ast.Expressions) {
+          // rgb() FIX: csslib's FunctionTerm.span?.text only covers the
+          // argument list (e.g. "0, 255, 0)") — the function name is stored
+          // separately in FunctionTerm.text ("rgb"). The old inner-iteration
+          // code calling expr.span?.text on a FunctionTerm therefore produced
+          // "0, 255, 0)" which _parseColor can't recognise.
+          //
+          // Fix: for FunctionTerm entries, reconstruct the canonical form
+          // "name(arg, arg, ...)" by reading FunctionTerm.text + params.
+          // All other term types (LiteralTerm, HexColorTerm, etc.) still use
+          // span?.text directly — their span covers the full token.
           final parts = <String>[];
           for (final expr in expression.expressions) {
-            final text = expr.span?.text ?? '';
-            if (text.isNotEmpty) parts.add(text);
+            if (expr is css_ast.FunctionTerm) {
+              // In csslib 1.0.2, FunctionTerm.span?.text covers only the
+              // argument list including the closing ')' but NOT the function
+              // name or opening '(' (e.g. "0, 255, 0)" for rgb(0,255,0)).
+              // The _params field is private, so reconstruct as:
+              //   funcTerm.text  +  '('  +  funcTerm.span?.text
+              // = "rgb"          +  "("  +  "0, 255, 0)"
+              // = "rgb(0, 255, 0)" ✓
+              final argText = expr.span?.text ?? '';
+              if (argText.isNotEmpty) {
+                parts.add('${expr.text}($argText');
+              }
+            } else {
+              final text = expr.span?.text ?? '';
+              if (text.isNotEmpty) parts.add(text);
+            }
           }
           value = parts.join(' ');
         } else if (expression != null) {
@@ -813,11 +837,25 @@ class StyleResolver {
     }
 
     // Element selector only: `div`
+    // Also handles:
+    //   [attr]          — pure attribute selector: `base` starts with `[`
+    //   div[attr]       — element + attribute (false-negative fix)
     if (!base.contains('.') && !base.contains('#')) {
+      // Extract any attribute constraints from base.
+      final attrSelectors = _parseAttrSelectors(base);
+      if (attrSelectors.isNotEmpty) {
+        // Strip [...] brackets to get the optional element name.
+        final tagOnly = base.replaceAll(_kAttrSelectorAll, '').trim();
+        // Element part must match (if present).
+        if (tagOnly.isNotEmpty && tagOnly != node.tagName) return false;
+        // All attribute constraints must match.
+        return _nodeMatchesAttrSelectors(node, attrSelectors);
+      }
       return base == node.tagName;
     }
 
     // Combined selectors: `div.class`, `div#id`, `div.class1.class2`
+    // Also: `div.class[attr]` — attribute constraints now checked inside.
     return _matchesCombinedSelector(node, base);
   }
 
@@ -996,6 +1034,74 @@ class StyleResolver {
     return true;
   }
 
+  // ── CSS Attribute Selector support ──────────────────────────────────────────
+  //
+  // Parses `[attr]`, `[attr="val"]`, `[attr^="val"]`, `[attr$="val"]`,
+  // `[attr*="val"]`, `[attr~="val"]`, `[attr|="val"]` from a selector string
+  // and evaluates them against the node's attributes map.
+  //
+  // Regex captures the interior of each [...] bracket pair.
+  static final _kAttrSelectorAll = RegExp(r'\[([^\]]+)\]');
+  // Captures: group(1)=attr-name, group(2)=operator, group(3)=value
+  static final _kAttrSelectorExpr = RegExp(
+    r'''^([a-zA-Z_-][a-zA-Z0-9_:-]*)\s*([~|^$*]?=)\s*["']?([^"']*)["']?$''',
+  );
+
+  /// Extracts every `[...]` constraint from [selector] and returns a list of
+  /// `(attr, op, val)` records.  `op` and `val` are null for presence-only `[attr]`.
+  static List<({String attr, String? op, String? val})> _parseAttrSelectors(
+      String selector) {
+    final result = <({String attr, String? op, String? val})>[];
+    for (final m in _kAttrSelectorAll.allMatches(selector)) {
+      final inside = m.group(1)!.trim();
+      final eq = _kAttrSelectorExpr.firstMatch(inside);
+      if (eq != null) {
+        result.add((
+          attr: eq.group(1)!.toLowerCase(),
+          op: eq.group(2)!,
+          val: eq.group(3)!,
+        ));
+      } else {
+        // [attr] — presence-only
+        result.add((attr: inside.toLowerCase(), op: null, val: null));
+      }
+    }
+    return result;
+  }
+
+  /// Returns true iff [node] satisfies every attribute constraint in [selectors].
+  static bool _nodeMatchesAttrSelectors(
+    UDTNode node,
+    List<({String attr, String? op, String? val})> selectors,
+  ) {
+    for (final sel in selectors) {
+      final nodeVal = node.attributes[sel.attr];
+      if (sel.op == null) {
+        if (nodeVal == null) return false; // presence check
+      } else {
+        if (nodeVal == null) return false;
+        final required = sel.val ?? '';
+        switch (sel.op) {
+          case '=':
+            if (nodeVal != required) return false;
+          case '~=':
+            if (!nodeVal.split(' ').contains(required)) return false;
+          case '^=':
+            if (!nodeVal.startsWith(required)) return false;
+          case r'$=':
+            if (!nodeVal.endsWith(required)) return false;
+          case '*=':
+            if (!nodeVal.contains(required)) return false;
+          case '|=':
+            if (nodeVal != required && !nodeVal.startsWith('$required-')) {
+              return false;
+            }
+        }
+      }
+    }
+    return true;
+  }
+
   /// Match combined selector: `element.class`, `element#id`, `.class1.class2`
   bool _matchesCombinedSelector(UDTNode node, String selector) {
     String? elementPart;
@@ -1036,7 +1142,20 @@ class StyleResolver {
       }
     }
 
-    return elementPart != null || idPart != null || classParts.isNotEmpty;
+    // CSS Attribute Selector fix (false-positive bug):
+    // Previously, [attr] / [attr="val"] constraints in a combined selector like
+    // `div.card[data-active="true"]` were silently ignored, causing the rule to
+    // match ANY `div.card` regardless of attributes.
+    final attrSelectors = _parseAttrSelectors(selector);
+    if (attrSelectors.isNotEmpty &&
+        !_nodeMatchesAttrSelectors(node, attrSelectors)) {
+      return false;
+    }
+
+    return elementPart != null ||
+        idPart != null ||
+        classParts.isNotEmpty ||
+        attrSelectors.isNotEmpty;
   }
 
   /// Get previous sibling of a node
@@ -1584,6 +1703,21 @@ class StyleResolver {
       case 'overflow-wrap':
         style.overflowWrap = value.trim().toLowerCase();
         style.markExplicitlySet('overflow-wrap');
+        break;
+
+      case 'object-fit':
+        final of = value.trim().toLowerCase();
+        const validObjectFitValues = {
+          'cover',
+          'contain',
+          'fill',
+          'none',
+          'scale-down',
+        };
+        if (validObjectFitValues.contains(of)) {
+          style.objectFit = of;
+          style.markExplicitlySet('object-fit');
+        }
         break;
 
       case 'list-style-type':
