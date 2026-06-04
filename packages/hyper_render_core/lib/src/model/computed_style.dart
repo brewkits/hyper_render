@@ -427,6 +427,12 @@ class ComputedStyle {
   /// CSS background-position: top | center | bottom | left | right | "x y"
   String? backgroundPosition;
 
+  /// CSS object-fit: cover | contain | fill | none | scale-down
+  ///
+  /// Applies to replaced elements (`<img>`, `<video>`). Controls how the
+  /// content is resized to fit its container. Not CSS-inheritable.
+  String? objectFit;
+
   // ============================================
   // Layout Properties
   // ============================================
@@ -638,6 +644,7 @@ class ComputedStyle {
     this.backgroundSize,
     this.backgroundRepeat,
     this.backgroundPosition,
+    this.objectFit,
     this.display = DisplayType.inline,
     this.overflowX = HyperOverflow.visible,
     this.overflowY = HyperOverflow.visible,
@@ -804,6 +811,7 @@ class ComputedStyle {
     String? backgroundSize,
     String? backgroundRepeat,
     String? backgroundPosition,
+    String? objectFit,
     // Layout
     DisplayType? display,
     HyperOverflow? overflowX,
@@ -901,6 +909,7 @@ class ComputedStyle {
       backgroundSize: backgroundSize ?? this.backgroundSize,
       backgroundRepeat: backgroundRepeat ?? this.backgroundRepeat,
       backgroundPosition: backgroundPosition ?? this.backgroundPosition,
+      objectFit: objectFit ?? this.objectFit,
       display: display ?? this.display,
       overflowX: overflowX ?? this.overflowX,
       overflowY: overflowY ?? this.overflowY,

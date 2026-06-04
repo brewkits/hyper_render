@@ -244,6 +244,10 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
   void clearSelection() {
     _renderBox?.clearSelection();
     _focusNode.unfocus();
+    // HIGH-03: Guard against calling setState after dispose. This method is
+    // public — external callers (navigation pop, parent widget dispose) may
+    // invoke it after the widget has already left the tree.
+    if (!mounted) return;
     setState(() {
       _startHandleRect = null;
       _endHandleRect = null;
@@ -259,7 +263,10 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
   }
 
   void _showCopiedSnackBar() {
-    ScaffoldMessenger.of(context).showSnackBar(
+    // HIGH-01: Use maybeOf so HyperViewer can be used outside a Scaffold
+    // (e.g. in a custom-chrome app, dialog, or embedded WebView) without
+    // throwing "No ScaffoldMessenger widget found" in release builds.
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       const SnackBar(
         content: Text('Copied to clipboard'),
         duration: Duration(seconds: 1),
@@ -310,6 +317,10 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     if (renderBox == null) return;
 
     final rects = renderBox.getSelectionRects();
+    // HIGH-04: Guard before setState — this method is called from gesture
+    // callbacks (_onLongPressEnd → _onSelectionChanged) that can fire after
+    // the widget has been removed from the tree during fast navigation.
+    if (!mounted) return;
     setState(() {
       _selectionRects = rects;
       _startHandleRect = rects.isEmpty ? null : rects.first;

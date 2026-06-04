@@ -18,11 +18,13 @@ topics:
 dependencies:
   flutter:
     sdk: flutter
-  hyper_render_core:
-    path: ../hyper_render_core
-
+  hyper_render_core: ^1.3.2
 
   markdown: ^7.3.0
+
+dependency_overrides:
+  hyper_render_core:
+    path: ../hyper_render_core
 
 dev_dependencies:
   flutter_test:

@@ -174,7 +174,10 @@ Future&lt;void&gt; 加载用户数据() async {
         constraints: const BoxConstraints(maxWidth: 800),
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: HyperViewer(html: _html, selectable: true),
+          // shrinkWrap: true prevents nested scroll conflict — without it,
+          // HyperViewer creates its own inner SingleChildScrollView (sync mode)
+          // which captures all scroll gestures, making the outer scroll inert.
+          child: HyperViewer(html: _html, selectable: true, shrinkWrap: true),
         ),
       ),
     );
@@ -288,7 +291,10 @@ class _TraditionalChineseTab extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 800),
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: HyperViewer(html: _html, selectable: true),
+          // shrinkWrap: true prevents nested scroll conflict — without it,
+          // HyperViewer creates its own inner SingleChildScrollView (sync mode)
+          // which captures all scroll gestures, making the outer scroll inert.
+          child: HyperViewer(html: _html, selectable: true, shrinkWrap: true),
         ),
       ),
     );
@@ -420,7 +426,10 @@ class _KoreanTab extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 800),
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: HyperViewer(html: _html, selectable: true),
+          // shrinkWrap: true prevents nested scroll conflict — without it,
+          // HyperViewer creates its own inner SingleChildScrollView (sync mode)
+          // which captures all scroll gestures, making the outer scroll inert.
+          child: HyperViewer(html: _html, selectable: true, shrinkWrap: true),
         ),
       ),
     );

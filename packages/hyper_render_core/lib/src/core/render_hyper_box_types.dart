@@ -52,15 +52,43 @@ class FloatCarryover {
   /// extension.
   final double overhangHeight;
 
+  /// Vertical pixel offset into the original float image that has already been
+  /// painted by the previous section.
+  ///
+  /// When rendering this carryover in the next section, the painter should
+  /// begin drawing from this offset into the source image to avoid repeating
+  /// the already-visible top portion. Zero when the float is not image-based
+  /// or when the full image should be rendered.
+  final double imagePixelOffset;
+
   const FloatCarryover({
     required this.direction,
     required this.width,
     required this.overhangHeight,
+    this.imagePixelOffset = 0.0,
   });
 
   @override
   String toString() =>
-      'FloatCarryover($direction, w=$width, overhang=$overhangHeight)';
+      'FloatCarryover($direction, w=$width, overhang=$overhangHeight, imgOffset=$imagePixelOffset)';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FloatCarryover &&
+          runtimeType == other.runtimeType &&
+          direction == other.direction &&
+          width == other.width &&
+          overhangHeight == other.overhangHeight &&
+          imagePixelOffset == other.imagePixelOffset;
+
+  @override
+  int get hashCode => Object.hash(
+        direction,
+        width,
+        overhangHeight,
+        imagePixelOffset,
+      );
 }
 
 /// Inline decoration info for painting background/border across line breaks

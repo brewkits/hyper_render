@@ -1134,7 +1134,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       if (skipEllipsisContent) {
         // Mark suppressed text fragments as fully hidden so
         // getSelectedText / a11y don't leak content behind the "…".
-        if ((fragment.type == FragmentType.text || fragment.type == FragmentType.ruby) && fragment.text != null) {
+        if ((fragment.type == FragmentType.text ||
+                fragment.type == FragmentType.ruby) &&
+            fragment.text != null) {
           fragment.ellipsisVisibleLength = 0;
         }
         if (fragment.type == FragmentType.lineBreak) {
@@ -1162,7 +1164,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       // and the fragment overflows the line, clip and append "…" instead of
       // wrapping to the next line.
       if (ellipsisDepth > 0 &&
-          (fragment.type == FragmentType.text || fragment.type == FragmentType.ruby) &&
+          (fragment.type == FragmentType.text ||
+              fragment.type == FragmentType.ruby) &&
           fragment.text != null &&
           fragment.width > remainingWidth) {
         const ellipsisChar = '\u2026'; // …

@@ -236,7 +236,7 @@ HyperViewer(
 
 ---
 
-## HyperViewer v1.2.1 stable API
+## HyperViewer v1.3.3 stable API
 
 ```dart
 HyperViewer({
@@ -267,4 +267,4 @@ HyperViewer.delta(delta: jsonString, ...)
 
 ---
 
-*Last updated: March 2026 — HyperRender v1.2.1*
+*Last updated: June 2026 — HyperRender v1.3.3*

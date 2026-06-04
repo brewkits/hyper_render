@@ -56,7 +56,8 @@ void main() {
       expect(hasTag(doc, 'th'), isTrue, reason: 'missing <th>');
       expect(hasTag(doc, 'td'), isTrue, reason: 'missing <td>');
       expect(countTag(doc, 'tr') >= 2, isTrue,
-          reason: 'expected at least header + 2 body rows, got ${countTag(doc, "tr")}');
+          reason:
+              'expected at least header + 2 body rows, got ${countTag(doc, "tr")}');
     });
 
     test('column alignment from `:` is preserved on cell or row', () {
@@ -74,7 +75,7 @@ void main() {
   group('GFM task lists', () {
     test('checkbox markers become <input type="checkbox"> nodes', () {
       const md = '''
-- [ ] todo
+- [ ] pending
 - [x] done
 ''';
       final doc = MarkdownAdapter().parse(md);

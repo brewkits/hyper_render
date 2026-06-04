@@ -190,6 +190,7 @@ class _PluginApiDemoState extends State<PluginApiDemo> {
         child: HyperViewer(
           html: _kDemoHtml,
           pluginRegistry: _registry,
+          shrinkWrap: true,
         ),
       ),
     );

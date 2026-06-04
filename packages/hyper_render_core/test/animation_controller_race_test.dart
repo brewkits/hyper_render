@@ -57,8 +57,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(tester.takeException(), isNull,
-          reason:
-              'stale Timer must not touch the disposed controller after '
+          reason: 'stale Timer must not touch the disposed controller after '
               '_setupAnimation reassigned _controller');
       // Tear down cleanly so the test ends.
       await tester.pumpWidget(const SizedBox.shrink());

@@ -396,6 +396,7 @@ class _PipelineBreakdownTabState extends State<_PipelineBreakdownTab> {
             child: HyperViewer(
               html: _generateHtml(_selectedSize),
               mode: HyperRenderMode.sync,
+              shrinkWrap: true,
             ),
           ),
         ),
@@ -450,17 +451,23 @@ class _IsolateParsingTabState extends State<_IsolateParsingTab> {
 
   void _measureSync() {
     final sw = Stopwatch()..start();
-    // Force sync mode measurement
+    // MED-06: addPostFrameCallback measures time to the NEXT FRAME COMPLETION,
+    // not true parse time. It includes frame scheduling latency (~4–16 ms) on
+    // top of the actual parse duration. This is intentional for this demo —
+    // it shows total "time to first pixel" which is what users perceive —
+    // but should not be interpreted as isolated parser benchmark data.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       sw.stop();
       if (mounted) setState(() => _syncTime = sw.elapsed);
     });
-    setState(() {}); // Trigger rebuild
+    setState(() {});
   }
 
   void _measureAsync() {
     final sw = Stopwatch()..start();
-    // auto mode triggers isolate for large docs
+    // MED-06: Same note — measures time to next frame, not isolate parse time.
+    // For async mode the callback fires after the UI thread resumes, which can
+    // be significantly later than when the isolate finished.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       sw.stop();
       if (mounted) setState(() => _asyncTime = sw.elapsed);
@@ -563,6 +570,7 @@ class _IsolateParsingTabState extends State<_IsolateParsingTab> {
             child: HyperViewer(
               html: _largeHtml,
               mode: mode,
+              shrinkWrap: true,
             ),
           ),
         ),
@@ -821,6 +829,7 @@ class _CssIndexingTabState extends State<_CssIndexingTab> {
             child: HyperViewer(
               html: _generateHtml(scenario.ruleCount),
               mode: HyperRenderMode.sync,
+              shrinkWrap: true,
             ),
           ),
         ),

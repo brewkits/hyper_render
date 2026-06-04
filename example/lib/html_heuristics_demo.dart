@@ -122,6 +122,7 @@ class _SimpleHtmlTab extends StatelessWidget {
             child: HyperViewer(
               html: _html,
               mode: HyperRenderMode.sync,
+              shrinkWrap: true,
               semanticLabel: 'Simple article demo',
               fallbackBuilder: (_) => const _MockWebViewFallback(),
             ),

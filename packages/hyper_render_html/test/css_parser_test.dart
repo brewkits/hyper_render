@@ -10,7 +10,8 @@ void main() {
 
   group('DefaultCssParser.parseStylesheet — basic selectors', () {
     test('single rule with multiple declarations', () {
-      final rules = parser.parseStylesheet('p { color: red; font-size: 14px; }');
+      final rules =
+          parser.parseStylesheet('p { color: red; font-size: 14px; }');
 
       expect(rules, hasLength(1));
       expect(rules.first.selector, equals('p'));
@@ -40,14 +41,13 @@ void main() {
       final rules = parser.parseStylesheet('h1, h2, h3 { color: black; }');
 
       expect(rules, hasLength(1));
-      expect(rules.first.selector.replaceAll(' ', ''),
-          equals('h1,h2,h3'));
+      expect(rules.first.selector.replaceAll(' ', ''), equals('h1,h2,h3'));
       expect(rules.first.declarations['color'], equals('black'));
     });
 
     test('comments inside the rule body are discarded', () {
       final rules = parser.parseStylesheet(
-        'p { /* legacy */ color: green; /* TODO */ }',
+        'p { /* legacy */ color: green; /* ignore */ }',
       );
       expect(rules.first.declarations['color'], equals('green'));
     });

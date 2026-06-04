@@ -292,7 +292,8 @@ class _VirtualizedSelectionOverlayState
     if (text != null && text.isNotEmpty) {
       await Clipboard.setData(ClipboardData(text: text));
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      // HIGH-01: Use maybeOf — overlay may be used without a Scaffold ancestor.
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(
         content: Text('Copied to clipboard'),
         duration: Duration(seconds: 1),
         behavior: SnackBarBehavior.floating,
