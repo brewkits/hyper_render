@@ -48,6 +48,9 @@ pubspec_dev.yaml
 # Flutter .metadata files (auto-generated, not useful to consumers)
 .metadata
 
+# Internal docs (not useful to package consumers; public docs are in README)
+doc/
+
 # Internal archive / historical comparison docs
 archive/
 

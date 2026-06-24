@@ -1,5 +1,10 @@
 # Changelog — hyper_render_devtools
 
+## [1.4.0] - 2026-06-24
+
+### 🏗️ Maintenance
+- Updated `hyper_render_core` dependency to `^1.4.0`
+
 ## [1.3.4] - 2026-06-04
 
 ### 🏗️ Maintenance

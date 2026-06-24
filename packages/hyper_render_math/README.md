@@ -9,7 +9,7 @@ Renders `<math>` and `<latex>` tags using [flutter_math_fork](https://pub.dev/pa
 
 ```yaml
 dependencies:
-  hyper_render_math: ^1.3.3
+  hyper_render_math: ^1.4.0
 ```
 
 ---

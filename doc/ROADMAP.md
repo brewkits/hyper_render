@@ -1,7 +1,7 @@
 # HyperRender — Product Roadmap
 
-**Last Updated**: 2026-06-04
-**Current Stable**: v1.3.3
+**Last Updated**: 2026-06-24
+**Current Stable**: v1.4.0
 **Repository**: [github.com/brewkits/hyper_render](https://github.com/brewkits/hyper_render)
 
 This document tracks the long-term direction of the HyperRender ecosystem.
@@ -84,7 +84,7 @@ Scope:
 - [x] Add `initialFloats` parameter to `RenderHyperBox` / `HyperRenderWidget`
 - [x] Seed initial floats in `_performLineLayout`
 - [x] Wire `FloatCarryover` callbacks through `VirtualizedChunk` → `HyperViewer`
-- [ ] Add offset rendering support in `_paintFloatImages` for image floats (imagePixelOffset not yet read by painter)
+- [x] Add offset rendering support in `_paintFloatImages` for image floats (v1.4.0 — `imagePixelOffset` now consumed via `canvas.drawImageRect` with a computed `srcRect`)
 - [ ] Integration test: tall float at chunk boundary shows no wasted space
 
 ---
@@ -161,7 +161,8 @@ Scope:
 **v1.1.2**: `@keyframes` fully parsed and **executed** — `opacity`, `transform` (translate, scale, rotate), `from`/`to` and `%` selectors, vendor prefixes, `HyperAnimatedWidget.keyframesLookup`.
 
 Remaining v2.0 scope:
-- [ ] Wire `AnimationController` into the render cycle for `transition` (parsed but not yet executed)
+- [x] Wire `AnimationController` into the render cycle for `transition` (v1.4.0 — `HyperTransitionWidget` animates opacity/transform on style change, wired via `_maybeAnimate` in `hyper_render_widget.dart`)
+- [x] `animation-iteration-count: infinite` now loops via `AnimationController.repeat()`, including `alternate`/`alternate-reverse` direction (v1.4.0)
 - [ ] Animatable properties beyond `opacity`/`transform`: `color`, `background-color`
 - [ ] Timing functions: `ease`, `linear`, `ease-in-out`, `cubic-bezier()`
 - [ ] Repaint only the animated region — do not rebuild the full span tree
@@ -224,7 +225,7 @@ Items under consideration, not yet scheduled:
 | `position: absolute / fixed / sticky` | Complex with single-RenderObject model |
 | `clip-path`, `filter` | Advanced visual effects |
 | ~~`object-fit` for `<img>`~~ | ✅ Completed in v1.3.3 |
-| `aspect-ratio` | Responsive media sizing |
+| ~~`aspect-ratio`~~ | ✅ Completed in v1.4.0 — `W/H` and bare-number syntax, applied to `<img>`/`<video>` sizing |
 | Server-side UDT snapshot | Pre-render on server, hydrate on client |
 
 ---

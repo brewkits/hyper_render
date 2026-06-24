@@ -335,7 +335,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  hyper_render_core: ^1.2.0
+  hyper_render_core: ^1.4.0
 
 dev_dependencies:
   flutter_test:
@@ -503,7 +503,7 @@ check each item before approving.
 - [ ] At least **2 widget tests**: happy path and `build()` returns null for unrelated tags
 - [ ] `README.md` includes a self-contained code example (copy-paste runnable)
 - [ ] `CHANGELOG.md` has an initial `## 0.1.0` entry
-- [ ] `pubspec.yaml` pins `hyper_render_core: ^1.2.0` or later
+- [ ] `pubspec.yaml` pins `hyper_render_core: ^1.4.0` or later
 
 ### Strongly recommended
 

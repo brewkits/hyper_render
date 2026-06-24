@@ -433,6 +433,9 @@ class ComputedStyle {
   /// content is resized to fit its container. Not CSS-inheritable.
   String? objectFit;
 
+  /// CSS aspect-ratio (e.g. 16/9 → 1.778, auto → null)
+  double? aspectRatio;
+
   // ============================================
   // Layout Properties
   // ============================================
@@ -645,6 +648,7 @@ class ComputedStyle {
     this.backgroundRepeat,
     this.backgroundPosition,
     this.objectFit,
+    this.aspectRatio,
     this.display = DisplayType.inline,
     this.overflowX = HyperOverflow.visible,
     this.overflowY = HyperOverflow.visible,
@@ -725,8 +729,8 @@ class ComputedStyle {
     if (!isExplicitlySet('word-spacing')) wordSpacing = parent.wordSpacing;
     if (!isExplicitlySet('text-align')) textAlign = parent.textAlign;
     if (!isExplicitlySet('white-space')) whiteSpace = parent.whiteSpace;
-    if (!isExplicitlySet('text-decoration')) {
-      textDecoration = parent.textDecoration;
+    if (!isExplicitlySet('text-transform')) {
+      textTransform = parent.textTransform;
     }
 
     // CSS direction is inheritable
@@ -812,6 +816,7 @@ class ComputedStyle {
     String? backgroundRepeat,
     String? backgroundPosition,
     String? objectFit,
+    double? aspectRatio,
     // Layout
     DisplayType? display,
     HyperOverflow? overflowX,
@@ -910,6 +915,7 @@ class ComputedStyle {
       backgroundRepeat: backgroundRepeat ?? this.backgroundRepeat,
       backgroundPosition: backgroundPosition ?? this.backgroundPosition,
       objectFit: objectFit ?? this.objectFit,
+      aspectRatio: aspectRatio ?? this.aspectRatio,
       display: display ?? this.display,
       overflowX: overflowX ?? this.overflowX,
       overflowY: overflowY ?? this.overflowY,

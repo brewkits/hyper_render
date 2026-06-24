@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.4.0] - 2026-06-24
+
+### ✨ New CSS Features
+
+- **`aspect-ratio`**: `W/H` ratio syntax (`16/9`) and bare-number syntax (`2.5`) parsed and applied to `<img>`/`<video>` sizing — overrides the image's intrinsic ratio when only one dimension (or neither) is specified in CSS/HTML.
+- **`transition` execution**: CSS `transition` is now actually animated, not just parsed. New `HyperTransitionWidget` detects `opacity`/`transform` changes across rebuilds and animates them over the declared duration and timing function via `AnimatedOpacity`/`AnimatedContainer`. Wired into the render pipeline through `_maybeAnimate` in `hyper_render_widget.dart`.
+- **`animation-iteration-count: infinite`**: now loops via `AnimationController.repeat()` instead of a one-shot `forward()`. Added a dedicated `alternate` flag to `HyperAnimatedWidget` so `animation-direction: alternate` / `alternate-reverse` no longer gets conflated with plain `reverse`.
+- **Cross-Chunk Float Carryover — paint completion**: the previously-unused `imagePixelOffset` on `FloatCarryover` is now consumed at paint time. A tall floated image that overhangs a virtualized section boundary continues painting from the correct offset in the next chunk instead of the gap being left blank.
+- **~25 previously-silent CSS properties now resolved**: `white-space`, `word-spacing`, `text-transform`, `text-decoration-color`, `min/max-width/height`, `overflow`/`overflow-x`/`overflow-y`, `border-top`/`border-right`/`border-bottom`/`border-color`/`border-width`, `animation` shorthand and all `animation-*` sub-properties, `transition`, `aspect-ratio`. These had `ComputedStyle` fields but no resolver case, so values were silently dropped.
+
+### 🐛 Bug Fixes
+
+- **`rem` units silently failed** — `_parseLength` had no `rem` branch; `'2rem'.endsWith('em')` matched the `em` branch instead, producing an unparseable `'2r'`. Added the missing `rem` case ahead of `em`.
+- **`text-decoration` incorrectly marked as inherited** — not an inheritable CSS property per spec; child elements were wrongly picking up a parent's underline/strikethrough. Removed from `inheritFrom()`; added correct inheritance of `text-transform` instead.
+- **Linear-gradient diagonal corners wrong** — for `to top right` / `to bottom right` / `to top left` / `to bottom left`, only `begin` was corrected, leaving `end` on the wrong single axis.
+- **`filter` only composed the first two entries** — multiple chained filters (e.g. `blur() brightness() contrast()`) silently dropped everything past the second; now folds over the full list.
+- **`border: none` left a 1px border** — shorthand parsing didn't zero the width when style was `none`.
+- **Division-by-zero in `line-height`** — unitless line-height against a zero/null parent font size could divide by zero.
+- **Float layout list-spread bug** — `performLayout` iterated `[..._leftFloats, ..._rightFloats]`, allocating a new list every line; replaced with two direct loops.
+- **`HyperTextSelection` missing `operator==`** — every selection update looked "changed" even when identical, causing redundant repaints.
+- **`setGlobalTextCacheSize` leaked old `TextPainter`s** on resize — old cache was dropped without disposal.
+- **Delta adapter `indent` operator-precedence bug** — `((attributes['indent'] as int?) ?? 0 + 1)` added 1 to the default before the null-check applied; also hardened the `int` cast to `num.toInt()` against JSON-decoded doubles.
+- **Delta underline+strikethrough mutually exclusive** — applying both attributes silently dropped underline; now combined via `TextDecoration.combine`.
+- **HTML adapter shared mutable default styles** — `_defaultStyles[tagName]` returned a shared `ComputedStyle` instance reused (and mutated) across unrelated nodes; now `.copyWith()`'d per node.
+- **Markdown adapter didn't normalize `\r\n`/`\r`** line endings before splitting, breaking line-based heuristics on Windows-authored content.
+- **Markdown adapter double-applied syntaxes** when both `extensionSet` and explicit `blockSyntaxes`/`inlineSyntaxes` were supplied.
+- **`_prebuiltDocument` fast-path left stale cached state** (`_docKeyframes`, `_cachedEffectiveConfig`, `_sectionHashes`, page count, section boxes) when switching to a pre-parsed AST document.
+- **pub.dev pana INFO**: suppressed the `cacheExtent` deprecation hint (`scrollCacheExtent` isn't available on the SDK floor this package supports) with `// ignore: deprecated_member_use`, consistent with the existing SDK-version-gap pattern.
+
+### 📝 Documentation
+
+- `doc/LIMITATIONS.md`: removed stale "not parsed" entries for `background-position`/`background-repeat`/`list-style-*` (shipped in v1.3.1); added v1.4.0 entries; corrected the async-parsing description (`Future.microtask`, not `compute()` isolate).
+- `doc/ROADMAP.md`: marked Cross-Chunk Float Carryover paint offset, CSS `transition` execution, `animation-iteration-count: infinite`, and `aspect-ratio` as completed.
+
 ## [1.3.4] - 2026-06-04
 
 ### 🔧 Fixes & Optimizations

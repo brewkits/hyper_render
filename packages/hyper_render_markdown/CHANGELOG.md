@@ -1,5 +1,14 @@
 # Changelog — hyper_render_markdown
 
+## [1.4.0] - 2026-06-24
+
+### 🐛 Bug Fixes
+- `markdown_adapter.dart` now normalizes `\r\n`/`\r` line endings before line-based parsing.
+- Fixed double-application of inline/block syntaxes when both `extensionSet` and explicit syntax lists were supplied.
+
+### 🏗️ Maintenance
+- Updated `hyper_render_core` dependency to `^1.4.0`
+
 ## [1.3.4] - 2026-06-04
 
 ### 🏗️ Maintenance

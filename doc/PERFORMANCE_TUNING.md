@@ -1,7 +1,7 @@
 # Performance Tuning Guide
 
 Last Updated: June 2026
-Version: 1.3.3
+Version: 1.4.0
 
 This guide helps you optimize HyperRender performance for different use cases.
 

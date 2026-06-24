@@ -165,10 +165,12 @@ class RenderHyperBox extends RenderBox
   /// point; no-ops when the size is already correct.
   static void setGlobalTextCacheSize(int size) {
     if (_globalTextPainters.maxSize == size) return;
+    final old = _globalTextPainters;
     _globalTextPainters = _LruCache(
       maxSize: size,
       onEvict: (painter) => painter.dispose(),
     );
+    old.clear();
   }
 
   /// Reference to the cache being used.
@@ -357,6 +359,7 @@ class RenderHyperBox extends RenderBox
           width: float.rect.width,
           overhangHeight: float.rect.bottom - naturalHeight,
           imagePixelOffset: naturalHeight - float.rect.top,
+          imageSrc: float.imageSrc,
         ));
       }
     }
@@ -367,6 +370,7 @@ class RenderHyperBox extends RenderBox
           width: float.rect.width,
           overhangHeight: float.rect.bottom - naturalHeight,
           imagePixelOffset: naturalHeight - float.rect.top,
+          imageSrc: float.imageSrc,
         ));
       }
     }
@@ -1234,7 +1238,12 @@ class RenderHyperBox extends RenderBox
       // their immediate successors in the same chunk.  A full cross-chunk
       // FloatCarryover (image-split across ListView items) is tracked as a
       // future improvement in ROADMAP.md.
-      for (final float in [..._leftFloats, ..._rightFloats]) {
+      for (final float in _leftFloats) {
+        if (float.rect.bottom > height) {
+          height = float.rect.bottom;
+        }
+      }
+      for (final float in _rightFloats) {
         if (float.rect.bottom > height) {
           height = float.rect.bottom;
         }

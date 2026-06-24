@@ -376,7 +376,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     }
     // Collapse multiple whitespace into single space
     // but preserve at least one space between words
-    return text.replaceAll(RegExp(r'\s+'), ' ');
+    return text.replaceAll(_kWhitespaceSplitter, ' ');
   }
 
   void _tokenizeAtomic(AtomicNode node) {
@@ -404,21 +404,30 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           width = dimW * scale;
           height = dimH * scale;
         } else if (dimW != null) {
-          // Only width specified — maintain aspect ratio from actual image.
           width = math.min(dimW, maxW);
-          // Guard: avoid division by zero for degenerate images (width == 0).
-          height = imageWidth > 0 ? width * (imageHeight / imageWidth) : 0;
+          final ar = node.style.aspectRatio;
+          if (ar != null && ar > 0) {
+            height = width / ar;
+          } else {
+            height = imageWidth > 0 ? width * (imageHeight / imageWidth) : 0;
+          }
         } else if (dimH != null) {
-          // Only height specified - maintain aspect ratio
           height = dimH;
-          // Guard: avoid division by zero for degenerate images (height == 0).
-          width = imageHeight > 0 ? height * (imageWidth / imageHeight) : 0;
+          final ar = node.style.aspectRatio;
+          if (ar != null && ar > 0) {
+            width = height * ar;
+          } else {
+            width = imageHeight > 0 ? height * (imageWidth / imageHeight) : 0;
+          }
         } else {
-          // No dimensions - use actual image size, constrained to maxWidth.
-          // Guard: degenerate images with zero width produce no output.
           if (imageWidth > 0) {
             width = math.min(imageWidth, maxW);
-            height = width * (imageHeight / imageWidth);
+            final ar = node.style.aspectRatio;
+            if (ar != null && ar > 0) {
+              height = width / ar;
+            } else {
+              height = width * (imageHeight / imageWidth);
+            }
           } else {
             width = 0;
             height = 0;
@@ -437,22 +446,23 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           height = dimH * scale;
         } else if (dimW != null) {
           width = math.min(dimW, maxW);
-          height = width / RenderHyperBox._defaultAspectRatio;
+          final ar = node.style.aspectRatio;
+          height = width / (ar ?? RenderHyperBox._defaultAspectRatio);
         } else if (dimH != null) {
           height = dimH;
-          width = height * RenderHyperBox._defaultAspectRatio;
+          final ar = node.style.aspectRatio;
+          width = height * (ar ?? RenderHyperBox._defaultAspectRatio);
         } else {
-          // No dimensions specified - use responsive placeholder
-          // Width fills available space (with margin), height maintains 16:9 ratio
           width = math.min(_defaultImageWidth, maxW);
-          height = width / RenderHyperBox._defaultAspectRatio;
+          final ar = node.style.aspectRatio;
+          height = width / (ar ?? RenderHyperBox._defaultAspectRatio);
         }
       }
     } else if (node.tagName == 'video') {
-      // Video: clamp intrinsic width to available viewport width.
       final maxW = _maxWidth > 16 ? _maxWidth - 16 : _maxWidth;
       final intrinsicW = node.intrinsicWidth;
       final intrinsicH = node.intrinsicHeight;
+      final ar = node.style.aspectRatio;
       if (intrinsicW != null && intrinsicH != null) {
         final scale =
             (intrinsicW > maxW && intrinsicW > 0) ? maxW / intrinsicW : 1.0;
@@ -460,10 +470,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         height = intrinsicH * scale;
       } else if (intrinsicW != null) {
         width = math.min(intrinsicW, maxW);
-        height = width / RenderHyperBox._defaultAspectRatio;
+        height = width / (ar ?? RenderHyperBox._defaultAspectRatio);
       } else {
         width = math.min(320.0, maxW);
-        height = width / RenderHyperBox._defaultAspectRatio;
+        height = width / (ar ?? RenderHyperBox._defaultAspectRatio);
       }
     } else if (node.tagName == 'audio') {
       // Audio: compact horizontal bar — matches DefaultMediaWidget._buildAudioPlaceholder
@@ -692,7 +702,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           ? Rect.fromLTWH(0, 0, carryover.width, carryover.overhangHeight)
           : Rect.fromLTWH(_maxWidth - carryover.width, 0, carryover.width,
               carryover.overhangHeight);
-      final area = _FloatArea(rect: floatRect, direction: carryover.direction);
+      final area = _FloatArea(
+          rect: floatRect,
+          direction: carryover.direction,
+          imageSrc: carryover.imageSrc);
       if (carryover.direction == HyperFloat.left) {
         _leftFloats.add(area);
       } else {
@@ -1880,9 +1893,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         width + rightMargin,
         height + bottomMargin,
       );
-      _pendingLineLeftFloats
-          .add(_FloatArea(rect: floatRect, direction: HyperFloat.left));
-      // Invalidate cache since a new float was added to the line's potential constraints
+      final imgSrc = fragment.sourceNode is AtomicNode
+          ? (fragment.sourceNode as AtomicNode).src
+          : null;
+      _pendingLineLeftFloats.add(_FloatArea(
+          rect: floatRect, direction: HyperFloat.left, imageSrc: imgSrc));
       _cachedAvailableWidth = null;
     } else {
       double right = _maxWidth;
@@ -1960,9 +1975,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         width + leftMargin,
         height + bottomMargin,
       );
-      _pendingLineRightFloats
-          .add(_FloatArea(rect: floatRect, direction: HyperFloat.right));
-      // Invalidate cache
+      final imgSrc = fragment.sourceNode is AtomicNode
+          ? (fragment.sourceNode as AtomicNode).src
+          : null;
+      _pendingLineRightFloats.add(_FloatArea(
+          rect: floatRect, direction: HyperFloat.right, imageSrc: imgSrc));
       _cachedAvailableWidth = null;
     }
 

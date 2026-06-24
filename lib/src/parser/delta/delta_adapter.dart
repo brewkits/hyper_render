@@ -289,7 +289,7 @@ class DeltaAdapter extends ExtendedDocumentAdapter {
         style: ComputedStyle(
           display: DisplayType.block,
           padding: EdgeInsets.only(
-            left: 20.0 * ((attributes['indent'] as int?) ?? 0 + 1),
+            left: 20.0 * (((attributes['indent'] as num?)?.toInt() ?? 0) + 1),
           ),
         ),
         children: children,
@@ -337,7 +337,7 @@ class DeltaAdapter extends ExtendedDocumentAdapter {
     // Indentation
     double leftPadding = 0;
     if (attributes.containsKey('indent')) {
-      leftPadding = 40.0 * (attributes['indent'] as int);
+      leftPadding = 40.0 * (attributes['indent'] as num).toInt();
     }
 
     return BlockNode(
@@ -411,13 +411,15 @@ class DeltaAdapter extends ExtendedDocumentAdapter {
       style = style.copyWith(fontStyle: FontStyle.italic);
     }
 
-    // Underline
-    if (attributes['underline'] == true) {
+    // Underline + Strikethrough (can be combined)
+    final hasUnderline = attributes['underline'] == true;
+    final hasStrike = attributes['strike'] == true;
+    if (hasUnderline && hasStrike) {
+      style.textDecoration = TextDecoration.combine(
+          [TextDecoration.underline, TextDecoration.lineThrough]);
+    } else if (hasUnderline) {
       style.textDecoration = TextDecoration.underline;
-    }
-
-    // Strike
-    if (attributes['strike'] == true) {
+    } else if (hasStrike) {
       style.textDecoration = TextDecoration.lineThrough;
     }
 

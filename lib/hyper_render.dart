@@ -107,6 +107,7 @@ export 'package:hyper_render_core/hyper_render_core.dart'
         HyperKeyframe,
         HyperKeyframes,
         HyperAnimatedWidget,
+        HyperTransitionWidget,
         HyperAnimationExtension,
         FormulaWidget,
         FormulaBuilder,

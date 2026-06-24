@@ -327,6 +327,7 @@ class HyperAnimatedWidget extends StatefulWidget {
   final Curve curve;
   final int? iterationCount;
   final bool reverse;
+  final bool alternate;
   final bool autoPlay;
 
   /// Optional registry of custom [HyperKeyframes] keyed by animation name.
@@ -346,6 +347,7 @@ class HyperAnimatedWidget extends StatefulWidget {
     this.curve = Curves.ease,
     this.iterationCount,
     this.reverse = false,
+    this.alternate = false,
     this.autoPlay = true,
     this.keyframesLookup,
   });
@@ -365,6 +367,9 @@ class HyperAnimatedWidget extends StatefulWidget {
       curve: _curveFromTimingFunction(style.animationTimingFunction),
       iterationCount: style.animationIterationCount,
       reverse: style.animationDirection == HyperAnimationDirection.reverse ||
+          style.animationDirection == HyperAnimationDirection.alternateReverse,
+      alternate: style.animationDirection ==
+              HyperAnimationDirection.alternate ||
           style.animationDirection == HyperAnimationDirection.alternateReverse,
       keyframesLookup: keyframesLookup,
       child: child,
@@ -473,7 +478,11 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
       _pendingStart = Timer(widget.delay, () {
         _pendingStart = null;
         if (mounted) {
-          _controller.forward();
+          if (widget.iterationCount == null) {
+            _controller.repeat(reverse: widget.alternate);
+          } else {
+            _controller.forward();
+          }
         }
       });
     }
@@ -491,6 +500,9 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
     if (oldWidget.animationName != widget.animationName ||
         oldWidget.duration != widget.duration ||
         oldWidget.curve != widget.curve ||
+        oldWidget.iterationCount != widget.iterationCount ||
+        oldWidget.reverse != widget.reverse ||
+        oldWidget.alternate != widget.alternate ||
         oldWidget.keyframesLookup != widget.keyframesLookup) {
       _cancelPendingStart();
       _controller.dispose();
@@ -567,6 +579,98 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
       },
       child: widget.child,
     );
+  }
+}
+
+/// Applies CSS `transition` property to a child widget.
+///
+/// When the [style] changes across rebuilds, animatable properties (opacity,
+/// transform) transition smoothly over the specified duration and timing
+/// function. Mirrors browser CSS `transition` behavior for content that
+/// updates dynamically (e.g., live feeds, class toggles via API).
+class HyperTransitionWidget extends StatefulWidget {
+  final Widget child;
+  final ComputedStyle style;
+
+  const HyperTransitionWidget({
+    super.key,
+    required this.child,
+    required this.style,
+  });
+
+  @override
+  State<HyperTransitionWidget> createState() => _HyperTransitionWidgetState();
+}
+
+class _HyperTransitionWidgetState extends State<HyperTransitionWidget> {
+  late double _opacity;
+  late Matrix4 _transform;
+
+  @override
+  void initState() {
+    super.initState();
+    _opacity = widget.style.opacity;
+    _transform = widget.style.transform ?? Matrix4.identity();
+  }
+
+  @override
+  void didUpdateWidget(HyperTransitionWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _opacity = widget.style.opacity;
+    _transform = widget.style.transform ?? Matrix4.identity();
+  }
+
+  Duration get _duration {
+    final t = widget.style.transition;
+    if (t == null || !t.isDefined) return Duration.zero;
+    return Duration(milliseconds: t.duration);
+  }
+
+  Curve get _curve {
+    final t = widget.style.transition;
+    if (t == null) return Curves.ease;
+    return HyperAnimatedWidget._curveFromTimingFunction(t.timingFunction);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dur = _duration;
+    if (dur == Duration.zero) {
+      return _applyStaticStyle(widget.child);
+    }
+
+    final curve = _curve;
+
+    Widget result = widget.child;
+
+    result = AnimatedOpacity(
+      opacity: _opacity.clamp(0.0, 1.0),
+      duration: dur,
+      curve: curve,
+      child: result,
+    );
+
+    result = AnimatedContainer(
+      duration: dur,
+      curve: curve,
+      transform: _transform,
+      transformAlignment: Alignment.center,
+      child: result,
+    );
+
+    return result;
+  }
+
+  Widget _applyStaticStyle(Widget child) {
+    Widget result = child;
+    if (_opacity < 1.0) {
+      result = Opacity(opacity: _opacity.clamp(0.0, 1.0), child: result);
+    }
+    if (_transform != Matrix4.identity()) {
+      result = Transform(
+          transform: _transform, alignment: Alignment.center, child: result);
+    }
+    return result;
   }
 }
 

@@ -360,25 +360,32 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   }
 
   /// Wraps [child] with [HyperAnimatedWidget] when [node] carries a CSS
-  /// `animation-name` property and the keyframes are known.  Returns [child]
-  /// unchanged if no animation should be applied.
+  /// `animation-name` property and the keyframes are known, and/or with
+  /// [HyperTransitionWidget] when [node] carries a CSS `transition`
+  /// property. Returns [child] unchanged if neither applies.
   static Widget _maybeAnimate(
     UDTNode node,
     Widget child,
     Map<String, HyperKeyframes> keyframeRegistry,
   ) {
+    Widget result = child;
+
+    if (node.style.transition?.isDefined == true) {
+      result = HyperTransitionWidget(style: node.style, child: result);
+    }
+
     final animName = node.style.animationName;
-    if (animName == null || animName.isEmpty) return child;
+    if (animName == null || animName.isEmpty) return result;
 
     // Require that the keyframe definition is resolvable.
     final known = keyframeRegistry.containsKey(animName) ||
         HyperAnimations.byName(animName) != null;
-    if (!known) return child;
+    if (!known) return result;
 
     return HyperAnimatedWidget.fromStyle(
       style: node.style,
       keyframesLookup: keyframeRegistry.isNotEmpty ? keyframeRegistry : null,
-      child: child,
+      child: result,
     );
   }
 

@@ -1198,10 +1198,7 @@ class _HyperViewerState extends State<HyperViewer>
     bool isSame = prev.length == carryovers.length;
     if (isSame) {
       for (int i = 0; i < prev.length; i++) {
-        if (prev[i].direction != carryovers[i].direction ||
-            prev[i].width != carryovers[i].width ||
-            prev[i].overhangHeight != carryovers[i].overhangHeight ||
-            prev[i].imagePixelOffset != carryovers[i].imagePixelOffset) {
+        if (prev[i] != carryovers[i]) {
           isSame = false;
           break;
         }
@@ -1283,6 +1280,11 @@ class _HyperViewerState extends State<HyperViewer>
   void _parseContent() {
     // Fast path: pre-parsed AST — skip all parsing.
     if (widget._prebuiltDocument != null) {
+      _docKeyframes = const {};
+      _cachedEffectiveConfig = null;
+      _sectionHashes = const [];
+      _lastNotifiedPageCount = -1;
+      _sectionBoxes.clear();
       setState(() {
         _syncDocument = widget._prebuiltDocument;
         _sections = null;
@@ -1545,6 +1547,7 @@ class _HyperViewerState extends State<HyperViewer>
       // the old 1500 because chunks are now 6000 chars (was 25000), so
       // each item is cheaper — we need fewer pixels of pre-render buffer.
       final listView = ListView.builder(
+        // ignore: deprecated_member_use
         cacheExtent: 800,
         controller: widget.controller?.scrollController,
         shrinkWrap: widget.shrinkWrap,

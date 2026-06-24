@@ -1,7 +1,7 @@
 # CSS Properties Support Matrix
 
-Last Updated: March 30, 2026
-Version: 1.2.0
+Last Updated: June 24, 2026
+Version: 1.4.0
 
 This document lists CSS property support in HyperRender.
 
@@ -46,6 +46,7 @@ This document lists CSS property support in HyperRender.
 | `border-color` | ✅ | All color formats | |
 | `border-radius` | ✅ | px, % | All 4 corners + shorthand |
 | `box-sizing` | ✅ | border-box, content-box | Full support |
+| `aspect-ratio` | ✅ | W/H, bare number, auto | Applied to img/video sizing (v1.4.0) |
 
 ---
 
@@ -147,11 +148,12 @@ This document lists CSS property support in HyperRender.
 | `background-color` | ✅ | All CSS colors | |
 | `background-image` | ✅ | url(), linear-gradient() | Network/asset images + linear gradients |
 | `background-size` | ✅ | cover, contain, fill | |
-| `background-position` | ❌ | — | Not supported |
-| `background-repeat` | ❌ | — | Not supported |
+| `background-position` | ✅ | top/center/bottom/left/right, px | Supported in v1.3.1 |
+| `background-repeat` | ✅ | repeat, repeat-x/y, no-repeat, space, round | Supported in v1.3.1 |
 | `box-shadow` | ✅ | x y blur spread color | Full box-shadow support in v1.2.0 |
 | `filter` | ✅ | blur, brightness, contrast | Native image processing effects |
 | `backdrop-filter` | ✅ | blur | Glassmorphism support |
+| `object-fit` | ✅ | cover, contain, fill, none, scale-down | Applied to img elements (v1.3.3) |
 
 ---
 
@@ -182,9 +184,11 @@ This document lists CSS property support in HyperRender.
 |----------|--------|------------------|-------|
 | `transform` | ❌ | — | Use Flutter's `Transform` widget via `pluginRegistry` |
 | `transform-origin` | ❌ | — | Not supported |
-| `transition` | ❌ | — | Planned v4.0 |
+| `transition` | ✅ | opacity, transform — duration + timing-function | Widget-diff approach; see LIMITATIONS.md for scope |
 | `animation` | ✅ | name duration timing | Requires `@keyframes` in style tags |
 | `@keyframes` | ✅ | from/to, % | Parsed from `<style>` tags automatically |
+| `animation-iteration-count` | ✅ | number, infinite | `infinite` loops via `AnimationController.repeat()` (v1.4.0) |
+| `animation-direction` | ✅ | normal, alternate, reverse, alternate-reverse | `alternate` reverses on each loop (v1.4.0) |
 
 ---
 
@@ -240,8 +244,8 @@ This document lists CSS property support in HyperRender.
 
 ### Roadmap
 - **v3.x**: Better pseudo-element support (::before/::after)
-- **v4.0**: Transitions, Transform support, `vh`/`vw` units
+- **v4.0**: Full Transform support, `vh`/`vw` units, `transition-delay`, color/background-color transitions
 
 ---
 
-*Last updated: March 30, 2026 — HyperRender v1.2.0*
+*Last updated: June 24, 2026 — HyperRender v1.4.0*

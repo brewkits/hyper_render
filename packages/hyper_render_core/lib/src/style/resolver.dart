@@ -1933,6 +1933,247 @@ class StyleResolver {
           style.markExplicitlySet('align-content');
         }
         break;
+
+      // ============================================
+      // Missing CSS properties (added in v1.4.0)
+      // ============================================
+
+      case 'white-space':
+        final ws = value.trim().toLowerCase();
+        if (const {
+          'normal',
+          'nowrap',
+          'pre',
+          'pre-wrap',
+          'pre-line',
+          'break-spaces'
+        }.contains(ws)) {
+          style.whiteSpace = ws;
+          style.markExplicitlySet('white-space');
+        }
+        break;
+
+      case 'word-spacing':
+        final ws = _parseLength(value);
+        if (ws != null) {
+          style.wordSpacing = ws;
+          style.markExplicitlySet('word-spacing');
+        }
+        break;
+
+      case 'text-transform':
+        final tt = value.trim().toLowerCase();
+        if (const {'none', 'uppercase', 'lowercase', 'capitalize'}
+            .contains(tt)) {
+          style.textTransform = tt;
+          style.markExplicitlySet('text-transform');
+        }
+        break;
+
+      case 'text-decoration-color':
+        final c = _parseColor(value);
+        if (c != null) {
+          style.textDecorationColor = c;
+          style.markExplicitlySet('text-decoration-color');
+        }
+        break;
+
+      case 'min-width':
+        final length = _parseLength(value);
+        if (length != null) {
+          style.minWidth = length;
+          style.markExplicitlySet('min-width');
+        }
+        break;
+
+      case 'max-width':
+        final v = value.trim().toLowerCase();
+        if (v == 'none') {
+          style.maxWidth = null;
+          style.markExplicitlySet('max-width');
+        } else {
+          final length = _parseLength(v);
+          if (length != null) {
+            style.maxWidth = length;
+            style.markExplicitlySet('max-width');
+          }
+        }
+        break;
+
+      case 'min-height':
+        final length = _parseLength(value);
+        if (length != null) {
+          style.minHeight = length;
+          style.markExplicitlySet('min-height');
+        }
+        break;
+
+      case 'max-height':
+        final v = value.trim().toLowerCase();
+        if (v == 'none') {
+          style.maxHeight = null;
+          style.markExplicitlySet('max-height');
+        } else {
+          final length = _parseLength(v);
+          if (length != null) {
+            style.maxHeight = length;
+            style.markExplicitlySet('max-height');
+          }
+        }
+        break;
+
+      case 'overflow':
+        final ov = _parseOverflow(value);
+        if (ov != null) {
+          style.overflowX = ov;
+          style.overflowY = ov;
+          style.markAllExplicitlySet(['overflow-x', 'overflow-y']);
+        }
+        break;
+
+      case 'overflow-x':
+        final ov = _parseOverflow(value);
+        if (ov != null) {
+          style.overflowX = ov;
+          style.markExplicitlySet('overflow-x');
+        }
+        break;
+
+      case 'overflow-y':
+        final ov = _parseOverflow(value);
+        if (ov != null) {
+          style.overflowY = ov;
+          style.markExplicitlySet('overflow-y');
+        }
+        break;
+
+      case 'border-top':
+        final parsed = _parseBorderShorthand(value);
+        if (parsed != null) {
+          final (w, c, s) = parsed;
+          style.borderWidth = style.borderWidth.copyWith(top: w);
+          style.borderColor = c;
+          if (s != null) style.borderTopStyle = s;
+          style.markExplicitlySet('border-top');
+        }
+        break;
+
+      case 'border-right':
+        final parsed = _parseBorderShorthand(value);
+        if (parsed != null) {
+          final (w, c, s) = parsed;
+          style.borderWidth = style.borderWidth.copyWith(right: w);
+          style.borderColor = c;
+          if (s != null) style.borderRightStyle = s;
+          style.markExplicitlySet('border-right');
+        }
+        break;
+
+      case 'border-bottom':
+        final parsed = _parseBorderShorthand(value);
+        if (parsed != null) {
+          final (w, c, s) = parsed;
+          style.borderWidth = style.borderWidth.copyWith(bottom: w);
+          style.borderColor = c;
+          if (s != null) style.borderBottomStyle = s;
+          style.markExplicitlySet('border-bottom');
+        }
+        break;
+
+      case 'border-color':
+        final c = _parseColor(value);
+        if (c != null) {
+          style.borderColor = c;
+          style.markExplicitlySet('border-color');
+        }
+        break;
+
+      case 'border-width':
+        final w = _parseLength(value);
+        if (w != null) {
+          style.borderWidth = EdgeInsets.all(w);
+          style.markExplicitlySet('border-width');
+        }
+        break;
+
+      case 'animation':
+        _parseAnimationShorthand(value, style);
+        break;
+
+      case 'animation-name':
+        style.animationName = value.trim();
+        style.markExplicitlySet('animation-name');
+        break;
+
+      case 'animation-duration':
+        final ms = _parseDuration(value);
+        if (ms != null) {
+          style.animationDuration = ms;
+          style.markExplicitlySet('animation-duration');
+        }
+        break;
+
+      case 'animation-delay':
+        final ms = _parseDuration(value);
+        if (ms != null) {
+          style.animationDelay = ms;
+          style.markExplicitlySet('animation-delay');
+        }
+        break;
+
+      case 'animation-iteration-count':
+        final v = value.trim().toLowerCase();
+        if (v == 'infinite') {
+          style.animationIterationCount = null;
+          style.markExplicitlySet('animation-iteration-count');
+        } else {
+          final count = int.tryParse(v);
+          if (count != null) {
+            style.animationIterationCount = count;
+            style.markExplicitlySet('animation-iteration-count');
+          }
+        }
+        break;
+
+      case 'animation-direction':
+        final dir = _parseAnimationDirection(value);
+        if (dir != null) {
+          style.animationDirection = dir;
+          style.markExplicitlySet('animation-direction');
+        }
+        break;
+
+      case 'animation-timing-function':
+        final tf = _parseTimingFunction(value);
+        if (tf != null) {
+          style.animationTimingFunction = tf;
+          style.markExplicitlySet('animation-timing-function');
+        }
+        break;
+
+      case 'animation-fill-mode':
+        final fm = _parseAnimationFillMode(value);
+        if (fm != null) {
+          style.animationFillMode = fm;
+          style.markExplicitlySet('animation-fill-mode');
+        }
+        break;
+
+      case 'transition':
+        final t = _parseTransition(value);
+        if (t != null) {
+          style.transition = t;
+          style.markExplicitlySet('transition');
+        }
+        break;
+
+      case 'aspect-ratio':
+        final ar = _parseAspectRatio(value);
+        if (ar != null) {
+          style.aspectRatio = ar;
+          style.markExplicitlySet('aspect-ratio');
+        }
+        break;
     }
 
     return style;
@@ -2157,7 +2398,7 @@ class StyleResolver {
     // With units - convert to multiplier
     final length =
         _parseLengthWithContext(value, parentFontSize: parentFontSize);
-    if (length != null && parentFontSize != null) {
+    if (length != null && parentFontSize != null && parentFontSize > 0) {
       return length / parentFontSize;
     }
     return null;
@@ -2231,6 +2472,7 @@ class StyleResolver {
         color = c;
       }
     }
+    if (borderStyle == HyperBorderStyle.none) width = 0;
     return (width, color, borderStyle);
   }
 
@@ -2426,13 +2668,25 @@ class StyleResolver {
       if (firstPart.contains('right')) {
         begin = Alignment.centerLeft;
         end = Alignment.centerRight;
-        if (firstPart.contains('top')) begin = Alignment.bottomLeft;
-        if (firstPart.contains('bottom')) begin = Alignment.topLeft;
+        if (firstPart.contains('top')) {
+          begin = Alignment.bottomLeft;
+          end = Alignment.topRight;
+        }
+        if (firstPart.contains('bottom')) {
+          begin = Alignment.topLeft;
+          end = Alignment.bottomRight;
+        }
       } else if (firstPart.contains('left')) {
         begin = Alignment.centerRight;
         end = Alignment.centerLeft;
-        if (firstPart.contains('top')) begin = Alignment.bottomRight;
-        if (firstPart.contains('bottom')) begin = Alignment.topRight;
+        if (firstPart.contains('top')) {
+          begin = Alignment.bottomRight;
+          end = Alignment.topLeft;
+        }
+        if (firstPart.contains('bottom')) {
+          begin = Alignment.topRight;
+          end = Alignment.bottomLeft;
+        }
       } else if (firstPart.contains('bottom')) {
         begin = Alignment.topCenter;
         end = Alignment.bottomCenter;
@@ -2605,12 +2859,11 @@ class StyleResolver {
     if (filters.isEmpty) return null;
     if (filters.length == 1) return filters.first;
 
-    return ui.ImageFilter.compose(
-      outer: filters[0],
-      inner: filters.length > 1
-          ? filters[1]
-          : filters[0], // Simplified compose for 2
-    );
+    var composed = filters[0];
+    for (int i = 1; i < filters.length; i++) {
+      composed = ui.ImageFilter.compose(outer: composed, inner: filters[i]);
+    }
+    return composed;
   }
 
   /// Parse border-style value
@@ -3040,6 +3293,10 @@ class StyleResolver {
       final pt = double.tryParse(value.replaceAll('pt', ''));
       return pt != null ? pt * 1.333 : null;
     }
+    if (value.endsWith('rem')) {
+      final rem = double.tryParse(value.replaceAll('rem', ''));
+      return rem != null ? rem * rootFontSize : null;
+    }
     if (value.endsWith('em')) {
       final em = double.tryParse(value.replaceAll('em', ''));
       return em != null ? em * rootFontSize : null;
@@ -3165,6 +3422,182 @@ class StyleResolver {
     'brown': Color(0xFFA52A2A),
     'transparent': Color(0x00000000),
   };
+
+  HyperOverflow? _parseOverflow(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'visible':
+        return HyperOverflow.visible;
+      case 'hidden':
+        return HyperOverflow.hidden;
+      case 'scroll':
+        return HyperOverflow.scroll;
+      case 'auto':
+        return HyperOverflow.auto;
+      default:
+        return null;
+    }
+  }
+
+  int? _parseDuration(String value) {
+    final v = value.trim().toLowerCase();
+    if (v.endsWith('ms')) {
+      return int.tryParse(v.replaceAll('ms', ''));
+    }
+    if (v.endsWith('s')) {
+      final sec = double.tryParse(v.replaceAll('s', ''));
+      return sec != null ? (sec * 1000).round() : null;
+    }
+    return int.tryParse(v);
+  }
+
+  HyperAnimationDirection? _parseAnimationDirection(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'normal':
+        return HyperAnimationDirection.normal;
+      case 'reverse':
+        return HyperAnimationDirection.reverse;
+      case 'alternate':
+        return HyperAnimationDirection.alternate;
+      case 'alternate-reverse':
+        return HyperAnimationDirection.alternateReverse;
+      default:
+        return null;
+    }
+  }
+
+  HyperTimingFunction? _parseTimingFunction(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'linear':
+        return HyperTimingFunction.linear;
+      case 'ease':
+        return HyperTimingFunction.ease;
+      case 'ease-in':
+        return HyperTimingFunction.easeIn;
+      case 'ease-out':
+        return HyperTimingFunction.easeOut;
+      case 'ease-in-out':
+        return HyperTimingFunction.easeInOut;
+      default:
+        return null;
+    }
+  }
+
+  HyperAnimationFillMode? _parseAnimationFillMode(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'none':
+        return HyperAnimationFillMode.none;
+      case 'forwards':
+        return HyperAnimationFillMode.forwards;
+      case 'backwards':
+        return HyperAnimationFillMode.backwards;
+      case 'both':
+        return HyperAnimationFillMode.both;
+      default:
+        return null;
+    }
+  }
+
+  HyperTransition? _parseTransition(String value) {
+    final parts = value.trim().split(_Re.whitespace);
+    if (parts.isEmpty) return null;
+
+    String? property;
+    int duration = 0;
+    HyperTimingFunction timingFunction = HyperTimingFunction.ease;
+    int delay = 0;
+
+    for (final part in parts) {
+      final ms = _parseDuration(part);
+      if (ms != null) {
+        if (duration == 0) {
+          duration = ms;
+        } else {
+          delay = ms;
+        }
+        continue;
+      }
+      final tf = _parseTimingFunction(part);
+      if (tf != null) {
+        timingFunction = tf;
+        continue;
+      }
+      property ??= part;
+    }
+
+    return HyperTransition(
+      property: property == 'all' ? null : property,
+      duration: duration,
+      timingFunction: timingFunction,
+      delay: delay,
+    );
+  }
+
+  void _parseAnimationShorthand(String value, ComputedStyle style) {
+    final parts = value.trim().split(_Re.whitespace);
+    if (parts.isEmpty) return;
+
+    int durationCount = 0;
+    for (final part in parts) {
+      final ms = _parseDuration(part);
+      if (ms != null) {
+        if (durationCount == 0) {
+          style.animationDuration = ms;
+          style.markExplicitlySet('animation-duration');
+        } else {
+          style.animationDelay = ms;
+          style.markExplicitlySet('animation-delay');
+        }
+        durationCount++;
+        continue;
+      }
+      final tf = _parseTimingFunction(part);
+      if (tf != null) {
+        style.animationTimingFunction = tf;
+        style.markExplicitlySet('animation-timing-function');
+        continue;
+      }
+      final dir = _parseAnimationDirection(part);
+      if (dir != null) {
+        style.animationDirection = dir;
+        style.markExplicitlySet('animation-direction');
+        continue;
+      }
+      final fm = _parseAnimationFillMode(part);
+      if (fm != null) {
+        style.animationFillMode = fm;
+        style.markExplicitlySet('animation-fill-mode');
+        continue;
+      }
+      if (part == 'infinite') {
+        style.animationIterationCount = null;
+        style.markExplicitlySet('animation-iteration-count');
+        continue;
+      }
+      final count = int.tryParse(part);
+      if (count != null) {
+        style.animationIterationCount = count;
+        style.markExplicitlySet('animation-iteration-count');
+        continue;
+      }
+      style.animationName = part;
+      style.markExplicitlySet('animation-name');
+    }
+  }
+
+  double? _parseAspectRatio(String value) {
+    final v = value.trim().toLowerCase();
+    if (v == 'auto') return null;
+    if (v.contains('/')) {
+      final parts = v.split('/');
+      if (parts.length == 2) {
+        final w = double.tryParse(parts[0].trim());
+        final h = double.tryParse(parts[1].trim());
+        if (w != null && h != null && h > 0) return w / h;
+      }
+      return null;
+    }
+    return double.tryParse(v);
+  }
 }
 
 /// A CSS rule with selector and declarations

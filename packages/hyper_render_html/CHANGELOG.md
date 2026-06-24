@@ -1,5 +1,13 @@
 # Changelog — hyper_render_html
 
+## [1.4.0] - 2026-06-24
+
+### 🐛 Bug Fixes
+- `html_adapter.dart` no longer shares a mutable default `ComputedStyle` instance across unrelated nodes — each tag now gets its own `.copyWith()`.
+
+### 🏗️ Maintenance
+- Updated `hyper_render_core` dependency to `^1.4.0`
+
 ## [1.3.4] - 2026-06-04
 
 ### 🏗️ Maintenance

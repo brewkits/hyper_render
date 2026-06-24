@@ -1,5 +1,25 @@
 # Changelog — hyper_render_core
 
+## [1.4.0] - 2026-06-24
+
+### ✨ New CSS Features
+- **`aspect-ratio`**: `W/H` and bare-number syntax parsed; applied to `<img>`/`<video>` sizing across all width-only/height-only/neither-specified layout branches.
+- **`transition` execution**: new `HyperTransitionWidget` animates `opacity`/`transform` across style changes using the declared duration and timing function; wired into `HyperRenderWidget._maybeAnimate`.
+- **`animation-iteration-count: infinite`**: now loops via `AnimationController.repeat()`; added `alternate` flag so `animation-direction: alternate`/`alternate-reverse` is handled distinctly from `reverse`.
+- **Float Carryover paint completion**: `imagePixelOffset` is now consumed in `_paintFloatImages` — a tall floated image overhanging a virtualized section boundary continues painting from the correct offset in the next chunk.
+- ~25 new resolver cases for previously-silent properties: `white-space`, `word-spacing`, `text-transform`, `text-decoration-color`, `min/max-width/height`, `overflow*`, `border-top/right/bottom/color/width`, `animation` shorthand + sub-properties, `transition`, `aspect-ratio`.
+
+### 🐛 Bug Fixes
+- `rem` units now parsed correctly in `_parseLength` (previously misparsed via the `em` branch).
+- `text-decoration` no longer incorrectly inherited (not inheritable per CSS spec); `text-transform` inheritance added instead.
+- Linear-gradient diagonal corner directions (`to top right`, etc.) now set both `begin` and `end` correctly.
+- `filter` now composes all entries in a chain, not just the first two.
+- `border: none` now zeroes width instead of leaving the 1px default.
+- Division-by-zero guard added to unitless `line-height` resolution.
+- Float layout no longer allocates a spread list (`[...left, ...right]`) per line.
+- `HyperTextSelection` now implements `operator==`, eliminating redundant repaints on unchanged selections.
+- `setGlobalTextCacheSize` now disposes the previous cache instead of leaking `TextPainter`s.
+
 ## [1.3.4] - 2026-06-04
 
 ### 🔧 Fixes

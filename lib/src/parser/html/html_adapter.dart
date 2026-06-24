@@ -283,7 +283,8 @@ class HtmlAdapter {
     if (node.nodeType == dom.Node.ELEMENT_NODE) {
       final element = node as dom.Element;
       final tagName = element.localName?.toLowerCase() ?? 'div';
-      final defaultStyle = _defaultStyles[tagName] ?? ComputedStyle();
+      final defaultStyle =
+          _defaultStyles[tagName]?.copyWith() ?? ComputedStyle();
 
       // Inline SVG: serialize the entire <svg> element to a string
       if (tagName == 'svg') {

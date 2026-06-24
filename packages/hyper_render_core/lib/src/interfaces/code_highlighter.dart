@@ -3,7 +3,7 @@ import 'package:flutter/painting.dart';
 /// Interface for code syntax highlighting plugins
 ///
 /// Implement this interface to provide custom syntax highlighting.
-/// Default implementation uses flutter_highlight package.
+/// The `hyper_render_highlight` package provides a default implementation.
 ///
 /// Example custom implementation:
 /// ```dart

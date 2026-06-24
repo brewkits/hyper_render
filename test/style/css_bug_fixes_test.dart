@@ -691,4 +691,102 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // v1.4.0 — aspect-ratio / transition
+  // ---------------------------------------------------------------------------
+  group('aspect-ratio', () {
+    test('W/H ratio syntax parses to width/height double', () {
+      final style = _styleOfTag(
+        '<img src="a.png" style="aspect-ratio:16/9">',
+        'img',
+      );
+      expect(style?.aspectRatio, closeTo(16 / 9, 0.0001));
+    });
+
+    test('bare number parses directly as the ratio', () {
+      final style = _styleOfTag(
+        '<div style="aspect-ratio:2.5">x</div>',
+        'div',
+      );
+      expect(style?.aspectRatio, 2.5);
+    });
+
+    test('auto leaves aspectRatio unset', () {
+      final style = _styleOfTag(
+        '<div style="aspect-ratio:auto">x</div>',
+        'div',
+      );
+      expect(style?.aspectRatio, isNull);
+    });
+
+    test('img width-only resolves height from CSS aspect-ratio', () {
+      final adapter = HtmlAdapter();
+      final doc = adapter.parse(
+        '<img src="https://example.com/a.png" style="width:200px;aspect-ratio:2/1">',
+      );
+      final resolver = StyleResolver();
+      resolver.resolveStyles(doc);
+
+      AtomicNode? imgNode;
+      void walk(UDTNode n) {
+        if (n is AtomicNode && n.tagName == 'img') {
+          imgNode = n;
+          return;
+        }
+        for (final c in n.children) {
+          walk(c);
+        }
+      }
+
+      walk(doc);
+      expect(imgNode!.style.width, 200.0);
+      expect(imgNode!.style.aspectRatio, 2.0);
+    });
+  });
+
+  group('transition', () {
+    test('shorthand parses duration, timing function and delay', () {
+      final style = _styleOfTag(
+        '<div style="transition:opacity 0.3s ease-in-out 0.1s">x</div>',
+        'div',
+      );
+      expect(style?.transition, isNotNull);
+      expect(style!.transition!.property, 'opacity');
+      expect(style.transition!.duration, 300);
+      expect(style.transition!.delay, 100);
+      expect(style.transition!.timingFunction, HyperTimingFunction.easeInOut);
+      expect(style.transition!.isDefined, isTrue);
+    });
+
+    test('duration-only shorthand defaults timing function to ease', () {
+      final style = _styleOfTag(
+        '<div style="transition:all 200ms">x</div>',
+        'div',
+      );
+      expect(style?.transition?.duration, 200);
+      expect(style?.transition?.timingFunction, HyperTimingFunction.ease);
+    });
+
+    test('no transition declared leaves transition null', () {
+      final style = _styleOfTag('<div>x</div>', 'div');
+      expect(style?.transition, isNull);
+    });
+
+    testWidgets('HyperViewer renders content with a transition without crash',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HyperViewer(
+              html:
+                  '<div style="opacity:0.5;transition:opacity 0.3s ease">hi</div>',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

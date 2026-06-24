@@ -1,6 +1,6 @@
 name: hyper_render_html
 description: HTML parsing plugin for HyperRender. Converts HTML content to UDT with full CSS support.
-version: 1.3.4
+version: 1.4.0
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_html
 issue_tracker: https://github.com/brewkits/hyper_render/issues
@@ -21,7 +21,7 @@ dependencies:
     sdk: flutter
   # Version dep so pana/pub.dev can resolve without local path.
   # The dependency_overrides below point to the local monorepo copy during dev.
-  hyper_render_core: ^1.3.4
+  hyper_render_core: ^1.4.0
 
   html: ^0.15.6
   csslib: ^1.0.2

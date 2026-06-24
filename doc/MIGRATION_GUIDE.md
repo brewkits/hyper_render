@@ -1,6 +1,28 @@
 # Migration Guide
 
-> **Current version: v1.3.3**
+> **Current version: v1.4.0**
+
+## Upgrading to v1.4.0
+
+### New in v1.4.0
+
+- **CSS `transition` execution** — `HyperTransitionWidget` now animates `opacity`/`transform` on style changes using the declared duration and timing function
+- **CSS `aspect-ratio`** — `W/H` and bare-number syntax applied to `<img>`/`<video>` sizing
+- **`animation-iteration-count: infinite`** loops correctly via `AnimationController.repeat()`; `animation-direction: alternate` is handled distinctly
+- **Cross-Chunk Float Carryover paint** — tall floated images now continue painting correctly in the next virtualized section
+- **~25 previously-silent CSS properties** now resolved (white-space, word-spacing, text-transform, min/max-width/height, overflow, border-top/right/bottom/color/width, animation sub-properties, aspect-ratio, transition)
+- Multiple bug fixes (rem units, text-decoration inheritance, linear-gradient diagonals, border:none width, Delta adapter indent precedence, Markdown CRLF)
+
+No breaking changes. Bump versions:
+
+```yaml
+dependencies:
+  hyper_render: ^1.4.0
+  hyper_render_clipboard: ^1.4.0   # only if you use SuperClipboardHandler
+  hyper_render_math: ^1.4.0        # only if you use MathNodePlugin / LatexNodePlugin
+```
+
+---
 
 ## Upgrading to v1.3.3 / v1.3.2
 
@@ -10,9 +32,9 @@
 
 ```yaml
 dependencies:
-  hyper_render: ^1.3.3
-  hyper_render_clipboard: ^1.3.3   # only if you use SuperClipboardHandler
-  hyper_render_math: ^1.3.3        # only if you use MathNodePlugin / LatexNodePlugin
+  hyper_render: ^1.4.0
+  hyper_render_clipboard: ^1.4.0   # only if you use SuperClipboardHandler
+  hyper_render_math: ^1.4.0        # only if you use MathNodePlugin / LatexNodePlugin
 ```
 
 If you don't use either feature, **no changes are needed** — just bump the version and your Android build will no longer require a `compileSdk = 35` workaround.
@@ -33,16 +55,16 @@ If you don't use either feature, **no changes are needed** — just bump the ver
 
 ---
 
-## Starting fresh with 1.3.3
+## Starting fresh with 1.4.0
 
 **No migration needed!** If you're starting fresh:
 
 ```yaml
 dependencies:
-  hyper_render: ^1.3.3
+  hyper_render: ^1.4.0
   # opt-in extras:
-  hyper_render_clipboard: ^1.3.3   # image copy/save/share
-  hyper_render_math: ^1.3.3        # LaTeX/MathML
+  hyper_render_clipboard: ^1.4.0   # image copy/save/share
+  hyper_render_math: ^1.4.0        # LaTeX/MathML
 ```
 
 ```dart
@@ -187,7 +209,7 @@ These APIs are stable and will remain backward-compatible in v2.0:
 
 ## Getting Help
 
-For the current v1.3.3 release:
+For the current v1.4.0 release:
 - See [README](../README.md) for usage
 - Check [CHANGELOG](../CHANGELOG.md) for version history
 - Review [Plugin Development Guide](PLUGIN_DEVELOPMENT.md) for extending
@@ -195,4 +217,4 @@ For the current v1.3.3 release:
 
 ---
 
-*Last Updated: June 4, 2026 for v1.3.3*
+*Last Updated: June 24, 2026 for v1.4.0*

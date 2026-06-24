@@ -86,14 +86,23 @@ class MarkdownAdapter {
       ];
 
       // Parse Markdown to AST
-      final document = md.Document(
-        extensionSet: extensionSet,
-        blockSyntaxes: blockSyntaxes,
-        inlineSyntaxes: inlineSyntaxes,
-        encodeHtml: !enableInlineHtml,
-      );
+      // Do NOT pass both extensionSet AND explicit syntax lists — the explicit
+      // lists already include extensionSet's syntaxes, so passing both duplicates them.
+      final hasCustomSyntaxes =
+          customBlockSyntaxes != null || customInlineSyntaxes != null;
+      final document = hasCustomSyntaxes
+          ? md.Document(
+              blockSyntaxes: blockSyntaxes,
+              inlineSyntaxes: inlineSyntaxes,
+              encodeHtml: !enableInlineHtml,
+            )
+          : md.Document(
+              extensionSet: extensionSet,
+              encodeHtml: !enableInlineHtml,
+            );
 
-      final lines = content.split('\n');
+      final lines =
+          content.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
       final nodes = document.parseLines(lines);
 
       // Convert Markdown AST to UDT

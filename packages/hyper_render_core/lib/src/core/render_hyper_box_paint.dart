@@ -614,8 +614,6 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     // Paint images from float fragments ONLY if they don't have child widgets
     for (final fragment in _fragments) {
       if (fragment is _FloatFragment) {
-        // Check if this fragment has a linked child widget - if so, skip canvas painting
-        // The child widget (HyperImage) will handle rendering
         if (_hasChildWidgetForFragment(fragment)) continue;
 
         final node = fragment.sourceNode;
@@ -623,6 +621,35 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           _paintImage(canvas, offset, fragment, node);
         }
       }
+    }
+
+    // Paint carried-over float images from the previous virtualized section.
+    // These are float images that extend past the chunk boundary — the previous
+    // section painted the top portion, and this section paints the remainder
+    // starting from imagePixelOffset.
+    for (final carryover in _initialFloats) {
+      if (carryover.imageSrc == null || carryover.imagePixelOffset <= 0) {
+        continue;
+      }
+      final cached = _imageCache.get(carryover.imageSrc!);
+      if (cached == null ||
+          cached.state != ImageLoadState.loaded ||
+          cached.image == null) {
+        continue;
+      }
+      final dstRect = carryover.direction == HyperFloat.left
+          ? Rect.fromLTWH(
+              offset.dx, offset.dy, carryover.width, carryover.overhangHeight)
+          : Rect.fromLTWH(offset.dx + _maxWidth - carryover.width, offset.dy,
+              carryover.width, carryover.overhangHeight);
+
+      final img = cached.image!;
+      final scaleX = img.width / carryover.width;
+      final srcTop = carryover.imagePixelOffset * scaleX;
+      final srcRect =
+          Rect.fromLTWH(0, srcTop, img.width.toDouble(), img.height - srcTop);
+
+      canvas.drawImageRect(img, srcRect, dstRect, Paint());
     }
   }
 

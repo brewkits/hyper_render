@@ -22,8 +22,9 @@ class HyperBoxParentData extends ContainerBoxParentData<RenderBox> {
 class _FloatArea {
   final Rect rect;
   final HyperFloat direction;
+  final String? imageSrc;
 
-  _FloatArea({required this.rect, required this.direction});
+  _FloatArea({required this.rect, required this.direction, this.imageSrc});
 }
 
 /// Describes a float element whose visual area extends beyond the bottom of a
@@ -61,16 +62,21 @@ class FloatCarryover {
   /// or when the full image should be rendered.
   final double imagePixelOffset;
 
+  /// Source URL of the float image, used by the next section's painter to
+  /// render the remaining portion of a carried-over float image.
+  final String? imageSrc;
+
   const FloatCarryover({
     required this.direction,
     required this.width,
     required this.overhangHeight,
     this.imagePixelOffset = 0.0,
+    this.imageSrc,
   });
 
   @override
   String toString() =>
-      'FloatCarryover($direction, w=$width, overhang=$overhangHeight, imgOffset=$imagePixelOffset)';
+      'FloatCarryover($direction, w=$width, overhang=$overhangHeight, imgOffset=$imagePixelOffset, src=$imageSrc)';
 
   @override
   bool operator ==(Object other) =>
@@ -80,7 +86,8 @@ class FloatCarryover {
           direction == other.direction &&
           width == other.width &&
           overhangHeight == other.overhangHeight &&
-          imagePixelOffset == other.imagePixelOffset;
+          imagePixelOffset == other.imagePixelOffset &&
+          imageSrc == other.imageSrc;
 
   @override
   int get hashCode => Object.hash(
@@ -88,6 +95,7 @@ class FloatCarryover {
         width,
         overhangHeight,
         imagePixelOffset,
+        imageSrc,
       );
 }
 
@@ -329,4 +337,15 @@ class HyperTextSelection {
       end: end ?? this.end,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HyperTextSelection &&
+          runtimeType == other.runtimeType &&
+          start == other.start &&
+          end == other.end;
+
+  @override
+  int get hashCode => Object.hash(start, end);
 }

@@ -19,11 +19,10 @@ are silently ignored.
 | `z-index` | Stacking order not respected | Structure HTML so elements appear in the desired paint order |
 | `clip-path` | Non-rectangular masks not applied | Pre-clip images server-side |
 | `@media` queries | Responsive breakpoints ignored | Serve device-appropriate HTML, or use `customCss` for overrides |
-| `background-position` | Not parsed | Use inline `<img>` instead of CSS backgrounds |
-| `background-repeat` | Not parsed | N/A |
 | `columns` / `column-count` | Multi-column layout not rendered | Use a CSS Grid layout (supported) |
+| `animation-play-state: paused` | Not executed — animations always run | N/A |
 
-### Supported in v1.2.0 - v1.3.3
+### Supported in v1.2.0 - v1.4.0
 
 | Property | Status |
 |----------|--------|
@@ -33,8 +32,14 @@ are silently ignored.
 | `@keyframes` | ✅ Parsed from `<style>` tags automatically |
 | `background-image` | ✅ url() and `linear-gradient()` supported |
 | `background-size` | ✅ cover, contain, fill supported |
+| `background-position` | ✅ Supported since v1.3.1 |
+| `background-repeat` | ✅ repeat/repeat-x/repeat-y/no-repeat/space/round supported since v1.3.1 |
 | `display: grid` | ✅ full auto-placement, fr-units, and gap support |
 | `object-fit` | ✅ cover, contain, fill, none, scale-down supported |
+| `list-style-type` / `list-style-position` / `list-style` | ✅ All 11 marker types, shorthand, supported since v1.3.1 |
+| `aspect-ratio` | ✅ `W/H` and bare-number syntax, applied to `<img>`/`<video>` sizing (v1.4.0) |
+| `transition` | ✅ Animates opacity/transform on style changes via `HyperTransitionWidget` (v1.4.0) |
+| `animation-iteration-count: infinite` | ✅ Loops via `AnimationController.repeat()`, including `alternate` direction (v1.4.0) |
 
 ### Partial support
 
@@ -119,7 +124,7 @@ HyperViewer(
 | Scenario | Behaviour |
 |----------|-----------|
 | Content ≤ 10 KB | Synchronous parse + render on main thread |
-| Content > 10 KB | Async parse in `compute()` isolate + `ListView.builder` virtualisation |
+| Content > 10 KB | Async parse via `Future.microtask` + `ListView.builder` virtualisation |
 | Very large tables (100+ rows) | Linear layout time; prefer server-side pagination |
 | `display: none` subtrees | Skipped during layout but still parsed |
 
@@ -148,4 +153,4 @@ final registry = HyperPluginRegistry()
 
 ---
 
-*Last updated: June 4, 2026 — HyperRender v1.3.3*
+*Last updated: June 24, 2026 — HyperRender v1.4.0*

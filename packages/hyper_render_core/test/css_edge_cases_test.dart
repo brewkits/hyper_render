@@ -295,13 +295,13 @@ void main() {
       expect(style.textDecoration, equals(TextDecoration.overline));
     });
 
-    test('textDecoration inherits from parent', () {
+    test('textDecoration does NOT inherit from parent (CSS spec)', () {
       final parent = ComputedStyle(textDecoration: TextDecoration.underline);
       final child = ComputedStyle();
 
       child.inheritFrom(parent);
 
-      expect(child.textDecoration, equals(TextDecoration.underline));
+      expect(child.textDecoration, isNull);
     });
   });
 
