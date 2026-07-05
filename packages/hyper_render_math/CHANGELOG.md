@@ -1,5 +1,10 @@
 # Changelog — hyper_render_math
 
+## [1.5.1] - 2026-07-05
+
+### 🐛 Packaging Fix
+- Republished without the dev-only `dependency_overrides` block that slipped into the 1.5.0 archive and broke pub.dev dependency resolution (`pub get` could not find the local `../hyper_render_core` path). **No code changes** from 1.5.0.
+
 ## [1.5.0] - 2026-07-05
 
 ### 🏗️ Maintenance
