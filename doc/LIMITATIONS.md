@@ -38,8 +38,9 @@ are silently ignored.
 | `object-fit` | ✅ cover, contain, fill, none, scale-down supported |
 | `list-style-type` / `list-style-position` / `list-style` | ✅ All 11 marker types, shorthand, supported since v1.3.1 |
 | `aspect-ratio` | ✅ `W/H` and bare-number syntax, applied to `<img>`/`<video>` sizing (v1.4.0) |
-| `transition` | ✅ Animates opacity/transform on style changes via `HyperTransitionWidget` (v1.4.0) |
+| `transition` | ✅ Animates opacity/transform/color/background-color on style changes via `HyperTransitionWidget` (color added v1.5.0) |
 | `animation-iteration-count: infinite` | ✅ Loops via `AnimationController.repeat()`, including `alternate` direction (v1.4.0) |
+| `cubic-bezier()` / `steps()` timing functions | ✅ `transition` + `animation` accept `cubic-bezier(x1,y1,x2,y2)`, `steps(n, start\|end)`, `step-start`, `step-end` (v1.5.0) |
 
 ### Partial support
 
@@ -49,6 +50,7 @@ are silently ignored.
 | `position: relative` | Supported but child `absolute` positioning is not |
 | `calc()` | Arithmetic on px/em/rem only; `%` in calc not resolved |
 | `sub` / `sup` | Basic font-size reduction; vertical-align positioning is approximate |
+| Animated `color` / `background-color` | Applied on the widget-tier render path (flex/grid/plugin/atomic wrappers); text painted directly on the `RenderHyperBox` canvas is not re-tinted mid-animation |
 
 ---
 

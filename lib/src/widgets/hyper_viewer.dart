@@ -1116,9 +1116,15 @@ class _HyperViewerState extends State<HyperViewer>
   ///      release GPU textures that Flutter holds independently of HyperRender.
   @override
   void didHaveMemoryPressure() {
+    // Only measure the before/after deltas when something will actually
+    // observe them — in release builds this stays zero-cost.
+    const collectMetrics = kDebugMode;
+
+    int boxesCleared = 0;
     void clearBox(RenderObject obj) {
       if (obj is RenderHyperBox) {
         obj.clearMemoryCaches();
+        boxesCleared++;
       }
       obj.visitChildren(clearBox);
     }
@@ -1128,11 +1134,26 @@ class _HyperViewerState extends State<HyperViewer>
 
     // Drop pending (not-yet-started) image loads to avoid decoding off-screen
     // images into an already-constrained heap on low-memory devices.
+    final pendingDropped =
+        collectMetrics ? LazyImageQueue.instance.pendingCount : 0;
     LazyImageQueue.instance.clearPending();
 
     // Release Flutter's own decoded-image cache.  This covers any images
     // loaded via Image.network / precacheImage that HyperRender didn't track.
-    PaintingBinding.instance.imageCache.clear();
+    final imageCache = PaintingBinding.instance.imageCache;
+    final bytesBefore = collectMetrics ? imageCache.currentSizeBytes : 0;
+    final imagesBefore = collectMetrics ? imageCache.currentSize : 0;
+    imageCache.clear();
+
+    if (collectMetrics) {
+      HyperMemoryDebug.record(HyperMemoryMetrics(
+        imageCacheBytesFreed: bytesBefore - imageCache.currentSizeBytes,
+        imageCacheImagesEvicted: imagesBefore - imageCache.currentSize,
+        renderBoxesCleared: boxesCleared,
+        pendingImageLoadsDropped: pendingDropped,
+        timestamp: DateTime.now(),
+      ));
+    }
 
     // Notify the host app so it can release its own resources (video players,
     // custom caches, download queues, etc.) in the same memory-pressure cycle.

@@ -1,7 +1,7 @@
 # HyperRender — Product Roadmap
 
-**Last Updated**: 2026-06-24
-**Current Stable**: v1.4.0
+**Last Updated**: 2026-07-05
+**Current Stable**: v1.5.0
 **Repository**: [github.com/brewkits/hyper_render](https://github.com/brewkits/hyper_render)
 
 This document tracks the long-term direction of the HyperRender ecosystem.
@@ -101,7 +101,7 @@ Scope:
 Scope:
 - [x] Implement `WidgetsBindingObserver` in `HyperViewer` — `didHaveMemoryPressure` clears TextPainter cache, `LazyImageQueue.clearPending()`, and `PaintingBinding.imageCache.clear()`
 - [x] Expose `onMemoryPressure` callback for host-app customization (v1.3.3)
-- [ ] Debug-mode metrics: eviction count, bytes freed
+- [x] Debug-mode metrics: eviction count, bytes freed (v1.5.0 — `HyperMemoryMetrics` recorded to `HyperMemoryDebug` under `kDebugMode`)
 - [ ] Smoke test on a 2 GB RAM device
 
 ### CSS Phase 3 — Visual Polish
@@ -163,8 +163,8 @@ Scope:
 Remaining v2.0 scope:
 - [x] Wire `AnimationController` into the render cycle for `transition` (v1.4.0 — `HyperTransitionWidget` animates opacity/transform on style change, wired via `_maybeAnimate` in `hyper_render_widget.dart`)
 - [x] `animation-iteration-count: infinite` now loops via `AnimationController.repeat()`, including `alternate`/`alternate-reverse` direction (v1.4.0)
-- [ ] Animatable properties beyond `opacity`/`transform`: `color`, `background-color`
-- [ ] Timing functions: `ease`, `linear`, `ease-in-out`, `cubic-bezier()`
+- [x] Animatable properties beyond `opacity`/`transform`: `color`, `background-color` (v1.5.0 — `HyperKeyframe.color`/`backgroundColor` interpolated via `Color.lerp`; applied in `HyperAnimatedWidget` + `HyperTransitionWidget`)
+- [x] Timing functions: `ease`, `linear`, `ease-in-out`, `cubic-bezier()`, `steps()` (v1.5.0 — `HyperTimingParams` + `HyperStepsCurve`)
 - [ ] Repaint only the animated region — do not rebuild the full span tree
 - [ ] Trigger mechanism: class toggle via public API (hover on web/desktop)
 - [ ] Out of scope for v2.0: layout animations (`width`, `height`), `clip-path` animation

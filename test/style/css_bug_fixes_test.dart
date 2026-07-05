@@ -789,4 +789,73 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  group('Issue #12 — zero-width BorderSide with borderRadius', () {
+    testWidgets('flex child with border-left + border-radius does not assert',
+        (tester) async {
+      const html = '''
+<div style="display:flex">
+  <div style="border-left: 5px solid #3498db; border-radius: 8px; padding: 8px;">
+    <p>Callout content</p>
+  </div>
+</div>
+''';
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HyperViewer(html: html, mode: HyperRenderMode.sync),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'flex container with border-top + border-radius does not assert',
+        (tester) async {
+      const html = '''
+<div style="display:flex; border-top: 3px solid #e74c3c; border-radius: 6px;">
+  <span>a</span><span>b</span>
+</div>
+''';
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HyperViewer(html: html, mode: HyperRenderMode.sync),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('uniform border + border-radius still renders all four sides',
+        (tester) async {
+      const html = '''
+<div style="display:flex">
+  <div style="border: 2px solid #333; border-radius: 4px;">boxed</div>
+</div>
+''';
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: HyperViewer(html: html, mode: HyperRenderMode.sync),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      final containers = tester.widgetList<Container>(find.byType(Container));
+      final bordered = containers.where((c) {
+        final deco = c.decoration;
+        return deco is BoxDecoration && deco.border != null;
+      });
+      expect(bordered, isNotEmpty);
+      final border = (bordered.first.decoration! as BoxDecoration).border!;
+      expect(border.isUniform, isTrue);
+      expect(border.top.width, 2.0);
+    });
+  });
 }

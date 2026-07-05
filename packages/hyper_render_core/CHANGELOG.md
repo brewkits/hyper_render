@@ -1,5 +1,18 @@
 # Changelog — hyper_render_core
 
+## [1.5.0] - 2026-07-05
+
+### ✨ New CSS Features
+- **`cubic-bezier()` / `steps()` timing functions**: new `HyperTimingFunction.cubicBezier`/`steps` enum values plus `HyperTimingParams` (`HyperCubicBezierParams`, `HyperStepsParams`) carried on `HyperTransition` and `ComputedStyle.animationTimingParams`. `steps()`/`step-start`/`step-end` render through the new `HyperStepsCurve`; `cubic-bezier()` maps to Flutter's `Cubic`. Shorthand parsing is paren-aware so inner commas are preserved; `x` control points are clamped to `[0, 1]`.
+- **Animatable `color` / `background-color`**: `HyperKeyframe` gained `color`/`backgroundColor` (interpolated via `Color.lerp`). `HyperAnimatedWidget` applies them with `DefaultTextStyle.merge` + `ColoredBox`; `HyperTransitionWidget` animates them with `AnimatedDefaultTextStyle` + `AnimatedContainer`. `StyleResolver.parseCssColor` is now a public static so adapters reuse the same color grammar.
+
+### 🩺 Diagnostics
+- **`HyperMemoryMetrics` / `HyperMemoryDebug`**: debug-only snapshot of what each memory-pressure cycle released. `LazyImageQueue.pendingCount` added.
+
+### 🐛 Bug Fixes
+- **Zero-width `BorderSide` + `border-radius` assertion (issue #12)**: new `cssBorderFromStyle` helper maps `0px` sides to `BorderSide.none` in both `hyper_render_widget.dart` and `flex_container_widget.dart`; the flex-container path also now honours `border-style: none`.
+- **`StyleResolver.parseCssColor` hardened**: returns `null` (no `FormatException`) on malformed hex or out-of-`int64` `rgb()`/`rgba()` values — required now that color parsing runs on arbitrary `@keyframes` values.
+
 ## [1.4.0] - 2026-06-24
 
 ### ✨ New CSS Features

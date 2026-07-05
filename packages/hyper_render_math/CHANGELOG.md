@@ -1,5 +1,10 @@
 # Changelog — hyper_render_math
 
+## [1.5.0] - 2026-07-05
+
+### 🏗️ Maintenance
+- Updated `hyper_render_core` dependency to `^1.5.0`
+
 ## [1.4.0] - 2026-06-24
 
 ### 🏗️ Maintenance

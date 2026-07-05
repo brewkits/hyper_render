@@ -14,6 +14,7 @@ import '../interfaces/node_plugin.dart';
 import '../model/computed_style.dart';
 import '../model/node.dart';
 import 'code_block_widget.dart';
+import 'css_border.dart';
 import 'error_boundary_widget.dart';
 import 'flex_container_widget.dart';
 import 'grid_container_widget.dart';
@@ -687,7 +688,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       if (blockChildren.isEmpty) return null;
 
       // Only apply solid border via BoxDecoration — dashed/dotted/double
-      // require custom painting (not supported here, skipped for now).
+      // require custom painting and are not drawn on this widget path.
       final hasSolidBorder = node.style.borderWidth != EdgeInsets.zero &&
           node.style.borderStyle == HyperBorderStyle.solid;
       return Container(
@@ -701,26 +702,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
           color: node.style.backgroundGradient == null
               ? node.style.backgroundColor
               : null,
-          border: hasSolidBorder
-              ? Border(
-                  top: BorderSide(
-                    color: node.style.borderColor ?? Colors.transparent,
-                    width: node.style.borderWidth.top,
-                  ),
-                  right: BorderSide(
-                    color: node.style.borderColor ?? Colors.transparent,
-                    width: node.style.borderWidth.right,
-                  ),
-                  bottom: BorderSide(
-                    color: node.style.borderColor ?? Colors.transparent,
-                    width: node.style.borderWidth.bottom,
-                  ),
-                  left: BorderSide(
-                    color: node.style.borderColor ?? Colors.transparent,
-                    width: node.style.borderWidth.left,
-                  ),
-                )
-              : null,
+          border: hasSolidBorder ? cssBorderFromStyle(node.style) : null,
           borderRadius: node.style.borderRadius,
           boxShadow: node.style.boxShadow,
         ),

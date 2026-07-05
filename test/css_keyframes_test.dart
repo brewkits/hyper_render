@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/src/plugins/default_css_parser.dart';
 
@@ -158,6 +159,52 @@ void main() {
 .box { animation-name: fadeIn; animation-duration: 0.3s; }
 ''';
       expect(parser.parseKeyframes(css), isEmpty);
+    });
+
+    test('parses color and background-color keyframes (v1.5.0)', () {
+      const css = '''
+@keyframes flash {
+  from { color: #000000; background-color: rgb(255, 0, 0); }
+  to   { color: #ffffff; background-color: rgba(0, 0, 255, 0.5); }
+}
+''';
+      final result = parser.parseKeyframes(css);
+      final kf = result['flash']!;
+      expect(kf.keyframes, hasLength(2));
+
+      expect(kf.keyframes[0].color, const Color(0xFF000000));
+      expect(kf.keyframes[0].backgroundColor, const Color(0xFFFF0000));
+      expect(kf.keyframes[1].color, const Color(0xFFFFFFFF));
+      expect(kf.keyframes[1].backgroundColor,
+          const Color.fromARGB(128, 0, 0, 255));
+    });
+
+    test('interpolates color midway between keyframes (v1.5.0)', () {
+      const css = '''
+@keyframes flash {
+  from { background-color: #000000; }
+  to   { background-color: #ffffff; }
+}
+''';
+      final kf = parser.parseKeyframes(css)['flash']!;
+      final mid = kf.interpolate(0.5).backgroundColor!;
+      // Halfway between black and white — each channel ~127/128.
+      expect((mid.r * 255).round(), closeTo(128, 2));
+      expect((mid.g * 255).round(), closeTo(128, 2));
+      expect((mid.b * 255).round(), closeTo(128, 2));
+    });
+
+    test('one-sided color keyframe holds its value (v1.5.0)', () {
+      const css = '''
+@keyframes appear {
+  from { opacity: 0; }
+  to   { opacity: 1; background-color: #ff0000; }
+}
+''';
+      final kf = parser.parseKeyframes(css)['appear']!;
+      // `from` has no background-color, so it should hold `to`'s value.
+      final early = kf.interpolate(0.25);
+      expect(early.backgroundColor, const Color(0xFFFF0000));
     });
   });
 }

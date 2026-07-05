@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../model/computed_style.dart';
 import '../model/node.dart';
+import 'css_border.dart';
 
 /// Widget that renders a flex container (display: flex)
 ///
@@ -159,25 +160,9 @@ class FlexContainerWidget extends StatelessWidget {
       height: style.height,
       decoration: BoxDecoration(
         color: style.backgroundColor,
-        border: style.borderWidth != EdgeInsets.zero
-            ? Border(
-                top: BorderSide(
-                  color: style.borderColor ?? Colors.transparent,
-                  width: style.borderWidth.top,
-                ),
-                right: BorderSide(
-                  color: style.borderColor ?? Colors.transparent,
-                  width: style.borderWidth.right,
-                ),
-                bottom: BorderSide(
-                  color: style.borderColor ?? Colors.transparent,
-                  width: style.borderWidth.bottom,
-                ),
-                left: BorderSide(
-                  color: style.borderColor ?? Colors.transparent,
-                  width: style.borderWidth.left,
-                ),
-              )
+        border: style.borderWidth != EdgeInsets.zero &&
+                style.borderStyle != HyperBorderStyle.none
+            ? cssBorderFromStyle(style)
             : null,
         borderRadius: style.borderRadius,
       ),

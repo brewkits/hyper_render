@@ -1,5 +1,13 @@
 # Changelog — hyper_render_html
 
+## [1.5.0] - 2026-07-05
+
+### ✨ New CSS Features
+- `@keyframes` parsing now extracts `color` and `background-color` declarations into `HyperKeyframe.color`/`backgroundColor` (via `StyleResolver.parseCssColor`), enabling animatable colors.
+
+### 🏗️ Maintenance
+- Updated `hyper_render_core` dependency to `^1.5.0`
+
 ## [1.4.0] - 2026-06-24
 
 ### 🐛 Bug Fixes

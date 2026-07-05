@@ -13,7 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.10+-54C5F8.svg?logo=flutter)](https://flutter.dev)
 
-**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · 1 646 tests · XSS-safe · Zero Gradle config**
+**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · 1 799 tests · XSS-safe · Zero Gradle config**
 
 [**Quick Start**](#-quick-start) · [**Why Switch?**](#️-why-switch-the-architecture-argument) · [**API**](#-api-reference) · [**Packages**](#-packages)
 
@@ -39,7 +39,7 @@
 
 ```yaml
 dependencies:
-  hyper_render: ^1.4.0
+  hyper_render: ^1.5.0
 ```
 
 ```dart
@@ -164,15 +164,22 @@ HyperViewer(html: '''
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes slideUp { from { transform: translateY(24px); opacity: 0; }
                        to   { transform: translateY(0);    opacity: 1; } }
-  .hero { animation: fadeIn 0.6s ease-out; }
+  @keyframes flash  { from { background-color: #fffbdd; } to { background-color: #ffffff; } }
+  .hero { animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
   .card { animation: slideUp 0.4s ease-out; }
+  .tick { animation: flash 1s steps(4, end); }
 </style>
 <div class="hero"><h1>Welcome</h1></div>
 <div class="card"><p>Animated without any Dart code.</p></div>
 ```
 
-Parsed from `<style>` tags automatically — supports `opacity`, `transform`, vendor-prefixed variants,
-and percentage selectors.
+Parsed from `<style>` tags automatically — supports `opacity`, `transform`, `color`,
+`background-color`, vendor-prefixed variants, and percentage selectors.
+
+**Timing functions** (`@keyframes`, `animation`, and `transition`): `linear`, `ease`,
+`ease-in`, `ease-out`, `ease-in-out`, `cubic-bezier(x1, y1, x2, y2)`, `steps(n, start|end)`,
+`step-start`, and `step-end`. `color` / `background-color` are interpolated for both
+`@keyframes` and `transition`.
 
 ### XSS Sanitization — Safe by Default
 
@@ -414,7 +421,7 @@ These packages bring native dependencies and are **not bundled** by default. Ins
 
 ```yaml
 dependencies:
-  hyper_render_clipboard: ^1.4.0
+  hyper_render_clipboard: ^1.5.0
 ```
 
 ```dart
@@ -444,7 +451,7 @@ HyperViewer(
 
 ```yaml
 dependencies:
-  hyper_render_math: ^1.4.0
+  hyper_render_math: ^1.5.0
 ```
 
 ```dart

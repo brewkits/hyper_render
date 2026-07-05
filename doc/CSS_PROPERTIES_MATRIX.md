@@ -184,11 +184,12 @@ This document lists CSS property support in HyperRender.
 |----------|--------|------------------|-------|
 | `transform` | ❌ | — | Use Flutter's `Transform` widget via `pluginRegistry` |
 | `transform-origin` | ❌ | — | Not supported |
-| `transition` | ✅ | opacity, transform — duration + timing-function | Widget-diff approach; see LIMITATIONS.md for scope |
+| `transition` | ✅ | opacity, transform, color, background-color — duration + timing-function | Widget-diff approach; see LIMITATIONS.md for scope. Color transitions added in v1.5.0 |
 | `animation` | ✅ | name duration timing | Requires `@keyframes` in style tags |
-| `@keyframes` | ✅ | from/to, % | Parsed from `<style>` tags automatically |
+| `@keyframes` | ✅ | from/to, %, `opacity`, `transform`, `color`, `background-color` | Parsed from `<style>` tags automatically. Color keyframes added in v1.5.0 |
 | `animation-iteration-count` | ✅ | number, infinite | `infinite` loops via `AnimationController.repeat()` (v1.4.0) |
 | `animation-direction` | ✅ | normal, alternate, reverse, alternate-reverse | `alternate` reverses on each loop (v1.4.0) |
+| `animation-timing-function` / `transition-timing-function` | ✅ | linear, ease, ease-in, ease-out, ease-in-out, `cubic-bezier()`, `steps()`, step-start, step-end | `cubic-bezier`/`steps` added in v1.5.0 (`HyperStepsCurve`) |
 
 ---
 
@@ -244,8 +245,8 @@ This document lists CSS property support in HyperRender.
 
 ### Roadmap
 - **v3.x**: Better pseudo-element support (::before/::after)
-- **v4.0**: Full Transform support, `vh`/`vw` units, `transition-delay`, color/background-color transitions
+- **v4.0**: Full Transform support, `vh`/`vw` units, `transition-delay`
 
 ---
 
-*Last updated: June 24, 2026 — HyperRender v1.4.0*
+*Last updated: July 5, 2026 — HyperRender v1.5.0*

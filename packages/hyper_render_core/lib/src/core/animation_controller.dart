@@ -194,6 +194,28 @@ class HyperAnimations {
       };
 }
 
+/// CSS `steps(n, start|end)` timing function as a Flutter [Curve].
+///
+/// `steps(n, end)` (the default) holds each value until the end of its
+/// interval; `steps(n, start)` jumps at the beginning of each interval.
+class HyperStepsCurve extends Curve {
+  /// Number of steps (must be > 0).
+  final int count;
+
+  /// `true` for `steps(n, start)` / `step-start` semantics.
+  final bool jumpStart;
+
+  const HyperStepsCurve(this.count, {this.jumpStart = false})
+      : assert(count > 0, 'steps() requires a positive step count');
+
+  @override
+  double transformInternal(double t) {
+    final scaled = t * count;
+    final step = jumpStart ? scaled.ceilToDouble() : scaled.floorToDouble();
+    return (step / count).clamp(0.0, 1.0);
+  }
+}
+
 /// A single keyframe in an animation
 class HyperKeyframe {
   /// Position in animation (0.0 - 1.0)
@@ -214,6 +236,12 @@ class HyperKeyframe {
   /// Rotation in degrees
   final double? rotation;
 
+  /// Text color (CSS `color`) at this keyframe
+  final Color? color;
+
+  /// Background color (CSS `background-color`) at this keyframe
+  final Color? backgroundColor;
+
   const HyperKeyframe({
     required this.offset,
     this.opacity,
@@ -221,6 +249,8 @@ class HyperKeyframe {
     this.translateY,
     this.scale,
     this.rotation,
+    this.color,
+    this.backgroundColor,
   });
 
   @override
@@ -232,11 +262,13 @@ class HyperKeyframe {
           translateX == other.translateX &&
           translateY == other.translateY &&
           scale == other.scale &&
-          rotation == other.rotation);
+          rotation == other.rotation &&
+          color == other.color &&
+          backgroundColor == other.backgroundColor);
 
   @override
-  int get hashCode =>
-      Object.hash(offset, opacity, translateX, translateY, scale, rotation);
+  int get hashCode => Object.hash(offset, opacity, translateX, translateY,
+      scale, rotation, color, backgroundColor);
 }
 
 /// A collection of keyframes that define an animation
@@ -289,7 +321,18 @@ class HyperKeyframes {
       translateY: _lerpNullable(before.translateY, after.translateY, t),
       scale: _lerpNullable(before.scale, after.scale, t),
       rotation: _lerpNullable(before.rotation, after.rotation, t),
+      color: _lerpColor(before.color, after.color, t),
+      backgroundColor:
+          _lerpColor(before.backgroundColor, after.backgroundColor, t),
     );
+  }
+
+  Color? _lerpColor(Color? a, Color? b, double t) {
+    if (a == null && b == null) return null;
+    // A one-sided color holds its value (same convention as _lerpNullable).
+    if (a == null) return b;
+    if (b == null) return a;
+    return Color.lerp(a, b, t);
   }
 
   double? _lerpNullable(double? a, double? b, double t) {
@@ -364,7 +407,8 @@ class HyperAnimatedWidget extends StatefulWidget {
       animationName: style.animationName,
       duration: Duration(milliseconds: style.animationDuration ?? 300),
       delay: Duration(milliseconds: style.animationDelay ?? 0),
-      curve: _curveFromTimingFunction(style.animationTimingFunction),
+      curve: _curveFromTimingFunction(
+          style.animationTimingFunction, style.animationTimingParams),
       iterationCount: style.animationIterationCount,
       reverse: style.animationDirection == HyperAnimationDirection.reverse ||
           style.animationDirection == HyperAnimationDirection.alternateReverse,
@@ -376,7 +420,8 @@ class HyperAnimatedWidget extends StatefulWidget {
     );
   }
 
-  static Curve _curveFromTimingFunction(HyperTimingFunction fn) {
+  static Curve _curveFromTimingFunction(HyperTimingFunction fn,
+      [HyperTimingParams? params]) {
     switch (fn) {
       case HyperTimingFunction.linear:
         return Curves.linear;
@@ -388,6 +433,16 @@ class HyperAnimatedWidget extends StatefulWidget {
         return Curves.easeOut;
       case HyperTimingFunction.easeInOut:
         return Curves.easeInOut;
+      case HyperTimingFunction.cubicBezier:
+        if (params is HyperCubicBezierParams) {
+          return Cubic(params.x1, params.y1, params.x2, params.y2);
+        }
+        return Curves.ease;
+      case HyperTimingFunction.steps:
+        if (params is HyperStepsParams) {
+          return HyperStepsCurve(params.count, jumpStart: params.jumpStart);
+        }
+        return Curves.linear;
     }
   }
 
@@ -466,13 +521,12 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
 
     // Start animation after delay.
     //
-    // We use a [Timer] (retained in [_pendingStart]) instead of bare
+    // A [Timer] (retained in [_pendingStart]) is used instead of a bare
     // [Future.delayed] so that a subsequent [didUpdateWidget] which replaces
     // [_controller] can cancel this pending start — otherwise the new
-    // controller would receive a stray forward() once the old delay
-    // resolves. NOTE for reviewers: the Dart closure here reads
-    // `this._controller` at call time, so the timer can NEVER touch a
-    // disposed controller — `mounted` already covers the unmount case and
+    // controller would receive a stray forward() once the old delay resolves.
+    // The closure reads `this._controller` at call time, so the timer never
+    // touches a disposed controller: `mounted` covers the unmount case and
     // [_cancelPendingStart] covers the in-place rebuild case.
     if (widget.autoPlay && _keyframes != null) {
       _pendingStart = Timer(widget.delay, () {
@@ -555,6 +609,24 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
 
         Widget result = child!;
 
+        // Apply animated text color. Affects widget-tier text that doesn't
+        // set an explicit color (e.g. plugin widgets); canvas-painted text
+        // inside RenderHyperBox is not affected.
+        if (keyframe.color != null) {
+          result = DefaultTextStyle.merge(
+            style: TextStyle(color: keyframe.color),
+            child: result,
+          );
+        }
+
+        // Apply animated background color behind the child's content.
+        if (keyframe.backgroundColor != null) {
+          result = ColoredBox(
+            color: keyframe.backgroundColor!,
+            child: result,
+          );
+        }
+
         // Apply transform
         if (keyframe.translateX != null ||
             keyframe.translateY != null ||
@@ -605,19 +677,26 @@ class HyperTransitionWidget extends StatefulWidget {
 class _HyperTransitionWidgetState extends State<HyperTransitionWidget> {
   late double _opacity;
   late Matrix4 _transform;
+  Color? _backgroundColor;
+  Color? _textColor;
 
   @override
   void initState() {
     super.initState();
-    _opacity = widget.style.opacity;
-    _transform = widget.style.transform ?? Matrix4.identity();
+    _readStyle();
   }
 
   @override
   void didUpdateWidget(HyperTransitionWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _readStyle();
+  }
+
+  void _readStyle() {
     _opacity = widget.style.opacity;
     _transform = widget.style.transform ?? Matrix4.identity();
+    _backgroundColor = widget.style.backgroundColor;
+    _textColor = widget.style.color;
   }
 
   Duration get _duration {
@@ -629,7 +708,8 @@ class _HyperTransitionWidgetState extends State<HyperTransitionWidget> {
   Curve get _curve {
     final t = widget.style.transition;
     if (t == null) return Curves.ease;
-    return HyperAnimatedWidget._curveFromTimingFunction(t.timingFunction);
+    return HyperAnimatedWidget._curveFromTimingFunction(
+        t.timingFunction, t.timingParams);
   }
 
   @override
@@ -643,6 +723,17 @@ class _HyperTransitionWidgetState extends State<HyperTransitionWidget> {
 
     Widget result = widget.child;
 
+    // Animated text color — affects widget-tier text without an explicit
+    // color; canvas-painted text inside RenderHyperBox is not affected.
+    if (_textColor != null) {
+      result = AnimatedDefaultTextStyle(
+        style: DefaultTextStyle.of(context).style.copyWith(color: _textColor),
+        duration: dur,
+        curve: curve,
+        child: result,
+      );
+    }
+
     result = AnimatedOpacity(
       opacity: _opacity.clamp(0.0, 1.0),
       duration: dur,
@@ -650,9 +741,13 @@ class _HyperTransitionWidgetState extends State<HyperTransitionWidget> {
       child: result,
     );
 
+    // `color` on AnimatedContainer paints the animated background behind the
+    // child's own painting (visible when the child's static background is
+    // transparent, e.g. class toggles that only change background-color).
     result = AnimatedContainer(
       duration: dur,
       curve: curve,
+      color: _backgroundColor,
       transform: _transform,
       transformAlignment: Alignment.center,
       child: result,

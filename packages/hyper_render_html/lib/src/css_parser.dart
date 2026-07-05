@@ -193,6 +193,12 @@ class DefaultCssParser implements CssParserInterface {
     if (decls.containsKey('opacity')) {
       opacity = double.tryParse(decls['opacity']!);
     }
+    final color = decls['color'] != null
+        ? StyleResolver.parseCssColor(decls['color']!)
+        : null;
+    final backgroundColor = decls['background-color'] != null
+        ? StyleResolver.parseCssColor(decls['background-color']!)
+        : null;
     final t = decls['transform'];
     if (t != null) {
       final txM = RegExp(r'translateX\(\s*(-?[\d.]+)(?:px|%|rem|em)?\s*\)')
@@ -219,7 +225,9 @@ class DefaultCssParser implements CssParserInterface {
         translateX: translateX,
         translateY: translateY,
         scale: scale,
-        rotation: rotation);
+        rotation: rotation,
+        color: color,
+        backgroundColor: backgroundColor);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

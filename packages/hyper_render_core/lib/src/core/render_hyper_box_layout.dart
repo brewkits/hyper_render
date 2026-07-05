@@ -2347,7 +2347,6 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           parentData.floatDirection = matchedFragment.floatDirection;
         }
       }
-      // If not linked by sourceNode, it remains unlinked for now.
 
       child = parentData.nextSibling;
     }

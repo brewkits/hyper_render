@@ -46,6 +46,12 @@ abstract final class _Re {
   static final whitespace = RegExp(r'\s+');
   static final multiSpace = RegExp(r' {2,}');
 
+  // ── Timing functions ──────────────────────────────────────────────────────
+  static final cubicBezier = RegExp(
+      r'^cubic-bezier\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)$');
+  static final stepsFn =
+      RegExp(r'^steps\(\s*(\d+)\s*(?:,\s*(?:jump-)?(start|end)\s*)?\)$');
+
   // ── Selectors — rule-index builder ───────────────────────────────────────
   // These use [a-zA-Z_] as the first character (stricter, used when building
   // the O(1) lookup index from parsed CSS rules).
@@ -2146,7 +2152,8 @@ class StyleResolver {
       case 'animation-timing-function':
         final tf = _parseTimingFunction(value);
         if (tf != null) {
-          style.animationTimingFunction = tf;
+          style.animationTimingFunction = tf.$1;
+          style.animationTimingParams = tf.$2;
           style.markExplicitlySet('animation-timing-function');
         }
         break;
@@ -3039,10 +3046,18 @@ class StyleResolver {
   // ============================================
 
   /// Parse CSS color value
-  Color? _parseColor(String value) {
+  Color? _parseColor(String value) => parseCssColor(value);
+
+  /// Parses a CSS color value (`#hex`, `rgb()`, `rgba()`, named colors).
+  ///
+  /// Public and static so adapters (e.g. `@keyframes` parsers) can reuse the
+  /// exact same color grammar as the style resolver.
+  static Color? parseCssColor(String value) {
     value = value.trim().toLowerCase();
 
-    // Hex color
+    // Hex color. int.tryParse returns null on invalid hex digits (e.g. an
+    // authored `#zzz`), so malformed values fall through to null rather than
+    // throwing — important now that this parser also runs on @keyframes values.
     if (value.startsWith('#')) {
       final hex = value.substring(1);
       if (hex.length == 3) {
@@ -3050,44 +3065,54 @@ class StyleResolver {
         final r = hex[0] + hex[0];
         final g = hex[1] + hex[1];
         final b = hex[2] + hex[2];
-        return Color(int.parse('FF$r$g$b', radix: 16));
+        final argb = int.tryParse('FF$r$g$b', radix: 16);
+        return argb == null ? null : Color(argb);
       } else if (hex.length == 4) {
         // CSS Color Level 4: #RGBA → each digit expands to two
         final r = hex[0] + hex[0];
         final g = hex[1] + hex[1];
         final b = hex[2] + hex[2];
         final a = hex[3] + hex[3];
-        return Color(int.parse('$a$r$g$b', radix: 16));
+        final argb = int.tryParse('$a$r$g$b', radix: 16);
+        return argb == null ? null : Color(argb);
       } else if (hex.length == 6) {
-        return Color(int.parse('FF$hex', radix: 16));
+        final argb = int.tryParse('FF$hex', radix: 16);
+        return argb == null ? null : Color(argb);
       } else if (hex.length == 8) {
         // CSS: #RRGGBBAA → Flutter Color: 0xAARRGGBB
         final r = hex.substring(0, 2);
         final g = hex.substring(2, 4);
         final b = hex.substring(4, 6);
         final a = hex.substring(6, 8);
-        return Color(int.parse('$a$r$g$b', radix: 16));
+        final argb = int.tryParse('$a$r$g$b', radix: 16);
+        return argb == null ? null : Color(argb);
       }
+      return null;
     }
 
-    // rgb(r, g, b) — supports negative values (clamped to 0)
+    // rgb(r, g, b) — supports negative values (clamped to 0). tryParse guards
+    // against out-of-int64 channel values that would otherwise throw.
     final rgbMatch = _Re.rgb.firstMatch(value);
     if (rgbMatch != null) {
-      final r = int.parse(rgbMatch.group(1)!).clamp(0, 255);
-      final g = int.parse(rgbMatch.group(2)!).clamp(0, 255);
-      final b = int.parse(rgbMatch.group(3)!).clamp(0, 255);
-      return Color.fromARGB(255, r, g, b);
+      final r = int.tryParse(rgbMatch.group(1)!);
+      final g = int.tryParse(rgbMatch.group(2)!);
+      final b = int.tryParse(rgbMatch.group(3)!);
+      if (r == null || g == null || b == null) return null;
+      return Color.fromARGB(
+          255, r.clamp(0, 255), g.clamp(0, 255), b.clamp(0, 255));
     }
 
     // rgba(r, g, b, a) — supports negative alpha (clamped to 0)
     final rgbaMatch = _Re.rgba.firstMatch(value);
     if (rgbaMatch != null) {
-      final r = int.parse(rgbaMatch.group(1)!).clamp(0, 255);
-      final g = int.parse(rgbaMatch.group(2)!).clamp(0, 255);
-      final b = int.parse(rgbaMatch.group(3)!).clamp(0, 255);
+      final r = int.tryParse(rgbaMatch.group(1)!);
+      final g = int.tryParse(rgbaMatch.group(2)!);
+      final b = int.tryParse(rgbaMatch.group(3)!);
+      if (r == null || g == null || b == null) return null;
       final alpha =
           (double.tryParse(rgbaMatch.group(4)!) ?? 1.0).clamp(0.0, 1.0);
-      return Color.fromARGB((alpha * 255).round(), r, g, b);
+      return Color.fromARGB((alpha * 255).round(), r.clamp(0, 255),
+          g.clamp(0, 255), b.clamp(0, 255));
     }
 
     // Named colors
@@ -3465,21 +3490,77 @@ class StyleResolver {
     }
   }
 
-  HyperTimingFunction? _parseTimingFunction(String value) {
-    switch (value.trim().toLowerCase()) {
+  (HyperTimingFunction, HyperTimingParams?)? _parseTimingFunction(
+      String value) {
+    final v = value.trim().toLowerCase();
+    switch (v) {
       case 'linear':
-        return HyperTimingFunction.linear;
+        return (HyperTimingFunction.linear, null);
       case 'ease':
-        return HyperTimingFunction.ease;
+        return (HyperTimingFunction.ease, null);
       case 'ease-in':
-        return HyperTimingFunction.easeIn;
+        return (HyperTimingFunction.easeIn, null);
       case 'ease-out':
-        return HyperTimingFunction.easeOut;
+        return (HyperTimingFunction.easeOut, null);
       case 'ease-in-out':
-        return HyperTimingFunction.easeInOut;
-      default:
-        return null;
+        return (HyperTimingFunction.easeInOut, null);
+      case 'step-start':
+        return (
+          HyperTimingFunction.steps,
+          const HyperStepsParams(1, jumpStart: true)
+        );
+      case 'step-end':
+        return (HyperTimingFunction.steps, const HyperStepsParams(1));
     }
+
+    final cb = _Re.cubicBezier.firstMatch(v);
+    if (cb != null) {
+      final x1 = double.tryParse(cb.group(1)!);
+      final y1 = double.tryParse(cb.group(2)!);
+      final x2 = double.tryParse(cb.group(3)!);
+      final y2 = double.tryParse(cb.group(4)!);
+      if (x1 == null || y1 == null || x2 == null || y2 == null) return null;
+      return (
+        HyperTimingFunction.cubicBezier,
+        // Per spec, x control points must lie in [0, 1]; y is unbounded.
+        HyperCubicBezierParams(x1.clamp(0.0, 1.0), y1, x2.clamp(0.0, 1.0), y2),
+      );
+    }
+
+    final st = _Re.stepsFn.firstMatch(v);
+    if (st != null) {
+      final count = int.tryParse(st.group(1)!);
+      if (count == null || count <= 0) return null;
+      return (
+        HyperTimingFunction.steps,
+        HyperStepsParams(count, jumpStart: st.group(2) == 'start'),
+      );
+    }
+
+    return null;
+  }
+
+  /// Splits a shorthand value on whitespace while keeping function tokens
+  /// like `cubic-bezier(0.4, 0, 0.2, 1)` intact (no split inside parens).
+  static List<String> _splitOutsideParens(String value) {
+    final tokens = <String>[];
+    final buf = StringBuffer();
+    int depth = 0;
+    for (final code in value.trim().codeUnits) {
+      final ch = String.fromCharCode(code);
+      if (ch == '(') depth++;
+      if (ch == ')' && depth > 0) depth--;
+      if (depth == 0 && (ch == ' ' || ch == '\t' || ch == '\n')) {
+        if (buf.isNotEmpty) {
+          tokens.add(buf.toString());
+          buf.clear();
+        }
+      } else {
+        buf.write(ch);
+      }
+    }
+    if (buf.isNotEmpty) tokens.add(buf.toString());
+    return tokens;
   }
 
   HyperAnimationFillMode? _parseAnimationFillMode(String value) {
@@ -3498,12 +3579,13 @@ class StyleResolver {
   }
 
   HyperTransition? _parseTransition(String value) {
-    final parts = value.trim().split(_Re.whitespace);
+    final parts = _splitOutsideParens(value);
     if (parts.isEmpty) return null;
 
     String? property;
     int duration = 0;
     HyperTimingFunction timingFunction = HyperTimingFunction.ease;
+    HyperTimingParams? timingParams;
     int delay = 0;
 
     for (final part in parts) {
@@ -3518,7 +3600,8 @@ class StyleResolver {
       }
       final tf = _parseTimingFunction(part);
       if (tf != null) {
-        timingFunction = tf;
+        timingFunction = tf.$1;
+        timingParams = tf.$2;
         continue;
       }
       property ??= part;
@@ -3528,12 +3611,13 @@ class StyleResolver {
       property: property == 'all' ? null : property,
       duration: duration,
       timingFunction: timingFunction,
+      timingParams: timingParams,
       delay: delay,
     );
   }
 
   void _parseAnimationShorthand(String value, ComputedStyle style) {
-    final parts = value.trim().split(_Re.whitespace);
+    final parts = _splitOutsideParens(value);
     if (parts.isEmpty) return;
 
     int durationCount = 0;
@@ -3552,7 +3636,8 @@ class StyleResolver {
       }
       final tf = _parseTimingFunction(part);
       if (tf != null) {
-        style.animationTimingFunction = tf;
+        style.animationTimingFunction = tf.$1;
+        style.animationTimingParams = tf.$2;
         style.markExplicitlySet('animation-timing-function');
         continue;
       }

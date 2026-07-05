@@ -140,6 +140,72 @@ enum HyperTimingFunction {
 
   /// Ease-in-out timing
   easeInOut,
+
+  /// cubic-bezier(x1, y1, x2, y2) — control points carried in
+  /// [HyperCubicBezierParams]
+  cubicBezier,
+
+  /// steps(n, start|end) — parameters carried in [HyperStepsParams]
+  steps,
+}
+
+/// Parameters for parameterized CSS timing functions
+/// (`cubic-bezier(...)` / `steps(...)`).
+///
+/// Stored alongside the [HyperTimingFunction] enum value so that adding
+/// parameterized functions does not break the existing enum-based API.
+sealed class HyperTimingParams {
+  const HyperTimingParams();
+}
+
+/// Control points for `cubic-bezier(x1, y1, x2, y2)`.
+class HyperCubicBezierParams extends HyperTimingParams {
+  final double x1;
+  final double y1;
+  final double x2;
+  final double y2;
+
+  const HyperCubicBezierParams(this.x1, this.y1, this.x2, this.y2);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HyperCubicBezierParams &&
+          x1 == other.x1 &&
+          y1 == other.y1 &&
+          x2 == other.x2 &&
+          y2 == other.y2);
+
+  @override
+  int get hashCode => Object.hash(x1, y1, x2, y2);
+
+  @override
+  String toString() => 'cubic-bezier($x1, $y1, $x2, $y2)';
+}
+
+/// Parameters for `steps(count, start|end)`.
+class HyperStepsParams extends HyperTimingParams {
+  /// Number of steps (must be > 0).
+  final int count;
+
+  /// `true` for `steps(n, start)` / `step-start` — the value jumps at the
+  /// beginning of each interval instead of the end.
+  final bool jumpStart;
+
+  const HyperStepsParams(this.count, {this.jumpStart = false});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HyperStepsParams &&
+          count == other.count &&
+          jumpStart == other.jumpStart);
+
+  @override
+  int get hashCode => Object.hash(count, jumpStart);
+
+  @override
+  String toString() => 'steps($count, ${jumpStart ? 'start' : 'end'})';
 }
 
 /// CSS animation direction
@@ -249,6 +315,10 @@ class HyperTransition {
   /// Timing function
   final HyperTimingFunction timingFunction;
 
+  /// Parameters for parameterized timing functions
+  /// (`cubic-bezier(...)` / `steps(...)`), null for keyword functions.
+  final HyperTimingParams? timingParams;
+
   /// Delay in milliseconds
   final int delay;
 
@@ -256,6 +326,7 @@ class HyperTransition {
     this.property,
     this.duration = 0,
     this.timingFunction = HyperTimingFunction.ease,
+    this.timingParams,
     this.delay = 0,
   });
 
@@ -493,6 +564,10 @@ class ComputedStyle {
   /// CSS animation timing function
   HyperTimingFunction animationTimingFunction;
 
+  /// Parameters for parameterized animation timing functions
+  /// (`cubic-bezier(...)` / `steps(...)`), null for keyword functions
+  HyperTimingParams? animationTimingParams;
+
   /// CSS animation delay (in milliseconds)
   int? animationDelay;
 
@@ -663,6 +738,7 @@ class ComputedStyle {
     this.animationName,
     this.animationDuration,
     this.animationTimingFunction = HyperTimingFunction.ease,
+    this.animationTimingParams,
     this.animationDelay,
     this.animationIterationCount,
     this.animationDirection = HyperAnimationDirection.normal,
@@ -834,6 +910,7 @@ class ComputedStyle {
     String? animationName,
     int? animationDuration,
     HyperTimingFunction? animationTimingFunction,
+    HyperTimingParams? animationTimingParams,
     int? animationDelay,
     int? animationIterationCount,
     HyperAnimationDirection? animationDirection,
@@ -931,6 +1008,8 @@ class ComputedStyle {
       animationDuration: animationDuration ?? this.animationDuration,
       animationTimingFunction:
           animationTimingFunction ?? this.animationTimingFunction,
+      animationTimingParams:
+          animationTimingParams ?? this.animationTimingParams,
       animationDelay: animationDelay ?? this.animationDelay,
       animationIterationCount:
           animationIterationCount ?? this.animationIterationCount,

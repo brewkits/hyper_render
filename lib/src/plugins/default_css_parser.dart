@@ -216,6 +216,13 @@ class DefaultCssParser implements CssParserInterface {
       opacity = double.tryParse(decls['opacity']!);
     }
 
+    final color = decls['color'] != null
+        ? StyleResolver.parseCssColor(decls['color']!)
+        : null;
+    final backgroundColor = decls['background-color'] != null
+        ? StyleResolver.parseCssColor(decls['background-color']!)
+        : null;
+
     final transform = decls['transform'];
     if (transform != null) {
       // translateX(...)
@@ -257,6 +264,8 @@ class DefaultCssParser implements CssParserInterface {
       translateY: translateY,
       scale: scale,
       rotation: rotation,
+      color: color,
+      backgroundColor: backgroundColor,
     );
   }
 

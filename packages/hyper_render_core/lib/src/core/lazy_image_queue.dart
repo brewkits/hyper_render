@@ -37,6 +37,12 @@ class LazyImageQueue {
 
   final _queue = SplayTreeMap<_QueueKey, _PendingLoad>();
 
+  /// Number of queued (not-yet-started) load requests.
+  ///
+  /// Used by memory-pressure diagnostics to report how many pending loads a
+  /// [clearPending] call is about to drop.
+  int get pendingCount => _queue.length;
+
   /// Secondary index: url → queued load for O(1) duplicate detection.
   /// Kept in sync with [_queue] in [enqueue], [cancel], and [_pump].
   final Map<String, _PendingLoad> _urlToQueued = {};
