@@ -207,14 +207,18 @@ class DefaultCssParser implements CssParserInterface {
       final tyM = RegExp(r'translateY\(\s*(-?[\d.]+)(?:px|%|rem|em)?\s*\)')
           .firstMatch(t);
       if (tyM != null) translateY = double.tryParse(tyM.group(1)!);
+      // No negative lookbehind: the literal `\(` after `translate` already
+      // excludes `translateX(`/`translateY(`, and a `(?<![XY])` lookbehind
+      // throws SyntaxError on Flutter Web / older Safari (flutter_html
+      // #1504/#1314), crashing the widget.
       final tM = RegExp(
-              r'(?<![XY])translate\(\s*(-?[\d.]+)(?:px)?\s*(?:,\s*(-?[\d.]+)(?:px)?)?\s*\)')
+              r'translate\(\s*(-?[\d.]+)(?:px)?\s*(?:,\s*(-?[\d.]+)(?:px)?)?\s*\)')
           .firstMatch(t);
       if (tM != null) {
         translateX ??= double.tryParse(tM.group(1)!);
         if (tM.group(2) != null) translateY ??= double.tryParse(tM.group(2)!);
       }
-      final sM = RegExp(r'(?<![XY])scale\(\s*([\d.]+)\s*\)').firstMatch(t);
+      final sM = RegExp(r'scale\(\s*([\d.]+)\s*\)').firstMatch(t);
       if (sM != null) scale = double.tryParse(sM.group(1)!);
       final rM = RegExp(r'rotate\(\s*(-?[\d.]+)deg\s*\)').firstMatch(t);
       if (rM != null) rotation = double.tryParse(rM.group(1)!);

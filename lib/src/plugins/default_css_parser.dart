@@ -237,18 +237,24 @@ class DefaultCssParser implements CssParserInterface {
               .firstMatch(transform);
       if (tyM != null) translateY = double.tryParse(tyM.group(1)!);
 
-      // translate(x, y)  — only when not preceded by X or Y
+      // translate(x, y).  The literal `\(` immediately after `translate`
+      // already excludes `translateX(`/`translateY(` (those have X/Y between
+      // the name and the paren, so they can't contain the substring
+      // "translate("), so no negative lookbehind is needed. A lookbehind
+      // `(?<![XY])` here throws `SyntaxError: Invalid regular expression` on
+      // Flutter Web / older Safari, crashing the whole widget (see
+      // flutter_html #1504/#1314).
       final tM = RegExp(
-        r'(?<![XY])translate\(\s*(-?[\d.]+)(?:px)?\s*(?:,\s*(-?[\d.]+)(?:px)?)?\s*\)',
+        r'translate\(\s*(-?[\d.]+)(?:px)?\s*(?:,\s*(-?[\d.]+)(?:px)?)?\s*\)',
       ).firstMatch(transform);
       if (tM != null) {
         translateX ??= double.tryParse(tM.group(1)!);
         if (tM.group(2) != null) translateY ??= double.tryParse(tM.group(2)!);
       }
 
-      // scale(...)
-      final scaleM =
-          RegExp(r'(?<![XY])scale\(\s*([\d.]+)\s*\)').firstMatch(transform);
+      // scale(...) — same reasoning: `scale\(` can't match `scaleX(`/`scaleY(`,
+      // so the web-incompatible lookbehind is unnecessary.
+      final scaleM = RegExp(r'scale\(\s*([\d.]+)\s*\)').firstMatch(transform);
       if (scaleM != null) scale = double.tryParse(scaleM.group(1)!);
 
       // rotate(Ndeg)
