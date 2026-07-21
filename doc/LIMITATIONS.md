@@ -48,7 +48,7 @@ are silently ignored.
 | `opacity` | Applied per-element; stacking context opacity not propagated |
 | `position: relative` | Supported but child `absolute` positioning is not |
 | `calc()` | Arithmetic on px/em/rem only; `%` in calc not resolved |
-| `text-align` | LTR center/right/justify on canvas paragraphs; per-element `direction:rtl` paragraphs keep their default right-alignment (explicit `text-align` on an RTL paragraph is not yet overridable) |
+| `text-align` | Center/right/justify on canvas paragraphs, LTR and box-level RTL (`textDirection: rtl`). An explicit `text-align` overrides RTL's default right edge; `justify` in RTL is not yet distributed (keeps the start edge) |
 | `height: %` | Percentage height is not resolved — the single-pass top-down flow doesn't know a parent's resolved height while laying out its children. Use absolute px, or `aspect-ratio`. (`width`/`max-width`/`min-width`/`text-indent` with `%` ARE supported.) |
 | `border-spacing` | Not implemented |
 | `sub` / `sup` | Basic font-size reduction; vertical-align positioning is approximate |

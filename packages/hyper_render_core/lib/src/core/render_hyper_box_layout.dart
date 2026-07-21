@@ -2122,15 +2122,30 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
       double x;
       if (isRTL) {
-        // RTL keeps its existing right-packed behavior. text-align is NOT
-        // re-applied here: HyperRender's default text-align is `left` (not
-        // CSS `start`), and inherited text-align isn't marked explicit on
-        // fragments, so an unset RTL paragraph is indistinguishable from a
-        // deliberately left-aligned one. Right-packing (CSS `start` for RTL)
-        // is the correct default and re-applying `left` here would wrongly
-        // left-pack every RTL paragraph. RTL text-align override is left as a
-        // known limitation rather than risk regressing the common RTL case.
-        x = _maxWidth - line.rightInset - line.width;
+        // RTL default is `start` = right-packed. We only diverge from that
+        // when the paragraph carries an EXPLICIT text-align — the
+        // explicitly-set flag survives onto the fragment's style, so an unset
+        // RTL paragraph (flag false) still right-packs as before, avoiding the
+        // old bug where re-applying the `left` default left-packed every RTL
+        // line.
+        final rightPacked = _maxWidth - line.rightInset - line.width;
+        if (_lineTextAlignIsExplicit(line)) {
+          final available = _maxWidth - line.leftInset - line.rightInset;
+          final freeSpace = math.max(0.0, available - line.width);
+          switch (_lineTextAlign(line)) {
+            case HyperTextAlign.left:
+              x = line.leftInset;
+            case HyperTextAlign.center:
+              x = line.leftInset + freeSpace / 2;
+            case HyperTextAlign.right:
+            case HyperTextAlign.justify:
+              // right and justify both keep the RTL start edge (justify in RTL
+              // is not distributed yet — a deliberate limitation).
+              x = rightPacked;
+          }
+        } else {
+          x = rightPacked;
+        }
       } else {
         // LTR: apply text-align as a per-line shift of the free space. Reading
         // fragment.offset keeps hit-testing/selection correct for free.
@@ -2270,6 +2285,25 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   HyperTextAlign _lineTextAlign(LineInfo line) {
     if (line.fragments.isEmpty) return HyperTextAlign.left;
     return line.fragments.first.style.textAlign;
+  }
+
+  /// Whether the line's block set `text-align` explicitly (vs inheriting the
+  /// engine default). Used to decide if an RTL line should override its
+  /// default right-packing.
+  ///
+  /// The line's first fragment is usually a TextNode that *inherited*
+  /// text-align, so its own explicit flag is false even when the enclosing
+  /// block set it — we walk up to the nearest block ancestor and check there.
+  bool _lineTextAlignIsExplicit(LineInfo line) {
+    if (line.fragments.isEmpty) return false;
+    var node = _nearestBlockAncestor(line.fragments.first.sourceNode);
+    // Walk further up while the value is still inherited, so a text-align set
+    // on an ancestor block (e.g. a wrapping <div>) also counts.
+    while (node != null) {
+      if (node.style.isExplicitlySet('text-align')) return true;
+      node = node.parent;
+    }
+    return false;
   }
 
   /// Nearest block-level ancestor of [node] (itself if it is a [BlockNode]),
