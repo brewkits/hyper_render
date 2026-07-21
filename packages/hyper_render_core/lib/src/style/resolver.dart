@@ -574,7 +574,16 @@ class StyleResolver {
     // 1. Apply user agent styles
     final tagName = node.tagName?.toLowerCase();
     if (tagName != null && _userAgentStyles.containsKey(tagName)) {
-      style = _mergeStyles(style, _userAgentStyles[tagName]!);
+      // An `<a>` without an `href` is not a hyperlink (HTML: it's a
+      // "placeholder link"), so it must not get the link colour/underline.
+      // The UA stylesheet in a browser targets `a:link`/`a:visited`, i.e.
+      // `a[href]` — mirror that here so `<a name="anchor">Text</a>` renders
+      // as plain text, matching browsers.
+      final isHreflessAnchor = tagName == 'a' &&
+          (node.attributes['href'] == null || node.attributes['href']!.isEmpty);
+      if (!isHreflessAnchor) {
+        style = _mergeStyles(style, _userAgentStyles[tagName]!);
+      }
     }
 
     // Special case: <code> inside <pre> should NOT have inline code styling
@@ -3167,35 +3176,31 @@ class StyleResolver {
 
     // px value
     if (value.endsWith('px')) {
-      return double.tryParse(value.replaceAll('px', ''));
+      return _tryParseFinite(value.replaceAll('px', ''));
     }
 
     // pt value (1pt = 1.333px)
     if (value.endsWith('pt')) {
-      final pt = double.tryParse(value.replaceAll('pt', ''));
-      return pt != null ? pt * 1.333 : null;
+      return _scaleFinite(_tryParseFinite(value.replaceAll('pt', '')), 1.333);
     }
 
     // rem value (relative to root font size)
     if (value.endsWith('rem')) {
-      final rem = double.tryParse(value.replaceAll('rem', ''));
-      return rem != null ? rem * rootFontSize : null;
+      return _scaleFinite(
+          _tryParseFinite(value.replaceAll('rem', '')), rootFontSize);
     }
 
     // em value (relative to parent font size)
     if (value.endsWith('em')) {
-      final em = double.tryParse(value.replaceAll('em', ''));
-      if (em == null) return null;
-      final base = parentFontSize ?? rootFontSize;
-      return em * base;
+      return _scaleFinite(_tryParseFinite(value.replaceAll('em', '')),
+          parentFontSize ?? rootFontSize);
     }
 
     // % value (relative to parent font size)
     if (value.endsWith('%')) {
-      final percent = double.tryParse(value.replaceAll('%', ''));
+      final percent = _tryParseFinite(value.replaceAll('%', ''));
       if (percent == null) return null;
-      final base = parentFontSize ?? rootFontSize;
-      return (percent / 100) * base;
+      return _scaleFinite(percent / 100, parentFontSize ?? rootFontSize);
     }
 
     // Keyword sizes
@@ -3235,24 +3240,22 @@ class StyleResolver {
     value = value.trim().toLowerCase();
 
     if (value.endsWith('px')) {
-      return double.tryParse(value.replaceAll('px', ''));
+      return _tryParseFinite(value.replaceAll('px', ''));
     }
     if (value.endsWith('pt')) {
-      final pt = double.tryParse(value.replaceAll('pt', ''));
-      return pt != null ? pt * 1.333 : null;
+      return _scaleFinite(_tryParseFinite(value.replaceAll('pt', '')), 1.333);
     }
     if (value.endsWith('rem')) {
-      final rem = double.tryParse(value.replaceAll('rem', ''));
-      return rem != null ? rem * rootFontSize : null;
+      return _scaleFinite(
+          _tryParseFinite(value.replaceAll('rem', '')), rootFontSize);
     }
     if (value.endsWith('em')) {
-      final em = double.tryParse(value.replaceAll('em', ''));
-      if (em == null) return null;
-      return em * (parentFontSize ?? rootFontSize);
+      return _scaleFinite(_tryParseFinite(value.replaceAll('em', '')),
+          parentFontSize ?? rootFontSize);
     }
     if (value == '0') return 0;
 
-    return double.tryParse(value);
+    return _tryParseFinite(value);
   }
 
   /// Parse CSS font-weight value
@@ -3344,28 +3347,50 @@ class StyleResolver {
     }
   }
 
+  /// Parses a bare CSS number, rejecting values that cannot be laid out.
+  ///
+  /// `double.tryParse` happily returns `Infinity` for an overflowing literal
+  /// such as `1e999`, and `NaN` for `"nan"`. Those propagate into margins,
+  /// font sizes and box constraints and blow up layout with a
+  /// `debugAssertDoesMeetConstraints` failure — i.e. malformed or hostile CSS
+  /// could crash the app. Rejecting them here (a single choke point for every
+  /// length/size parser) keeps non-finite values out of `ComputedStyle`
+  /// entirely, so the declaration is simply ignored as CSS requires.
+  static double? _tryParseFinite(String s) {
+    final v = double.tryParse(s);
+    if (v == null || !v.isFinite) return null;
+    return v;
+  }
+
+  /// Multiplies a parsed value by a unit factor, returning null if the result
+  /// overflows to infinity (e.g. `1e308rem`).
+  static double? _scaleFinite(double? value, double factor) {
+    if (value == null) return null;
+    final scaled = value * factor;
+    return scaled.isFinite ? scaled : null;
+  }
+
   /// Parse CSS length value (px, pt, em, etc.)
   double? _parseLength(String value) {
     value = value.trim().toLowerCase();
 
     if (value.endsWith('px')) {
-      return double.tryParse(value.replaceAll('px', ''));
+      return _tryParseFinite(value.replaceAll('px', ''));
     }
     if (value.endsWith('pt')) {
-      final pt = double.tryParse(value.replaceAll('pt', ''));
-      return pt != null ? pt * 1.333 : null;
+      return _scaleFinite(_tryParseFinite(value.replaceAll('pt', '')), 1.333);
     }
     if (value.endsWith('rem')) {
-      final rem = double.tryParse(value.replaceAll('rem', ''));
-      return rem != null ? rem * rootFontSize : null;
+      return _scaleFinite(
+          _tryParseFinite(value.replaceAll('rem', '')), rootFontSize);
     }
     if (value.endsWith('em')) {
-      final em = double.tryParse(value.replaceAll('em', ''));
-      return em != null ? em * rootFontSize : null;
+      return _scaleFinite(
+          _tryParseFinite(value.replaceAll('em', '')), rootFontSize);
     }
     if (value == '0') return 0;
 
-    return double.tryParse(value);
+    return _tryParseFinite(value);
   }
 
   /// Parse CSS display value

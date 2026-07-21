@@ -466,13 +466,20 @@ class _TableGrid {
   bool get isEmpty => rowCount == 0 || columnCount == 0;
 
   factory _TableGrid.fromTableNode(TableNode tableNode) {
+    // A `display: none` row is removed from the table entirely (CSS): it must
+    // not occupy a grid row or contribute height. Filtered here so the rest of
+    // the grid algorithm never sees it.
+    bool isVisible(UDTNode n) => n.style.display != DisplayType.none;
+
     final rows = <TableRowNode>[];
     for (final child in tableNode.children) {
       if (child is TableRowNode) {
-        rows.add(child);
+        if (isVisible(child)) rows.add(child);
       } else if (child.type == NodeType.block) {
         for (final grandChild in child.children) {
-          if (grandChild is TableRowNode) rows.add(grandChild);
+          if (grandChild is TableRowNode && isVisible(grandChild)) {
+            rows.add(grandChild);
+          }
         }
       }
     }
@@ -486,7 +493,9 @@ class _TableGrid {
     for (final row in rows) {
       int colCount = 0;
       for (final cell in row.children) {
-        if (cell is TableCellNode) colCount += cell.colspan.clamp(1, _kMaxSpan);
+        if (cell is TableCellNode && isVisible(cell)) {
+          colCount += cell.colspan.clamp(1, _kMaxSpan);
+        }
       }
       if (colCount > maxCols) maxCols = colCount;
     }
@@ -515,7 +524,7 @@ class _TableGrid {
     for (int rowIdx = 0; rowIdx < rows.length; rowIdx++) {
       int colIdx = 0;
       for (final child in rows[rowIdx].children) {
-        if (child is TableCellNode) {
+        if (child is TableCellNode && isVisible(child)) {
           while (colIdx < maxCols && grid[rowIdx][colIdx] != null) {
             colIdx++;
           }

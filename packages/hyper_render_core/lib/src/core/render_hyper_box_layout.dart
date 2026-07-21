@@ -48,6 +48,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   }
 
   void _tokenizeNode(UDTNode node, UDTNode? parentBlock) {
+    // CSS `display: none` removes the element AND its subtree from the box
+    // tree entirely — it must not be measured, laid out, painted, selectable
+    // or exposed to accessibility. Guarding here (the single entry point for
+    // every node type) covers block/inline/text/atomic/line-break uniformly
+    // and stops recursion into hidden children.
+    //
+    // Without this the canvas path rendered hidden content: common HTML like
+    // email pre-headers, conditional CMS blocks and tracking wrappers use
+    // `display: none`, so the text became visible and selectable.
+    if (node.style.display == DisplayType.none) return;
+
     switch (node.type) {
       case NodeType.document:
         for (final child in node.children) {
