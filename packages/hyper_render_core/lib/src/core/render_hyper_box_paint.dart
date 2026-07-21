@@ -1,125 +1,246 @@
 part of 'render_hyper_box.dart';
 
 extension _RenderHyperBoxPaint on RenderHyperBox {
-  void _paintBlockDecorations(Canvas canvas, Offset offset) {
-    for (final decoration in _blockDecorations) {
-      // PIXEL SNAPPING: Rounding coordinates to physical pixel boundaries ensures
-      // perfectly sharp edges on high-DPI displays (Retina/Amoled).
-      // This eliminates the 'blurry border' effect common in custom renderers.
-      final rawRect = decoration.rect.shift(offset);
-      final adjustedRect = Rect.fromLTRB(
-        rawRect.left.roundToDouble(),
-        rawRect.top.roundToDouble(),
-        rawRect.right.roundToDouble(),
-        rawRect.bottom.roundToDouble(),
-      );
+  /// Paints every currently-animating block (CSS `animation-name` resolved
+  /// via [_blockAnimations]) as a single composited unit: its own decoration
+  /// plus the text fragments it owns, transformed and faded together.
+  ///
+  /// Painting decoration and text as one unit — rather than fading each
+  /// separately in the normal per-pass painting below — matters for
+  /// `opacity`: fading a block's background and its text independently
+  /// double-blends wherever they overlap (the half-transparent text would
+  /// show the half-transparent background showing through it a second
+  /// time). `saveLayer` with a single alpha-only [Paint] composites this
+  /// block's content first, then applies the fade once to the result.
+  ///
+  /// V1 scope: only this node's own block decoration and its directly-owned
+  /// text/ruby fragments participate. List markers, inline decorations
+  /// (backgrounds/borders on inline `<span>`-like elements), floated images,
+  /// and a *nested* animated descendant's own animation do not compose with
+  /// an animating ancestor's transform/opacity — each still paints via the
+  /// normal per-pass logic below, which is documented behaviour for now
+  /// rather than an oversight (see ROADMAP.md).
+  ///
+  /// One consequence worth calling out explicitly rather than leaving
+  /// implicit: this pass runs *before* [_paintInlineDecorations] (step 1 in
+  /// [paint]), so an inline `<span style="background:...">` inside an
+  /// animated block paints its background on top of this pass's
+  /// already-painted animated text — not just "un-animated", but visibly
+  /// covering it. Avoid combining `animation-name` on a block with inline
+  /// decorations on its descendants until a future pass folds inline
+  /// decorations into this same composited layer.
+  void _paintAnimatedBlocks(Canvas canvas, Offset offset) {
+    _paintedThisFrameByAnimation.clear();
+    if (_blockAnimations.isEmpty) return;
 
-      // 1. Backdrop Filter (Glassmorphism) - Paints BEFORE background
-      if (decoration.backdropFilter != null && enableComplexFilters) {
-        canvas.saveLayer(adjustedRect, _sLayerPaint);
-        _filterPaint
-          ..imageFilter = decoration.backdropFilter
-          ..blendMode = BlendMode.srcOver;
-        canvas.drawRect(adjustedRect, _filterPaint);
-        _filterPaint
-          ..imageFilter = null
-          ..blendMode = BlendMode.srcOver;
-        canvas.restore();
+    final now = SchedulerBinding.instance.currentFrameTimeStamp;
+
+    for (final entry in _blockAnimations.entries) {
+      final node = entry.key;
+      final keyframe = _currentKeyframe(entry.value, now);
+      // Still within animation-delay — fall through to normal static paint.
+      if (keyframe == null) continue;
+
+      final rect = _animatedBlockRects[node];
+      // Nothing laid out for this node this pass (e.g. display:none, or a
+      // node with no decoration and no text content of its own).
+      if (rect == null) continue;
+
+      _paintedThisFrameByAnimation.add(node);
+
+      final paintRect = rect.shift(offset);
+      final opacity = (keyframe.opacity ?? 1.0).clamp(0.0, 1.0);
+      final needsOpacityLayer = opacity < 1.0;
+      final transform = matrix4FromHyperKeyframe(keyframe);
+      final needsTransform = !transform.isIdentity();
+
+      canvas.save();
+      if (needsOpacityLayer) {
+        // Bounds are deliberately `null`, not `paintRect` — `paintRect` is
+        // the PRE-transform rect, but content below is drawn AFTER the
+        // translate/scale/rotate applied a few lines down. A fixed-rect
+        // bounds would clip a translated/scaled block to where it used to
+        // be rather than where it's drawn now (visible edge-clipping on any
+        // block combining `opacity` with `transform`). `null` falls back to
+        // the current clip (the enclosing RenderHyperBox's paint bounds),
+        // which is always at least as large as this one block's rect.
+        canvas.saveLayer(
+          null,
+          Paint()..color = Color.fromRGBO(0, 0, 0, opacity),
+        );
+      }
+      if (needsTransform) {
+        final pivot = paintRect.center;
+        canvas.translate(pivot.dx, pivot.dy);
+        canvas.transform(transform.storage);
+        canvas.translate(-pivot.dx, -pivot.dy);
       }
 
-      // 2. Filter (blur, etc.)
-      if (decoration.filter != null && enableComplexFilters) {
-        _filterPaint.imageFilter = decoration.filter;
-        canvas.saveLayer(adjustedRect, _filterPaint);
-        _filterPaint.imageFilter = null;
+      final decoration = _animatedBlockDecorations[node];
+      if (decoration != null) {
+        _paintOneBlockDecoration(canvas, offset, decoration,
+            backgroundColorOverride: keyframe.backgroundColor);
       }
 
-      // 3. Box shadows
-      if (decoration.boxShadow != null) {
-        for (final shadow in decoration.boxShadow!) {
-          final shadowPaint = shadow.toPaint();
-          // Shadow rects don't need strict snapping as they are naturally blurred
-          final shadowRect =
-              adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
-
-          if (decoration.borderRadius != null) {
-            canvas.drawRRect(
-              RRect.fromRectAndCorners(
-                shadowRect,
-                topLeft: decoration.borderRadius!.topLeft,
-                topRight: decoration.borderRadius!.topRight,
-                bottomLeft: decoration.borderRadius!.bottomLeft,
-                bottomRight: decoration.borderRadius!.bottomRight,
-              ),
-              shadowPaint,
-            );
-          } else {
-            canvas.drawRect(shadowRect, shadowPaint);
+      final fragments = _animatedBlockFragments[node];
+      if (fragments != null) {
+        for (final fragment in fragments) {
+          if (fragment.type == FragmentType.text && fragment.text != null) {
+            _paintTextFragment(canvas, offset, fragment,
+                colorOverride: keyframe.color);
+          } else if (fragment.type == FragmentType.ruby) {
+            _paintRubyFragment(canvas, offset, fragment,
+                colorOverride: keyframe.color);
           }
         }
       }
 
-      // Paint background or gradient if specified
-      if (decoration.backgroundColor != null ||
-          decoration.backgroundGradient != null) {
-        if (decoration.backgroundGradient != null) {
-          _fillPaint.shader =
-              decoration.backgroundGradient!.createShader(adjustedRect);
-          _fillPaint.color =
-              const Color(0x00000000); // reset color (unused when shader set)
-        } else {
-          _fillPaint.shader = null;
-          _fillPaint.color = decoration.backgroundColor!;
-        }
+      if (needsOpacityLayer) canvas.restore(); // matches saveLayer
+      canvas.restore(); // matches outer save
+    }
+  }
+
+  void _paintBlockDecorations(Canvas canvas, Offset offset) {
+    for (final decoration in _blockDecorations) {
+      // Animated blocks are painted (with their interpolated keyframe
+      // overrides) by _paintAnimatedBlocks instead — skip here so they're
+      // not drawn twice at their static style.
+      if (_paintedThisFrameByAnimation.contains(decoration.node)) continue;
+      _paintOneBlockDecoration(canvas, offset, decoration);
+    }
+  }
+
+  /// Paints a single block decoration (background, border, shadow, filters).
+  /// Factored out of [_paintBlockDecorations] so [_paintAnimatedBlocks] can
+  /// reuse the exact same drawing logic with a keyframe-overridden
+  /// [backgroundColorOverride] instead of duplicating ~90 lines of
+  /// border/shadow/gradient handling.
+  void _paintOneBlockDecoration(
+    Canvas canvas,
+    Offset offset,
+    _BlockDecoration decoration, {
+    Color? backgroundColorOverride,
+  }) {
+    // PIXEL SNAPPING: Rounding coordinates to physical pixel boundaries ensures
+    // perfectly sharp edges on high-DPI displays (Retina/Amoled).
+    // This eliminates the 'blurry border' effect common in custom renderers.
+    final rawRect = decoration.rect.shift(offset);
+    final adjustedRect = Rect.fromLTRB(
+      rawRect.left.roundToDouble(),
+      rawRect.top.roundToDouble(),
+      rawRect.right.roundToDouble(),
+      rawRect.bottom.roundToDouble(),
+    );
+
+    // 1. Backdrop Filter (Glassmorphism) - Paints BEFORE background
+    if (decoration.backdropFilter != null && enableComplexFilters) {
+      canvas.saveLayer(adjustedRect, _sLayerPaint);
+      _filterPaint
+        ..imageFilter = decoration.backdropFilter
+        ..blendMode = BlendMode.srcOver;
+      canvas.drawRect(adjustedRect, _filterPaint);
+      _filterPaint
+        ..imageFilter = null
+        ..blendMode = BlendMode.srcOver;
+      canvas.restore();
+    }
+
+    // 2. Filter (blur, etc.)
+    if (decoration.filter != null && enableComplexFilters) {
+      _filterPaint.imageFilter = decoration.filter;
+      canvas.saveLayer(adjustedRect, _filterPaint);
+      _filterPaint.imageFilter = null;
+    }
+
+    // 3. Box shadows
+    if (decoration.boxShadow != null) {
+      for (final shadow in decoration.boxShadow!) {
+        final shadowPaint = shadow.toPaint();
+        // Shadow rects don't need strict snapping as they are naturally blurred
+        final shadowRect =
+            adjustedRect.shift(shadow.offset).inflate(shadow.spreadRadius);
 
         if (decoration.borderRadius != null) {
           canvas.drawRRect(
             RRect.fromRectAndCorners(
-              adjustedRect,
+              shadowRect,
               topLeft: decoration.borderRadius!.topLeft,
               topRight: decoration.borderRadius!.topRight,
               bottomLeft: decoration.borderRadius!.bottomLeft,
               bottomRight: decoration.borderRadius!.bottomRight,
             ),
-            _fillPaint,
+            shadowPaint,
           );
         } else {
-          canvas.drawRect(adjustedRect, _fillPaint);
+          canvas.drawRect(shadowRect, shadowPaint);
         }
-        _fillPaint.shader = null; // reset shader so next fill uses color
+      }
+    }
+
+    // Paint background or gradient if specified
+    final backgroundColor =
+        backgroundColorOverride ?? decoration.backgroundColor;
+    if (backgroundColor != null || decoration.backgroundGradient != null) {
+      // An animated background-color override always wins over a gradient —
+      // matches the widget-tier HyperAnimatedWidget, which also only
+      // animates a flat background-color, never a gradient.
+      if (decoration.backgroundGradient != null &&
+          backgroundColorOverride == null) {
+        _fillPaint.shader =
+            decoration.backgroundGradient!.createShader(adjustedRect);
+        _fillPaint.color =
+            const Color(0x00000000); // reset color (unused when shader set)
+      } else {
+        _fillPaint.shader = null;
+        _fillPaint.color = backgroundColor!;
       }
 
-      // Paint border — either full-box (all 4 sides) or left-only (blockquote)
-      if (decoration.borderLeftColor != null &&
-          decoration.borderLeftWidth > 0) {
-        if (decoration.fullBorder) {
-          _paintFullBoxBorder(
-            canvas,
+      if (decoration.borderRadius != null) {
+        canvas.drawRRect(
+          RRect.fromRectAndCorners(
             adjustedRect,
-            decoration.borderLeftColor!,
-            decoration.borderLeftWidth,
-            decoration.borderStyle,
-            decoration.borderRadius,
-          );
-        } else {
-          // Left-only border (blockquote style) — draw as filled rect for precision.
-          _fillPaint.color = decoration.borderLeftColor!;
-          canvas.drawRect(
-            Rect.fromLTWH(
-              adjustedRect.left,
-              adjustedRect.top,
-              decoration.borderLeftWidth.roundToDouble(),
-              adjustedRect.height,
-            ),
-            _fillPaint,
-          );
-        }
+            topLeft: decoration.borderRadius!.topLeft,
+            topRight: decoration.borderRadius!.topRight,
+            bottomLeft: decoration.borderRadius!.bottomLeft,
+            bottomRight: decoration.borderRadius!.bottomRight,
+          ),
+          _fillPaint,
+        );
+      } else {
+        canvas.drawRect(adjustedRect, _fillPaint);
       }
+      _fillPaint.shader = null; // reset shader so next fill uses color
+    }
 
-      // Restore layer if filter was applied
-      if (decoration.filter != null && enableComplexFilters) {
-        canvas.restore();
+    // Paint border — either full-box (all 4 sides) or left-only (blockquote)
+    if (decoration.borderLeftColor != null && decoration.borderLeftWidth > 0) {
+      if (decoration.fullBorder) {
+        _paintFullBoxBorder(
+          canvas,
+          adjustedRect,
+          decoration.borderLeftColor!,
+          decoration.borderLeftWidth,
+          decoration.borderStyle,
+          decoration.borderRadius,
+        );
+      } else {
+        // Left-only border (blockquote style) — draw as filled rect for precision.
+        _fillPaint.color = decoration.borderLeftColor!;
+        canvas.drawRect(
+          Rect.fromLTWH(
+            adjustedRect.left,
+            adjustedRect.top,
+            decoration.borderLeftWidth.roundToDouble(),
+            adjustedRect.height,
+          ),
+          _fillPaint,
+        );
       }
+    }
+
+    // Restore layer if filter was applied
+    if (decoration.filter != null && enableComplexFilters) {
+      canvas.restore();
     }
   }
 
@@ -559,6 +680,16 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       }
 
       for (final fragment in line.fragments) {
+        // Animated blocks are painted (with interpolated color/opacity/
+        // transform) by _paintAnimatedBlocks instead — skip here so they're
+        // not drawn twice at their static style. List markers are
+        // deliberately NOT skipped: block-level canvas animation covers text
+        // content only for now, so a marker stays static even inside an
+        // animating block (documented v1 scope limit).
+        final owner = _nearestAnimatedAncestor(fragment.sourceNode);
+        if (owner != null && _paintedThisFrameByAnimation.contains(owner)) {
+          continue;
+        }
         if (fragment.type == FragmentType.text && fragment.text != null) {
           _paintTextFragment(canvas, offset, fragment);
         } else if (fragment.type == FragmentType.ruby) {
@@ -574,20 +705,27 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     painter.paint(canvas, offset + fragment.offset!);
   }
 
-  void _paintTextFragment(Canvas canvas, Offset offset, Fragment fragment) {
+  void _paintTextFragment(Canvas canvas, Offset offset, Fragment fragment,
+      {Color? colorOverride}) {
     final fragmentOffset = fragment.offset ?? Offset.zero;
-    final painter = _getTextPainter(fragment.text!, fragment.style);
+    final style = colorOverride == null
+        ? fragment.style
+        : fragment.style.copyWith(color: colorOverride);
+    final painter = _getTextPainter(fragment.text!, style);
     painter.paint(canvas, offset + fragmentOffset);
   }
 
-  void _paintRubyFragment(Canvas canvas, Offset offset, Fragment fragment) {
+  void _paintRubyFragment(Canvas canvas, Offset offset, Fragment fragment,
+      {Color? colorOverride}) {
     final fragmentOffset = fragment.offset ?? Offset.zero;
 
-    final rubyFontSize =
-        fragment.style.fontSize * RenderHyperBox.rubyFontSizeRatio;
-    final rubyStyle = fragment.style.copyWith(fontSize: rubyFontSize);
+    final baseStyle = colorOverride == null
+        ? fragment.style
+        : fragment.style.copyWith(color: colorOverride);
+    final rubyFontSize = baseStyle.fontSize * RenderHyperBox.rubyFontSizeRatio;
+    final rubyStyle = baseStyle.copyWith(fontSize: rubyFontSize);
     final rubyPainter = _getTextPainter(fragment.rubyText!, rubyStyle);
-    final basePainter = _getTextPainter(fragment.text!, fragment.style);
+    final basePainter = _getTextPainter(fragment.text!, baseStyle);
 
     final totalWidth = fragment.width;
     // Center both texts horizontally

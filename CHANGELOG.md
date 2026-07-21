@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased]
+
+### ⚠️ Behavior Change — text now scales with system accessibility settings
+
+- **Rendered text now honours the device's accessibility text-scaling setting** (WCAG 2.1 AA §1.4.4, "Resize Text"). Previously HyperRender ignored `MediaQuery.textScaler` entirely — a paragraph rendered at the same pixel size regardless of the user's "large text" OS setting, unlike every Flutter `Text` widget. It now reads `MediaQuery.textScalerOf(context)` and applies it to every measured/painted text fragment. **This means existing content will re-render larger for users who have increased their system font size** — the correct, accessible behavior, and consistent with Flutter's `Text`/`RichText`. To opt a specific viewer out (fixed-size rendering), pass `HyperRenderWidget(textScaler: TextScaler.noScaling)` or wrap it in a `MediaQuery` with `TextScaler.noScaling`. Found by cross-referencing flutter_html issue #308.
+
+### ✨ New CSS Features
+
+- **`animation-play-state`**: `running` / `paused` now parsed (longhand and inside the `animation` shorthand) and executed. A paused animation holds its current frame; flipping back to `running` resumes from that frame — mid-flight for finite and infinite (`repeat()`) animations alike. When paused before the initial `animation-delay` elapses, the delay countdown restarts on resume. Exposed as `ComputedStyle.animationPlayState` (`HyperAnimationPlayState`) and `HyperAnimatedWidget.paused`.
+- **Canvas-tier block animation**: `animation-name` now executes on plain paragraphs/divs painted directly by `RenderHyperBox`'s canvas, not just widget-tier content (flex/grid containers, plugins, atomic elements). A `<div style="animation: fade 1s ease infinite">` now actually animates regardless of which render tier its content uses. Driven by a `SchedulerBinding` frame loop (no `TickerProvider`, matching the existing image-loading shimmer's architecture) that stops scheduling once nothing is running. Respects `animation-play-state` — a paused block holds its frame on the canvas exactly like the widget tier. `opacity` composites a block's decoration and text together in one `saveLayer` (fading the result once) instead of fading each independently, which would otherwise double-blend a block's own background showing through its own text; that layer's clip bounds float with the block's transform rather than being pinned to its pre-transform rect, so `opacity` and `transform` combine correctly instead of clipping a translated/scaled block to its original position. Scope: a block's own decoration + its own text/ruby fragments only; see LIMITATIONS.md for what does not yet compose (nested animated blocks, list markers, floats, inline decorations).
+
+### 🐛 Bug Fixes
+
+- **Animation iteration counter leaked across rebuilds**: when `HyperAnimatedWidget` rebuilt its controller (animation name, duration, curve, or keyframes changed), the internal iteration counter kept its old value, so the new animation could stop after fewer iterations than its `animation-iteration-count`. The counter now resets on every controller rebuild.
+- **`line-height` in absolute units used the wrong reference font-size**: `h2 { font-size: 20px; line-height: 3px }` divided the 3px by the *parent's* font-size (e.g. the default 16px) instead of the element's own 20px, producing a visibly wrong line-height whenever `font-size` and a length-based `line-height` were set on the same element — a very common CSS pattern. Found while auditing flutter_html's issue tracker for bugs (#1367) also worth checking against HyperRender's independent implementation.
+- **`<p>&nbsp;</p>` collapsed to zero height**: a text run made up solely of `&nbsp;` (U+00A0) was misclassified as insignificant/collapsible whitespace and dropped, because `String.trim()` and RegExp's `\s` both also match U+00A0 — unlike CSS, which explicitly does not. A paragraph holding only a non-breaking space now renders with the same height as any other text paragraph. New shared `isCssWhitespaceOnly`/`cssWhitespaceRun` helpers in `hyper_render_core` replace the ad-hoc `.trim().isEmpty`/`\s+` checks in both `HtmlAdapter` implementations and the layout tokenizer. Also found via flutter_html's issue tracker (#1439).
+- **Flutter Web crash parsing CSS `transform` keyframes**: `@keyframes` with a `translate()`/`scale()` step used a negative-lookbehind regex (`(?<![XY])translate\(…`) that throws `Invalid regular expression` on Flutter Web and older Safari, crashing the whole widget. The lookbehind was redundant (`translate\(` already excludes `translateX(`/`translateY(`) and has been removed — transform animations now parse identically but without the web-incompatible construct. Found via flutter_html #1504/#1314.
+- **`<ol start="N">` ignored**: ordered lists always numbered from 1, disregarding the HTML `start` attribute. `<ol start="5">` now numbers 5, 6, 7…; a missing or malformed value still defaults to 1, and sibling lists keep independent counters. Found via flutter_html #1480.
+
+### ♻️ Internal
+
+- Timing-curve resolution, keyframe-name lookup, and the translate/scale/rotate transform matrix used to build a CSS animation frame are now shared top-level helpers (`curveFromHyperTiming`, `resolveHyperKeyframes`, `matrix4FromHyperKeyframe` in `animation_controller.dart`) instead of being duplicated between the widget-tier and canvas-tier animation code.
+
 ## [1.5.0] - 2026-07-05
 
 ### ✨ New CSS Features

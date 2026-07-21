@@ -61,6 +61,7 @@ export 'src/style/design_tokens.dart';
 
 // Util
 export 'src/util/url_safety.dart';
+export 'src/util/html_whitespace.dart';
 
 // Core rendering
 export 'src/core/hyper_render_debug_hooks.dart';

@@ -190,6 +190,7 @@ This document lists CSS property support in HyperRender.
 | `animation-iteration-count` | ✅ | number, infinite | `infinite` loops via `AnimationController.repeat()` (v1.4.0) |
 | `animation-direction` | ✅ | normal, alternate, reverse, alternate-reverse | `alternate` reverses on each loop (v1.4.0) |
 | `animation-timing-function` / `transition-timing-function` | ✅ | linear, ease, ease-in, ease-out, ease-in-out, `cubic-bezier()`, `steps()`, step-start, step-end | `cubic-bezier`/`steps` added in v1.5.0 (`HyperStepsCurve`) |
+| `animation-play-state` | ✅ | running, paused | Paused animations hold their frame and resume from it. Longhand + `animation` shorthand |
 
 ---
 

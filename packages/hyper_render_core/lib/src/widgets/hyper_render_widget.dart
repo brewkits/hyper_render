@@ -158,6 +158,13 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// 1-frame flash that an `addPostFrameCallback` + `setState` round-trip causes).
   final void Function(RenderHyperBox box)? onRenderBoxReady;
 
+  /// Overrides the system accessibility text scaling applied to all rendered
+  /// text (WCAG 2.1 AA §1.4.4). When `null` (the default), the scaler is read
+  /// from `MediaQuery.textScalerOf(context)` so content honours the device's
+  /// "large text" setting the same way Flutter's own `Text` does. Pass
+  /// [TextScaler.noScaling] to opt a specific viewer out of system scaling.
+  final TextScaler? textScaler;
+
   /// Creates a HyperRenderWidget
   ///
   /// The [document] parameter is required and contains the parsed UDT tree.
@@ -182,6 +189,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     this.initialFloats = const [],
     this.pluginRegistry,
     this.onRenderBoxReady,
+    this.textScaler,
   }) : super(
             children: _buildChildren(document, widgetBuilder,
                 selectable: selectable,
@@ -375,13 +383,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       result = HyperTransitionWidget(style: node.style, child: result);
     }
 
-    final animName = node.style.animationName;
-    if (animName == null || animName.isEmpty) return result;
-
-    // Require that the keyframe definition is resolvable.
-    final known = keyframeRegistry.containsKey(animName) ||
-        HyperAnimations.byName(animName) != null;
-    if (!known) return result;
+    if (resolveHyperKeyframes(node.style.animationName, keyframeRegistry) ==
+        null) {
+      return result;
+    }
 
     return HyperAnimatedWidget.fromStyle(
       style: node.style,
@@ -757,6 +762,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       selectionColor: selectionColor,
       onSelectionChanged: onSelectionChanged,
       config: config,
+      // null override → honour the device text-scaling setting (WCAG 1.4.4).
+      // Reading it here registers a MediaQuery dependency, so updateRenderObject
+      // re-fires with the new scaler when the user changes the OS text size.
+      textScaler: textScaler ?? MediaQuery.textScalerOf(context),
     )
       ..debugShowBounds = debugShowBounds
       ..enableComplexFilters = enableComplexFilters
@@ -813,6 +822,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (renderObject.config != config) {
       renderObject.config = config;
     }
+    // Re-read the scaler (this call re-registers the MediaQuery dependency).
+    // The setter no-ops on an unchanged value and _invalidateLayout()s on a
+    // change, so this correctly relayouts when the OS text size changes.
+    renderObject.textScaler = textScaler ?? MediaQuery.textScalerOf(context);
     renderObject.initialFloats = initialFloats;
     renderObject.onFloatCarryover = onFloatCarryover;
 

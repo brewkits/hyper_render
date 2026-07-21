@@ -194,6 +194,86 @@ class HyperAnimations {
       };
 }
 
+/// Maps a resolved [HyperTimingFunction] (+ optional parameters) to the
+/// equivalent Flutter [Curve].
+///
+/// Shared between the widget-tier ([HyperAnimatedWidget], [HyperTransitionWidget])
+/// and the RenderHyperBox canvas animation path so both interpret
+/// `animation-timing-function` / `transition-timing-function` identically.
+Curve curveFromHyperTiming(HyperTimingFunction fn,
+    [HyperTimingParams? params]) {
+  switch (fn) {
+    case HyperTimingFunction.linear:
+      return Curves.linear;
+    case HyperTimingFunction.ease:
+      return Curves.ease;
+    case HyperTimingFunction.easeIn:
+      return Curves.easeIn;
+    case HyperTimingFunction.easeOut:
+      return Curves.easeOut;
+    case HyperTimingFunction.easeInOut:
+      return Curves.easeInOut;
+    case HyperTimingFunction.cubicBezier:
+      if (params is HyperCubicBezierParams) {
+        return Cubic(params.x1, params.y1, params.x2, params.y2);
+      }
+      return Curves.ease;
+    case HyperTimingFunction.steps:
+      if (params is HyperStepsParams) {
+        return HyperStepsCurve(params.count, jumpStart: params.jumpStart);
+      }
+      return Curves.linear;
+  }
+}
+
+/// Resolves an `animation-name` to its [HyperKeyframes] definition: a custom
+/// [keyframesLookup] entry (from `@keyframes` parsed out of the document)
+/// takes priority over the built-in [HyperAnimations] presets.
+///
+/// Shared between the widget-tier animation path and the RenderHyperBox
+/// canvas animation path so both resolve names identically.
+HyperKeyframes? resolveHyperKeyframes(
+  String? animationName,
+  Map<String, HyperKeyframes>? keyframesLookup,
+) {
+  if (animationName == null || animationName.isEmpty) return null;
+  return keyframesLookup?[animationName] ??
+      HyperAnimations.byName(animationName);
+}
+
+/// Builds the same translate → scale → rotate composition [HyperAnimatedWidget]
+/// applies via [Transform], from a single interpolated [HyperKeyframe].
+///
+/// Shared with the RenderHyperBox canvas animation path so a block animated
+/// on the canvas transforms identically to one animated via the widget tree.
+Matrix4 matrix4FromHyperKeyframe(HyperKeyframe keyframe) {
+  Matrix4 transform = Matrix4.identity();
+
+  if (keyframe.translateX != null || keyframe.translateY != null) {
+    transform = transform.multiplied(Matrix4.translationValues(
+      keyframe.translateX ?? 0.0,
+      keyframe.translateY ?? 0.0,
+      0.0,
+    ));
+  }
+
+  if (keyframe.scale != null) {
+    transform = transform.multiplied(Matrix4.diagonal3Values(
+      keyframe.scale!,
+      keyframe.scale!,
+      1.0,
+    ));
+  }
+
+  if (keyframe.rotation != null) {
+    final rotationMatrix = Matrix4.identity()
+      ..rotateZ(keyframe.rotation! * 3.14159 / 180.0);
+    transform = transform.multiplied(rotationMatrix);
+  }
+
+  return transform;
+}
+
 /// CSS `steps(n, start|end)` timing function as a Flutter [Curve].
 ///
 /// `steps(n, end)` (the default) holds each value until the end of its
@@ -373,6 +453,12 @@ class HyperAnimatedWidget extends StatefulWidget {
   final bool alternate;
   final bool autoPlay;
 
+  /// CSS `animation-play-state: paused`. While `true` the animation holds
+  /// its current frame; flipping back to `false` resumes from that frame
+  /// without restarting. When paused before the initial [delay] elapses,
+  /// the delay countdown restarts on resume.
+  final bool paused;
+
   /// Optional registry of custom [HyperKeyframes] keyed by animation name.
   ///
   /// When an [animationName] is set, [HyperAnimatedWidget] first looks it up
@@ -392,6 +478,7 @@ class HyperAnimatedWidget extends StatefulWidget {
     this.reverse = false,
     this.alternate = false,
     this.autoPlay = true,
+    this.paused = false,
     this.keyframesLookup,
   });
 
@@ -407,7 +494,7 @@ class HyperAnimatedWidget extends StatefulWidget {
       animationName: style.animationName,
       duration: Duration(milliseconds: style.animationDuration ?? 300),
       delay: Duration(milliseconds: style.animationDelay ?? 0),
-      curve: _curveFromTimingFunction(
+      curve: curveFromHyperTiming(
           style.animationTimingFunction, style.animationTimingParams),
       iterationCount: style.animationIterationCount,
       reverse: style.animationDirection == HyperAnimationDirection.reverse ||
@@ -415,35 +502,10 @@ class HyperAnimatedWidget extends StatefulWidget {
       alternate: style.animationDirection ==
               HyperAnimationDirection.alternate ||
           style.animationDirection == HyperAnimationDirection.alternateReverse,
+      paused: style.animationPlayState == HyperAnimationPlayState.paused,
       keyframesLookup: keyframesLookup,
       child: child,
     );
-  }
-
-  static Curve _curveFromTimingFunction(HyperTimingFunction fn,
-      [HyperTimingParams? params]) {
-    switch (fn) {
-      case HyperTimingFunction.linear:
-        return Curves.linear;
-      case HyperTimingFunction.ease:
-        return Curves.ease;
-      case HyperTimingFunction.easeIn:
-        return Curves.easeIn;
-      case HyperTimingFunction.easeOut:
-        return Curves.easeOut;
-      case HyperTimingFunction.easeInOut:
-        return Curves.easeInOut;
-      case HyperTimingFunction.cubicBezier:
-        if (params is HyperCubicBezierParams) {
-          return Cubic(params.x1, params.y1, params.x2, params.y2);
-        }
-        return Curves.ease;
-      case HyperTimingFunction.steps:
-        if (params is HyperStepsParams) {
-          return HyperStepsCurve(params.count, jumpStart: params.jumpStart);
-        }
-        return Curves.linear;
-    }
   }
 
   @override
@@ -472,6 +534,12 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
   /// still an unintended duplicate start.
   Timer? _pendingStart;
 
+  /// Whether the animation has passed its initial delay and started at
+  /// least once on the current controller. Distinguishes "paused before
+  /// start" (resume must re-run the delay) from "paused mid-flight"
+  /// (resume continues from the held frame).
+  bool _hasStarted = false;
+
   @override
   void initState() {
     super.initState();
@@ -479,6 +547,8 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
   }
 
   void _setupAnimation() {
+    _currentIteration = 0;
+    _hasStarted = false;
     _controller = AnimationController(
       vsync: this,
       duration: widget.duration,
@@ -490,10 +560,8 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
     );
 
     // Resolve keyframes: custom registry takes priority over built-ins.
-    if (widget.animationName != null) {
-      _keyframes = widget.keyframesLookup?[widget.animationName!] ??
-          HyperAnimations.byName(widget.animationName!);
-    }
+    _keyframes =
+        resolveHyperKeyframes(widget.animationName, widget.keyframesLookup);
 
     // Setup iteration listener
     _controller.addStatusListener((status) {
@@ -528,23 +596,43 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
     // The closure reads `this._controller` at call time, so the timer never
     // touches a disposed controller: `mounted` covers the unmount case and
     // [_cancelPendingStart] covers the in-place rebuild case.
-    if (widget.autoPlay && _keyframes != null) {
-      _pendingStart = Timer(widget.delay, () {
-        _pendingStart = null;
-        if (mounted) {
-          if (widget.iterationCount == null) {
-            _controller.repeat(reverse: widget.alternate);
-          } else {
-            _controller.forward();
-          }
-        }
-      });
+    if (widget.autoPlay && _keyframes != null && !widget.paused) {
+      _scheduleStart();
     }
+  }
+
+  void _scheduleStart() {
+    _pendingStart = Timer(widget.delay, () {
+      _pendingStart = null;
+      if (mounted) {
+        _hasStarted = true;
+        if (widget.iterationCount == null) {
+          _controller.repeat(reverse: widget.alternate);
+        } else {
+          _controller.forward();
+        }
+      }
+    });
   }
 
   void _cancelPendingStart() {
     _pendingStart?.cancel();
     _pendingStart = null;
+  }
+
+  /// Resumes after `animation-play-state` flips from paused to running.
+  void _resumeFromPause() {
+    if (!widget.autoPlay || _keyframes == null) return;
+    if (_pendingStart != null || _controller.isAnimating) return;
+    if (!_hasStarted) {
+      _scheduleStart();
+    } else if (widget.iterationCount == null) {
+      // repeat() seeds its simulation with the current value, so an
+      // infinite animation continues from the held frame.
+      _controller.repeat(reverse: widget.alternate);
+    } else if (_currentIteration < widget.iterationCount!) {
+      _controller.forward();
+    }
   }
 
   @override
@@ -561,6 +649,13 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
       _cancelPendingStart();
       _controller.dispose();
       _setupAnimation();
+    } else if (oldWidget.paused != widget.paused) {
+      if (widget.paused) {
+        _cancelPendingStart();
+        _controller.stop();
+      } else {
+        _resumeFromPause();
+      }
     }
   }
 
@@ -581,31 +676,7 @@ class _HyperAnimatedWidgetState extends State<HyperAnimatedWidget>
       animation: _animation,
       builder: (context, child) {
         final keyframe = _keyframes!.interpolate(_animation.value);
-
-        // Build transform matrix
-        Matrix4 transform = Matrix4.identity();
-
-        if (keyframe.translateX != null || keyframe.translateY != null) {
-          transform = transform.multiplied(Matrix4.translationValues(
-            keyframe.translateX ?? 0.0,
-            keyframe.translateY ?? 0.0,
-            0.0,
-          ));
-        }
-
-        if (keyframe.scale != null) {
-          transform = transform.multiplied(Matrix4.diagonal3Values(
-            keyframe.scale!,
-            keyframe.scale!,
-            1.0,
-          ));
-        }
-
-        if (keyframe.rotation != null) {
-          final rotationMatrix = Matrix4.identity()
-            ..rotateZ(keyframe.rotation! * 3.14159 / 180.0);
-          transform = transform.multiplied(rotationMatrix);
-        }
+        final transform = matrix4FromHyperKeyframe(keyframe);
 
         Widget result = child!;
 
@@ -708,8 +779,7 @@ class _HyperTransitionWidgetState extends State<HyperTransitionWidget> {
   Curve get _curve {
     final t = widget.style.transition;
     if (t == null) return Curves.ease;
-    return HyperAnimatedWidget._curveFromTimingFunction(
-        t.timingFunction, t.timingParams);
+    return curveFromHyperTiming(t.timingFunction, t.timingParams);
   }
 
   @override

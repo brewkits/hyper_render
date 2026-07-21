@@ -214,7 +214,15 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       if (effectiveType != 'none') {
         int index = 1;
         if (isOrdered) {
-          index = (_listItemIndices[parentBlock] ?? 0) + 1;
+          final existing = _listItemIndices[parentBlock];
+          if (existing == null) {
+            // First <li> of this <ol>: honour the `start` attribute
+            // (`<ol start="5">` → 5, 6, 7…). A malformed/absent value
+            // defaults to 1, matching the HTML spec.
+            index = int.tryParse(parentBlock.attributes['start'] ?? '') ?? 1;
+          } else {
+            index = existing + 1;
+          }
           _listItemIndices[parentBlock] = index;
         }
 
@@ -632,6 +640,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       letterSpacing: style.letterSpacing,
       wordSpacing: style.wordSpacing,
       textDirection: fragmentDirection,
+      textScaler: _textScaler,
     );
 
     final cached = _textPainters.get(key);
@@ -659,6 +668,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       strutStyle:
           StrutStyle.fromTextStyle(mergedStyle, forceStrutHeight: false),
       textDirection: fragmentDirection,
+      // System accessibility text scaling (WCAG 1.4.4). Applied here at the
+      // painter level rather than by inflating fontSize so em-based metrics,
+      // strut, and letter-spacing scale consistently the way Flutter's own
+      // Text/RichText do.
+      textScaler: _textScaler,
       maxLines: maxLines,
       textHeightBehavior: const TextHeightBehavior(
         applyHeightToFirstAscent: true,

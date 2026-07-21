@@ -218,6 +218,14 @@ class _TextPainterKey {
   final double? wordSpacing;
   final ui.TextDirection textDirection;
 
+  /// System/host accessibility text scaling. Part of the key because
+  /// [RenderHyperBox] shares one global TextPainter cache across every box —
+  /// two viewers at different scales must not collide to the same painter,
+  /// and a scale change must miss the cache so text is re-measured.
+  /// [TextScaler.linear] and the platform scaler compare by value, so this
+  /// participates in `==` correctly.
+  final TextScaler textScaler;
+
   const _TextPainterKey({
     required this.text,
     required this.fontSize,
@@ -229,6 +237,7 @@ class _TextPainterKey {
     required this.letterSpacing,
     required this.wordSpacing,
     required this.textDirection,
+    required this.textScaler,
   });
 
   @override
@@ -244,7 +253,8 @@ class _TextPainterKey {
         other.lineHeight == lineHeight &&
         other.letterSpacing == letterSpacing &&
         other.wordSpacing == wordSpacing &&
-        other.textDirection == textDirection;
+        other.textDirection == textDirection &&
+        other.textScaler == textScaler;
   }
 
   @override
@@ -259,6 +269,7 @@ class _TextPainterKey {
         letterSpacing,
         wordSpacing,
         textDirection,
+        textScaler,
       );
 }
 

@@ -267,7 +267,12 @@ class HtmlAdapter {
     if (node.nodeType == dom.Node.TEXT_NODE) {
       final text = node.text;
       if (text == null || text.isEmpty) return null;
-      if (text.trim().isEmpty) {
+      // isCssWhitespaceOnly (not text.trim().isEmpty) so a text node made up
+      // solely of &nbsp; (U+00A0) isn't misclassified as droppable/collapsible
+      // source whitespace — String.trim() also strips U+00A0, which would
+      // otherwise fall through to the newline-collapse branch below and
+      // silently replace a meaningful nbsp with a plain space.
+      if (isCssWhitespaceOnly(text)) {
         if (RegExp(r'^[ \t]+$').hasMatch(text)) {
           // Pure spaces/tabs — meaningful inter-element spacing, preserve as-is.
           return TextNode(text);

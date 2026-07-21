@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import '../util/html_whitespace.dart';
 import 'computed_style.dart';
 import 'node.dart';
 
@@ -165,9 +166,14 @@ class Fragment {
   bool get canBreak =>
       type == FragmentType.text && text != null && text!.contains(' ');
 
-  /// Check if this is a whitespace-only fragment
+  /// Check if this is a whitespace-only fragment.
+  ///
+  /// Uses [isCssWhitespaceOnly] rather than `text.trim().isEmpty` —
+  /// `String.trim()` also strips U+00A0 (`&nbsp;`), which would make a
+  /// meaningful non-breaking space at a line-wrap boundary get dropped as if
+  /// it were insignificant collapsible whitespace.
   bool get isWhitespace =>
-      type == FragmentType.text && text != null && text!.trim().isEmpty;
+      type == FragmentType.text && text != null && isCssWhitespaceOnly(text!);
 
   @override
   String toString() {

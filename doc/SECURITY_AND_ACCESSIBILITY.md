@@ -167,6 +167,7 @@ The criteria below are implemented and covered by automated tests.
 |-----------|----------|-----|
 | **1.1.1 Non-text Content** | ✅ | `<img alt="…">` exposed as a named semantic node at the image's layout rect |
 | **1.3.1 Info & Relationships** | ✅ Partial | `<h1>`–`<h6>` marked as `isHeader`; `<th>` marked as `header: true` in table semantics |
+| **1.4.4 Resize Text** | ✅ | Rendered text honours the device's accessibility text-scaling setting via `MediaQuery.textScalerOf(context)`, applied to every measured/painted fragment the same way Flutter's own `Text` does. Override per-viewer with `HyperRenderWidget(textScaler: …)` or a wrapping `MediaQuery` (pass `TextScaler.noScaling` to opt out) |
 | **2.4.4 Link Purpose** | ✅ | `<a href>` exposed as `isLink`; `aria-label` overrides visible text (WCAG 4.1.2) |
 | **4.1.2 Name, Role, Value** | ✅ Partial | Links and headings have role; `aria-label` on `<a>` is honoured |
 

@@ -37,11 +37,16 @@ class RubyTextWidget extends LeafRenderObjectWidget {
   final String rubyText;
   final TextStyle baseStyle;
 
+  /// Overrides system text scaling (WCAG 1.4.4). `null` → read from
+  /// `MediaQuery.textScalerOf(context)`, matching [HyperRenderWidget].
+  final TextScaler? textScaler;
+
   const RubyTextWidget({
     super.key,
     required this.baseText,
     required this.rubyText,
     required this.baseStyle,
+    this.textScaler,
   });
 
   @override
@@ -50,6 +55,7 @@ class RubyTextWidget extends LeafRenderObjectWidget {
       baseText: baseText,
       rubyText: rubyText,
       baseStyle: baseStyle,
+      textScaler: textScaler ?? MediaQuery.textScalerOf(context),
     );
   }
 
@@ -58,7 +64,8 @@ class RubyTextWidget extends LeafRenderObjectWidget {
     renderObject
       ..baseText = baseText
       ..rubyText = rubyText
-      ..baseStyle = baseStyle;
+      ..baseStyle = baseStyle
+      ..textScaler = textScaler ?? MediaQuery.textScalerOf(context);
   }
 }
 
@@ -71,6 +78,7 @@ class RenderRubyText extends RenderBox {
   String _baseText;
   String _rubyText;
   TextStyle _baseStyle;
+  TextScaler _textScaler;
 
   late TextPainter _basePainter;
   late TextPainter _rubyPainter;
@@ -85,10 +93,21 @@ class RenderRubyText extends RenderBox {
     required String baseText,
     required String rubyText,
     required TextStyle baseStyle,
+    TextScaler textScaler = TextScaler.noScaling,
   })  : _baseText = baseText,
         _rubyText = rubyText,
-        _baseStyle = baseStyle {
+        _baseStyle = baseStyle,
+        _textScaler = textScaler {
     _initPainters();
+  }
+
+  TextScaler get textScaler => _textScaler;
+  set textScaler(TextScaler value) {
+    if (_textScaler != value) {
+      _textScaler = value;
+      _initPainters();
+      markNeedsLayout();
+    }
   }
 
   String get baseText => _baseText;
@@ -123,6 +142,7 @@ class RenderRubyText extends RenderBox {
     _basePainter = TextPainter(
       text: TextSpan(text: _baseText, style: _baseStyle),
       textDirection: TextDirection.ltr,
+      textScaler: _textScaler,
     );
 
     // Ruby text painter (smaller font)
@@ -133,6 +153,7 @@ class RenderRubyText extends RenderBox {
         style: _baseStyle.copyWith(fontSize: rubyFontSize),
       ),
       textDirection: TextDirection.ltr,
+      textScaler: _textScaler,
     );
   }
 

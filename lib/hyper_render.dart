@@ -57,6 +57,7 @@ export 'package:hyper_render_core/hyper_render_core.dart'
         HyperStepsCurve,
         HyperAnimationDirection,
         HyperAnimationFillMode,
+        HyperAnimationPlayState,
         HyperTransition,
         FlexDirection,
         JustifyContent,

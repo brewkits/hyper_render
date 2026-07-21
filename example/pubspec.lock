@@ -356,21 +356,21 @@ packages:
       path: "../packages/hyper_render_highlight"
       relative: true
     source: path
-    version: "1.5.0"
+    version: "1.5.1"
   hyper_render_html:
     dependency: "direct overridden"
     description:
       path: "../packages/hyper_render_html"
       relative: true
     source: path
-    version: "1.5.0"
+    version: "1.5.1"
   hyper_render_markdown:
     dependency: "direct overridden"
     description:
       path: "../packages/hyper_render_markdown"
       relative: true
     source: path
-    version: "1.5.0"
+    version: "1.5.1"
   jni:
     dependency: transitive
     description:

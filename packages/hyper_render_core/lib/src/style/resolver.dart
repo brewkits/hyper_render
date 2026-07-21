@@ -1398,8 +1398,22 @@ class StyleResolver {
         break;
 
       case 'line-height':
+        // A length/px line-height is converted to a multiplier by dividing
+        // by the *reference* font-size — CSS defines that reference as this
+        // element's own font-size, not its parent's. If `font-size` was
+        // already processed earlier in this same declaration block (the
+        // natural `font-size` then `line-height` writing order), style.fontSize
+        // already holds that resolved value; otherwise this element doesn't
+        // override font-size at all, so it will equal the parent's via
+        // inheritance and parentFontSize is the correct reference.
+        // Without this, `h2 { font-size: 20px; line-height: 3px }` divided
+        // 3px by the PARENT's font-size (e.g. 16px) instead of 20px,
+        // producing a wildly wrong multiplier.
+        final lineHeightFontSize = style.isExplicitlySet('font-size')
+            ? style.fontSize
+            : parentFontSize;
         final lineHeight =
-            _parseLineHeight(value, parentFontSize: parentFontSize);
+            _parseLineHeight(value, parentFontSize: lineHeightFontSize);
         if (lineHeight != null) {
           style.lineHeight = lineHeight;
           style.markExplicitlySet('line-height');
@@ -2163,6 +2177,14 @@ class StyleResolver {
         if (fm != null) {
           style.animationFillMode = fm;
           style.markExplicitlySet('animation-fill-mode');
+        }
+        break;
+
+      case 'animation-play-state':
+        final ps = _parseAnimationPlayState(value);
+        if (ps != null) {
+          style.animationPlayState = ps;
+          style.markExplicitlySet('animation-play-state');
         }
         break;
 
@@ -3578,6 +3600,17 @@ class StyleResolver {
     }
   }
 
+  HyperAnimationPlayState? _parseAnimationPlayState(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'running':
+        return HyperAnimationPlayState.running;
+      case 'paused':
+        return HyperAnimationPlayState.paused;
+      default:
+        return null;
+    }
+  }
+
   HyperTransition? _parseTransition(String value) {
     final parts = _splitOutsideParens(value);
     if (parts.isEmpty) return null;
@@ -3651,6 +3684,12 @@ class StyleResolver {
       if (fm != null) {
         style.animationFillMode = fm;
         style.markExplicitlySet('animation-fill-mode');
+        continue;
+      }
+      final ps = _parseAnimationPlayState(part);
+      if (ps != null) {
+        style.animationPlayState = ps;
+        style.markExplicitlySet('animation-play-state');
         continue;
       }
       if (part == 'infinite') {

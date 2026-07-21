@@ -13,6 +13,8 @@ import 'package:flutter/widgets.dart';
 import '../model/computed_style.dart';
 import '../model/fragment.dart';
 import '../model/node.dart';
+import '../util/html_whitespace.dart';
+import 'animation_controller.dart';
 import 'hyper_render_config.dart';
 import 'hyper_render_debug_hooks.dart';
 import 'image_provider.dart';
@@ -25,6 +27,7 @@ part 'render_hyper_box_layout.dart';
 part 'render_hyper_box_paint.dart';
 part 'render_hyper_box_selection.dart';
 part 'render_hyper_box_accessibility.dart';
+part 'render_hyper_box_animation.dart';
 
 // ── Library-level cached Paint objects ────────────────────────────────────────
 //
@@ -77,7 +80,11 @@ final Paint _errorSlashPaint = Paint()
 // ─────────────────────────────────────────────────────────────────────────────
 // Compiled-once regex constants for hot paths in RenderHyperBox.
 // Using a library-level final avoids re-compiling the DFA on every call.
-final _kWhitespaceSplitter = RegExp(r'\s+');
+// Uses the CSS-precise cssWhitespaceRun (space/tab/LF/CR/FF only), not a
+// bare `\s+` — Dart's `\s` also matches U+00A0 (`&nbsp;`), which must
+// survive whitespace collapsing/word-splitting since it's a normal,
+// non-breaking printing character, not decorative source whitespace.
+final _kWhitespaceSplitter = cssWhitespaceRun;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -110,6 +117,9 @@ class RenderHyperBox extends RenderBox
 
   /// Base text style
   TextStyle _baseStyle;
+
+  /// System/host accessibility text scaler (see [textScaler]).
+  TextScaler _textScaler;
 
   /// Link tap callback
   HyperLinkTapCallback? onLinkTap;
@@ -185,6 +195,39 @@ class RenderHyperBox extends RenderBox
 
   /// Block decorations for painting border-left, backgrounds
   final List<_BlockDecoration> _blockDecorations = [];
+
+  /// Runtime animation state for every node currently carrying a resolvable
+  /// `animation-name` (canvas-painted block animation — see
+  /// render_hyper_box_animation.dart). Rebuilt on every [performLayout].
+  final Map<UDTNode, _BlockAnimationState> _blockAnimations = {};
+
+  /// Per-node paint rect for animated blocks, precomputed once per layout
+  /// (not per paint frame) from [_blockDecorations] / [_lines].
+  final Map<UDTNode, Rect> _animatedBlockRects = {};
+
+  /// The node's own [_BlockDecoration], if it has one (background/border),
+  /// keyed for O(1) lookup during [_paintAnimatedBlocks] instead of a linear
+  /// scan of [_blockDecorations] per animated node.
+  final Map<UDTNode, _BlockDecoration> _animatedBlockDecorations = {};
+
+  /// Fragments owned by each animated block (nearest-animated-ancestor
+  /// grouping), precomputed once per layout alongside [_animatedBlockRects].
+  final Map<UDTNode, List<Fragment>> _animatedBlockFragments = {};
+
+  /// Memoized `UDTNode -> nearest animated ancestor` lookup, cleared whenever
+  /// [_blockAnimations] is rebuilt.
+  final Map<UDTNode, UDTNode?> _animatedAncestorCache = {};
+
+  /// Nodes actually painted by [_paintAnimatedBlocks] this frame (a node can
+  /// be in [_blockAnimations] but still within its `animation-delay` window,
+  /// in which case it paints normally instead). Cleared at the top of every
+  /// [paint] call.
+  final Set<UDTNode> _paintedThisFrameByAnimation = {};
+
+  /// Pending [SchedulerBinding] frame callback id for the block-animation
+  /// loop — see the "Shimmer Animation" section below for why a raw frame
+  /// callback is used instead of an [AnimationController].
+  int? _animCallbackId;
 
   /// LRU image cache — bounded by [HyperRenderConfig.imageCacheSize].
   ///
@@ -506,13 +549,15 @@ class RenderHyperBox extends RenderBox
     Color? selectionColor,
     this.onSelectionChanged,
     HyperRenderConfig config = HyperRenderConfig.defaults,
+    TextScaler textScaler = TextScaler.noScaling,
   })  : _document = document,
         _baseStyle = baseStyle,
         _imageLoader = imageLoader,
         _selectable = selectable,
         _textDirection = textDirection,
         _selectionColor = selectionColor,
-        _config = config;
+        _config = config,
+        _textScaler = textScaler;
 
   // ============================================
   // Properties
@@ -535,6 +580,23 @@ class RenderHyperBox extends RenderBox
   set baseStyle(TextStyle value) {
     if (_baseStyle == value) return;
     _baseStyle = value;
+    _invalidateLayout();
+    markNeedsLayout();
+  }
+
+  /// System/host text scaling (accessibility "large text" setting) applied to
+  /// every measured/painted text fragment — WCAG 2.1 AA §1.4.4 (Resize Text).
+  /// Sourced from `MediaQuery.textScalerOf(context)` by [HyperRenderWidget],
+  /// or a caller-supplied override. Defaults to [TextScaler.noScaling].
+  TextScaler get textScaler => _textScaler;
+  set textScaler(TextScaler value) {
+    if (_textScaler == value) return;
+    _textScaler = value;
+    // Must _invalidateLayout() (not a bare markNeedsLayout): a scaler-only
+    // change leaves _fragmentsVersion / _maxWidth untouched, so performLayout
+    // would otherwise skip _measureFragments()/_performLineLayout() and text
+    // would keep its old size. _invalidateLayout() also clears the intrinsic-
+    // width caches, which likewise depend on the measured glyph sizes.
     _invalidateLayout();
     markNeedsLayout();
   }
@@ -643,6 +705,13 @@ class RenderHyperBox extends RenderBox
       _shimmerCallbackId = null;
     }
     _shimmerEpoch = null;
+    // Same reasoning as the shimmer reset above: drop in-flight block
+    // animation progress on detach so a ListView item that scrolls back into
+    // view restarts its animations from zero instead of jumping to wherever
+    // an unbounded accumulated elapsed time would place them.
+    _cancelBlockAnimationLoop();
+    _blockAnimations.clear();
+    _animatedAncestorCache.clear();
     super.detach();
   }
 
@@ -655,6 +724,7 @@ class RenderHyperBox extends RenderBox
       SchedulerBinding.instance.cancelFrameCallbackWithId(_shimmerCallbackId!);
       _shimmerCallbackId = null;
     }
+    _cancelBlockAnimationLoop();
     _disposeImages();
     // Do NOT call detach() on cached semantic anchor nodes here.
     // Flutter's semantics teardown already detaches them during widget
@@ -955,8 +1025,10 @@ class RenderHyperBox extends RenderBox
     // Two painters — one per text direction — are reused across all fragments
     // to avoid repeated native-object allocation.  They are NOT stored in
     // _textPainters so per-word spans don't pollute the LRU cache.
-    final ltrPainter = TextPainter(textDirection: ui.TextDirection.ltr);
-    final rtlPainter = TextPainter(textDirection: ui.TextDirection.rtl);
+    final ltrPainter = TextPainter(
+        textDirection: ui.TextDirection.ltr, textScaler: _textScaler);
+    final rtlPainter = TextPainter(
+        textDirection: ui.TextDirection.rtl, textScaler: _textScaler);
 
     for (final fragment in _fragments) {
       if (fragment.type == FragmentType.text && fragment.text != null) {
@@ -1128,6 +1200,11 @@ class RenderHyperBox extends RenderBox
       return;
     }
 
+    // Sync canvas-painted block animation state before the rest of layout.
+    // Cheap (one tree walk) and only runs here, not on every animation-driven
+    // paint frame — see render_hyper_box_animation.dart.
+    _rebuildBlockAnimations();
+
     try {
       // Unbounded horizontal constraints (e.g. inside a horizontal
       // SingleChildScrollView, an unconstrained Row, or an
@@ -1202,6 +1279,10 @@ class RenderHyperBox extends RenderBox
 
       // Step 7: Layout child RenderBoxes (always — child constraints may change)
       _layoutChildren();
+
+      // Precompute animated-block paint rects/fragment groups now that lines
+      // and decorations are current (no-op when nothing is animating).
+      _recomputeAnimatedBlockGeometry();
 
       // Calculate final size
       double height = 0;
@@ -1299,6 +1380,12 @@ class RenderHyperBox extends RenderBox
   void paint(PaintingContext context, Offset offset) {
     try {
       final canvas = context.canvas;
+
+      // -1. Animated blocks (CSS animation-name): each block's own decoration
+      // + text painted as one composited, transformed/faded unit. Populates
+      // _paintedThisFrameByAnimation so steps 0 and 4 below skip repainting
+      // the same content at its static style.
+      _paintAnimatedBlocks(canvas, offset);
 
       // CSS Stacking Order:
       // 0. Block decorations (border-left for blockquote, etc.)

@@ -20,7 +20,6 @@ are silently ignored.
 | `clip-path` | Non-rectangular masks not applied | Pre-clip images server-side |
 | `@media` queries | Responsive breakpoints ignored | Serve device-appropriate HTML, or use `customCss` for overrides |
 | `columns` / `column-count` | Multi-column layout not rendered | Use a CSS Grid layout (supported) |
-| `animation-play-state: paused` | Not executed — animations always run | N/A |
 
 ### Supported in v1.2.0 - v1.4.0
 
@@ -50,7 +49,8 @@ are silently ignored.
 | `position: relative` | Supported but child `absolute` positioning is not |
 | `calc()` | Arithmetic on px/em/rem only; `%` in calc not resolved |
 | `sub` / `sup` | Basic font-size reduction; vertical-align positioning is approximate |
-| Animated `color` / `background-color` | Applied on the widget-tier render path (flex/grid/plugin/atomic wrappers); text painted directly on the `RenderHyperBox` canvas is not re-tinted mid-animation |
+| Animated `color` / `background-color` | `@keyframes` (`animation-name`) animates both the widget-tier render path AND block-level text painted directly on the `RenderHyperBox` canvas (unreleased). `transition`-driven color changes still only apply on the widget tier — canvas-painted text does not re-tint on a `transition` style change |
+| Canvas block-level `animation-name` (`RenderHyperBox`) | Only a block's own decoration + its directly-owned text/ruby fragments participate; list markers, floated images, and a *nested* animated descendant's own animation do not compose with an animating ancestor's opacity/transform (unreleased). **Avoid combining** with an inline `<span style="background:...">` inside the animated block — inline decorations paint after this pass and will visibly cover the animated text, not just fail to animate |
 
 ---
 

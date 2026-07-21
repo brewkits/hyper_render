@@ -1,5 +1,11 @@
 # Changelog — hyper_render_html
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+- **`<p>&nbsp;</p>`-style text nodes could be silently replaced with a plain space**: the whitespace-only text-node check used `text.trim().isEmpty`, which also matches U+00A0 (`&nbsp;`). Now uses `hyper_render_core`'s `isCssWhitespaceOnly`, matching CSS's actual whitespace definition (space/tab/LF/CR/FF only).
+- **Flutter Web crash parsing `@keyframes` `transform`**: `css_parser.dart` used a negative-lookbehind regex (`(?<![XY])translate\(…`) for `translate()`/`scale()` that throws `Invalid regular expression` on Flutter Web / older Safari. Removed (it was redundant — `translate\(` already excludes `translateX(`/`translateY(`). Matches the same fix in the root package's `default_css_parser.dart`.
+
 ## [1.5.1] - 2026-07-05
 
 ### 🐛 Packaging Fix

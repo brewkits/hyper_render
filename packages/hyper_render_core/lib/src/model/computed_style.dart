@@ -238,6 +238,15 @@ enum HyperAnimationFillMode {
   both,
 }
 
+/// CSS animation play state
+enum HyperAnimationPlayState {
+  /// Animation is running (default)
+  running,
+
+  /// Animation is paused at its current frame
+  paused,
+}
+
 /// Flex direction for CSS flex-direction property
 enum FlexDirection {
   /// Row (left to right) - default
@@ -580,6 +589,9 @@ class ComputedStyle {
   /// CSS animation fill mode
   HyperAnimationFillMode animationFillMode;
 
+  /// CSS animation play state
+  HyperAnimationPlayState animationPlayState;
+
   // ============================================
   // Table-specific Properties
   // ============================================
@@ -743,6 +755,7 @@ class ComputedStyle {
     this.animationIterationCount,
     this.animationDirection = HyperAnimationDirection.normal,
     this.animationFillMode = HyperAnimationFillMode.none,
+    this.animationPlayState = HyperAnimationPlayState.running,
     this.colspan = 1,
     this.rowspan = 1,
     this.flexDirection = FlexDirection.row,
@@ -915,6 +928,7 @@ class ComputedStyle {
     int? animationIterationCount,
     HyperAnimationDirection? animationDirection,
     HyperAnimationFillMode? animationFillMode,
+    HyperAnimationPlayState? animationPlayState,
     // Table
     int? colspan,
     int? rowspan,
@@ -1015,6 +1029,7 @@ class ComputedStyle {
           animationIterationCount ?? this.animationIterationCount,
       animationDirection: animationDirection ?? this.animationDirection,
       animationFillMode: animationFillMode ?? this.animationFillMode,
+      animationPlayState: animationPlayState ?? this.animationPlayState,
       colspan: colspan ?? this.colspan,
       rowspan: rowspan ?? this.rowspan,
       flexDirection: flexDirection ?? this.flexDirection,
