@@ -1447,12 +1447,19 @@ class StyleResolver {
         break;
 
       case 'text-indent':
-        // Only absolute lengths (px/em/rem/pt) are honoured; `%` (relative to
-        // the containing block width) is dropped like other percentage lengths.
-        final indent = _parseLength(value);
-        if (indent != null) {
-          style.textIndent = indent;
+        // `%` is relative to the containing block's content width and is
+        // resolved at layout time (stored on textIndentPercent); absolute
+        // lengths (px/em/rem/pt) go straight onto textIndent.
+        final indentPct = _parsePercent(value.trim());
+        if (indentPct != null) {
+          style.textIndentPercent = indentPct;
           style.markExplicitlySet('text-indent');
+        } else {
+          final indent = _parseLength(value);
+          if (indent != null) {
+            style.textIndent = indent;
+            style.markExplicitlySet('text-indent');
+          }
         }
         break;
 
@@ -1573,10 +1580,16 @@ class StyleResolver {
         break;
 
       case 'width':
-        final width = _parseLength(value);
-        if (width != null) {
-          style.width = width;
+        final widthPct = _parsePercent(value.trim());
+        if (widthPct != null) {
+          style.widthPercent = widthPct; // fraction 0–1, resolved at layout
           style.markExplicitlySet('width');
+        } else {
+          final width = _parseLength(value);
+          if (width != null) {
+            style.width = width;
+            style.markExplicitlySet('width');
+          }
         }
         break;
 
@@ -2031,10 +2044,16 @@ class StyleResolver {
           style.maxWidth = null;
           style.markExplicitlySet('max-width');
         } else {
-          final length = _parseLength(v);
-          if (length != null) {
-            style.maxWidth = length;
+          final pct = _parsePercent(v);
+          if (pct != null) {
+            style.maxWidthPercent = pct; // fraction 0–1, resolved at layout
             style.markExplicitlySet('max-width');
+          } else {
+            final length = _parseLength(v);
+            if (length != null) {
+              style.maxWidth = length;
+              style.markExplicitlySet('max-width');
+            }
           }
         }
         break;
@@ -3068,6 +3087,7 @@ class StyleResolver {
     // Text indent - inherit if not explicitly set (CSS text-indent inherits)
     if (!style.isExplicitlySet('text-indent')) {
       style.textIndent = parentStyle.textIndent;
+      style.textIndentPercent = parentStyle.textIndentPercent;
     }
 
     // White space - inherit if not explicitly set

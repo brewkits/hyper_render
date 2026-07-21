@@ -24,10 +24,10 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `width` | ✅ | px, auto | Absolute px on replaced elements (`<img>`, `<video>`). `%` is parsed but not resolved against the container |
-| `height` | ✅ | px, auto | Absolute px on replaced elements. `%` not resolved |
-| `min-width` | ❌ | — | Parsed into `ComputedStyle` but not applied to layout |
-| `max-width` | ✅ | px | Constrains a block's content width (text wraps inside it). `%` not supported |
+| `width` | ✅ | px, %, auto | Constrains a block's content width (text wraps inside it), on replaced elements too. `%` resolves against the containing block |
+| `height` | ✅ | px, auto | Absolute px on replaced elements. `%` height not supported (needs a deferred-height model) |
+| `min-width` | ✅ | px, % | Applied to block content width; wins over `max-width` per CSS |
+| `max-width` | ✅ | px, % | Constrains a block's content width (text wraps inside it) |
 | `min-height` | ✅ | px, % | |
 | `max-height` | ✅ | px, % | |
 | `margin` | ✅ | px, %, auto | All 4 directions + shorthand |
@@ -123,7 +123,7 @@ This document lists CSS property support in HyperRender.
 | `text-decoration-color` | ✅ | All CSS colors | |
 | `text-decoration-style` | ✅ | solid, dashed, dotted, double | |
 | `text-transform` | ✅ | none, uppercase, lowercase, capitalize | |
-| `text-indent` | ✅ | px, em, rem, pt | First line of a block (LTR); inherits. `%` not supported |
+| `text-indent` | ✅ | px, em, rem, pt, % | First line of a block (LTR); inherits. `%` resolves against the containing block width |
 | `text-overflow` | ✅ | clip, ellipsis | |
 | `white-space` | ✅ | normal, nowrap, pre, pre-wrap | |
 | `word-break` | ✅ | normal, break-all, keep-all | |

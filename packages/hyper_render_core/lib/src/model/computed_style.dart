@@ -387,6 +387,15 @@ class ComputedStyle {
   /// CSS max-height
   double? maxHeight;
 
+  /// CSS `width`/`max-width`/`text-indent` expressed as a percentage of the
+  /// containing block's content width (0–100). Held separately from the
+  /// absolute [width]/[maxWidth]/[textIndent] because a percentage cannot be
+  /// resolved to pixels until layout knows the container width. Resolved in
+  /// `_performLineLayout` at block start. `%` height is intentionally NOT
+  /// supported (needs a deferred-height model — see LIMITATIONS.md).
+  double? widthPercent;
+  double? maxWidthPercent;
+
   /// CSS margin (collapsed margins handled in layout)
   EdgeInsets margin;
 
@@ -451,6 +460,11 @@ class ComputedStyle {
   /// CSS text-indent — horizontal indent (logical px) of the first line of a
   /// block. INHERITABLE per CSS. Null/0 means no indent.
   double? textIndent;
+
+  /// CSS text-indent expressed as a percentage of the containing block's
+  /// content width (0–100). Like [widthPercent], resolved at layout time.
+  /// INHERITABLE (same as [textIndent]).
+  double? textIndentPercent;
 
   /// CSS vertical-align (for inline elements)
   HyperVerticalAlign verticalAlign;
@@ -699,6 +713,8 @@ class ComputedStyle {
     this.maxWidth,
     this.minHeight,
     this.maxHeight,
+    this.widthPercent,
+    this.maxWidthPercent,
     this.margin = EdgeInsets.zero,
     this.padding = EdgeInsets.zero,
     this.borderWidth = EdgeInsets.zero,
@@ -721,6 +737,7 @@ class ComputedStyle {
     this.wordSpacing,
     this.textAlign = HyperTextAlign.left,
     this.textIndent,
+    this.textIndentPercent,
     this.verticalAlign = HyperVerticalAlign.baseline,
     this.textTransform,
     this.whiteSpace,
@@ -822,7 +839,10 @@ class ComputedStyle {
     }
     if (!isExplicitlySet('word-spacing')) wordSpacing = parent.wordSpacing;
     if (!isExplicitlySet('text-align')) textAlign = parent.textAlign;
-    if (!isExplicitlySet('text-indent')) textIndent = parent.textIndent;
+    if (!isExplicitlySet('text-indent')) {
+      textIndent = parent.textIndent;
+      textIndentPercent = parent.textIndentPercent;
+    }
     if (!isExplicitlySet('white-space')) whiteSpace = parent.whiteSpace;
     if (!isExplicitlySet('text-transform')) {
       textTransform = parent.textTransform;
@@ -869,6 +889,8 @@ class ComputedStyle {
     double? maxWidth,
     double? minHeight,
     double? maxHeight,
+    double? widthPercent,
+    double? maxWidthPercent,
     EdgeInsets? margin,
     EdgeInsets? padding,
     EdgeInsets? borderWidth,
@@ -892,6 +914,7 @@ class ComputedStyle {
     double? wordSpacing,
     HyperTextAlign? textAlign,
     double? textIndent,
+    double? textIndentPercent,
     HyperVerticalAlign? verticalAlign,
     String? textTransform,
     String? whiteSpace,
@@ -973,6 +996,8 @@ class ComputedStyle {
       maxWidth: maxWidth ?? this.maxWidth,
       minHeight: minHeight ?? this.minHeight,
       maxHeight: maxHeight ?? this.maxHeight,
+      widthPercent: widthPercent ?? this.widthPercent,
+      maxWidthPercent: maxWidthPercent ?? this.maxWidthPercent,
       margin: margin ?? this.margin,
       padding: padding ?? this.padding,
       borderWidth: borderWidth ?? this.borderWidth,
@@ -995,6 +1020,7 @@ class ComputedStyle {
       wordSpacing: wordSpacing ?? this.wordSpacing,
       textAlign: textAlign ?? this.textAlign,
       textIndent: textIndent ?? this.textIndent,
+      textIndentPercent: textIndentPercent ?? this.textIndentPercent,
       verticalAlign: verticalAlign ?? this.verticalAlign,
       textTransform: textTransform ?? this.textTransform,
       whiteSpace: whiteSpace ?? this.whiteSpace,

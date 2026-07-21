@@ -199,12 +199,15 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     }
 
     // A block-start fragment is normally elided for the very first block when
-    // it has no top margin (nothing to space). But a block with `max-width`
-    // must still emit one, since that fragment is what pushes the width
+    // it has no top margin (nothing to space). But a block carrying ANY width
+    // constraint must still emit one, since that fragment is what pushes the
     // constraint onto the line-breaker's padding stack.
-    if (effectiveMarginTop > 0 ||
-        _fragments.isNotEmpty ||
-        style.maxWidth != null) {
+    final hasWidthConstraint = style.width != null ||
+        style.widthPercent != null ||
+        style.maxWidth != null ||
+        style.maxWidthPercent != null ||
+        style.minWidth != null;
+    if (effectiveMarginTop > 0 || _fragments.isNotEmpty || hasWidthConstraint) {
       _fragments.add(_BlockStartFragment(
         sourceNode: node,
         style: style,
@@ -920,18 +923,47 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final newLeftPadding = leftPaddingStack.last + fragment.paddingLeft;
         var newRightPadding = rightPaddingStack.last + fragment.paddingRight;
 
-        // CSS max-width on a block: constrain its content width by inflating
-        // the right inset so the line-breaker wraps text inside `max-width`.
-        // Implemented via the existing per-block padding stack (which already
-        // gives us nested available-width tracking), so it needs no new
-        // per-block width machinery. `%` max-width is still unsupported
-        // (needs the containing block's resolved width at parse time).
-        final blockMaxWidth = fragment.style.maxWidth;
-        if (blockMaxWidth != null) {
-          final contentAvail = _maxWidth - newLeftPadding - newRightPadding;
-          if (contentAvail > blockMaxWidth) {
-            newRightPadding = _maxWidth - newLeftPadding - blockMaxWidth;
+        // CSS width constraints on a block, resolved via the existing per-block
+        // padding stack (no separate per-block width machinery needed). We pick
+        // a target content width, then inflate the right inset so the
+        // line-breaker wraps text inside it.
+        //
+        // The containing block's content width — what `%` resolves against per
+        // CSS — is `_maxWidth − parentLeftInset − parentRightInset`, i.e. the
+        // stack tops BEFORE this block's own padding was added.
+        final st = fragment.style;
+        if (st.width != null ||
+            st.widthPercent != null ||
+            st.maxWidth != null ||
+            st.maxWidthPercent != null ||
+            st.minWidth != null) {
+          final containerContent =
+              _maxWidth - leftPaddingStack.last - rightPaddingStack.last;
+          // Default target: this block's own content width (full available).
+          var target = _maxWidth - newLeftPadding - newRightPadding;
+
+          // Explicit width (absolute or %) sets the target outright.
+          if (st.width != null) {
+            target = st.width!;
+          } else if (st.widthPercent != null) {
+            target = containerContent * st.widthPercent!;
           }
+          // max-width caps it (absolute wins over % if both somehow set).
+          final maxW = st.maxWidth ??
+              (st.maxWidthPercent != null
+                  ? containerContent * st.maxWidthPercent!
+                  : null);
+          if (maxW != null && target > maxW) target = maxW;
+          // min-width raises it — and wins over max-width per CSS.
+          if (st.minWidth != null && target < st.minWidth!) {
+            target = st.minWidth!;
+          }
+          // Clamp into the available content box: this single-column flow model
+          // has no per-block horizontal overflow, so a target wider than the
+          // container is capped rather than overflowing.
+          final avail = _maxWidth - newLeftPadding - newRightPadding;
+          target = target.clamp(0.0, avail);
+          newRightPadding = _maxWidth - newLeftPadding - target;
         }
 
         leftPaddingStack.add(newLeftPadding);
@@ -2092,9 +2124,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       // CSS text-indent: shift only the FIRST line of a block rightward.
       // LTR only (RTL is right-packed above and indent direction flips). The
       // shift moves fragment.offset, so selection/hit-testing stay correct.
+      // A `%` indent resolves against the block's own content width, which for
+      // this line is `_maxWidth − leftInset − rightInset`.
       if (!isRTL && line.fragments.isNotEmpty) {
-        final indent = line.fragments.first.style.textIndent;
-        if (indent != null && indent > 0) {
+        final st = line.fragments.first.style;
+        double indent = st.textIndent ?? 0;
+        if (st.textIndentPercent != null) {
+          final contentWidth =
+              math.max(0.0, _maxWidth - line.leftInset - line.rightInset);
+          indent += contentWidth * st.textIndentPercent!;
+        }
+        if (indent > 0) {
           final block = _nearestBlockAncestor(line.fragments.first.sourceNode);
           if (block != null && indentedBlocks.add(block)) {
             x += indent;

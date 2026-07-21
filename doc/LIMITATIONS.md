@@ -49,9 +49,7 @@ are silently ignored.
 | `position: relative` | Supported but child `absolute` positioning is not |
 | `calc()` | Arithmetic on px/em/rem only; `%` in calc not resolved |
 | `text-align` | LTR center/right on canvas paragraphs; `justify` falls back to left; per-element `direction:rtl` paragraphs keep their default right-alignment |
-| `text-indent` | Absolute lengths only; `%` (relative to containing block) not supported |
-| `max-width` | Absolute lengths only; `%` not supported. `min-width` is parsed but not applied |
-| `width` / `height: %` | Percentage dimensions are parsed but not resolved against the container; use absolute lengths |
+| `height: %` | Percentage height is not resolved — the single-pass top-down flow doesn't know a parent's resolved height while laying out its children. Use absolute px, or `aspect-ratio`. (`width`/`max-width`/`min-width`/`text-indent` with `%` ARE supported.) |
 | `border-spacing` | Not implemented |
 | `sub` / `sup` | Basic font-size reduction; vertical-align positioning is approximate |
 | Animated `color` / `background-color` | `@keyframes` (`animation-name`) animates both the widget-tier render path AND block-level text painted directly on the `RenderHyperBox` canvas (unreleased). `transition`-driven color changes still only apply on the widget tier — canvas-painted text does not re-tint on a `transition` style change |
