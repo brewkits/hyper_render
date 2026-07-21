@@ -179,6 +179,11 @@ jobs:
 
       - name: Run parse benchmarks
         run: |
+          # Must exist before `tee` writes into it — this job does not share a
+          # filesystem with the PR job that also creates it. Without this the
+          # step fails with "tee: ...: No such file or directory".
+          mkdir -p benchmark/results
+
           flutter test benchmark/parse_benchmark.dart \
             --no-test-randomize-ordering-seed \
             --reporter expanded \

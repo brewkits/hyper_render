@@ -33,7 +33,7 @@ For detailed CSS property tracking, see [`internal/CSS_SUPPORT_ROADMAP.md`](inte
   `hyper_render_markdown`, `hyper_render_highlight`, `hyper_render_clipboard`
 - **`hyper_render_devtools` v1.0.0** — UDT Tree inspector, Computed Style panel, Float region visualizer, demo mode (no live app required); published to pub.dev
 - **Golden test coverage** — Float layout, RTL/BiDi, CJK + Ruby suites pinned to ubuntu-22.04 + Flutter 3.29.2 + Noto fonts for pixel-stable CI
-- **Layout regression CI guard** — 6 fixtures (simple paragraph → 100-paragraph article) with hard 16 ms (60 FPS) thresholds; any regression fails the PR build
+- **Layout regression CI tracking** — 6 fixtures (simple paragraph → 100-paragraph article) measured against a 16 ms (60 FPS) budget on every PR. Results are recorded and posted to the PR, but are **advisory and do not block the build**: GitHub runners use software rendering and are 2–3× slower than the target hardware, so a hard gate there would fail on runner noise rather than on real regressions. Enforcing this properly requires release-mode measurement on a real device, which is not yet wired up.
 - **3-pipeline CI architecture** — Pre-flight (format + analyze, < 2 min) · Core Validation (per-package selective tests on PR, full 3-OS × 2-channel matrix on push) · Visual/Performance gates (golden + benchmark)
 
 ---

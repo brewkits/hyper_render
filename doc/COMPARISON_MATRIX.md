@@ -18,23 +18,53 @@ Last Updated: June 2026
 
 ## Performance Metrics
 
-| Metric | FWFH | WebView | super_editor | HyperRender v1.3.3 |
-|--------|------|---------|--------------|------------------|
-| **Parse Time (10K chars)** | 250ms ⚠️ | 400ms ⚠️ | N/A | **60ms ✅** |
-| **Parse Time (25K chars)** | 420ms ❌ | 800ms ❌ | N/A | **95ms ✅** |
-| **Memory Usage (10K)** | 15MB ⚠️ | 30MB ❌ | N/A | **5MB ✅** |
-| **Memory Usage (25K)** | 28MB ❌ | 45MB ❌ | N/A | **8MB ✅** |
-| **Scroll FPS (25K)** | 45fps ⚠️ | 55fps ⚠️ | 60fps ✅ | **60fps ✅** |
-| **Text Selection (25K)** | Breaks ❌ | Perfect ✅ | Perfect ✅ | **Smooth ✅** |
-| **Startup Time** | Fast ✅ | Slow ❌ | Fast ✅ | **Fast ✅** |
-| **Bundle Size Impact** | +500KB ✅ | +20MB ❌ | +800KB ✅ | **+600KB ✅** |
+> **Read this before quoting any number below.** We publish only measurements
+> that anyone can reproduce with a command in this repo, on the environment we
+> actually measured. We do **not** publish performance numbers for other
+> libraries: we have no reproducible harness for them, and an unverified
+> competitor benchmark is marketing, not data. If you need a comparison,
+> measure both on *your* content and *your* target devices — that is the only
+> number that should drive your decision.
 
-**Notes**:
-- ⚠️ **All numbers are self-measured** (not third-party verified). Run `flutter run --release benchmark/performance_test.dart` to reproduce on your hardware.
-- Benchmark devices: iPhone 13 (iOS 17) and Pixel 6 (Android 13)
-- Parse time: HTML string → first frame displayed
-- Memory: peak heap during rendering, measured via Flutter DevTools memory profiler
-- FWFH = flutter_widget_from_html v0.17.x; flutter_html v3.x not shown (deprecated, unmaintained)
+### HyperRender parse throughput — reproducible
+
+`flutter test benchmark/parse_benchmark.dart --reporter expanded`
+
+| Document size | Median | Avg | P95 |
+|---|---|---|---|
+| 1 KB | 18 ms | 16.8 ms | 24 ms |
+| 10 KB | 19 ms | 19.6 ms | 25 ms |
+| 50 KB | 33 ms | 33.2 ms | 42 ms |
+| 100 KB | 45 ms | 46.8 ms | 54 ms |
+| Complex (tables, lists, styles) | 42 ms | 42.8 ms | 52 ms |
+
+**Environment for the numbers above:** macOS (Apple Silicon), Flutter 3.41.9,
+headless `flutter test` (debug/JIT). Measured 2026-07-21.
+
+### Known caveat — these are debug-mode numbers
+
+Flutter debug/JIT is substantially slower than release/AOT on device. Treat the
+table above as a **relative regression signal**, not as the performance your
+users will see. It is neither an upper nor a lower bound for release builds.
+
+### Layout budget status — currently not met in our own harness
+
+`flutter test benchmark/layout_regression.dart --reporter expanded`
+
+The layout fixtures assert a 16 ms/frame (60 FPS) budget. In the environment
+above, 3 of 6 fixtures currently exceed their budget (`simple_paragraph`,
+`table_20_rows`, `large_article` — the last two are the heaviest fixtures).
+We publish this rather than hide it. Two things are true and neither is proven:
+debug-mode overhead may account for it, or there is real headroom to reclaim in
+`_performLineLayout`. Until it is measured in release mode on device, **we do
+not claim a verified 60 FPS figure.**
+
+### What we do claim, and why
+
+Text selection remains stable on large documents because the whole document is
+one `RenderObject` with a single hit-test tree, rather than one widget per
+element. That is an architectural property you can inspect in the source — it
+does not depend on a benchmark number.
 
 ---
 
@@ -86,6 +116,64 @@ Last Updated: June 2026
 ---
 
 ## CSS Support
+
+### Verified against competitor source (2026-07-21)
+
+The numbers here come from reading the competitors' own parsers, not from our
+impressions — they are reproducible by anyone.
+
+| Measure | HyperRender | flutter_html v3.0.0 |
+|---|---|---|
+| CSS declarations handled by the parser | **189** | **51** |
+| `float` / `clear` | Supported | Not present in `css_parser.dart` |
+| Flexbox (`display:flex` + children) | Supported | Not present |
+| CSS Grid | Supported | Not present |
+| `@keyframes` / `animation` / `transition` | Supported | Not present |
+| `transform`, `opacity`, `filter`, `box-shadow` | Supported | Not present |
+| `background-image` / gradients | Supported | Not present |
+
+*Method: `grep -oE "case '[a-z-]+':"` over each project's CSS parser
+(`packages/hyper_render_core/lib/src/style/resolver.dart` vs
+flutter_html's `lib/src/css_parser.dart` @ master), de-duplicated, with CSS
+*values* filtered out so only property names are counted.*
+
+### The "CSS float" claim, checked
+
+We claim to be the only Flutter HTML renderer with CSS float layout. Evidence:
+
+- **flutter_html** — no `float` handling anywhere in `css_parser.dart`.
+- **flutter_widget_from_html** — a GitHub code search for `float` across the
+  repository returns exactly one Dart hit, and it is *input HTML inside a test
+  fixture*, not an implementation.
+
+We consider the claim supported for these two libraries, which together account
+for the overwhelming majority of the category. We have **not** audited every
+package on pub.dev, so read it as "no other mainstream Flutter HTML renderer
+implements float", not as a proof of universal uniqueness.
+
+### What neither library supports
+
+These are frequently assumed to be HyperRender-specific gaps. They are not —
+they are category-wide limitations of native (non-WebView) HTML rendering:
+
+| Property | HyperRender | flutter_html |
+|---|---|---|
+| `position: absolute/fixed` | No (architectural) | No — open feature request [#1366](https://github.com/Sub6Resources/flutter_html/issues/1366) |
+| `z-index` | No (architectural) | No — open feature request [#1482](https://github.com/Sub6Resources/flutter_html/issues/1482) |
+| `@media` queries | No (ignored safely) | No — open bug [#1060](https://github.com/Sub6Resources/flutter_html/issues/1060): *crashes the UI* |
+| `columns` / `column-width` | No | No — open feature request [#508](https://github.com/Sub6Resources/flutter_html/issues/508) |
+
+If your content genuinely depends on absolute positioning or stacking contexts,
+a `WebView` is the honest answer — not this library, and not flutter_html.
+
+---
+
+### Full property matrix (FWFH column not independently verified)
+
+> The `FWFH` and `WebView` columns below were compiled from documentation and
+> hands-on impressions, not from a reproducible harness. Verify anything you
+> intend to rely on. The HyperRender column is authoritative and kept in sync
+> with `CSS_PROPERTIES_MATRIX.md`.
 
 | Property | FWFH | WebView | HyperRender v1.3.3 |
 |----------|------|---------|------------------|

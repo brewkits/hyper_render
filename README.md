@@ -13,7 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.10+-54C5F8.svg?logo=flutter)](https://flutter.dev)
 
-**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · 1 799 tests · XSS-safe · Zero Gradle config**
+**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · 1 900 tests · XSS-safe · Zero Gradle config**
 
 [**Quick Start**](#-quick-start) · [**Why Switch?**](#️-why-switch-the-architecture-argument) · [**API**](#-api-reference) · [**Packages**](#-packages)
 
@@ -31,7 +31,7 @@
 | Advanced Tables | Head-to-Head | Virtualized Mode |
 |:---:|:---:|:---:|
 | ![Table Demo](https://raw.githubusercontent.com/brewkits/hyper_render/main/assets/table_demo.gif) | ![Comparison Demo](https://raw.githubusercontent.com/brewkits/hyper_render/main/assets/comparison_demo.gif) | ![Performance Demo](https://raw.githubusercontent.com/brewkits/hyper_render/main/assets/performance_demo.gif) |
-| `colspan` · `rowspan` · W3C 2-pass column algorithm | Same HTML in HyperRender vs flutter_widget_from_html | Virtualized rendering — 60 FPS on documents of any length |
+| `colspan` · `rowspan` · W3C 2-pass column algorithm | Same HTML in HyperRender vs flutter_widget_from_html | Virtualized rendering — only visible sections are built and painted |
 
 ---
 
