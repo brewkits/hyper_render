@@ -69,10 +69,17 @@ extension RenderHyperBoxSelection on RenderHyperBox {
           fragment.type == FragmentType.ruby) {
         final text = fragment.text!;
         final fragmentOffset = fragment.offset ?? Offset.zero;
+        // On a justify line the glyphs are widened by word-spacing, so both
+        // the hit rect and the painter must use the justified width/style.
+        final effStyle = _effectiveFragmentStyle(fragment);
+        final effWidth = fragment.width +
+            (fragment.justifyWordSpacing == 0
+                ? 0.0
+                : _spaceCount(text) * fragment.justifyWordSpacing);
         final fragmentRect = Rect.fromLTWH(
           fragmentOffset.dx,
           fragmentOffset.dy,
-          fragment.width,
+          effWidth,
           fragment.height,
         );
 
@@ -81,7 +88,7 @@ extension RenderHyperBoxSelection on RenderHyperBox {
 
         if (position.dx <= fragmentRect.right) {
           // Click is within this fragment — find exact character position.
-          final painter = _getTextPainter(text, fragment.style);
+          final painter = _getTextPainter(text, effStyle);
           final localX = position.dx - fragmentRect.left;
           final textPosition = painter.getPositionForOffset(Offset(localX, 0));
           return fragment.globalOffset + textPosition.offset;
@@ -264,7 +271,10 @@ extension RenderHyperBoxSelection on RenderHyperBox {
                   fragment.height,
                 ));
               } else {
-                final painter = _getTextPainter(text, fragment.style);
+                // Effective style so justified selection boxes line up with
+                // the widened glyphs.
+                final painter =
+                    _getTextPainter(text, _effectiveFragmentStyle(fragment));
                 final boxes = painter.getBoxesForSelection(
                   TextSelection(
                       baseOffset: visualStart, extentOffset: visualEnd),

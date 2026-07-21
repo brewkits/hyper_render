@@ -118,7 +118,7 @@ This document lists CSS property support in HyperRender.
 | `line-height` | ✅ | px, number, % | |
 | `letter-spacing` | ✅ | px | |
 | `word-spacing` | ✅ | px | |
-| `text-align` | ✅ | left, right, center | LTR block/paragraph text. `justify` falls back to left; RTL paragraphs keep their default right-alignment (per-element `direction:rtl` override not applied) |
+| `text-align` | ✅ | left, right, center, justify | LTR block/paragraph text. `justify` distributes inter-word space (last line left-aligned per CSS). RTL paragraphs keep their default right-alignment (per-element `direction:rtl` override not applied) |
 | `text-decoration` | ✅ | none, underline, overline, line-through | |
 | `text-decoration-color` | ✅ | All CSS colors | |
 | `text-decoration-style` | ✅ | solid, dashed, dotted, double | |

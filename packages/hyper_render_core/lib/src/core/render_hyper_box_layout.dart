@@ -644,6 +644,18 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     fragment.rubyHeight = rubyPainter.height;
   }
 
+  /// The style a text/ruby fragment should actually be measured, painted and
+  /// hit-tested with, folding in any `text-align: justify` word-spacing set on
+  /// the fragment. Returns the fragment's own style unchanged when not
+  /// justified (the common case), so there's no allocation on the hot path.
+  ComputedStyle _effectiveFragmentStyle(Fragment fragment) {
+    if (fragment.justifyWordSpacing == 0) return fragment.style;
+    return fragment.style.copyWith(
+      wordSpacing:
+          (fragment.style.wordSpacing ?? 0) + fragment.justifyWordSpacing,
+    );
+  }
+
   TextPainter _getTextPainter(String text, ComputedStyle style) {
     // Per-fragment text direction (supports RTL via CSS direction: rtl)
     final fragmentDirection =
@@ -2083,12 +2095,31 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // block is its first line.
     final indentedBlocks = <UDTNode>{};
 
-    for (final line in _lines) {
+    for (int li = 0; li < _lines.length; li++) {
+      final line = _lines[li];
+      // Reset any justification from a previous pass so it never compounds.
+      for (final f in line.fragments) {
+        f.justifyWordSpacing = 0;
+      }
+
       // CSS text-align (inherited, so any fragment on the line carries the
       // block's value). Applied here as a per-line horizontal shift of the
       // free space so that hit-testing/selection — which read fragment.offset
       // directly — stay correct for free. `justify` is not a single shift
-      // (it distributes inter-word space) and is handled below.
+      // (it distributes inter-word space) and is handled just below.
+      final lineAlign = _lineTextAlign(line);
+
+      // Justify: distribute free space across inter-word gaps by widening each
+      // space (via per-fragment wordSpacing). Skipped on RTL, on the last line
+      // of a block, and on any line ending in a forced break — matching
+      // browsers, which leave those lines at their natural (start) alignment.
+      if (!isRTL &&
+          lineAlign == HyperTextAlign.justify &&
+          !_isLastLineOfBlock(li) &&
+          !_lineEndsInForcedBreak(line)) {
+        _applyJustify(line);
+      }
+
       double x;
       if (isRTL) {
         // RTL keeps its existing right-packed behavior. text-align is NOT
@@ -2146,9 +2177,91 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final fragmentBaseline = _fragmentBaseline(fragment);
         final yOffset = line.baseline - fragmentBaseline;
         fragment.offset = Offset(x, line.top + math.max(0, yOffset));
-        x += fragment.width;
+        // Advance by the JUSTIFIED width: wordSpacing adds a fixed px per
+        // space, so effective width = measured width + spaces × extra.
+        x += fragment.width +
+            (fragment.justifyWordSpacing == 0
+                ? 0.0
+                : _spaceCount(fragment.text) * fragment.justifyWordSpacing);
       }
     }
+  }
+
+  /// Number of collapsible inter-word spaces in [text] (justification gaps).
+  int _spaceCount(String? text) {
+    if (text == null || text.isEmpty) return 0;
+    var n = 0;
+    for (var i = 0; i < text.length; i++) {
+      if (text.codeUnitAt(i) == 0x20) n++;
+    }
+    return n;
+  }
+
+  /// Sets `justifyWordSpacing` on each text fragment of [line] so the line's
+  /// last visible glyph reaches the right edge. Free space is spread across
+  /// INTERNAL word gaps only — a trailing space (left over from the wrap) is
+  /// excluded from the gap count and its width is added back to the free
+  /// space, so the final word lands exactly at the edge (matching browsers).
+  void _applyJustify(LineInfo line) {
+    final available = _maxWidth - line.leftInset - line.rightInset;
+
+    // Total gaps, and the trailing-whitespace run on the last text fragment.
+    var totalGaps = 0;
+    Fragment? lastText;
+    for (final f in line.fragments) {
+      if (f.type == FragmentType.text && (f.text?.isNotEmpty ?? false)) {
+        totalGaps += _spaceCount(f.text);
+        lastText = f;
+      }
+    }
+    var trailingSpaces = 0;
+    if (lastText != null) {
+      final t = lastText.text!;
+      for (var i = t.length - 1; i >= 0 && t.codeUnitAt(i) == 0x20; i--) {
+        trailingSpaces++;
+      }
+    }
+    final internalGaps = totalGaps - trailingSpaces;
+    if (internalGaps <= 0) return; // single word (or all trailing) — no justify
+
+    // Width of the trailing spaces, to add back into the distributable space.
+    final trailingWidth = trailingSpaces == 0
+        ? 0.0
+        : trailingSpaces * _getTextPainter(' ', lastText!.style).width;
+
+    final freeSpace = available - line.width + trailingWidth;
+    if (freeSpace <= 0) return;
+
+    final extra = freeSpace / internalGaps;
+    for (final f in line.fragments) {
+      if (f.type == FragmentType.text) f.justifyWordSpacing = extra;
+    }
+  }
+
+  /// Whether line index [li] is the last line of its containing block — such
+  /// lines are not justified (CSS leaves the final line at start alignment).
+  bool _isLastLineOfBlock(int li) {
+    final line = _lines[li];
+    if (line.fragments.isEmpty) return true;
+    final block = _nearestBlockAncestor(line.fragments.first.sourceNode);
+    if (li + 1 >= _lines.length) return true;
+    final next = _lines[li + 1];
+    if (next.fragments.isEmpty) return true;
+    return _nearestBlockAncestor(next.fragments.first.sourceNode) != block;
+  }
+
+  /// Whether [line] ends in a forced `<br>` break (its final line is not
+  /// justified, same as a block's last line).
+  bool _lineEndsInForcedBreak(LineInfo line) {
+    for (var i = line.fragments.length - 1; i >= 0; i--) {
+      final f = line.fragments[i];
+      if (f.type == FragmentType.lineBreak) return true;
+      if (f.type == FragmentType.text && (f.text?.trim().isEmpty ?? true)) {
+        continue; // skip trailing whitespace
+      }
+      return false;
+    }
+    return false;
   }
 
   /// Resolves the CSS `text-align` in effect for [line]. `text-align`

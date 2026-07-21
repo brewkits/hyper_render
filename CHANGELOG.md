@@ -8,7 +8,7 @@
 
 ### ✨ New CSS Features
 
-- **`text-align` now executes for paragraph text** (center / right). Previously `text-align` only applied to widget-tier content (table cells, flex) — plain `<p>`/`<div>` text painted on the canvas ignored it and always left-aligned, despite the docs claiming support. Selection and hit-testing follow the aligned position correctly. `justify` currently falls back to left; RTL paragraphs keep their default right-alignment (per-element `direction:rtl` override is a known limitation).
+- **`text-align` now executes for paragraph text** (center / right / justify). Previously `text-align` only applied to widget-tier content (table cells, flex) — plain `<p>`/`<div>` text painted on the canvas ignored it and always left-aligned, despite the docs claiming support. Selection and hit-testing follow the aligned position correctly. **`justify`** distributes free space across each line's inter-word gaps (widening spaces via word-spacing) so every line but the last reaches the right edge; the trailing wrap-space is excluded so the final glyph lands exactly at the edge. RTL paragraphs keep their default right-alignment (per-element `direction:rtl` override is a known limitation).
 - **`text-indent` now executes** — indents the first line of a block (px/em/rem/pt; inherits). It previously had no effect at all despite being listed as supported.
 - **`max-width` now constrains a block's content width** — text wraps inside the `max-width` rather than the full container width.
 - **`min-width` now executes** — raises a block's content width, and wins over `max-width` per CSS. Previously parsed but ignored.

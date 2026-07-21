@@ -708,9 +708,10 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
   void _paintTextFragment(Canvas canvas, Offset offset, Fragment fragment,
       {Color? colorOverride}) {
     final fragmentOffset = fragment.offset ?? Offset.zero;
-    final style = colorOverride == null
-        ? fragment.style
-        : fragment.style.copyWith(color: colorOverride);
+    // _effectiveFragmentStyle folds in text-align:justify word-spacing so the
+    // painted glyphs match the justified positions computed in layout.
+    var style = _effectiveFragmentStyle(fragment);
+    if (colorOverride != null) style = style.copyWith(color: colorOverride);
     final painter = _getTextPainter(fragment.text!, style);
     painter.paint(canvas, offset + fragmentOffset);
   }

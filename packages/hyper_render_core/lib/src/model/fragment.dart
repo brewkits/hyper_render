@@ -79,6 +79,14 @@ class Fragment {
   /// hidden text is not leaked — "what you see is what you get".
   int? ellipsisVisibleLength;
 
+  /// Extra word-spacing (logical px) added to each inter-word gap when this
+  /// fragment sits on a `text-align: justify` line. Recomputed from scratch on
+  /// every `_positionFragments` pass (reset to 0 first), so it never compounds
+  /// across re-layouts. `0` means no justification. Paint, selection, and the
+  /// position pass all fold this into the fragment's effective style so the
+  /// rendered glyphs, hit-test boxes, and offsets agree.
+  double justifyWordSpacing = 0;
+
   Fragment({
     required this.type,
     this.text,
