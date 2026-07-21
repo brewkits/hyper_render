@@ -48,6 +48,11 @@ are silently ignored.
 | `opacity` | Applied per-element; stacking context opacity not propagated |
 | `position: relative` | Supported but child `absolute` positioning is not |
 | `calc()` | Arithmetic on px/em/rem only; `%` in calc not resolved |
+| `text-align` | LTR center/right on canvas paragraphs; `justify` falls back to left; per-element `direction:rtl` paragraphs keep their default right-alignment |
+| `text-indent` | Absolute lengths only; `%` (relative to containing block) not supported |
+| `max-width` | Absolute lengths only; `%` not supported. `min-width` is parsed but not applied |
+| `width` / `height: %` | Percentage dimensions are parsed but not resolved against the container; use absolute lengths |
+| `border-spacing` | Not implemented |
 | `sub` / `sup` | Basic font-size reduction; vertical-align positioning is approximate |
 | Animated `color` / `background-color` | `@keyframes` (`animation-name`) animates both the widget-tier render path AND block-level text painted directly on the `RenderHyperBox` canvas (unreleased). `transition`-driven color changes still only apply on the widget tier — canvas-painted text does not re-tint on a `transition` style change |
 | Canvas block-level `animation-name` (`RenderHyperBox`) | Only a block's own decoration + its directly-owned text/ruby fragments participate; list markers, floated images, and a *nested* animated descendant's own animation do not compose with an animating ancestor's opacity/transform (unreleased). **Avoid combining** with an inline `<span style="background:...">` inside the animated block — inline decorations paint after this pass and will visibly cover the animated text, not just fail to animate |

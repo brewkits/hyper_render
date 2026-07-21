@@ -1437,6 +1437,16 @@ class StyleResolver {
         }
         break;
 
+      case 'text-indent':
+        // Only absolute lengths (px/em/rem/pt) are honoured; `%` (relative to
+        // the containing block width) is dropped like other percentage lengths.
+        final indent = _parseLength(value);
+        if (indent != null) {
+          style.textIndent = indent;
+          style.markExplicitlySet('text-indent');
+        }
+        break;
+
       case 'vertical-align':
         final vAlign = _parseVerticalAlign(value);
         if (vAlign != null) {
@@ -3044,6 +3054,11 @@ class StyleResolver {
     // Text align - inherit if not explicitly set
     if (!style.isExplicitlySet('text-align')) {
       style.textAlign = parentStyle.textAlign;
+    }
+
+    // Text indent - inherit if not explicitly set (CSS text-indent inherits)
+    if (!style.isExplicitlySet('text-indent')) {
+      style.textIndent = parentStyle.textIndent;
     }
 
     // White space - inherit if not explicitly set

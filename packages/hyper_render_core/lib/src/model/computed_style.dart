@@ -448,6 +448,10 @@ class ComputedStyle {
   /// CSS text-align - INHERITABLE for block
   HyperTextAlign textAlign;
 
+  /// CSS text-indent — horizontal indent (logical px) of the first line of a
+  /// block. INHERITABLE per CSS. Null/0 means no indent.
+  double? textIndent;
+
   /// CSS vertical-align (for inline elements)
   HyperVerticalAlign verticalAlign;
 
@@ -716,6 +720,7 @@ class ComputedStyle {
     this.letterSpacing,
     this.wordSpacing,
     this.textAlign = HyperTextAlign.left,
+    this.textIndent,
     this.verticalAlign = HyperVerticalAlign.baseline,
     this.textTransform,
     this.whiteSpace,
@@ -817,6 +822,7 @@ class ComputedStyle {
     }
     if (!isExplicitlySet('word-spacing')) wordSpacing = parent.wordSpacing;
     if (!isExplicitlySet('text-align')) textAlign = parent.textAlign;
+    if (!isExplicitlySet('text-indent')) textIndent = parent.textIndent;
     if (!isExplicitlySet('white-space')) whiteSpace = parent.whiteSpace;
     if (!isExplicitlySet('text-transform')) {
       textTransform = parent.textTransform;
@@ -885,6 +891,7 @@ class ComputedStyle {
     double? letterSpacing,
     double? wordSpacing,
     HyperTextAlign? textAlign,
+    double? textIndent,
     HyperVerticalAlign? verticalAlign,
     String? textTransform,
     String? whiteSpace,
@@ -987,6 +994,7 @@ class ComputedStyle {
       letterSpacing: letterSpacing ?? this.letterSpacing,
       wordSpacing: wordSpacing ?? this.wordSpacing,
       textAlign: textAlign ?? this.textAlign,
+      textIndent: textIndent ?? this.textIndent,
       verticalAlign: verticalAlign ?? this.verticalAlign,
       textTransform: textTransform ?? this.textTransform,
       whiteSpace: whiteSpace ?? this.whiteSpace,

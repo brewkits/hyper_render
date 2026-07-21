@@ -187,7 +187,13 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       return;
     }
 
-    if (effectiveMarginTop > 0 || _fragments.isNotEmpty) {
+    // A block-start fragment is normally elided for the very first block when
+    // it has no top margin (nothing to space). But a block with `max-width`
+    // must still emit one, since that fragment is what pushes the width
+    // constraint onto the line-breaker's padding stack.
+    if (effectiveMarginTop > 0 ||
+        _fragments.isNotEmpty ||
+        style.maxWidth != null) {
       _fragments.add(_BlockStartFragment(
         sourceNode: node,
         style: style,
@@ -901,13 +907,31 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
         // ACCUMULATE padding for nested blocks
         final newLeftPadding = leftPaddingStack.last + fragment.paddingLeft;
-        final newRightPadding = rightPaddingStack.last + fragment.paddingRight;
+        var newRightPadding = rightPaddingStack.last + fragment.paddingRight;
+
+        // CSS max-width on a block: constrain its content width by inflating
+        // the right inset so the line-breaker wraps text inside `max-width`.
+        // Implemented via the existing per-block padding stack (which already
+        // gives us nested available-width tracking), so it needs no new
+        // per-block width machinery. `%` max-width is still unsupported
+        // (needs the containing block's resolved width at parse time).
+        final blockMaxWidth = fragment.style.maxWidth;
+        if (blockMaxWidth != null) {
+          final contentAvail = _maxWidth - newLeftPadding - newRightPadding;
+          if (contentAvail > blockMaxWidth) {
+            newRightPadding = _maxWidth - newLeftPadding - blockMaxWidth;
+          }
+        }
+
         leftPaddingStack.add(newLeftPadding);
         rightPaddingStack.add(newRightPadding);
 
         leftInset = newLeftPadding;
         rightInset = newRightPadding;
         currentX = leftInset;
+        // The insets just changed; drop the cached available width so the next
+        // getAvailableWidth() recomputes against this block's constraints.
+        _cachedAvailableWidth = null;
 
         // Track this block for decoration (background, border-left, border-radius)
         final style = fragment.style;
@@ -2010,11 +2034,62 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
   /// Step 4: Position fragments within lines (baseline alignment)
   /// Handles both LTR (left-to-right) and RTL (right-to-left) text directions
   void _positionFragments() {
+    // Tracks blocks whose first line has already consumed their `text-indent`,
+    // so only the FIRST line of each block is indented (CSS semantics). Lines
+    // are visited in document/vertical order, so the first line seen for a
+    // block is its first line.
+    final indentedBlocks = <UDTNode>{};
+
     for (final line in _lines) {
-      // For RTL, start from the right side and move left
-      // For LTR, start from the left side and move right
-      double x =
-          isRTL ? (_maxWidth - line.rightInset - line.width) : line.leftInset;
+      // CSS text-align (inherited, so any fragment on the line carries the
+      // block's value). Applied here as a per-line horizontal shift of the
+      // free space so that hit-testing/selection — which read fragment.offset
+      // directly — stay correct for free. `justify` is not a single shift
+      // (it distributes inter-word space) and is handled below.
+      double x;
+      if (isRTL) {
+        // RTL keeps its existing right-packed behavior. text-align is NOT
+        // re-applied here: HyperRender's default text-align is `left` (not
+        // CSS `start`), and inherited text-align isn't marked explicit on
+        // fragments, so an unset RTL paragraph is indistinguishable from a
+        // deliberately left-aligned one. Right-packing (CSS `start` for RTL)
+        // is the correct default and re-applying `left` here would wrongly
+        // left-pack every RTL paragraph. RTL text-align override is left as a
+        // known limitation rather than risk regressing the common RTL case.
+        x = _maxWidth - line.rightInset - line.width;
+      } else {
+        // LTR: apply text-align as a per-line shift of the free space. Reading
+        // fragment.offset keeps hit-testing/selection correct for free.
+        final align = _lineTextAlign(line);
+        final available = _maxWidth - line.leftInset - line.rightInset;
+        final freeSpace = math.max(0.0, available - line.width);
+        final double alignShift;
+        switch (align) {
+          case HyperTextAlign.center:
+            alignShift = freeSpace / 2;
+          case HyperTextAlign.right:
+            alignShift = freeSpace;
+          case HyperTextAlign.left:
+          case HyperTextAlign.justify:
+            // justify falls back to left start-x; inter-word space
+            // distribution is a separate, not-yet-implemented step.
+            alignShift = 0;
+        }
+        x = line.leftInset + alignShift;
+      }
+
+      // CSS text-indent: shift only the FIRST line of a block rightward.
+      // LTR only (RTL is right-packed above and indent direction flips). The
+      // shift moves fragment.offset, so selection/hit-testing stay correct.
+      if (!isRTL && line.fragments.isNotEmpty) {
+        final indent = line.fragments.first.style.textIndent;
+        if (indent != null && indent > 0) {
+          final block = _nearestBlockAncestor(line.fragments.first.sourceNode);
+          if (block != null && indentedBlocks.add(block)) {
+            x += indent;
+          }
+        }
+      }
 
       for (final fragment in line.fragments) {
         final fragmentBaseline = _fragmentBaseline(fragment);
@@ -2023,6 +2098,26 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         x += fragment.width;
       }
     }
+  }
+
+  /// Resolves the CSS `text-align` in effect for [line]. `text-align`
+  /// inherits, so every fragment on the line shares the block's value; we
+  /// read it from the first fragment. Lines with no fragments default to left.
+  HyperTextAlign _lineTextAlign(LineInfo line) {
+    if (line.fragments.isEmpty) return HyperTextAlign.left;
+    return line.fragments.first.style.textAlign;
+  }
+
+  /// Nearest block-level ancestor of [node] (itself if it is a [BlockNode]),
+  /// used to attribute a line to the block whose `text-indent` it should
+  /// consume. Returns null if no block ancestor exists.
+  UDTNode? _nearestBlockAncestor(UDTNode node) {
+    UDTNode? n = node;
+    while (n != null) {
+      if (n is BlockNode) return n;
+      n = n.parent;
+    }
+    return null;
   }
 
   /// Step 5: Build inline decorations for background/border across line breaks

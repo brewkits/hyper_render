@@ -24,10 +24,10 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `width` | ✅ | px, %, auto | Full support including constraints |
-| `height` | ✅ | px, %, auto | Full support including constraints |
-| `min-width` | ✅ | px, % | |
-| `max-width` | ✅ | px, % | |
+| `width` | ✅ | px, auto | Absolute px on replaced elements (`<img>`, `<video>`). `%` is parsed but not resolved against the container |
+| `height` | ✅ | px, auto | Absolute px on replaced elements. `%` not resolved |
+| `min-width` | ❌ | — | Parsed into `ComputedStyle` but not applied to layout |
+| `max-width` | ✅ | px | Constrains a block's content width (text wraps inside it). `%` not supported |
 | `min-height` | ✅ | px, % | |
 | `max-height` | ✅ | px, % | |
 | `margin` | ✅ | px, %, auto | All 4 directions + shorthand |
@@ -118,12 +118,12 @@ This document lists CSS property support in HyperRender.
 | `line-height` | ✅ | px, number, % | |
 | `letter-spacing` | ✅ | px | |
 | `word-spacing` | ✅ | px | |
-| `text-align` | ✅ | left, right, center, justify | |
+| `text-align` | ✅ | left, right, center | LTR block/paragraph text. `justify` falls back to left; RTL paragraphs keep their default right-alignment (per-element `direction:rtl` override not applied) |
 | `text-decoration` | ✅ | none, underline, overline, line-through | |
 | `text-decoration-color` | ✅ | All CSS colors | |
 | `text-decoration-style` | ✅ | solid, dashed, dotted, double | |
 | `text-transform` | ✅ | none, uppercase, lowercase, capitalize | |
-| `text-indent` | ✅ | px, % | |
+| `text-indent` | ✅ | px, em, rem, pt | First line of a block (LTR); inherits. `%` not supported |
 | `text-overflow` | ✅ | clip, ellipsis | |
 | `white-space` | ✅ | normal, nowrap, pre, pre-wrap | |
 | `word-break` | ✅ | normal, break-all, keep-all | |
@@ -172,7 +172,7 @@ This document lists CSS property support in HyperRender.
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
 | `border-collapse` | ✅ | collapse, separate | |
-| `border-spacing` | ⚠️ | px | Basic support |
+| `border-spacing` | ❌ | — | Not implemented |
 | `table-layout` | ⚠️ | auto, fixed | Content-based algorithm |
 | `vertical-align` (in cells) | ✅ | top, middle, bottom | |
 
