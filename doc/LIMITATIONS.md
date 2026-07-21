@@ -135,6 +135,30 @@ HyperViewer(
 | Very large tables (100+ rows) | Linear layout time; prefer server-side pagination |
 | `display: none` subtrees | Skipped during layout but still parsed |
 
+### Writing widget tests against large content
+
+`await tester.pumpAndSettle()` **times out** when the content is over the
+~10 KB virtualisation threshold and the mode is `auto` (the default). This is
+not a rendering failure — it is a consequence of the async parse: the work runs
+in a `Future.microtask`, which `pumpAndSettle` does not drive to completion.
+The content renders correctly at runtime.
+
+In tests, do one of the following:
+
+```dart
+// 1. Let the async parse actually run, then pump.
+await tester.pumpWidget(MyWidget());
+await tester.runAsync(() => Future.delayed(const Duration(seconds: 1)));
+await tester.pump();
+
+// 2. Or force the synchronous path when the document is small enough to
+//    render in one pass and you just want a settled tree.
+HyperViewer(html: html, mode: HyperRenderMode.sync)
+```
+
+Prefer explicit `pump(duration)` calls over `pumpAndSettle()` for any test that
+exercises virtualised or paged mode.
+
 ---
 
 ## Interactive Elements
