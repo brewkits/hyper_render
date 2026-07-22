@@ -61,12 +61,14 @@ class _StatusCard extends StatelessWidget {
             children: [
               Icon(Icons.check_circle, color: Colors.green.shade700, size: 20),
               const SizedBox(width: 8),
-              Text(
-                'CSS Animation Support — v1.1.2',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: Colors.green.shade800,
+              Expanded(
+                child: Text(
+                  'CSS Animation Support — v1.1.2',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: Colors.green.shade800,
+                  ),
                 ),
               ),
             ],
@@ -315,9 +317,11 @@ class _CssKeyframesSection extends StatelessWidget {
       children: [
         Icon(icon, color: DemoColors.accent, size: 24),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     );
@@ -384,12 +388,15 @@ class _WidgetAnimationsSection extends StatelessWidget {
             children: [
               Icon(Icons.play_circle, color: textColor, size: 18),
               const SizedBox(width: 6),
-              Text(label,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                      fontSize: 14)),
-              const Spacer(),
+              Expanded(
+                child: Text(label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        fontSize: 14)),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -428,8 +435,11 @@ class _WidgetAnimationsSection extends StatelessWidget {
       children: [
         Icon(icon, color: DemoColors.accent, size: 24),
         const SizedBox(width: 8),
-        Text(title,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Expanded(
+          child: Text(title,
+              style:
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        ),
       ],
     );
   }

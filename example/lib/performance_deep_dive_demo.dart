@@ -213,41 +213,72 @@ class _PipelineBreakdownTabState extends State<_PipelineBreakdownTab> {
   }
 
   Widget _buildControls() {
-    return Row(
-      children: [
-        const Text('Document size:',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: DropdownButton<String>(
-            value: _selectedSize,
-            isExpanded: true,
-            items: _sizes
-                .map((s) =>
-                    DropdownMenuItem(value: s, child: Text('$s document')))
-                .toList(),
-            onChanged: (v) => setState(() {
-              _selectedSize = v!;
-              _metrics = null;
-            }),
-          ),
-        ),
-        const SizedBox(width: 12),
-        ElevatedButton.icon(
-          onPressed: _isRendering ? null : _measure,
-          icon: _isRendering
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.play_arrow),
-          label: const Text('Measure'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: DemoColors.success,
-            foregroundColor: Colors.white,
-          ),
-        ),
-      ],
+    final button = ElevatedButton.icon(
+      onPressed: _isRendering ? null : _measure,
+      icon: _isRendering
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2))
+          : const Icon(Icons.play_arrow),
+      label: const Text('Measure'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: DemoColors.success,
+        foregroundColor: Colors.white,
+      ),
+    );
+
+    final dropdown = DropdownButton<String>(
+      value: _selectedSize,
+      isExpanded: true,
+      items: _sizes
+          .map((s) => DropdownMenuItem(
+                value: s,
+                child: Text('$s document', overflow: TextOverflow.ellipsis),
+              ))
+          .toList(),
+      onChanged: (v) => setState(() {
+        _selectedSize = v!;
+        _metrics = null;
+      }),
+    );
+
+    // On a phone the label + dropdown + button do not fit on one line: the
+    // dropdown gets squeezed until "5KB document" wraps and is clipped
+    // mid-word (seen on an iPhone-width simulator). Below ~420px the button
+    // moves to its own line so the dropdown keeps a readable width.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tight = constraints.maxWidth < 420;
+        final label = const Text('Document size:',
+            style: TextStyle(fontWeight: FontWeight.bold));
+
+        if (tight) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  label,
+                  const SizedBox(width: 12),
+                  Expanded(child: dropdown),
+                ],
+              ),
+              const SizedBox(height: 8),
+              button,
+            ],
+          );
+        }
+        return Row(
+          children: [
+            label,
+            const SizedBox(width: 12),
+            Expanded(child: dropdown),
+            const SizedBox(width: 12),
+            button,
+          ],
+        );
+      },
     );
   }
 
