@@ -2264,9 +2264,26 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
         title: const Text('Library Comparison'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        // NOT isScrollable: with four long labels the strip overflowed and
+        // scrolled the FIRST tab — HyperRender's own — off screen, so the
+        // comparison opened showing only the competitors. Short labels let all
+        // four fit, which also makes switching between them one tap away.
+        // Material 3 defaults the selected label to colorScheme.primary — the
+        // same colour as this AppBar's background — so the SELECTED tab's text
+        // was invisible. Since the comparison opens on HyperRender's own tab,
+        // the effect was that the app appeared to show only the competitors.
+        // Explicit on-primary colours fix it; the labels are also not scrollable
+        // so all four stay visible and one tap apart.
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: true,
+          labelColor: Theme.of(context).colorScheme.onPrimary,
+          unselectedLabelColor:
+              Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
+          indicatorColor: Theme.of(context).colorScheme.onPrimary,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+          labelStyle:
+              const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontSize: 11),
           tabs: const [
             Tab(text: 'HyperRender'),
             Tab(text: 'flutter_html'),
