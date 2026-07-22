@@ -62,66 +62,11 @@ class _UltraShowcase2026State extends State<UltraShowcase2026> {
     final buffer = StringBuffer();
     buffer.write(editorialHtml);
 
-    // Library Comparison Matrix
-    buffer.write('''
-  <h2 style="color: #F57C00; border-left: 4px solid #F57C00; padding-left: 16px;">Library Comparison Matrix</h2>
-  <p style="font-size: 16px;">
-    Why choose <strong>HyperRender</strong> over other popular rendering solutions? The table below highlights the architectural and feature differences.
-  </p>
-  <table style="width: 100%; border-collapse: collapse; margin-bottom: 32px; font-family: sans-serif; font-size: 14px;">
-    <thead>
-      <tr style="background: #F57C00; color: white;">
-        <th style="padding: 12px; border: 1px solid #E65100; text-align: left;">Feature / Library</th>
-        <th style="padding: 12px; border: 1px solid #E65100; text-align: center;">HyperRender</th>
-        <th style="padding: 12px; border: 1px solid #E65100; text-align: center;">flutter_html</th>
-        <th style="padding: 12px; border: 1px solid #E65100; text-align: center;">flutter_widget_from_html</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; font-weight: bold;">Float Layout Engine</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #2E7D32; background: #FFF3E0;">✅ Full Support</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #C62828;">❌ None</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #C62828;">❌ None</td>
-      </tr>
-      <tr style="background: #FAFAFA;">
-        <td style="padding: 10px; border: 1px solid #FFE0B2; font-weight: bold;">Ruby Annotation (CJK)</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #2E7D32; background: #FFF3E0;">✅ Full Support</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #C62828;">❌ Flat Text</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #C62828;">❌ Flat Text</td>
-      </tr>
-      <tr>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; font-weight: bold;">Text Selection</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #2E7D32; background: #FFF3E0;">✅ One document</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #F57F17;">⚠️ Per-widget</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #F57F17;">⚠️ Per-widget</td>
-      </tr>
-      <tr style="background: #FAFAFA;">
-        <td style="padding: 10px; border: 1px solid #FFE0B2; font-weight: bold;">Widget Injection</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #2E7D32; background: #FFF3E0;">✅ Native (Any Widget)</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #555;">Via CustomRender</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #555;">Via Factory</td>
-      </tr>
-      <tr>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; font-weight: bold;">Large HTML Virtualization</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #2E7D32; background: #FFF3E0;">✅ Chunked + virtualized</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #F57F17;">⚠️ Builds full tree</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #F57F17;">⚠️ Builds full tree</td>
-      </tr>
-      <tr style="background: #FAFAFA;">
-        <td style="padding: 10px; border: 1px solid #FFE0B2; font-weight: bold;">Rendering Architecture</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #2E7D32; background: #FFF3E0;">Custom RenderObject</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #555;">Widget Tree Mapping</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #555;">Widget Tree Mapping</td>
-      </tr>
-    </tbody>
-  </table>
-  <p style="font-size: 12px; color: #9E9E9E; margin: 8px 0 0 0; font-style: italic;">
-    The flutter_html and flutter_widget_from_html columns describe feature
-    support at the architecture level, not a benchmark — verify anything you
-    intend to rely on against the current version of each library.
-  </p>
-''');
+    // The library-comparison matrix that used to sit here was one of three
+    // copies of the same table in the app. It now lives only on the Library
+    // Comparison screen, next to the live side-by-side rendering that backs
+    // it up — a single table that cannot drift out of sync with the others.
+    // This screen keeps its own job: showing everything at once on one page.
 
     buffer.write('''
   <h2 style="color: #388E3C; border-left: 4px solid #388E3C; padding-left: 16px;">The "Giant Div" Virtualization</h2>

@@ -38,7 +38,6 @@ import 'package:example/smart_table_demo.dart';
 import 'package:example/sprint3_demo.dart';
 import 'package:example/ultra_showcase_2026.dart';
 import 'package:example/v2_1_showcase.dart';
-import 'package:example/why_hyper_render_demo.dart';
 
 /// Each entry: a label and a builder for the demo's screen widget.
 final _demos = <String, Widget Function()>{
@@ -64,7 +63,6 @@ final _demos = <String, Widget Function()>{
   'Sprint3Demo': () => const Sprint3Demo(),
   'UltraShowcase2026': () => const UltraShowcase2026(),
   'V21Showcase': () => const V21Showcase(),
-  'WhyHyperRenderDemo': () => const WhyHyperRenderDemo(),
 };
 
 void main() {
