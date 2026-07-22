@@ -18,6 +18,7 @@ import 'video_demo_improved.dart';
 import 'enhanced_selection_demo.dart';
 import 'fwfh_issues_test_demo.dart';
 import 'css_properties_demo.dart';
+import 'css_mastery_demo.dart';
 import 'flexbox_demo.dart';
 import 'demo_colors.dart';
 import 'performance_deep_dive_demo.dart';
@@ -221,6 +222,17 @@ class DemoHomePage extends StatelessWidget {
           ),
           // ── Text & Typography ─────────────────────────────────────────────
           _buildSectionHeader(context, 'Text & Typography'),
+          _buildDemoCard(
+            context,
+            icon: Icons.tune,
+            title: 'CSS Mastery (interactive)',
+            subtitle:
+                'Drag to change the CSS live — border-spacing, justify, text-indent, '
+                '%-widths, text scaling, animation-play-state',
+            color: const Color(0xFF00695C),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const CssMasteryDemo())),
+          ),
           _buildDemoCard(
             context,
             icon: Icons.select_all,
