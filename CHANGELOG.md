@@ -35,8 +35,15 @@
 - **`<a>` without `href` was styled as a link**: a placeholder anchor like `<a name="x">Text</a>` got the blue link colour and underline. Browsers only style `a[href]`; HyperRender now matches, leaving href-less anchors as plain text. Found via flutter_widget_from_html #676.
 - **Bootstrap 4/5 logical float classes split away from their content in large documents**: the root `HtmlAdapter` (the one `HyperViewer` runs) recognised `float-left`/`float-right` but not `float-start`/`float-end`, so a block floated with the Bootstrap 4/5 utilities could be chunked into a different virtualized section than the text meant to wrap around it. Both adapters now share one superset heuristic (Bootstrap `pull-*`/`float-*`/`float-start`/`float-end`, Tailwind, WordPress `align*`, legacy `float` attribute + inline `float:` style).
 
+### 📦 Dependencies
+
+- **`hyper_render` no longer depends on `hyper_render_html`, `hyper_render_markdown` or `hyper_render_highlight`.** These were declared but never imported: the root package implements its own HTML/Markdown/highlight parsing directly on `html`/`csslib`/`markdown`/`flutter_highlight`, so the three packages were pure install weight. Rendering behaviour is completely unchanged. They remain separately published — if you `import 'package:hyper_render_html/...'` (or `_markdown`/`_highlight`) **add an explicit dependency on it**, as you should for any package you import directly rather than relying on a transitive one.
+
 ### ♻️ Internal
 
+- **Deprecation annotations that actually warn**: `TableParentData` carried only a `/// @deprecated` doc comment, which the analyzer ignores — callers got no warning for a class the renderer never uses. It now has a real `@Deprecated(...)` annotation, as do the ignored `SmartTableWrapper.minScaleFactor` / `minColumnWidth` parameters. All three are slated for removal in v2.0; nothing is removed in this release.
+- **Removed a stale tracked `pubspec.yaml.backup`** (pinned at v1.4.0 while the real pubspec was v1.5.0) and fixed the publish script's restore instruction, which told you to `cp` from that file — following it would have silently downgraded the version. It now says `git checkout pubspec.yaml`.
+- **Documented the root ↔ sub-package parser duplication** in LIMITATIONS.md, including which copy `HyperViewer` actually runs, so a parser fix isn't applied to only one of them (this has already caused two bugs).
 - **CI: the weekly benchmark job now alerts on failure** — a scheduled-run failure opens (or comments on) a tracking issue instead of sitting as an unwatched red X, so a silent breakage like the month-long `mkdir` typo surfaces immediately.
 
 - Timing-curve resolution, keyframe-name lookup, and the translate/scale/rotate transform matrix used to build a CSS animation frame are now shared top-level helpers (`curveFromHyperTiming`, `resolveHyperKeyframes`, `matrix4FromHyperKeyframe` in `animation_controller.dart`) instead of being duplicated between the widget-tier and canvas-tier animation code.

@@ -576,7 +576,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     return SmartTableWrapper(
       tableNode: node,
       strategy: strategy,
-      minScaleFactor: 0.6,
+      // minScaleFactor is deprecated and ignored — it was passed at its own
+      // default value, so dropping it changes nothing.
       selectable: selectable,
       onLinkTap: onLinkTap,
       // Supply a cell builder so that cells containing block-level content

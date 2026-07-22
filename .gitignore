@@ -88,3 +88,9 @@ test/golden/failures/
 # (Note: top-level `docs/` was removed in v1.3.2 — pub.dev convention is `doc/`.
 # Internal-only review notes live in `doc/internal/` which is gitignored above.)
 *.scratch.md
+
+# Manual pubspec backups taken during a publish run. These go stale the moment
+# the version bumps, and a tracked stale copy is worse than none — restore with
+# `git checkout pubspec.yaml` instead.
+pubspec.yaml.backup
+*.pubspec.backup

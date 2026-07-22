@@ -101,10 +101,19 @@ class SmartTableWrapper extends StatelessWidget {
   final TableNode tableNode;
   final TableStrategy strategy;
 
-  /// No longer used for auto-switching logic (kept for API compat).
+  /// Ignored. The auto-switching logic this fed was replaced by the statically
+  /// resolved [TableStrategy]; the value is stored but never read.
+  @Deprecated(
+    'Ignored since the strategy became static — setting it has no effect. '
+    'Use `strategy` instead; this parameter will be removed in v2.0.',
+  )
   final double minScaleFactor;
 
-  /// No longer used for auto-switching logic (kept for API compat).
+  /// Ignored. See [minScaleFactor].
+  @Deprecated(
+    'Ignored since the strategy became static — setting it has no effect. '
+    'Use `strategy` instead; this parameter will be removed in v2.0.',
+  )
   final double minColumnWidth;
 
   final TextStyle? baseStyle;
@@ -1382,8 +1391,17 @@ class _RenderHyperTable extends RenderBox
 // by name does not break at compile time.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// @deprecated  Use the internal [_TableCellParentData] instead.
-/// Kept only for backwards API compatibility.
+/// Unused: [HyperTable] attaches `_TableCellParentData` to its cells, so an
+/// instance of this class is never created or read by the renderer. It is kept
+/// only so existing code that names the type still compiles.
+///
+/// NOTE: this previously carried only a `/// @deprecated` doc comment, which
+/// the analyzer does not act on — callers got no warning at all. The real
+/// annotation below makes the deprecation visible before the symbol is removed.
+@Deprecated(
+  'Unused by the renderer — HyperTable uses its own internal parent data. '
+  'Remove any reference to it; this class will be deleted in v2.0.',
+)
 class TableParentData extends ContainerBoxParentData<RenderBox> {
   int column = 0;
   int row = 0;

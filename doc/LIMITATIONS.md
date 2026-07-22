@@ -183,4 +183,35 @@ final registry = HyperPluginRegistry()
 
 ---
 
-*Last updated: June 24, 2026 — HyperRender v1.4.0*
+## Known Internal Duplication (maintainers)
+
+The root `hyper_render` package implements HTML/Markdown/highlight parsing
+**itself**, on top of `html` / `csslib` / `markdown` / `flutter_highlight`. The
+separately published `hyper_render_html`, `hyper_render_markdown` and
+`hyper_render_highlight` packages contain a second, parallel implementation of
+the same ground.
+
+Consequences you need to know when fixing a parser-level bug:
+
+- `HyperViewer` (and everything reached through `package:hyper_render`) runs the
+  **root** copy in `lib/src/parser/` and `lib/src/plugins/` — *not* the
+  sub-package copy. A fix applied to only one of them silently misses half the
+  users. This has already caused two real bugs: the `&nbsp;` whitespace fix had
+  to be applied twice, and Bootstrap's `float-start`/`float-end` was recognised
+  in the package copy but missing from the root one.
+- The copies have drifted: ~19 differing hunks in `HtmlAdapter` and ~8 in
+  `DefaultCssParser`. Not all differences are accidental — the large-document
+  flatten behaviour differs **by design** (see the "Performance" note above),
+  so these cannot be merged mechanically.
+- Since the root package does not import them, `hyper_render_html` and friends
+  are **not** dependencies of `hyper_render`. Use them standalone by depending
+  on them explicitly. Their tests must also be run from inside their own
+  package directory (`cd packages/hyper_render_html && flutter test`).
+
+Consolidating to a single implementation is the intended direction, but it is a
+task in its own right — it requires reconciling those hunks deliberately, with
+the full suite plus goldens as the safety net.
+
+---
+
+*Last updated: July 22, 2026 — HyperRender v1.5.x (unreleased branch)*

@@ -35,7 +35,11 @@ ok "Prerequisites OK"
 
 # ── 1. Tests ─────────────────────────────────────────────────────────────────
 step "Running tests..."
-flutter test test/ packages/hyper_render_core/test/ packages/hyper_render_html/test/ --exclude-tags golden || fail "Tests failed. Fix before publishing."
+flutter test test/ packages/hyper_render_core/test/ --exclude-tags golden || fail "Tests failed. Fix before publishing."
+# hyper_render_html is published separately and is NOT a dependency of the root
+# package, so its tests must run against its own pubspec — the root's package
+# config cannot resolve `package:hyper_render_html`.
+(cd packages/hyper_render_html && flutter test --exclude-tags golden) || fail "hyper_render_html tests failed. Fix before publishing."
 ok "All tests passed"
 
 # ── 2. Static analysis ───────────────────────────────────────────────────────
@@ -163,6 +167,10 @@ echo "    7. cd packages/hyper_render_math      && dart pub publish"
 echo "    8. dart pub publish    (from repo root)"
 echo ""
 echo -e "${YELLOW}  After publishing, restore dev pubspecs:${NC}"
-echo "    cp pubspec.yaml.backup pubspec.yaml"
+# Restore from git, NOT from a pubspec.yaml.backup copy: this script never
+# creates that file, and any leftover copy is from an older release (a stale
+# one was tracked in the repo at v1.4.0 while the real pubspec was at v1.5.0 —
+# following the old instruction would have silently downgraded the version).
+echo "    git checkout pubspec.yaml"
 echo "    git checkout packages/*/pubspec.yaml"
 echo ""
