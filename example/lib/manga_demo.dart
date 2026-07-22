@@ -678,10 +678,10 @@ class _FuriganaTab extends StatelessWidget {
     <div class="note">Annotation appears above, aligned to base text</div>
   </div>
   <div class="comp-box" style="background:#FFF3E0;">
-    <div class="comp-title bad">❌ flutter_html / FWFH</div>
+    <div class="comp-title bad">⚠️ Without native ruby positioning</div>
     <div class="comp-sample raw">剣士けんし が 走はしる</div>
     <div class="note" style="color:#E65100;">
-      &lt;rt&gt; shown inline as raw text — broken
+      &lt;rt&gt; falls inline next to the base instead of sitting above it
     </div>
   </div>
   <div class="comp-clear"></div>
