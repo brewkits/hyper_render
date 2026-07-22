@@ -71,6 +71,57 @@ void main() {
           '<h2 style="font-size: 20px; line-height: 1.5;">x</h2>', 'h2');
       expect(style!.lineHeight, closeTo(1.5, 0.0001));
     });
+
+    // The original FH-1367 fix only worked when `font-size` happened to be
+    // written BEFORE `line-height`, because declarations were applied in
+    // source order. A CSS computed value must never depend on the order
+    // properties are written in — `font-size` is now resolved ahead of the
+    // declarations that reference it, on both the inline-style and the
+    // stylesheet path.
+    test('declaration order does not change the result (inline style)', () {
+      final fontSizeFirst =
+          _styleOfTag('<p style="font-size:20px;line-height:30px">x</p>', 'p');
+      final lineHeightFirst =
+          _styleOfTag('<p style="line-height:30px;font-size:20px">x</p>', 'p');
+      // 30px / 20px = 1.5 either way.
+      expect(fontSizeFirst!.lineHeight, closeTo(1.5, 0.0001));
+      expect(lineHeightFirst!.lineHeight, closeTo(1.5, 0.0001));
+    });
+
+    test('declaration order does not change the result (stylesheet)', () {
+      final fontSizeFirst = _styleOfTag(
+        '<style>p { font-size:20px; line-height:30px; }</style><p>x</p>',
+        'p',
+      );
+      final lineHeightFirst = _styleOfTag(
+        '<style>p { line-height:30px; font-size:20px; }</style><p>x</p>',
+        'p',
+      );
+      expect(fontSizeFirst!.lineHeight, closeTo(1.5, 0.0001));
+      expect(lineHeightFirst!.lineHeight, closeTo(1.5, 0.0001));
+    });
+
+    test('em line-height also uses the element\'s own font-size, any order',
+        () {
+      // `line-height: 2em` on a 20px element = 40px = multiplier 2.0.
+      final after =
+          _styleOfTag('<p style="font-size:20px;line-height:2em">x</p>', 'p');
+      final before =
+          _styleOfTag('<p style="line-height:2em;font-size:20px">x</p>', 'p');
+      expect(after!.lineHeight, closeTo(2.0, 0.0001));
+      expect(before!.lineHeight, closeTo(2.0, 0.0001));
+    });
+
+    test('a later duplicate font-size still wins (cascade within a block)', () {
+      // Both font-size declarations precede nothing special; the LAST one wins
+      // per CSS, so the reference is 40px → 20px/40px = 0.5.
+      final style = _styleOfTag(
+        '<p style="font-size:10px;line-height:20px;font-size:40px">x</p>',
+        'p',
+      );
+      expect(style!.fontSize, closeTo(40, 0.0001));
+      expect(style.lineHeight, closeTo(0.5, 0.0001));
+    });
   });
 
   group('FH-1439 — &nbsp;-only text is not collapsible whitespace', () {

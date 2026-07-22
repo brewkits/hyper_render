@@ -120,6 +120,11 @@ abstract final class _Re {
   );
 }
 
+/// The one property that must be resolved before every other declaration in
+/// the same block, because other properties reference it (`line-height` in
+/// absolute units, and any `em` length).
+const String _kFontSizeProperty = 'font-size';
+
 class StyleResolver {
   /// Parsed CSS rules from <style> tags
   final List<CssRule> _cssRules = [];
@@ -1248,7 +1253,25 @@ class StyleResolver {
     double? parentFontSize,
     Map<String, String>? inheritedCustomProps,
   }) {
+    // `font-size` MUST be applied before any declaration that uses it as a
+    // reference — `line-height: 30px` divides by the element's own font-size to
+    // get its multiplier, and `em` lengths scale by it. In CSS a computed value
+    // never depends on source order within a block, but this loop does, so
+    // font-size is hoisted to the front. Same-property precedence is unaffected:
+    // `declarations` is a Map, so each property already appears exactly once.
+    final hoistedFontSize = declarations[_kFontSizeProperty];
+    if (hoistedFontSize != null) {
+      style = _applySingleDeclaration(
+        style,
+        _kFontSizeProperty,
+        hoistedFontSize,
+        parentFontSize: parentFontSize,
+        inheritedCustomProps: inheritedCustomProps,
+      );
+    }
+
     for (final entry in declarations.entries) {
+      if (entry.key == _kFontSizeProperty) continue; // already applied above
       style = _applySingleDeclaration(
         style,
         entry.key,
@@ -3010,6 +3033,13 @@ class StyleResolver {
     // Split on ';' only when not inside any pair of parentheses.
     final declarations = _splitDeclarations(inlineStyle);
 
+    // Parse into (property, value) pairs first so `font-size` can be applied
+    // ahead of the rest — see the same hoist in [_applyDeclarations]. Without
+    // it, `style="line-height:30px;font-size:20px"` resolved line-height
+    // against the PARENT's font-size (wrong multiplier), while the reverse
+    // order resolved it correctly: a computed value must not depend on the
+    // order properties happen to be written in.
+    final pairs = <MapEntry<String, String>>[];
     for (final decl in declarations) {
       // Split on the FIRST ':' to separate property from value.
       // (Values like `url(http://…)` contain colons — only the first one matters.)
@@ -3018,14 +3048,35 @@ class StyleResolver {
       final property = decl.substring(0, colonIdx).trim();
       final value = decl.substring(colonIdx + 1).trim();
       if (property.isNotEmpty && value.isNotEmpty) {
-        style = _applySingleDeclaration(
-          style,
-          property,
-          value,
-          parentFontSize: parentFontSize,
-          inheritedCustomProps: inheritedCustomProps,
-        );
+        pairs.add(MapEntry(property, value));
       }
+    }
+
+    // A later duplicate of the same property wins (CSS cascade within a block),
+    // so hoist the LAST font-size declaration.
+    String? hoistedFontSize;
+    for (final p in pairs) {
+      if (p.key == _kFontSizeProperty) hoistedFontSize = p.value;
+    }
+    if (hoistedFontSize != null) {
+      style = _applySingleDeclaration(
+        style,
+        _kFontSizeProperty,
+        hoistedFontSize,
+        parentFontSize: parentFontSize,
+        inheritedCustomProps: inheritedCustomProps,
+      );
+    }
+
+    for (final p in pairs) {
+      if (p.key == _kFontSizeProperty) continue; // already applied above
+      style = _applySingleDeclaration(
+        style,
+        p.key,
+        p.value,
+        parentFontSize: parentFontSize,
+        inheritedCustomProps: inheritedCustomProps,
+      );
     }
     return style;
   }
