@@ -130,5 +130,30 @@ void main() {
         matchesGoldenFile('goldens/canvas_block_animation_paused.png'),
       );
     });
+
+    // The opacity layer's bounds are now the block's own rect rather than the
+    // whole canvas (so one animating block doesn't allocate a document-sized
+    // buffer every frame). A box-shadow paints OUTSIDE that rect, so it is the
+    // case most likely to get clipped by bounds that are too tight —
+    // _animatedLayerBounds has to grow the rect by each shadow's
+    // offset + spread + blur. Nothing checked that before this golden.
+    testWidgets('box-shadow is not clipped by the opacity layer bounds',
+        (tester) async {
+      await _pumpAnimated(
+        tester,
+        '<style>@keyframes fade { from { opacity: 0.2; } to { opacity: 0.8; } '
+        '}</style>'
+        // Large blur + spread + a downward/rightward offset, so the shadow
+        // extends well past the block on three sides.
+        '<p style="animation: fade 400ms linear; '
+        'background-color: #2050c0; padding: 10px; '
+        'box-shadow: 6px 8px 14px 4px #d02020;">Shadowed</p>',
+        advanceBy: const Duration(milliseconds: 200),
+      );
+      await expectLater(
+        find.byKey(_goldenKey),
+        matchesGoldenFile('goldens/canvas_block_animation_boxshadow.png'),
+      );
+    });
   });
 }
