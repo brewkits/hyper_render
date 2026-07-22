@@ -468,39 +468,55 @@ class _PerformanceMonitoringDemoState
 
         const SizedBox(height: 16),
 
-        // Render with performance monitoring
+        // Run a REAL measurement (parse + style resolution) on this device and
+        // record it below. Nothing is hardcoded — the numbers come from a
+        // Stopwatch around the library's own HtmlAdapter / StyleResolver.
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            icon: const Icon(Icons.play_arrow),
+            label: Text('Measure "${size['name']}" on this device'),
+            onPressed: () => _runBenchmark(size),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Render the document being measured.
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: HyperViewer(
-              html: size['html'],
-              // Performance monitoring would go here in real implementation
-            ),
+            child: HyperViewer(html: size['html']),
           ),
         ),
 
         const SizedBox(height: 16),
 
         // Performance reports
-        if (_performanceReports.isNotEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Performance Reports:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 12),
-                  ..._performanceReports.map((report) {
-                    return _buildPerformanceReport(report);
-                  }),
-                ],
-              ),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Measured on this device:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                if (_performanceReports.isEmpty)
+                  Text(
+                    'Tap “Measure …” above to time parse + style resolution '
+                    'for the selected document. Results are real Stopwatch '
+                    'numbers from your device, not hardcoded.',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  )
+                else
+                  ..._performanceReports.map(_buildPerformanceReport),
+              ],
             ),
           ),
+        ),
 
         const SizedBox(height: 16),
 
@@ -563,13 +579,66 @@ print('P95: \${report.p95Duration.inMilliseconds}ms');
     );
   }
 
+  /// Measures parse + style-resolution time for [size]'s HTML on THIS device
+  /// with a real Stopwatch (median of a few runs), and records the result.
+  ///
+  /// Only the phases that can be timed in isolation are measured. Layout/paint
+  /// happen asynchronously inside the render pipeline and cannot be isolated
+  /// from a plain function call, so they are deliberately not reported here
+  /// rather than invented.
+  void _runBenchmark(Map<String, dynamic> size) {
+    final html = size['html'] as String;
+    const runs = 5;
+
+    int medianMicros(void Function() body) {
+      final samples = <int>[];
+      for (var i = 0; i < runs; i++) {
+        final sw = Stopwatch()..start();
+        body();
+        sw.stop();
+        samples.add(sw.elapsedMicroseconds);
+      }
+      samples.sort();
+      return samples[samples.length ~/ 2];
+    }
+
+    // Warm up once so the first-run JIT/allocation cost isn't counted.
+    final warmDoc = HtmlAdapter().parse(html);
+    StyleResolver().resolveStyles(warmDoc);
+
+    final parseUs = medianMicros(() => HtmlAdapter().parse(html));
+    final doc = HtmlAdapter().parse(html);
+    final styleUs = medianMicros(() => StyleResolver().resolveStyles(doc));
+    final totalMs = (parseUs + styleUs) / 1000.0;
+
+    // Rate against the panel's own target budget (parse+style only).
+    final targetMs = double.tryParse(
+            (size['target'] as String).replaceAll(RegExp(r'[^0-9.]'), '')) ??
+        100;
+    final rating = totalMs <= targetMs * 0.5
+        ? 'Excellent'
+        : totalMs <= targetMs
+            ? 'Good'
+            : 'Over budget';
+
+    String ms(int micros) => (micros / 1000.0).toStringAsFixed(2);
+    setState(() {
+      _performanceReports.insert(0, {
+        'rating': rating,
+        'total': totalMs.toStringAsFixed(2),
+        'parse': ms(parseUs),
+        'style': ms(styleUs),
+      });
+    });
+  }
+
   Widget _buildPerformanceReport(Map<String, dynamic> report) {
     final rating = report['rating'] as String;
     final color = rating == 'Excellent'
         ? Colors.green
         : rating == 'Good'
             ? Colors.blue
-            : Colors.orange;
+            : Colors.deepOrange;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -605,8 +674,13 @@ print('P95: \${report.p95Duration.inMilliseconds}ms');
           ),
           const SizedBox(height: 4),
           Text(
-            'Parse: ${report['parse']}ms • Style: ${report['style']}ms • Layout: ${report['layout']}ms',
+            'Parse: ${report['parse']}ms • Style resolve: ${report['style']}ms '
+            '(median of 5 runs, this device)',
             style: const TextStyle(fontSize: 12),
+          ),
+          const Text(
+            'Layout & paint run asynchronously and are not isolated here.',
+            style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
           ),
         ],
       ),
