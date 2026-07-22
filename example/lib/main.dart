@@ -19,6 +19,7 @@ import 'enhanced_selection_demo.dart';
 import 'fwfh_issues_test_demo.dart';
 import 'css_properties_demo.dart';
 import 'css_mastery_demo.dart';
+import 'essence_tour_demo.dart';
 import 'flexbox_demo.dart';
 import 'demo_colors.dart';
 import 'performance_deep_dive_demo.dart';
@@ -126,6 +127,17 @@ class DemoHomePage extends StatelessWidget {
           const SizedBox(height: 8),
           // ── Signature Features ────────────────────────────────────────────
           _buildSectionHeader(context, 'Signature Features'),
+          _buildDemoCard(
+            context,
+            icon: Icons.explore,
+            title: 'Start here — the 7-step tour',
+            subtitle:
+                'Why HyperRender exists: float, CJK ruby, whole-document selection, '
+                'real CSS, layout, a11y, safety — each shown live',
+            color: const Color(0xFF1A56DB),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const EssenceTourDemo())),
+          ),
           _buildDemoCard(
             context,
             icon: Icons.auto_awesome,
