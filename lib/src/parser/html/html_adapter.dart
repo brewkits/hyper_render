@@ -326,6 +326,14 @@ class HtmlAdapter {
         String? src = element.attributes['src'];
         if (src != null) {
           src = _resolveUrl(src, baseUrl);
+          // Defense-in-depth: HtmlSanitizer normally strips dangerous schemes
+          // upstream, but a caller using HtmlAdapter directly (or with
+          // sanitize:false) would otherwise let `file:`/`javascript:`/`data:`
+          // etc. reach image-loading. Mirrors the gate the Markdown, Delta,
+          // and hyper_render_html adapters already apply.
+          if (src != null && !UrlSafety.isSafe(src)) {
+            src = '';
+          }
         }
 
         return AtomicNode(
@@ -370,7 +378,11 @@ class HtmlAdapter {
         if (href != null) {
           final resolvedHref = _resolveUrl(href, baseUrl);
           if (resolvedHref != null) {
-            element.attributes['href'] = resolvedHref;
+            // Defense-in-depth: block dangerous link schemes (javascript:,
+            // file:, etc.) even when the caller bypasses HtmlSanitizer. An
+            // unsafe href becomes '#' so the anchor renders but taps nowhere.
+            element.attributes['href'] =
+                UrlSafety.isSafe(resolvedHref) ? resolvedHref : '#';
           }
         }
       }
