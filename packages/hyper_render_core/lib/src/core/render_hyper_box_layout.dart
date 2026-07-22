@@ -199,15 +199,22 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     }
 
     // A block-start fragment is normally elided for the very first block when
-    // it has no top margin (nothing to space). But a block carrying ANY width
-    // constraint must still emit one, since that fragment is what pushes the
-    // constraint onto the line-breaker's padding stack.
+    // it has no top margin (nothing to space). But the block-start fragment is
+    // also what carries this block's padding and any width constraint onto the
+    // line-breaker's padding stack — so it must still be emitted when the block
+    // has non-zero padding or a width constraint, even as the first block.
+    // (A first `<p>` was unaffected only because it has a default top margin;
+    // a first `<div style="padding:…">` silently lost its padding.)
     final hasWidthConstraint = style.width != null ||
         style.widthPercent != null ||
         style.maxWidth != null ||
         style.maxWidthPercent != null ||
         style.minWidth != null;
-    if (effectiveMarginTop > 0 || _fragments.isNotEmpty || hasWidthConstraint) {
+    final hasPadding = style.padding != EdgeInsets.zero;
+    if (effectiveMarginTop > 0 ||
+        _fragments.isNotEmpty ||
+        hasWidthConstraint ||
+        hasPadding) {
       _fragments.add(_BlockStartFragment(
         sourceNode: node,
         style: style,
