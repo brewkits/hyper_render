@@ -82,9 +82,8 @@ class WhyHyperRenderDemo extends StatelessWidget {
         Tap to expand — Why use HyperRender?
       </summary>
       <p style="margin: 10px 0 0 0; color: #333; font-size: 14px; line-height: 1.7;">
-        HyperRender is the only Flutter HTML library that natively supports
-        &lt;details&gt;/&lt;summary&gt; with animated expand/collapse — no JavaScript,
-        no WebView, pure Flutter.
+        HyperRender renders &lt;details&gt;/&lt;summary&gt; natively with animated
+        expand/collapse — no JavaScript, no WebView, pure Flutter.
       </p>
     </details>
     <details style="background: white; border: 1px solid #c8e6c9; border-radius: 8px;

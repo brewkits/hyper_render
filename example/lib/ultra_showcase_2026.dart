@@ -92,9 +92,9 @@ class _UltraShowcase2026State extends State<UltraShowcase2026> {
       </tr>
       <tr>
         <td style="padding: 10px; border: 1px solid #FFE0B2; font-weight: bold;">Text Selection</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #2E7D32; background: #FFF3E0;">✅ Seamless</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #F57F17;">⚠️ Box-by-Box</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #C62828;">❌ Crashes on complex HTML</td>
+        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #2E7D32; background: #FFF3E0;">✅ One document</td>
+        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #F57F17;">⚠️ Per-widget</td>
+        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #F57F17;">⚠️ Per-widget</td>
       </tr>
       <tr style="background: #FAFAFA;">
         <td style="padding: 10px; border: 1px solid #FFE0B2; font-weight: bold;">Widget Injection</td>
@@ -105,8 +105,8 @@ class _UltraShowcase2026State extends State<UltraShowcase2026> {
       <tr>
         <td style="padding: 10px; border: 1px solid #FFE0B2; font-weight: bold;">Large HTML Virtualization</td>
         <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #2E7D32; background: #FFF3E0;">✅ Chunked + virtualized</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #F57F17;">⚠️ High Memory</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #C62828;">❌ Freezes UI</td>
+        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #F57F17;">⚠️ Builds full tree</td>
+        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #F57F17;">⚠️ Builds full tree</td>
       </tr>
       <tr style="background: #FAFAFA;">
         <td style="padding: 10px; border: 1px solid #FFE0B2; font-weight: bold;">Rendering Architecture</td>
@@ -116,6 +116,11 @@ class _UltraShowcase2026State extends State<UltraShowcase2026> {
       </tr>
     </tbody>
   </table>
+  <p style="font-size: 12px; color: #9E9E9E; margin: 8px 0 0 0; font-style: italic;">
+    The flutter_html and flutter_widget_from_html columns describe feature
+    support at the architecture level, not a benchmark — verify anything you
+    intend to rely on against the current version of each library.
+  </p>
 ''');
 
     buffer.write('''

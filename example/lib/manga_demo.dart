@@ -721,7 +721,7 @@ class _FuriganaTab extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           color: const Color(0xFFB71C1C),
           child: const Text(
-            'HyperRender is the only Flutter HTML library that correctly renders <ruby>/<rt>',
+            'Native <ruby>/<rt> with full Kinsoku line-breaking — no WebView. flutter_html and FWFH do not.',
             style: TextStyle(color: Colors.white, fontSize: 12),
           ),
         ),

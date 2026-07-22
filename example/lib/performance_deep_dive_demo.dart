@@ -1037,7 +1037,13 @@ class _MemoryTabState extends State<_MemoryTab> {
           ],
         ),
         const SizedBox(height: 16),
-        // Memory comparison table
+        // NOTE: this used to show a hardcoded 3-library memory bar chart
+        // (HyperRender 8MB / FWFH 15 / flutter_html 28) labelled "estimated".
+        // Those competitor numbers were never measured — the project publishes
+        // only figures anyone can reproduce (see doc/COMPARISON_MATRIX.md), so
+        // the fabricated comparison was removed. HyperRender's OWN memory is
+        // measured live in the metric card above; there is no in-app harness to
+        // measure the other libraries fairly, so no competitor bars are shown.
         Card(
           elevation: 2,
           child: Padding(
@@ -1045,19 +1051,20 @@ class _MemoryTabState extends State<_MemoryTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Library Memory Comparison (100KB document)',
+                const Text('About these numbers',
                     style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                _buildLibMemoryBar('HyperRender', 8, Colors.green),
-                _buildLibMemoryBar('FWFH', 15, Colors.orange),
-                _buildLibMemoryBar('flutter_html', 28, Colors.red),
                 const SizedBox(height: 8),
                 Text(
-                  '* Estimated values based on benchmarks with 100KB HTML document',
+                  'Every figure on this screen is measured live on your device, '
+                  'for HyperRender only. We do not show competitor memory or '
+                  'timing numbers we cannot reproduce here — measure the '
+                  'alternatives on your own content and devices for a comparison '
+                  'that actually reflects your app.',
                   style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                      fontStyle: FontStyle.italic),
+                    fontSize: 12,
+                    height: 1.4,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
               ],
             ),
@@ -1111,51 +1118,6 @@ class _MemoryTabState extends State<_MemoryTab> {
           Text(label,
               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               textAlign: TextAlign.center),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLibMemoryBar(String name, int mb, Color color) {
-    const maxMb = 30;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(name, style: const TextStyle(fontSize: 13)),
-          ),
-          Expanded(
-            child: Stack(
-              children: [
-                Container(
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                FractionallySizedBox(
-                  widthFactor: mb / maxMb,
-                  child: Container(
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Text('${mb}MB',
-                        style: const TextStyle(
-                            color: Color(0xFF1A1A1A),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );

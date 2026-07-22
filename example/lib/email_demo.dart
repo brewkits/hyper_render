@@ -1034,7 +1034,7 @@ class _WhyTab extends StatelessWidget {
 
   static const _snippets = {
     'WebView (old way)': '''// pubspec.yaml: webview_flutter (~20MB overhead)
-// - Slow cold start (~800ms on mid-range Android)
+// - Extra process + engine to spin up on first render
 // - Breaks native scroll physics
 // - Text selection works differently per platform
 // - Cannot mix WebView with Flutter widgets
