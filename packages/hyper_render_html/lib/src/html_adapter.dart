@@ -513,15 +513,23 @@ class HtmlAdapter {
           style.contains('float: right')) {
         return true;
       }
+      // Legacy `float` attribute.
+      final floatAttr = node.attributes['float'] ?? '';
+      if (floatAttr == 'left' || floatAttr == 'right') return true;
       // CSS utility class names: Bootstrap 3 (pull-*), Bootstrap 4/5 (float-*,
-      // float-start, float-end), Tailwind (float-left, float-right).
-      final classes = node.attributes['class'] ?? '';
+      // float-start, float-end), Tailwind (float-left, float-right),
+      // WordPress (alignleft/alignright, align-left/align-right).
+      final classes = (node.attributes['class'] ?? '').toLowerCase();
       if (classes.contains('float-left') ||
           classes.contains('float-right') ||
           classes.contains('float-start') ||
           classes.contains('float-end') ||
           classes.contains('pull-left') ||
-          classes.contains('pull-right')) {
+          classes.contains('pull-right') ||
+          classes.contains('align-left') ||
+          classes.contains('align-right') ||
+          classes.contains('alignleft') ||
+          classes.contains('alignright')) {
         return true;
       }
       for (final child in node.nodes) {

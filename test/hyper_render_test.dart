@@ -507,6 +507,26 @@ void main() {
       // Should produce at least 2 sections.
       expect(sections.length, greaterThanOrEqualTo(2));
     });
+
+    test('recognises Bootstrap 4/5 logical float classes (float-start/end)',
+        () {
+      // Regression guard for the root adapter gaining float-start/float-end
+      // (previously only float-left/right were recognised). Without it, a
+      // Bootstrap 4/5 floated block would be split away from its caption.
+      final adapter = HtmlAdapter();
+      final big = 'word ' * 1200;
+      for (final cls in ['float-start', 'float-end']) {
+        final html = '<p>$big</p>'
+            '<p><img class="$cls" src="i.png"> Caption $cls.</p>'
+            '<p>After float paragraph $cls.</p>';
+        final sections = adapter.parseToSections(html, chunkSize: 6000);
+        final together = sections.any((s) =>
+            s.textContent.contains('Caption $cls.') &&
+            s.textContent.contains('After float paragraph $cls.'));
+        expect(together, isTrue,
+            reason: '$cls block must stay with its successor section');
+      }
+    });
   });
 
   group('Markdown adapter', () {

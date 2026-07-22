@@ -221,6 +221,15 @@ class HtmlAdapter {
           'aside'
         ].contains(tagName);
 
+        // NOTE: a large container is flattened even when it carries its own
+        // style/class. This is deliberate — flattening only runs on the
+        // large-document (virtualized) path, where breaking a single wrapping
+        // <div class="container"> into independently virtualized sections is
+        // the whole point. The cost is that the wrapper's own BOX styling
+        // (background/border/padding) is not preserved around the group, since
+        // one box cannot wrap chunks rendered separately without seams. See
+        // LIMITATIONS.md. (The hyper_render_html package adapter guards on
+        // style/class instead, trading virtualization for that box fidelity.)
         if (isContainer && nodeSize > chunkSize && node.nodes.length > 1) {
           // Recursively flatten children of this large container
           result
@@ -488,6 +497,9 @@ class HtmlAdapter {
     final cls = (node.attributes['class'] ?? '').toLowerCase();
     if (cls.contains('float-left') ||
         cls.contains('float-right') ||
+        // Bootstrap 4/5 logical float utilities.
+        cls.contains('float-start') ||
+        cls.contains('float-end') ||
         cls.contains('pull-left') ||
         cls.contains('pull-right') ||
         cls.contains('align-left') ||
