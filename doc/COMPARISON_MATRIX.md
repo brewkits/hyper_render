@@ -198,7 +198,7 @@ a `WebView` is the honest answer — not this library, and not flutter_html.
 | `padding` | ✅ | ✅ | ✅ |
 | `border` | ✅ | ✅ | ✅ |
 | `border-radius` | ⚠️ | ✅ | ✅ |
-| `border-collapse` / `border-spacing` | ⚠️ | ✅ | ✅ (separate + spacing) |
+| `border-collapse` / `border-spacing` | ? (not verified) | ✅ | ✅ (separate + spacing) |
 | **Layout** | | | |
 | `display` (block/inline) | ✅ | ✅ | ✅ |
 | `display: none` | ✅ | ✅ | ✅ |
