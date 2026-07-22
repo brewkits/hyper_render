@@ -530,14 +530,14 @@ const _japaneseNewsletter = '''
         <td width="3%"></td>
         <td style="background:#E8F5E9; border-radius:8px; padding:12px 14px;
                    text-align:center; width:30%;">
-          <div style="font-size:22px; font-weight:900; color:#1B5E20;">60fps</div>
-          <div style="font-size:11px; color:#2E7D32; margin-top:2px;">スクロール</div>
+          <div style="font-size:22px; font-weight:900; color:#1B5E20;">189</div>
+          <div style="font-size:11px; color:#2E7D32; margin-top:2px;">CSSプロパティ</div>
         </td>
         <td width="3%"></td>
         <td style="background:#FFF3E0; border-radius:8px; padding:12px 14px;
                    text-align:center; width:30%;">
-          <div style="font-size:22px; font-weight:900; color:#E65100;">&lt;16ms</div>
-          <div style="font-size:11px; color:#BF360C; margin-top:2px;">初回描画</div>
+          <div style="font-size:22px; font-weight:900; color:#E65100;">1</div>
+          <div style="font-size:11px; color:#BF360C; margin-top:2px;">RenderObject</div>
         </td>
       </tr>
     </table>
@@ -1045,7 +1045,7 @@ HyperViewer(
   selectable: true,         // Native Flutter text selection
   onLinkTap: (url) { ... }, // Handle link taps natively
 )
-// - First frame in <16ms
+// - Single RenderObject: no widget-per-tag tree
 // - Native scroll physics, rubber-band, overscroll
 // - Mix HyperViewer with any Flutter widget
 // - ~600KB bundle impact''',

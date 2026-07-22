@@ -340,7 +340,7 @@ class DemoHomePage extends StatelessWidget {
             icon: Icons.speed,
             title: 'Float Layout Stress Test',
             subtitle:
-                '2 000 blocks, randomised left/right floats, live width animation — 60 FPS',
+                '2 000 blocks, randomised left/right floats, live width animation',
             color: DemoColors.success,
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const FloatHellDemo())),
@@ -560,11 +560,14 @@ class DemoHomePage extends StatelessWidget {
           // ── Stat row ──────────────────────────────────────────────────────
           Row(
             children: [
-              _buildStatChip('1 646', 'tests'),
+              // Every figure here must be independently checkable — no
+              // unverified performance numbers (see doc/COMPARISON_MATRIX.md,
+              // which deliberately does not claim a measured 60 FPS).
+              _buildStatChip('1 981', 'tests'),
               const SizedBox(width: 8),
-              _buildStatChip('60 FPS', 'scroll'),
+              _buildStatChip('189', 'CSS props'),
               const SizedBox(width: 8),
-              _buildStatChip('<100 ms', 'parse'),
+              _buildStatChip('1', 'RenderObject'),
               const SizedBox(width: 8),
               _buildStatChip('0', 'Gradle config'),
             ],

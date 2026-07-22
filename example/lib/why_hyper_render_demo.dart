@@ -527,15 +527,18 @@ class WhyHyperRenderDemo extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-            child: _buildStatCard('1 646', 'Tests passing',
+            child: _buildStatCard('1 981', 'Tests passing',
                 Icons.check_circle_outline, const Color(0xFF2E7D32))),
         const SizedBox(width: 10),
+        // Verified by counting declaration handlers in each project's own CSS
+        // parser (189 vs flutter_html's 51) — unlike an FPS figure, anyone can
+        // reproduce it. See doc/COMPARISON_MATRIX.md.
         Expanded(
-            child:
-                _buildStatCard('60 FPS', 'Scroll', Icons.speed, Colors.indigo)),
+            child: _buildStatCard(
+                '189', 'CSS properties', Icons.style, Colors.indigo)),
         const SizedBox(width: 10),
         Expanded(
-            child: _buildStatCard('<100ms', 'Parse', Icons.timer_outlined,
+            child: _buildStatCard('1', 'RenderObject', Icons.layers_outlined,
                 const Color(0xFFBF360C))),
         const SizedBox(width: 10),
         Expanded(
@@ -636,7 +639,7 @@ class WhyHyperRenderDemo extends StatelessWidget {
           _archRow(
             Icons.memory,
             'Virtualized ListView.builder',
-            'O(1) scroll performance regardless of document length — 1000-page books scroll at 60 fps',
+            'Only the visible sections are built and painted, so scroll cost stays flat no matter how long the document is',
             Colors.teal,
           ),
           _archRow(

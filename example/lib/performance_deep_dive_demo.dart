@@ -504,7 +504,7 @@ class _IsolateParsingTabState extends State<_IsolateParsingTab> {
                 'HyperRender uses Dart Isolates to parse large HTML documents '
                 'without blocking the UI thread.\n\n'
                 '• Documents < 10KB → Sync parse (fast, no overhead)\n'
-                '• Documents > 10KB → Isolate parse (keeps 60fps UI smooth)',
+                '• Documents > 10KB → async parse (keeps the UI thread free)',
                 style: TextStyle(fontSize: 14),
               ),
             ],

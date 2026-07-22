@@ -104,7 +104,7 @@ class _UltraShowcase2026State extends State<UltraShowcase2026> {
       </tr>
       <tr>
         <td style="padding: 10px; border: 1px solid #FFE0B2; font-weight: bold;">Large HTML Virtualization</td>
-        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #2E7D32; background: #FFF3E0;">✅ Chunked (60fps)</td>
+        <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #2E7D32; background: #FFF3E0;">✅ Chunked + virtualized</td>
         <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #F57F17;">⚠️ High Memory</td>
         <td style="padding: 10px; border: 1px solid #FFE0B2; text-align: center; color: #C62828;">❌ Freezes UI</td>
       </tr>
@@ -120,7 +120,7 @@ class _UltraShowcase2026State extends State<UltraShowcase2026> {
 
     buffer.write('''
   <h2 style="color: #388E3C; border-left: 4px solid #388E3C; padding-left: 16px;">The "Giant Div" Virtualization</h2>
-  <p>Below is a massive simulated block of text inside a single <code>&lt;div&gt;</code>. HyperRender chunks and virtualizes it so it runs at 60fps.</p>
+  <p>Below is a massive simulated block of text inside a single <code>&lt;div&gt;</code>. HyperRender chunks and virtualizes it, so only the sections on screen are built and painted.</p>
 ''');
 
     // Simulate legacy HTML with one giant div and lots of text

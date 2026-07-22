@@ -116,7 +116,7 @@ class _HyperTableTab extends StatelessWidget {
 
     // Data rows
     final data = [
-      ['HyperRender', 'Dart', 'Flutter (all)', 'Excellent — 60fps'],
+      ['HyperRender', 'Dart', 'Flutter (all)', 'Virtualized'],
       ['flutter_html', 'Dart', 'Flutter (all)', 'Acceptable'],
       ['FWFH', 'Dart', 'Flutter (all)', 'Good'],
       ['WKWebView', 'Swift/ObjC', 'iOS only', 'System native'],
