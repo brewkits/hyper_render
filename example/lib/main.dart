@@ -2139,7 +2139,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
   <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
   <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
   <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-  <p><em>flutter_widget_from_html (fwfh) crashes on SelectionArea with complex content</em></p>
+  <p><em>Selection here spans every paragraph as one document — widget-tree renderers select per widget, so a drag fragments at each boundary.</em></p>
 </div>
 ''',
     },
@@ -2231,7 +2231,7 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
       case 5: // CSS Specificity
         return '✅ HyperRender: Full cascade (element → class → ID → inline) | ⚠️ fwfh: Class selectors work, ID unreliable | ❌ flutter_html: <style> tag often ignored';
       case 6: // Selection Stress
-        return '✅ HyperRender: Crash-free continuous selection | ⚠️ flutter_html: Works but selection breaks at widget boundaries | ❌ fwfh: Crashes on SelectionArea with complex content';
+        return '✅ HyperRender: continuous selection across the whole document | ⚠️ flutter_html & fwfh: per-widget selection, fragments at each widget boundary';
       case 7: // Wide Table Scroll
         return '✅ HyperRender: Table auto-scales down (FittedBox, min 60%) | ❌ flutter_html, fwfh: Table overflows container';
       case 8: // Nested Lists
@@ -2526,12 +2526,12 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
         false
       ), // HyperRender exclusive
       (
-        'Selection (no crash)',
-        true,
+        'Whole-document selection',
         true,
         false,
+        false,
         false
-      ), // fwfh crashes; flutter_html OK
+      ), // one hit-test tree vs per-widget selection in the others
       ('Custom widgets', true, true, true, true),
     ];
 

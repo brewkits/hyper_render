@@ -149,8 +149,8 @@ class WhyHyperRenderDemo extends StatelessWidget {
       <span style="color: #d32f2f;">colored text</span> — all in one gesture.
     </p>
     <p style="color: #bf360c; font-size: 13px; margin: 10px 0 0 0;">
-      ❌ fwfh: Crashes on SelectionArea with complex content.
-      ⚠️ flutter_html: Selection breaks at widget boundaries.
+      ⚠️ fwfh &amp; flutter_html: selection is per-widget, so a drag across
+      mixed content fragments at each widget boundary.
     </p>
   </div>
 
