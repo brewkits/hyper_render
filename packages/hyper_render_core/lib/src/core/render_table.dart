@@ -279,11 +279,20 @@ class _HyperTableState extends State<HyperTable> {
       }
     }
 
+    // border-collapse / border-spacing come from the <table> element's own
+    // computed style. Default is `collapse` (grid rendering); `separate` uses
+    // the UA-default 2px gap unless border-spacing overrides it.
+    final tableStyle = widget.tableNode.style;
+    final borderCollapse = tableStyle.borderCollapse;
+    final borderSpacing = tableStyle.borderSpacing ?? 2.0;
+
     final tableWidget = _HyperTableWidget(
       columnCount: grid.columnCount,
       rowCount: grid.rowCount,
       borderColor: widget.borderColor,
       borderWidth: widget.borderWidth,
+      borderCollapse: borderCollapse,
+      borderSpacing: borderSpacing,
       children: children,
     );
 
@@ -668,12 +677,16 @@ class _HyperTableWidget extends MultiChildRenderObjectWidget {
   final int rowCount;
   final Color borderColor;
   final double borderWidth;
+  final HyperBorderCollapse borderCollapse;
+  final double borderSpacing;
 
   const _HyperTableWidget({
     required this.columnCount,
     required this.rowCount,
     required this.borderColor,
     required this.borderWidth,
+    required this.borderCollapse,
+    required this.borderSpacing,
     required super.children,
   });
 
@@ -684,6 +697,8 @@ class _HyperTableWidget extends MultiChildRenderObjectWidget {
       rowCount: rowCount,
       borderColor: borderColor,
       borderWidth: borderWidth,
+      borderCollapse: borderCollapse,
+      borderSpacing: borderSpacing,
     );
   }
 
@@ -694,7 +709,9 @@ class _HyperTableWidget extends MultiChildRenderObjectWidget {
       ..columnCount = columnCount
       ..rowCount = rowCount
       ..borderColor = borderColor
-      ..borderWidth = borderWidth;
+      ..borderWidth = borderWidth
+      ..borderCollapse = borderCollapse
+      ..borderSpacing = borderSpacing;
   }
 }
 
@@ -743,6 +760,20 @@ class _RenderHyperTable extends RenderBox
   int _rowCount;
   Color _borderColor;
   double _borderWidth;
+  HyperBorderCollapse _borderCollapse;
+  double _borderSpacing;
+
+  /// Spacing reserved between adjacent cells (and around the table edge) during
+  /// layout, positioning and intrinsic sizing.
+  ///
+  /// In `collapse` mode this is exactly [_borderWidth] — so every layout term
+  /// is byte-identical to the pre-`border-spacing` renderer, and the collapse
+  /// output is unchanged by construction. In `separate` mode it becomes
+  /// [_borderSpacing] (the CSS gap), while [_borderWidth] is used only for the
+  /// per-cell border *thickness* drawn in paint.
+  double get _cellGap => _borderCollapse == HyperBorderCollapse.separate
+      ? _borderSpacing
+      : _borderWidth;
 
   // ── layout cache ─────────────────────────────────────────────────────────
 
@@ -771,10 +802,14 @@ class _RenderHyperTable extends RenderBox
     required int rowCount,
     required Color borderColor,
     required double borderWidth,
+    required HyperBorderCollapse borderCollapse,
+    required double borderSpacing,
   })  : _columnCount = columnCount,
         _rowCount = rowCount,
         _borderColor = borderColor,
-        _borderWidth = borderWidth;
+        _borderWidth = borderWidth,
+        _borderCollapse = borderCollapse,
+        _borderSpacing = borderSpacing;
 
   set columnCount(int v) {
     if (_columnCount != v) {
@@ -800,6 +835,22 @@ class _RenderHyperTable extends RenderBox
   set borderWidth(double v) {
     if (_borderWidth != v) {
       _borderWidth = v;
+      markNeedsLayout();
+    }
+  }
+
+  set borderCollapse(HyperBorderCollapse v) {
+    if (_borderCollapse != v) {
+      _borderCollapse = v;
+      markNeedsLayout();
+    }
+  }
+
+  set borderSpacing(double v) {
+    if (_borderSpacing != v) {
+      _borderSpacing = v;
+      // Only affects layout in separate mode, but the setter is cheap and a
+      // mode switch may arrive in the same frame — always re-layout.
       markNeedsLayout();
     }
   }
@@ -846,7 +897,7 @@ class _RenderHyperTable extends RenderBox
     });
 
     final result =
-        minW.fold(0.0, (s, v) => s + v) + _borderWidth * (_columnCount + 1);
+        minW.fold(0.0, (s, v) => s + v) + _cellGap * (_columnCount + 1);
     _lastMinIntrinsicWidthHeight = height;
     _minIntrinsicWidthCache = result;
     return result;
@@ -871,7 +922,7 @@ class _RenderHyperTable extends RenderBox
     });
 
     final result =
-        maxW.fold(0.0, (s, v) => s + v) + _borderWidth * (_columnCount + 1);
+        maxW.fold(0.0, (s, v) => s + v) + _cellGap * (_columnCount + 1);
     _lastMaxIntrinsicWidthHeight = height;
     _maxIntrinsicWidthCache = result;
     return result;
@@ -911,7 +962,7 @@ class _RenderHyperTable extends RenderBox
         final cellW = _cellWidth(pd.col, pd.colspan, colW);
         final h = child.getMaxIntrinsicHeight(cellW);
         final endRow = math.min(pd.row + pd.rowspan, _rowCount);
-        double spanned = _borderWidth * (endRow - pd.row - 1);
+        double spanned = _cellGap * (endRow - pd.row - 1);
         for (int r = pd.row; r < endRow; r++) {
           spanned += rowH[r];
         }
@@ -925,7 +976,7 @@ class _RenderHyperTable extends RenderBox
       }
     });
 
-    return rowH.fold(0.0, (s, v) => s + v) + _borderWidth * (_rowCount + 1);
+    return rowH.fold(0.0, (s, v) => s + v) + _cellGap * (_rowCount + 1);
   }
 
   // ── layout ───────────────────────────────────────────────────────────────
@@ -950,10 +1001,10 @@ class _RenderHyperTable extends RenderBox
     _positionCells(_colWidths!, _rowHeights!, children);
 
     // Step 4 — own size
-    final totalW = _colWidths!.fold(0.0, (s, v) => s + v) +
-        _borderWidth * (_columnCount + 1);
-    final totalH = _rowHeights!.fold(0.0, (s, v) => s + v) +
-        _borderWidth * (_rowCount + 1);
+    final totalW =
+        _colWidths!.fold(0.0, (s, v) => s + v) + _cellGap * (_columnCount + 1);
+    final totalH =
+        _rowHeights!.fold(0.0, (s, v) => s + v) + _cellGap * (_rowCount + 1);
     size = constraints.constrain(Size(totalW, totalH));
   }
 
@@ -981,9 +1032,9 @@ class _RenderHyperTable extends RenderBox
       return maxW;
     }
 
-    // Content width after reserving space for borders.
-    final contentW = (availW - _borderWidth * (_columnCount + 1))
-        .clamp(0.0, double.infinity);
+    // Content width after reserving space for inter-cell gaps.
+    final contentW =
+        (availW - _cellGap * (_columnCount + 1)).clamp(0.0, double.infinity);
 
     final minW = List<double>.filled(_columnCount, 0.0);
     final maxW = List<double>.filled(_columnCount, 0.0);
@@ -1079,7 +1130,7 @@ class _RenderHyperTable extends RenderBox
     _forEach((child, pd) {
       if (pd.rowspan > 1) {
         final endRow = math.min(pd.row + pd.rowspan, _rowCount);
-        double spanned = _borderWidth * (endRow - pd.row - 1);
+        double spanned = _cellGap * (endRow - pd.row - 1);
         for (int r = pd.row; r < endRow; r++) {
           spanned += rowH[r];
         }
@@ -1098,7 +1149,7 @@ class _RenderHyperTable extends RenderBox
     _forEach((child, pd) {
       if (pd.rowspan > 1) {
         final endRow = math.min(pd.row + pd.rowspan, _rowCount);
-        double totalH = _borderWidth * (endRow - pd.row - 1);
+        double totalH = _cellGap * (endRow - pd.row - 1);
         for (int r = pd.row; r < endRow; r++) {
           totalH += rowH[r];
         }
@@ -1128,8 +1179,8 @@ class _RenderHyperTable extends RenderBox
     for (int c = col; c < end; c++) {
       w += colWidths[c];
     }
-    // Add the internal borders between spanned columns (but not the outer ones).
-    w += _borderWidth * (end - col - 1).clamp(0, _columnCount);
+    // Add the internal gaps between spanned columns (but not the outer ones).
+    w += _cellGap * (end - col - 1).clamp(0, _columnCount);
     return w.clamp(0.0, double.infinity);
   }
 
@@ -1137,25 +1188,25 @@ class _RenderHyperTable extends RenderBox
 
   void _positionCells(List<double> colWidths, List<double> rowHeights,
       [List<(RenderBox, _TableCellParentData)>? children]) {
-    // Precompute the left edge of each column (including leading border).
+    // Precompute the left edge of each column (including the leading gap).
     final colX = List<double>.filled(_columnCount + 1, 0.0);
-    colX[0] = _borderWidth;
+    colX[0] = _cellGap;
     for (int c = 0; c < _columnCount; c++) {
-      colX[c + 1] = colX[c] + colWidths[c] + _borderWidth;
+      colX[c + 1] = colX[c] + colWidths[c] + _cellGap;
     }
 
-    // Precompute the top edge of each row (including leading border).
+    // Precompute the top edge of each row (including the leading gap).
     final rowY = List<double>.filled(_rowCount + 1, 0.0);
-    rowY[0] = _borderWidth;
+    rowY[0] = _cellGap;
     for (int r = 0; r < _rowCount; r++) {
-      rowY[r + 1] = rowY[r] + rowHeights[r] + _borderWidth;
+      rowY[r + 1] = rowY[r] + rowHeights[r] + _cellGap;
     }
 
     _forEach((child, pd) {
       // Compute the total height available to this cell (spanned rows + inner
       // borders between them).  For rowspan=1 this equals rowHeights[row].
       final endRow = math.min(pd.row + pd.rowspan, _rowCount);
-      double cellSlotH = _borderWidth * (endRow - pd.row - 1);
+      double cellSlotH = _cellGap * (endRow - pd.row - 1);
       for (int r = pd.row; r < endRow; r++) {
         cellSlotH += rowHeights[r];
       }
@@ -1191,6 +1242,15 @@ class _RenderHyperTable extends RenderBox
   }
 
   void _paintBorders(Canvas canvas, Offset offset) {
+    if (_borderCollapse == HyperBorderCollapse.separate) {
+      _paintSeparateBorders(canvas, offset);
+      return;
+    }
+
+    // ── collapse (default) — merged grid bars ────────────────────────────────
+    // Unchanged from the pre-border-spacing renderer: in collapse mode
+    // `_cellGap == _borderWidth`, so the layout size computed with `_cellGap`
+    // matches the `_borderWidth` arithmetic here exactly.
     final paint = Paint()
       ..color = _borderColor
       ..style = PaintingStyle.fill;
@@ -1219,6 +1279,57 @@ class _RenderHyperTable extends RenderBox
       );
       if (c < _columnCount) x += _borderWidth + _colWidths![c];
     }
+  }
+
+  /// `border-collapse: separate` — each cell keeps its own outline, separated
+  /// by `border-spacing` (the `_cellGap`). The border thickness is
+  /// [_borderWidth]; the gap between adjacent cells shows the table background.
+  ///
+  /// Every primary cell is a child of this render object, so one stroked
+  /// rectangle per child covers the whole grid. The stroke is inset by half its
+  /// width so it stays inside the cell's laid-out slot and never bleeds into the
+  /// spacing gap.
+  void _paintSeparateBorders(Canvas canvas, Offset offset) {
+    if (_borderWidth <= 0) return;
+
+    final colWidths = _colWidths!;
+    final rowHeights = _rowHeights!;
+
+    // Left/top edges of each column/row — identical to _positionCells.
+    final colX = List<double>.filled(_columnCount + 1, 0.0);
+    colX[0] = _cellGap;
+    for (int c = 0; c < _columnCount; c++) {
+      colX[c + 1] = colX[c] + colWidths[c] + _cellGap;
+    }
+    final rowY = List<double>.filled(_rowCount + 1, 0.0);
+    rowY[0] = _cellGap;
+    for (int r = 0; r < _rowCount; r++) {
+      rowY[r + 1] = rowY[r] + rowHeights[r] + _cellGap;
+    }
+
+    final paint = Paint()
+      ..color = _borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _borderWidth;
+    final inset = _borderWidth / 2;
+
+    _walkChildren((child, pd) {
+      final cellW = _cellWidth(pd.col, pd.colspan, colWidths);
+      final endRow = math.min(pd.row + pd.rowspan, _rowCount);
+      double cellH = _cellGap * (endRow - pd.row - 1);
+      for (int r = pd.row; r < endRow; r++) {
+        cellH += rowHeights[r];
+      }
+      final rect = Rect.fromLTWH(
+        offset.dx + colX[pd.col],
+        offset.dy + rowY[pd.row],
+        cellW,
+        cellH,
+      ).deflate(inset);
+      if (rect.width > 0 && rect.height > 0) {
+        canvas.drawRect(rect, paint);
+      }
+    });
   }
 
   // ── hit testing ───────────────────────────────────────────────────────────

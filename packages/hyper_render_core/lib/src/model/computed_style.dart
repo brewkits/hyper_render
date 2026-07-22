@@ -115,6 +115,18 @@ enum HyperBorderStyle {
   outset,
 }
 
+/// Border model for CSS `border-collapse` property.
+enum HyperBorderCollapse {
+  /// Adjacent cell borders merge into a single line. This is HyperRender's
+  /// default (it preserves the historical grid-bar rendering), even though the
+  /// CSS initial value is `separate`. `border-spacing` has no effect in this
+  /// mode.
+  collapse,
+
+  /// Each cell keeps its own border, separated by `border-spacing`.
+  separate,
+}
+
 /// Text direction for CSS direction property
 enum HyperTextDirection {
   /// Left-to-right (default)
@@ -419,6 +431,17 @@ class ComputedStyle {
   HyperBorderStyle? borderRightStyle;
   HyperBorderStyle? borderBottomStyle;
   HyperBorderStyle? borderLeftStyle;
+
+  /// CSS `border-collapse` on a `<table>`. Defaults to
+  /// [HyperBorderCollapse.collapse] (see enum doc — this deviates from the CSS
+  /// initial value of `separate` to preserve HyperRender's grid rendering).
+  HyperBorderCollapse borderCollapse;
+
+  /// CSS `border-spacing` on a `<table>` (single value, px). Only applied when
+  /// [borderCollapse] is [HyperBorderCollapse.separate]. Null means the UA
+  /// default (2px) is used in separate mode. Per-axis spacing (two values) is
+  /// not supported.
+  double? borderSpacing;
 
   // ============================================
   // Text Properties
@@ -725,6 +748,8 @@ class ComputedStyle {
     this.borderRightStyle,
     this.borderBottomStyle,
     this.borderLeftStyle,
+    this.borderCollapse = HyperBorderCollapse.collapse,
+    this.borderSpacing,
     this.color = const Color(0xFF1F2937),
     this.fontSize = 16.0,
     this.fontWeight = FontWeight.normal,
@@ -901,6 +926,8 @@ class ComputedStyle {
     HyperBorderStyle? borderRightStyle,
     HyperBorderStyle? borderBottomStyle,
     HyperBorderStyle? borderLeftStyle,
+    HyperBorderCollapse? borderCollapse,
+    double? borderSpacing,
     // Text
     Color? color,
     double? fontSize,
@@ -1008,6 +1035,8 @@ class ComputedStyle {
       borderRightStyle: borderRightStyle ?? this.borderRightStyle,
       borderBottomStyle: borderBottomStyle ?? this.borderBottomStyle,
       borderLeftStyle: borderLeftStyle ?? this.borderLeftStyle,
+      borderCollapse: borderCollapse ?? this.borderCollapse,
+      borderSpacing: borderSpacing ?? this.borderSpacing,
       color: color ?? this.color,
       fontSize: fontSize ?? this.fontSize,
       fontWeight: fontWeight ?? this.fontWeight,

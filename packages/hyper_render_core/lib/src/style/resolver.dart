@@ -1609,6 +1609,28 @@ class StyleResolver {
         }
         break;
 
+      case 'border-collapse':
+        final v = value.trim().toLowerCase();
+        if (v == 'separate') {
+          style.borderCollapse = HyperBorderCollapse.separate;
+          style.markExplicitlySet('border-collapse');
+        } else if (v == 'collapse') {
+          style.borderCollapse = HyperBorderCollapse.collapse;
+          style.markExplicitlySet('border-collapse');
+        }
+        break;
+
+      case 'border-spacing':
+        // Only the first (horizontal) value is honoured; a second value for
+        // vertical spacing is accepted syntactically but ignored.
+        final first = value.trim().split(RegExp(r'\s+')).first;
+        final spacing = _parseLength(first);
+        if (spacing != null && spacing >= 0) {
+          style.borderSpacing = spacing;
+          style.markExplicitlySet('border-spacing');
+        }
+        break;
+
       // Flexbox properties
       case 'flex-direction':
         final flexDir = _parseFlexDirection(value);
@@ -3092,6 +3114,15 @@ class StyleResolver {
 
     // White space - inherit if not explicitly set
     style.whiteSpace ??= parentStyle.whiteSpace;
+
+    // border-collapse / border-spacing inherit in CSS (both apply only to
+    // tables, but a value set on an ancestor cascades to nested tables).
+    if (!style.isExplicitlySet('border-collapse')) {
+      style.borderCollapse = parentStyle.borderCollapse;
+    }
+    if (!style.isExplicitlySet('border-spacing')) {
+      style.borderSpacing ??= parentStyle.borderSpacing;
+    }
 
     // Direction - inherit if not explicitly set
     if (!style.isExplicitlySet('direction')) {

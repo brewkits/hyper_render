@@ -47,6 +47,7 @@ export 'package:hyper_render_core/hyper_render_core.dart'
         DisplayType,
         HyperTextAlign,
         HyperVerticalAlign,
+        HyperBorderCollapse,
         HyperOverflow,
         HyperFloat,
         HyperClear,
