@@ -50,7 +50,7 @@ are silently ignored.
 | `calc()` | Arithmetic on px/em/rem only; `%` in calc not resolved |
 | `text-align` | Center/right/justify on canvas paragraphs, LTR and box-level RTL (`textDirection: rtl`). An explicit `text-align` overrides RTL's default right edge; `justify` in RTL is not yet distributed (keeps the start edge) |
 | `height: %` | Percentage height is not resolved — the single-pass top-down flow doesn't know a parent's resolved height while laying out its children. Use absolute px, or `aspect-ratio`. (`width`/`max-width`/`min-width`/`text-indent` with `%` ARE supported.) |
-| `border-spacing` | Not implemented |
+| `border-spacing` / `border-collapse` | Supported. Default is `border-collapse: collapse` (deviates from the CSS initial value `separate`) to preserve HyperRender's merged grid-bar rendering; `border-spacing` only takes effect under `border-collapse: separate`. Single spacing value only (no separate horizontal/vertical), and every cell shares one border width (per-cell differing border widths are not applied) |
 | `sub` / `sup` | Basic font-size reduction; vertical-align positioning is approximate |
 | Animated `color` / `background-color` | `@keyframes` (`animation-name`) animates both the widget-tier render path AND block-level text painted directly on the `RenderHyperBox` canvas (unreleased). `transition`-driven color changes still only apply on the widget tier — canvas-painted text does not re-tint on a `transition` style change |
 | Canvas block-level `animation-name` (`RenderHyperBox`) | Only a block's own decoration + its directly-owned text/ruby fragments participate; list markers, floated images, and a *nested* animated descendant's own animation do not compose with an animating ancestor's opacity/transform (unreleased). **Avoid combining** with an inline `<span style="background:...">` inside the animated block — inline decorations paint after this pass and will visibly cover the animated text, not just fail to animate |
@@ -132,6 +132,7 @@ HyperViewer(
 | Content > 10 KB | Async parse via `Future.microtask` + `ListView.builder` virtualisation |
 | Very large tables (100+ rows) | Linear layout time; prefer server-side pagination |
 | `display: none` subtrees | Skipped during layout but still parsed |
+| Large document wrapped in one styled container | On the virtualized path a large wrapping container (`<div class="…">` / `<div style="…">`) is **unwrapped** so its children can be split into independently-virtualized sections. The wrapper's own **box styling** (background / border / padding) is therefore **not preserved** around the group — one box cannot wrap chunks rendered separately without visible seams. Inline/text styling on the children is unaffected. Sync (< 10 KB) rendering keeps the wrapper intact. |
 
 ### Writing widget tests against large content
 

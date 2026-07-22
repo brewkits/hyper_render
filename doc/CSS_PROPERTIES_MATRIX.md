@@ -171,8 +171,8 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `border-collapse` | ✅ | collapse, separate | |
-| `border-spacing` | ❌ | — | Not implemented |
+| `border-collapse` | ✅ | collapse, separate | Default is `collapse` (deviates from CSS initial value to preserve grid rendering); `separate` draws per-cell outlines |
+| `border-spacing` | ✅ | px | Single value only; applied only under `border-collapse: separate` |
 | `table-layout` | ⚠️ | auto, fixed | Content-based algorithm |
 | `vertical-align` (in cells) | ✅ | top, middle, bottom | |
 

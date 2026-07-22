@@ -162,6 +162,9 @@ jobs:
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
       startsWith(github.ref, 'refs/heads/release/')
+    # Needed by the failure-alert step below to open a tracking issue.
+    permissions:
+      issues: write
 
     steps:
       - name: Checkout
@@ -201,3 +204,48 @@ jobs:
           name: benchmark-full-${{ github.run_number }}
           path: benchmark/results/
           retention-days: 90
+
+      # A scheduled job that fails is otherwise invisible — it just shows a red
+      # X in the Actions tab that nobody watches (this is how a `mkdir` typo
+      # silently broke the weekly benchmark for a month). Open/refresh a
+      # tracking issue so the failure surfaces where it will be seen.
+      - name: Alert on scheduled-run failure
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '⚠️ Weekly benchmark workflow failed';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              `The scheduled **Full Throughput Benchmark** run failed.`,
+              ``,
+              `- Run: ${runUrl}`,
+              `- Commit: ${context.sha}`,
+              ``,
+              `This issue was opened automatically so a scheduled failure is not`,
+              `silently ignored. Close it once the run is green again.`,
+            ].join('\n');
+            // Reuse an existing open alert issue instead of spamming a new one
+            // each week.
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'ci-benchmark-failure',
+            });
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['ci-benchmark-failure'],
+              });
+            }
