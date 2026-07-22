@@ -2005,6 +2005,16 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  /// Side-by-side is the DEFAULT view: with tabs the user has to switch back
+  /// and forth and hold the previous rendering in memory to spot a difference.
+  /// Showing both at once makes it immediate — text wrapping around the float
+  /// on the left, stacked above it on the right, in one glance.
+  bool _splitView = true;
+
+  /// Which library the split view compares HyperRender against.
+  int _rival = 0; // index into _rivalNames
+  static const _rivalNames = ['flutter_html', 'fwfh', 'fwfh_core'];
+
   // Test cases for comparison
   static const List<Map<String, String>> testCases = [
     {
@@ -2352,17 +2362,22 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
             ),
           ),
 
-          // Tab content
+          // View-mode switch: side-by-side (default) or one library at a time.
+          _buildViewModeBar(),
+
+          // Content
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildHyperRenderTab(testCase['html']!),
-                _buildFlutterHtmlTab(testCase['html']!),
-                _buildFwfhTab(testCase['html']!),
-                _buildFwfhCoreTab(testCase['html']!),
-              ],
-            ),
+            child: _splitView
+                ? _buildSplitView(testCase['html']!)
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildHyperRenderTab(testCase['html']!),
+                      _buildFlutterHtmlTab(testCase['html']!),
+                      _buildFwfhTab(testCase['html']!),
+                      _buildFwfhCoreTab(testCase['html']!),
+                    ],
+                  ),
           ),
 
           // Feature comparison table (collapsible)
@@ -2427,6 +2442,126 @@ class _LibraryComparisonDemoState extends State<LibraryComparisonDemo>
           ),
         ],
       ),
+    );
+  }
+
+  /// Toggle between the side-by-side view and the one-library-at-a-time tabs,
+  /// plus (in split mode) which rival occupies the right-hand column.
+  Widget _buildViewModeBar() {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+      child: Row(
+        children: [
+          SegmentedButton<bool>(
+            style: const ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            segments: const [
+              ButtonSegment(
+                value: true,
+                icon: Icon(Icons.vertical_split, size: 16),
+                label: Text('Side by side', style: TextStyle(fontSize: 12)),
+              ),
+              ButtonSegment(
+                value: false,
+                icon: Icon(Icons.tab, size: 16),
+                label: Text('Tabs', style: TextStyle(fontSize: 12)),
+              ),
+            ],
+            selected: {_splitView},
+            onSelectionChanged: (s) => setState(() => _splitView = s.first),
+          ),
+          if (_splitView) ...[
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButton<int>(
+                value: _rival,
+                isExpanded: true,
+                isDense: true,
+                style: TextStyle(fontSize: 12, color: scheme.onSurface),
+                items: [
+                  for (var i = 0; i < _rivalNames.length; i++)
+                    DropdownMenuItem(
+                      value: i,
+                      child: Text('vs ${_rivalNames[i]}',
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _rival = v!),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// The same HTML rendered by HyperRender and by the selected rival, at the
+  /// same time, in two columns. Seeing both simultaneously is the whole point:
+  /// a difference like "text flows around the image" vs "image sits on its own
+  /// line" reads instantly, with nothing to remember between taps.
+  Widget _buildSplitView(String html) {
+    final rivalWidget = switch (_rival) {
+      0 => flutter_html.Html(data: html),
+      1 => fwfh.HtmlWidget(html),
+      _ => fwfh_core.HtmlWidget(html),
+    };
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _splitColumn(
+            title: 'HyperRender',
+            accent: const Color(0xFF1A56DB),
+            child: HyperViewer(
+              html: html,
+              mode: HyperRenderMode.sync,
+              selectable: true,
+            ),
+          ),
+        ),
+        const VerticalDivider(width: 1, thickness: 1),
+        Expanded(
+          child: _splitColumn(
+            title: _rivalNames[_rival],
+            accent: Colors.grey.shade600,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(8),
+              child: rivalWidget,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _splitColumn({
+    required String title,
+    required Color accent,
+    required Widget child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          color: accent.withValues(alpha: 0.12),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.bold, color: accent),
+          ),
+        ),
+        // ClipRect: a rival that overflows its column must not paint over the
+        // other one — otherwise the comparison itself would be misleading.
+        Expanded(child: ClipRect(child: child)),
+      ],
     );
   }
 
