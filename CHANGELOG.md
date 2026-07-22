@@ -35,9 +35,21 @@
 - **`<a>` without `href` was styled as a link**: a placeholder anchor like `<a name="x">Text</a>` got the blue link colour and underline. Browsers only style `a[href]`; HyperRender now matches, leaving href-less anchors as plain text. Found via flutter_widget_from_html #676.
 - **Bootstrap 4/5 logical float classes split away from their content in large documents**: the root `HtmlAdapter` (the one `HyperViewer` runs) recognised `float-left`/`float-right` but not `float-start`/`float-end`, so a block floated with the Bootstrap 4/5 utilities could be chunked into a different virtualized section than the text meant to wrap around it. Both adapters now share one superset heuristic (Bootstrap `pull-*`/`float-*`/`float-start`/`float-end`, Tailwind, WordPress `align*`, legacy `float` attribute + inline `float:` style).
 
-### 📦 Dependencies
+### ⚠️ Potentially breaking — three transitive dependencies removed
 
-- **`hyper_render` no longer depends on `hyper_render_html`, `hyper_render_markdown` or `hyper_render_highlight`.** These were declared but never imported: the root package implements its own HTML/Markdown/highlight parsing directly on `html`/`csslib`/`markdown`/`flutter_highlight`, so the three packages were pure install weight. Rendering behaviour is completely unchanged. They remain separately published — if you `import 'package:hyper_render_html/...'` (or `_markdown`/`_highlight`) **add an explicit dependency on it**, as you should for any package you import directly rather than relying on a transitive one.
+- **`hyper_render` no longer depends on `hyper_render_html`, `hyper_render_markdown` or `hyper_render_highlight`.** These were declared but never imported: the root package implements its own HTML/Markdown/highlight parsing directly on `html`/`csslib`/`markdown`/`flutter_highlight`, so the three packages were pure install weight for every consumer.
+
+  **Rendering behaviour is completely unchanged** — `HyperViewer` never used those packages. Nothing breaks if you only import `package:hyper_render/hyper_render.dart`.
+
+  **What can break:** code that imports `package:hyper_render_html/...` (or `_markdown` / `_highlight`) while declaring only `hyper_render` in its pubspec. That used to resolve transitively and will now fail to resolve. Fix by depending on the package explicitly — which is what pub expects for any package you import directly:
+
+  ```yaml
+  dependencies:
+    hyper_render: ^1.6.0
+    hyper_render_html: ^1.5.1   # add this if you import it directly
+  ```
+
+  All three remain separately published and fully supported for standalone use.
 
 ### ♻️ Internal
 

@@ -22,21 +22,21 @@ dependencies:
     sdk: flutter
 
   # ============================================
-  # MODULAR ARCHITECTURE v1.0
-  # This package is a convenience wrapper that includes core plugins.
+  # MODULAR ARCHITECTURE
   # Optional add-ons (install separately if needed):
+  #   - hyper_render_html / _markdown / _highlight: standalone parsers
   #   - hyper_render_clipboard: Image copy/share (adds super_clipboard native dep)
   #   - hyper_render_math: LaTeX/MathML rendering (adds flutter_math_fork)
   # ============================================
-  # Version deps declared for pub.dev pana score (160/160).
-  # dependency_overrides below redirect to local monorepo paths during dev.
+  # Version constraints are used for publishing; the dependency_overrides below
+  # redirect to local monorepo paths during development.
   #
-  # Only hyper_render_core is depended on: this package implements its own
-  # HTML/Markdown/highlight parsing directly on top of html/markdown/
+  # Only hyper_render_core is depended on. This package implements its own
+  # HTML/Markdown/highlight parsing directly on top of html / csslib / markdown /
   # flutter_highlight below (see lib/src/parser/ and lib/src/plugins/), so
-  # hyper_render_html / _markdown / _highlight were declared but never
-  # imported — pure install weight. They remain separately published for
-  # anyone who wants to use them standalone; depend on them explicitly.
+  # hyper_render_html / _markdown / _highlight were declared but never imported
+  # — pure install weight for every consumer. They remain separately published;
+  # depend on them explicitly if you import them.
   hyper_render_core: ^1.5.0
 
   # Fixed version constraints for pub.dev compliance
