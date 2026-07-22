@@ -18,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:example/accessibility_demo.dart';
 import 'package:example/animation_demo.dart';
+import 'package:example/base_url_demo.dart';
 import 'package:example/cjk_languages_demo.dart';
 import 'package:example/css_mastery_demo.dart';
 import 'package:example/css_properties_demo.dart';
@@ -43,6 +44,7 @@ import 'package:example/why_hyper_render_demo.dart';
 final _demos = <String, Widget Function()>{
   'AccessibilityDemo': () => const AccessibilityDemo(),
   'AnimationDemo': () => const AnimationDemo(),
+  'BaseUrlDemo': () => const BaseUrlDemo(),
   'CjkLanguagesDemo': () => const CjkLanguagesDemo(),
   'CssMasteryDemo': () => const CssMasteryDemo(),
   'CssPropertiesDemo': () => const CssPropertiesDemo(),

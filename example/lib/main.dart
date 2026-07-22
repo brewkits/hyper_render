@@ -39,6 +39,7 @@ import 'plugin_api_demo.dart';
 import 'reader_app/library_screen.dart';
 import 'float_hell_demo.dart';
 import 'zero_padding_image_demo.dart';
+import 'base_url_demo.dart';
 
 /// Optimized base TextStyle for better readability.
 ///
@@ -3802,6 +3803,17 @@ class _InputFormatsHubPage extends StatelessWidget {
               color: DemoColors.accent,
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const QuillDeltaDemo()))),
+          // Registered rather than deleted during the demo cleanup: baseUrl
+          // resolution is a real feature and this was its ONLY coverage, but
+          // the screen had never been wired to any navigation.
+          _hubCard(context,
+              icon: Icons.link,
+              title: 'Base URL & Links',
+              subtitle:
+                  'Resolve relative src/href against a base URL; handle link taps',
+              color: DemoColors.accent,
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const BaseUrlDemo()))),
         ],
       ),
     );
