@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -267,7 +268,7 @@ Matrix4 matrix4FromHyperKeyframe(HyperKeyframe keyframe) {
 
   if (keyframe.rotation != null) {
     final rotationMatrix = Matrix4.identity()
-      ..rotateZ(keyframe.rotation! * 3.14159 / 180.0);
+      ..rotateZ(keyframe.rotation! * math.pi / 180.0);
     transform = transform.multiplied(rotationMatrix);
   }
 

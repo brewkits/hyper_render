@@ -54,29 +54,36 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       final transform = matrix4FromHyperKeyframe(keyframe);
       final needsTransform = !transform.isIdentity();
 
+      final decoration = _animatedBlockDecorations[node];
+
       canvas.save();
-      if (needsOpacityLayer) {
-        // Bounds are deliberately `null`, not `paintRect` — `paintRect` is
-        // the PRE-transform rect, but content below is drawn AFTER the
-        // translate/scale/rotate applied a few lines down. A fixed-rect
-        // bounds would clip a translated/scaled block to where it used to
-        // be rather than where it's drawn now (visible edge-clipping on any
-        // block combining `opacity` with `transform`). `null` falls back to
-        // the current clip (the enclosing RenderHyperBox's paint bounds),
-        // which is always at least as large as this one block's rect.
-        canvas.saveLayer(
-          null,
-          Paint()..color = Color.fromRGBO(0, 0, 0, opacity),
-        );
-      }
+      // ORDER MATTERS: the transform is applied BEFORE saveLayer, so the
+      // layer bounds below can be this block's own rect.
+      //
+      // saveLayer bounds are interpreted in the CURRENT coordinate space. Once
+      // the transform is in effect, the content coordinates (paintRect and the
+      // fragment offsets) live in that same space, so `paintRect` covers the
+      // content exactly — and the offscreen buffer Skia allocates is only the
+      // area this block actually occupies on screen.
+      //
+      // Doing it the other way round (saveLayer first) forces bounds of `null`,
+      // because a pre-transform rect would clip a translated/scaled block to
+      // where it *used* to be. `null` means "current clip" — i.e. the whole
+      // RenderHyperBox — so a single small `animation: fade … infinite` block
+      // in a long document allocated a document-sized buffer every frame.
       if (needsTransform) {
         final pivot = paintRect.center;
         canvas.translate(pivot.dx, pivot.dy);
         canvas.transform(transform.storage);
         canvas.translate(-pivot.dx, -pivot.dy);
       }
+      if (needsOpacityLayer) {
+        canvas.saveLayer(
+          _animatedLayerBounds(paintRect, decoration),
+          Paint()..color = Color.fromRGBO(0, 0, 0, opacity),
+        );
+      }
 
-      final decoration = _animatedBlockDecorations[node];
       if (decoration != null) {
         _paintOneBlockDecoration(canvas, offset, decoration,
             backgroundColorOverride: keyframe.backgroundColor);
@@ -98,6 +105,29 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       if (needsOpacityLayer) canvas.restore(); // matches saveLayer
       canvas.restore(); // matches outer save
     }
+  }
+
+  /// Paint bounds for an animated block's opacity layer.
+  ///
+  /// Starts from the block's content rect and grows it to cover anything drawn
+  /// outside that rect — currently `box-shadow`, whose offset/spread/blur can
+  /// extend well past the box. Clipping those away would be a visible
+  /// regression, so they are measured rather than guessed at.
+  ///
+  /// The final small inflate absorbs antialiasing and glyph overhang (italics,
+  /// underlines, text shadows) that can bleed a fraction of a pixel past the
+  /// measured text rect.
+  Rect _animatedLayerBounds(Rect paintRect, _BlockDecoration? decoration) {
+    var bounds = paintRect;
+    final shadows = decoration?.boxShadow;
+    if (shadows != null) {
+      for (final s in shadows) {
+        bounds = bounds.expandToInclude(
+          paintRect.shift(s.offset).inflate(s.spreadRadius + s.blurRadius),
+        );
+      }
+    }
+    return bounds.inflate(2.0);
   }
 
   void _paintBlockDecorations(Canvas canvas, Offset offset) {

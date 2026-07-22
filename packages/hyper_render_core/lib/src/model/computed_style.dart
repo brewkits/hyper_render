@@ -399,8 +399,10 @@ class ComputedStyle {
   /// CSS max-height
   double? maxHeight;
 
-  /// CSS `width`/`max-width`/`text-indent` expressed as a percentage of the
-  /// containing block's content width (0–100). Held separately from the
+  /// CSS `width`/`max-width`/`text-indent` expressed as a **fraction** of the
+  /// containing block's content width — `50%` is stored as `0.5`, NOT `50`.
+  /// (The parser divides by 100; layout multiplies the container width by this
+  /// value directly, so never scale it again.) Held separately from the
   /// absolute [width]/[maxWidth]/[textIndent] because a percentage cannot be
   /// resolved to pixels until layout knows the container width. Resolved in
   /// `_performLineLayout` at block start. `%` height is intentionally NOT
@@ -484,9 +486,9 @@ class ComputedStyle {
   /// block. INHERITABLE per CSS. Null/0 means no indent.
   double? textIndent;
 
-  /// CSS text-indent expressed as a percentage of the containing block's
-  /// content width (0–100). Like [widthPercent], resolved at layout time.
-  /// INHERITABLE (same as [textIndent]).
+  /// CSS text-indent expressed as a **fraction** of the containing block's
+  /// content width — `10%` is stored as `0.1`, NOT `10`. Like [widthPercent],
+  /// resolved at layout time. INHERITABLE (same as [textIndent]).
   double? textIndentPercent;
 
   /// CSS vertical-align (for inline elements)
