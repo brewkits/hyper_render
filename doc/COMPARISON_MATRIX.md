@@ -1,8 +1,8 @@
-# HyperRender v1.3 - Detailed Comparison Matrix
+# HyperRender - Detailed Comparison Matrix
 
 **Feature-by-feature comparison with other libraries**
 
-Last Updated: June 2026
+Last Updated: July 2026 (v1.5.x + unreleased `fix/bugfix-refactor`)
 
 ---
 
@@ -70,7 +70,7 @@ does not depend on a benchmark number.
 
 ## HTML Support
 
-| Feature | FWFH | WebView | HyperRender v1.3.3 |
+| Feature | FWFH | WebView | HyperRender |
 |---------|------|---------|------------------|
 | **Basic Tags** | | | |
 | `<p>`, `<div>`, `<span>` | ✅ | ✅ | ✅ |
@@ -106,11 +106,11 @@ does not depend on a benchmark number.
 | **CJK Specific** | | | |
 | `<ruby>`, `<rt>` | ❌ | ✅ | **✅ Full** |
 | Kinsoku shori | ❌ | ✅ | **✅ Full** |
-| Vertical text | ❌ | ✅ | 🔜 v1.1 |
-| **Interactive (v1.3)** | | | |
+| Vertical text | ❌ | ✅ | 🔜 Planned |
+| **Interactive** | | | |
 | `<details>`, `<summary>` | ❌ | ✅ | **✅ Full** |
-| `<button>` | ⚠️ | ✅ | 🔜 v1.2 |
-| `<input>` | ⚠️ | ✅ | 🔜 v1.2 |
+| `<button>` | ⚠️ | ✅ | 🔜 Planned |
+| `<input>` | ⚠️ | ✅ | 🔜 Planned |
 | `<form>` | ⚠️ | ✅ | ❌ Not planned |
 
 ---
@@ -175,7 +175,7 @@ a `WebView` is the honest answer — not this library, and not flutter_html.
 > intend to rely on. The HyperRender column is authoritative and kept in sync
 > with `CSS_PROPERTIES_MATRIX.md`.
 
-| Property | FWFH | WebView | HyperRender v1.3.3 |
+| Property | FWFH | WebView | HyperRender |
 |----------|------|---------|------------------|
 | **Text Properties** | | | |
 | `color` | ✅ | ✅ | ✅ |
@@ -186,22 +186,24 @@ a `WebView` is the honest answer — not this library, and not flutter_html.
 | `line-height` | ⚠️ | ✅ | ✅ |
 | `letter-spacing` | ⚠️ | ✅ | ✅ |
 | `word-spacing` | ❌ | ✅ | ✅ |
-| `text-align` | ✅ | ✅ | ✅ |
+| `text-align` | ✅ | ✅ | ✅ (incl. `justify` + RTL override) |
+| `text-indent` | ⚠️ | ✅ | ✅ px + % |
 | `text-decoration` | ✅ | ✅ | ✅ |
 | `text-transform` | ⚠️ | ✅ | ✅ |
 | `white-space` | ⚠️ | ✅ | ✅ |
 | **Box Model** | | | |
 | `width`, `height` | ✅ | ✅ | ✅ |
-| `min-width`, `max-width` | ⚠️ | ✅ | ✅ |
+| `min-width`, `max-width` | ⚠️ | ✅ | ✅ px + % |
 | `margin` | ✅ | ✅ | ✅ |
 | `padding` | ✅ | ✅ | ✅ |
 | `border` | ✅ | ✅ | ✅ |
 | `border-radius` | ⚠️ | ✅ | ✅ |
+| `border-collapse` / `border-spacing` | ⚠️ | ✅ | ✅ (separate + spacing) |
 | **Layout** | | | |
 | `display` (block/inline) | ✅ | ✅ | ✅ |
 | `display: none` | ✅ | ✅ | ✅ |
 | `display: flex` | ⚠️ Partial | ✅ | ✅ |
-| `display: grid` | ❌ | ✅ | ✅ v3.0 |
+| `display: grid` | ❌ | ✅ | ✅ |
 | `float` | ⚠️ Basic | ✅ | ✅ |
 | `clear` | ⚠️ | ✅ | ✅ |
 | `position` | ❌ | ✅ | ❌ Not planned |
@@ -217,20 +219,22 @@ a `WebView` is the honest answer — not this library, and not flutter_html.
 | `box-shadow` | ❌ | ✅ | ❌ |
 | `text-shadow` | ❌ | ✅ | ❌ |
 | **Animations** | | | |
-| `transition` | ❌ | ✅ | 🔜 v1.1 |
-| `animation` | ❌ | ✅ | 🔜 v1.1 |
-| `transform` | ❌ | ✅ | ❌ Not planned |
+| `transition` | ❌ | ✅ | ✅ (widget-tier; v1.4) |
+| `animation` / `@keyframes` | ❌ | ✅ | ✅ (incl. cubic-bezier/steps timing; v1.5) |
+| `transform` | ❌ | ✅ | ✅ (translate/scale/rotate) |
 
-**CSS Coverage Summary**:
+**CSS Coverage Summary** (declaration handlers counted from each project's own
+CSS parser — see the "Verified against competitor source" section above):
 - FWFH: ~50 properties
+- flutter_html v3.0.0: 51 properties
 - WebView: ~300 properties (full spec)
-- HyperRender v1.3.3: ~50 essential properties
+- HyperRender: **189 properties**
 
 ---
 
 ## Accessibility
 
-| Aspect | FWFH | WebView | HyperRender v1.3.3 |
+| Aspect | FWFH | WebView | HyperRender |
 |--------|------|---------|------------------|
 | **Screen reader support** | ⚠️ Basic | ✅ Full (browser a11y) | ✅ Semantics tree |
 | **Headings (h1–h6)** | ⚠️ | ✅ | ✅ `isHeader` + level hint |
@@ -249,7 +253,7 @@ does not implement keyboard focus management or ARIA live regions.
 
 ## Platform Support
 
-| Platform | FWFH | WebView | super_editor | HyperRender v1.3.3 |
+| Platform | FWFH | WebView | super_editor | HyperRender |
 |----------|------|---------|--------------|------------------|
 | **Mobile** | | | | |
 | iOS | ✅ | ✅ | ✅ | ✅ |
@@ -266,7 +270,7 @@ does not implement keyboard focus management or ARIA live regions.
 
 ## Developer Experience
 
-| Aspect | FWFH | WebView | super_editor | HyperRender v1.3.3 |
+| Aspect | FWFH | WebView | super_editor | HyperRender |
 |--------|------|---------|--------------|------------------|
 | **Ease of Use** | | | | |
 | Learning curve | Easy ✅ | Medium ⚠️ | Hard ❌ | Medium ⚠️ |
@@ -288,7 +292,7 @@ does not implement keyboard focus management or ARIA live regions.
 
 ## Use Case Suitability
 
-| Use Case | FWFH | WebView | super_editor | HyperRender v1.3.3 |
+| Use Case | FWFH | WebView | super_editor | HyperRender |
 |----------|------|---------|--------------|------------------|
 | **Content Display** | | | | |
 | News articles (5K+ chars) | ⚠️ Slow | ✅ | N/A | **✅ Fast** |
@@ -316,7 +320,7 @@ does not implement keyboard focus management or ARIA live regions.
 
 ## Security & Safety
 
-| Aspect | FWFH | WebView | HyperRender v1.3.3 |
+| Aspect | FWFH | WebView | HyperRender |
 |--------|------|---------|------------------|
 | **XSS Protection** | ⚠️ Manual | ⚠️ Sandboxed | ✅ Built-in `HtmlSanitizer` |
 | **JavaScript Execution** | ❌ None | ✅ Full (risk) | ❌ None (safe) |
@@ -335,7 +339,7 @@ Enable `sanitize: true` (default in HyperRender) when rendering user-generated c
 
 ## Cost Analysis
 
-| Factor | FWFH | WebView | HyperRender v1.3.3 |
+| Factor | FWFH | WebView | HyperRender |
 |--------|------|---------|------------------|
 | **License** | MIT (Free) | Apache (Free) | MIT (Free) |
 | **Development Time** | Low ✅ | Medium ⚠️ | Medium ⚠️ |
@@ -352,7 +356,7 @@ Enable `sanitize: true` (default in HyperRender) when rendering user-generated c
 |-----------|-------------------|----------------------|---------------------------|
 | **Code Changes** | Medium | Lower (HTML rendering only) | N/A — different use case |
 | **Testing Required** | Medium | High | N/A |
-| **Performance Gain** | **~2.6× faster parse, ~47% less RAM** (self-measured) | **~8× faster parse, ~73% less RAM** (self-measured) | N/A |
+| **Performance Gain** | Not independently benchmarked — measure on your own content/devices (see Performance Metrics note above) | Not independently benchmarked | N/A |
 | **Feature Loss** | Some CSS decoration | JavaScript, forms | N/A |
 | **Breaking Changes** | Widget builders API | Full rewrite | N/A |
 
@@ -377,12 +381,13 @@ Enable `sanitize: true` (default in HyperRender) when rendering user-generated c
 - ✅ Need caret, keyboard, selection
 - ✅ Rich text composition required
 
-### Choose HyperRender v1.3.3 if:
-- ✅ **Large documents (5K+ chars)**
-- ✅ **Performance critical (60fps required)**
-- ✅ **CJK content (Japanese, Korean, Chinese)**
-- ✅ **Native feel important**
-- ✅ **Bundle size matters**
+### Choose HyperRender if:
+- ✅ **Large documents (5K+ chars)** — single-RenderObject selection stays stable
+- ✅ **CJK content (Japanese, Korean, Chinese)** — Ruby + Kinsoku shori
+- ✅ **CSS `float` layouts** — the only native Flutter renderer with float/clear
+- ✅ **Web/WASM target** — builds with `--wasm` (FWFH does not, see #1528)
+- ✅ **Flutter 3.41+** — unaffected by the crash that hits flutter_html
+- ✅ **Native feel + bundle size matter**
 - ✅ **Read-only or light editing**
 
 ---
@@ -391,8 +396,8 @@ Enable `sanitize: true` (default in HyperRender) when rendering user-generated c
 
 | Feature | v1.0 | v1.1 | v1.2 | v1.3 (Stable) | v2.0 (Planned) |
 |---------|-----------|--------------|--------------|--------------|--------------|
-| InlineSpan paradigm | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Performance (60fps) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Single-RenderObject paradigm | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Stable selection on large docs | ✅ | ✅ | ✅ | ✅ | ✅ |
 | CJK typography | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Vertical text | ❌ | ✅ | ✅ | ✅ | ✅ |
 | CSS animations | ❌ | ✅ Basic | ✅ | ✅ | ✅ |
@@ -408,13 +413,9 @@ Enable `sanitize: true` (default in HyperRender) when rendering user-generated c
 
 ### Test Environment
 ```yaml
-Devices:
-  - iPhone 13 (iOS 17.2)
-  - Pixel 6 (Android 13)
-  - MacBook Pro M1 (macOS 14)
-
-Flutter Version: 3.22.0+
-Dart Version: 3.5.0+
+Measured environment (the parse-throughput table above):
+  - macOS (Apple Silicon), headless `flutter test` (debug/JIT)
+  - Flutter 3.41.9
 
 Test Documents:
   - Small: 1,000 characters
@@ -422,6 +423,9 @@ Test Documents:
   - Large: 10,000 characters
   - XLarge: 25,000 characters
 ```
+
+> Release-mode / on-device numbers are not yet published — the figures above are
+> debug/JIT and should be read as a relative regression signal only.
 
 ### Test Cases
 1. **Parse Time**: HTML string → Rendered widget
@@ -449,7 +453,7 @@ Results available in: `benchmark/RESULTS.md`
 | **FWFH** | Short docs, custom widgets | Large docs, performance-critical |
 | **WebView** | JS required, 100% CSS | Bundle size, native feel matters |
 | **super_editor** | Text editing | Read-only content display |
-| **HyperRender v1.3.3** | **Large docs, CJK, performance** | Need JavaScript, full CSS |
+| **HyperRender** | **Large docs, CJK, performance** | Need JavaScript, full CSS |
 
 **Recommendation**:
 - **Migrate to HyperRender** if you have performance issues with FWFH or bundle size issues with WebView
@@ -463,18 +467,22 @@ Results available in: `benchmark/RESULTS.md`
 For import into spreadsheet:
 
 ```csv
-Category,Feature,FWFH,WebView,HyperRender v1.3.3
-Performance,Parse (10K chars),250ms,400ms,60ms
-Performance,Memory (10K),15MB,30MB,5MB
-Performance,Scroll FPS,35,55,60
+Category,Feature,FWFH,WebView,HyperRender
 HTML,<p>,Yes,Yes,Yes
 HTML,<table>,Yes,Yes,Yes
 HTML,<ruby>,No,Yes,Yes
 CSS,color,Yes,Yes,Yes
 CSS,font-size,Yes,Yes,Yes
+CSS,float,No,Yes,Yes
 Platform,iOS,Yes,Yes,Yes
 Platform,Web,Yes,No,Yes
+Platform,Web (WASM),No,No,Yes
 ```
+
+> Performance columns are intentionally omitted here — we do not publish
+> unverified competitor numbers. See the Performance Metrics section for the
+> reproducible HyperRender figures and how to benchmark the alternatives
+> yourself.
 
 Full CSV available at: `COMPARISON_MATRIX.csv` (if needed)
 
@@ -482,5 +490,5 @@ Full CSV available at: `COMPARISON_MATRIX.csv` (if needed)
 
 *This comparison matrix is maintained by the HyperRender team and updated with each release.*
 
-*Last Updated: 2026-06-04*
-*Next Review: 2026-09-01*
+*Last Updated: 2026-07-22*
+*Next Review: 2026-10-01*
