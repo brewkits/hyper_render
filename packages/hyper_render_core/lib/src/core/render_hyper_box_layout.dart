@@ -956,8 +956,11 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
             st.maxWidth != null ||
             st.maxWidthPercent != null ||
             st.minWidth != null) {
-          final containerContent =
-              _maxWidth - leftPaddingStack.last - rightPaddingStack.last;
+          // Floored at 0: cumulative padding can exceed the viewport width
+          // (e.g. `padding:300px` inside a 200px container), which would make
+          // this negative and turn a `%` width into a negative target.
+          final containerContent = math.max(
+              0.0, _maxWidth - leftPaddingStack.last - rightPaddingStack.last);
           // Default target: this block's own content width (full available).
           var target = _maxWidth - newLeftPadding - newRightPadding;
 
@@ -980,7 +983,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           // Clamp into the available content box: this single-column flow model
           // has no per-block horizontal overflow, so a target wider than the
           // container is capped rather than overflowing.
-          final avail = _maxWidth - newLeftPadding - newRightPadding;
+          //
+          // `avail` MUST be floored at 0 before it becomes clamp's upper limit:
+          // when a block's own padding exceeds the viewport it goes negative,
+          // and `clamp(0.0, negative)` throws ArgumentError (lowerLimit >
+          // upperLimit), crashing performLayout. Flooring collapses the block's
+          // content width to 0 instead — no room for content, but no crash.
+          final avail =
+              math.max(0.0, _maxWidth - newLeftPadding - newRightPadding);
           target = target.clamp(0.0, avail);
           newRightPadding = _maxWidth - newLeftPadding - target;
         }

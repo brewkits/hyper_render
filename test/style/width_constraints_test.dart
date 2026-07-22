@@ -148,4 +148,54 @@ void main() {
       expect(xs.first, closeTo(40, 5));
     });
   });
+
+  // Degenerate geometry: a block whose own padding/margin is wider than the
+  // viewport leaves NEGATIVE space for content. Combined with a width
+  // constraint this used to reach `clamp(0.0, negativeAvail)` in
+  // _performLineLayout, which throws ArgumentError (lowerLimit > upperLimit)
+  // and crashes performLayout. Such CSS is common in the wild (email HTML,
+  // fixed px padding on a narrow phone), so it must degrade, not crash.
+  group('width constraints — degenerate/overflowing geometry', () {
+    const overflowing = [
+      '<div style="padding:300px;width:50%">Hello world</div>',
+      '<div style="padding:300px;max-width:120px">Hello world</div>',
+      '<div style="padding:300px;min-width:300px">Hello world</div>',
+      '<div style="padding:300px;width:80px">Hello world</div>',
+      '<div style="padding:150px;width:100%">Hello world</div>',
+      // Nested: the OUTER block already exhausts the width, so the inner
+      // block's own constraint resolves against a zero-width container.
+      '<div style="padding:180px"><div style="width:50%">Nested</div></div>',
+    ];
+
+    for (final html in overflowing) {
+      testWidgets('does not crash: ${html.substring(0, 40)}…', (tester) async {
+        await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 200, // narrower than the padding above
+              child: SingleChildScrollView(child: HyperViewer(html: html)),
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('zero-width viewport with a width constraint is survivable',
+        (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 0,
+            child: SingleChildScrollView(
+              child: HyperViewer(html: '<div style="width:50%">x</div>'),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  });
 }
