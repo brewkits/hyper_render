@@ -1,0 +1,124 @@
+## [1.3.2] - 2026-05-18
+
+### Bug Fixes (Critical)
+
+- **[DEADLOCK] LazyImageQueue no longer deadlocks on a synchronously-throwing loader** — if a user-supplied `HyperImageLoader` threw before invoking its onLoad/onError callback, `_active` was never decremented; after `maxConcurrent` such throws the queue stopped processing every subsequent image until app restart. `_startLoad` now wraps the loader call in try/catch and routes any synchronous exception through the same idempotent error path used by the async callback.
+- **[SECURITY] Sanitizer now validates ALL URL-bearing attributes** — previously only `href` and `src` were checked, leaving `poster`, `data`, `cite`, `background`, `longdesc`, `usemap`, `manifest`, `xlink:href`, `formaction`, `action`, `icon`, and `srcset` as XSS bypass vectors (e.g. `<video poster="javascript:...">`). Added `urlBearingAttributes` constant and routes every match through `isSafeUrl`. `srcset` is split into candidates and each candidate's URL is validated independently.
+- **[SECURITY] `isTap` no longer fires when the pointer never went down inside the widget** — `handleEvent` previously treated `downPosition == null` as a valid tap, so a finger swiping into the widget from outside and lifting up would trigger `onLinkTap` on whatever fragment was under the lift point. Now requires BOTH a recorded down position AND a movement within `tapSlop`.
+- **[BUG-1] Images no longer permanently disappear after a Low Memory Warning** — `clearMemoryCaches()` disposed the image cache but never re-triggered `_loadImages()`. Visible images were stuck in the empty-placeholder state until the user scrolled the section out of view and back to force a detach+attach cycle. The cache-clear path now re-enqueues image loads via `LazyImageQueue` so visible images reload through the normal priority pipeline.
+- **[BUG-2] `_hashSection` now invalidates on attribute changes** — the previous fingerprint only hashed text content + child count, so changing only `<img src="a.jpg">` → `<img src="b.jpg">` (or class/id/style) produced the same hash. `_mergeSections` would silently reuse the stale `DocumentNode`, freezing dynamic UI at the first rendered version. The new recursive hash walks the subtree and includes tagName, type, text, atomic src/alt, all attributes (keys sorted), and per-depth child counts.
+- **[BUG-3] Eliminated 1-frame layout flash with dangling floats** — `_onFloatCarryover` previously deferred the cross-section update via `addPostFrameCallback + setState`, so section N+1 always laid out once with empty initialFloats before the corrected pass. Added `onRenderBoxReady` callback on `HyperRenderWidget` and `VirtualizedChunk`; `_HyperViewerState` keeps a `Map<int, RenderHyperBox>` registry and pushes new floats directly onto section N+1's RenderObject during section N's layout, so the pipeline owner picks up the change in the same frame.
+- **[C-1] HyperSelectionOverlay now forwards `config`, `pluginRegistry`, `enableComplexFilters`** — plugins, custom link schemes, keyframe animations and filter settings were silently ignored in sync+selectable and paged+selectable modes. All three params are now accepted by `HyperSelectionOverlay` and forwarded to the inner `HyperRenderWidget`.
+- **[C-2] Fixed GPU memory leak in image cache** — `_imageCache` was missing an `onEvict` callback, so `ui.Image` GPU textures were never disposed when entries were evicted from the LRU. Added `onEvict: (ci) => ci.image?.dispose()` to free GPU memory promptly on eviction.
+- **[C-3] Removed dead `_parseIsolate` / `_parseReceivePort` code** — these fields were declared but never assigned, making `_cancelParsing()` a no-op. Cleaned up unused `dart:isolate` import and fields; `_parseId` counter remains the mechanism for discarding stale parse results.
+- **[C-4] TextPainter global cache now respects `HyperRenderConfig.textPainterCacheSize`** — was hardcoded to 500 regardless of config (default 5000). Added `RenderHyperBox.setGlobalTextCacheSize()` static method; `HyperViewer` calls it in `initState` and `didUpdateWidget`.
+
+### Bug Fixes (High)
+
+- **[H-1] `HyperRenderConfig.operator==` and `hashCode` now include `useMicrotaskParsing`** — changing only this field no longer fails to trigger a re-parse.
+- **[H-2] `ComputedStyle.copyWith()` now copies `_explicitlySet`** — previously the result had an empty explicit-set, causing `inheritFrom()` to overwrite all copyWith'd properties with parent styles, breaking the CSS cascade.
+- **[H-3] `_containsFloatChild` detects `float:left` (no space) and Bootstrap/Tailwind class names** — `float:left`, `float-left`, `float-right`, `float-start`, `float-end`, `pull-left`, `pull-right` are now detected, preventing incorrect section splits in virtualized mode.
+- **[H-4] `isSafeUrl()` blocks `file:`, `mhtml:`, and `about:` schemes** — these can access local filesystem, trigger MHTML exploits, or enable sandbox-escape via `about:blank` on Android/iOS.
+
+### Bug Fixes (Medium)
+
+- **[M-1] `_effectiveConfig` is now cached** — was allocating a new `HyperRenderConfig` on every `build()` call (every scroll frame). Cache is invalidated when `renderConfig`, `allowedCustomSchemes`, or document keyframes change.
+- **[M-2] `HyperViewer.fromNode` now accepts `pluginRegistry` and `onError`** — previously hardcoded to `null`, making plugins and error handling unavailable for pre-parsed AST consumers.
+- **[M-3] `_buildPagedContent` no longer allocates a discarded `HyperRenderWidget`** — restructured to if/else so only one widget is built per page in selectable mode.
+- **[M-4] `_TextPainterKey` now includes `wordSpacing`** — two fragments with identical text but different `word-spacing` no longer share the same `TextPainter`, preventing incorrect layout widths.
+
+### Performance (Low)
+
+- **[L-1] `LazyImageQueue._findQueued` is now O(1)** — added `_urlToQueued` secondary index; previously O(N) causing O(N²) batch behavior with many simultaneous image loads.
+- **[L-2] `_hasDetailFragments` flag replaces O(N) scan** — `performLayout` no longer scans all fragments to check for `<details>` elements; flag is set during tokenization.
+
+### Fixes (Low)
+
+- **[L-3] `_splitIntoSections` no longer overwrites existing node parents** — changed `child.parent = current` to `if (child.parent == null) child.parent = current` to avoid corrupting ancestor-chain traversal on reused section nodes.
+- **[L-4] Removed dead `_draggingHandle` field** from `HyperSelectionOverlayState`.
+
+### Correctness & Robustness
+
+- **Hash collision resilience on Web** — `_accumulateHashParts` now also mixes in `text.length` for every `TextNode`, significantly reducing the chance that two long-but-distinct strings hash to the same slot on the JS target (where `Object.hashAll` has weaker dispersion than the Dart VM).
+- **`computeMinIntrinsicWidth` handles icon fonts, emoji, and dingbats** — the previous "longest-by-char-count word" heuristic miscalculated when a single PUA glyph (Material Icons, Font Awesome) or emoji renders far wider than a Latin letter. When the fragment contains any code point in U+E000–U+F8FF, U+2600–U+27BF, or U+1F000+, the entire fragment is measured instead of just the longest word.
+- **`RenderHyperBox.detach()` now cancels shimmer state** — a `ListView` item that detached mid-shimmer (scrolled out of cache) and later re-attached kept a stale `_shimmerEpoch`, producing a 1-frame phase jump on re-mount. The frame callback is now cancelled and `_shimmerEpoch` reset.
+
+### New
+
+- **`HyperRenderConfig.useRepaintBoundary`** (default `true`) — opt out of the outer-section `RepaintBoundary` wrapper. `RenderHyperBox` is already an internal repaint boundary, so this is mostly an escape hatch for very low-RAM Android devices (≤ 1.5 GB) rendering image-heavy long documents with a custom small `virtualizationChunkSize`, where many concurrent GPU layers could exhaust VRAM before the texture cache evicts.
+
+### Second-Pass Senior Review (2026-05-18 → 2026-05-19)
+
+A second multi-disciplinary review (PM/BA/SA/principal mobile) surfaced a further batch of issues addressed in this same release. Highlights:
+
+#### Security
+
+- **`UrlSafety` consolidated in `hyper_render_core/util/url_safety.dart`** — root `HtmlSanitizer.isSafeUrl` and the `hyper_render_markdown` sub-package's URL gate previously had independent copies that drifted: the sub-package missed `file:`/`mhtml:`/`about:`. Both now delegate to the shared helper; no future drift is possible.
+- **`HtmlAdapter` defence-in-depth URL gate** — `<img src>` and `<a href>` are now routed through `UrlSafety.isSafe` even when the upstream `HtmlSanitizer` is bypassed (callers that invoke `HtmlAdapter().parse()` directly or render with `sanitize: false`). Blocked `href` collapses to `#`; blocked `src` collapses to `''`.
+- **`hyper_render_clipboard` filename hardening (path traversal)** — `_getFilenameFromUrl` already stripped path separators from URL-decoded filenames, but `saveImageBytes(filename:)` and `shareImageBytes(filename:)` concatenated caller-supplied strings raw. Every save/share path now runs through a single `_sanitiseFilename` helper.
+- **Markdown inline HTML pre-sanitised** — when `HyperViewer.markdown(sanitize: true)` (default) is used with `enableInlineHtml: true` (default), raw `<script>`/`<style>`/`<iframe>` blocks are now stripped via `HtmlSanitizer` before reaching the markdown parser, so they can no longer flash as visible text or become a self-rendering plugin's XSS surface.
+
+#### Layout & Selection
+
+- **Unbounded-width crash fixed** — `RenderHyperBox.performLayout` and `_computeHeightForWidth` clamp `_maxWidth` to a finite fallback when the constraint is `double.infinity` (Row without Expanded, horizontal `SingleChildScrollView`). Before this, `_FlexFragment.layout` propagated infinity into a `BoxConstraints(minWidth: ∞)` and tripped Flutter's `minWidth < double.infinity` assertion.
+- **`text-overflow: ellipsis` no longer leaks hidden text via copy** — `Fragment.ellipsisVisibleLength` tracks how many leading characters survive each truncation pass; `getSelectedText` clamps the visible range against it and skips fully-suppressed fragments. State is reset at the top of every `_performLineLayout` so a wider re-layout un-hides previously truncated text.
+- **Selection-drag hit-test made lenient** — `_lineIndexAt` accepts a `clampOutOfBounds` flag (`true` for drag, `false` for tap). When a selection handle drags past the first/last line by a pixel, the index now snaps to the nearest line instead of returning `-1` and freezing.
+- **Dead-code removal** — `_characterToFragment` / `_fragmentRanges` fields in `RenderHyperBox` were populated each layout but never read; deleted along with their `clear()` and populate loops.
+- **Table cell block-content fallback** — when `cellContentBuilder` is `null` and a cell contains `<div>`/`<p>` children, `_buildCellContent` now renders the inline run plus each block child via a default `Column`/`Text` fallback instead of dropping the content. (Previously only `HyperRenderWidget` callers were safe.)
+- **Table grid total-cell cap** — added `_kMaxTotalCells = 100 000`. A pathological `<table>` whose `rowCount × columnCount` exceeds the cap now renders a visible "Table too large to render" placeholder instead of allocating an 8 MB `null` grid on the UI thread.
+- **`HyperAnimatedWidget` controller lifecycle hardened** — switched from `SingleTickerProviderStateMixin` to `TickerProviderStateMixin` (the previous mixin asserted on the second `createTicker()` when `didUpdateWidget` recreated the controller after a prop change). Start delay now uses a retained `Timer` that is cancelled on `didUpdateWidget` / `dispose`, eliminating duplicate `forward()` calls in fast-rebuild scenarios (live editor typing).
+
+#### Performance
+
+- **`HtmlAdapter.extractCss` regex fast-path** — for inputs ≥ 32 KB or with no `<style` tag at all (the common Markdown/Delta case), `extractCss` now skips the full html5lib parse on the UI thread and uses a focused regex. Saves 50–300 ms on a 200 KB document on a mid-range Android.
+
+#### Cross-package Polish
+
+- **`MarkdownContentParser` renamed to `DefaultMarkdownParser`** — aligns with `DefaultHtmlParser` / `DefaultCssParser`. The old name remains as a `@Deprecated` typedef so existing callers compile; new code should use the new name.
+- **`hyper_render_devtools` now has tests + `dev_dependencies` block** — `UdtSerializer` round-trip + truncation cap + `register()` idempotency. Previously the package shipped zero tests.
+- **`hyper_render_math` pubspec description normalised** — replaced the YAML folded-scalar (`>`) form with a plain string for consistency with the other six packages.
+- **`pubspec_publish_ready.yaml` and `scripts/prepare_publish.sh` version sync** — both now pin `^1.3.2`, eliminating the previous 1.3.1/1.3.2 mismatch that would have failed `dart pub publish --dry-run`.
+
+#### Tests
+
+71 new tests added across 11 files covering every fix above: URL safety scheme blocklist (core), HTML adapter URL gate, CSS parser edge cases, markdown GFM (tables/task-lists/autolinks/code-fence/heading), highlight edge cases (malformed source, 5 KB load, every theme), clipboard filename sanitisation, UDT serializer shape + truncation, animation controller race / dispose, table cell fallback + total-cell cap, extractCss perf, ellipsis copy + selection clamp regressions. Full suite: 1764 passing, 0 failing.
+
+---
+
+## [1.3.2] - 2026-05-14
+
+### ⚠️ Migration from 1.3.0
+
+`hyper_render_clipboard` and `hyper_render_math` are no longer transitive dependencies of `hyper_render`. If you use either, add them explicitly:
+
+```yaml
+dependencies:
+  hyper_render: ^1.3.2
+  hyper_render_clipboard: ^1.3.2   # only if you use SuperClipboardHandler
+  hyper_render_math: ^1.3.2        # only if you use MathNodePlugin / LatexNodePlugin
+```
+
+### ✨ New CSS Properties
+
+- **`list-style-type`**: All 11 marker types — `disc`, `circle`, `square`, `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-latin`, `upper-latin`, `lower-roman`, `upper-roman`, `none`
+- **`list-style-position`**: `inside` / `outside`
+- **`list-style` shorthand**: parses type and position in any order
+- **`background-repeat`**: `repeat`, `repeat-x`, `repeat-y`, `no-repeat`, `space`, `round`
+- **`background-position`**: keyword (`center`, `top left`, etc.) and percentage values
+
+### 🚀 Performance
+
+- **Selection rects cached**: `getSelectionRects()` now called once per drag event (was 3×) — stored in `_selectionRects` field, eliminating redundant layout walks during selection drag
+- **Auto-scroll proportional speed**: `_autoScrollIfNearEdge` scales 0–20 px/frame based on finger proximity to edge (was fixed 15 px/frame)
+- **`HyperTeardropHandlePainter` deduplicated**: renamed, made public, and exported from `hyper_render_core`; duplicate implementation in the virtualized overlay removed
+
+### 🐛 Bug Fixes
+
+- **Edge-to-edge images**: `width: 100%` images now truly fill their container — no internal margin offset
+
+### 🏗️ Build Fixes
+
+- **Decoupled native dependencies**: `hyper_render_clipboard` and `hyper_render_math` removed from root `hyper_render` default dependencies — eliminates the `compileSdk = 34` Gradle requirement for basic usage
+- **Removed outdated `compileSdk` workaround** from example app's Android Gradle config
+
+

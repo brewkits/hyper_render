@@ -23,6 +23,7 @@ class _AccessibilityDemoState extends State<AccessibilityDemo> {
   String _customLabel = '';
   bool _useCustomLabel = false;
   bool _excludeFromSemantics = false;
+  double _textScaleFactor = 1.0;
   String? _lastTappedLink;
   // Custom scheme example: allows myapp:// deep-links via extraLinkSchemes.
   bool _allowCustomScheme = false;
@@ -406,6 +407,24 @@ MyWidget()        // Not as good</code></pre>
                       ],
                     ),
                   ),
+
+                const SizedBox(height: 16),
+                // Text Scaler Slider
+                ListTile(
+                  title: const Text('Text Scaling (WCAG 1.4.4)'),
+                  subtitle: Text(
+                      'Simulate system font size change (Current: ${_textScaleFactor.toStringAsFixed(1)}x)'),
+                ),
+                Slider(
+                  value: _textScaleFactor,
+                  min: 0.5,
+                  max: 3.0,
+                  divisions: 25,
+                  label: '${_textScaleFactor.toStringAsFixed(1)}x',
+                  onChanged: (value) {
+                    setState(() => _textScaleFactor = value);
+                  },
+                ),
               ],
             ),
           ),
@@ -546,6 +565,7 @@ MyWidget()        // Not as good</code></pre>
                     ),
                     child: HyperViewer(
                       html: example['html']!,
+                      textScaler: TextScaler.linear(_textScaleFactor),
                       semanticLabel:
                           _excludeFromSemantics ? null : semanticLabel,
                       excludeSemantics: _excludeFromSemantics,

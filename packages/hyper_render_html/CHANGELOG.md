@@ -1,5 +1,9 @@
 # Changelog — hyper_render_html
 
+## [1.6.0] - 2026-07-26
+
+### 🚀 Update
+- Bump `hyper_render_core` dependency to `^1.6.0` to support multi-platform constraints.
 ## [Unreleased]
 
 ### 🐛 Bug Fixes

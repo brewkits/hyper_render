@@ -1,5 +1,7 @@
-gradle-wrapper.jar
+# gradle-wrapper.jar (committed wrapper for example app)
+!gradle-wrapper.jar
 /.gradle
+
 /captures/
 /local.properties
 GeneratedPluginRegistrant.java

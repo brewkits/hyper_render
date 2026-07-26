@@ -55,6 +55,7 @@ class AdapterResult {
   /// Parse duration for performance monitoring
   final Duration parseDuration;
 
+  /// Creates a new instance.
   AdapterResult({
     required this.document,
     this.extractedCss,

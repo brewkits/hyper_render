@@ -8,8 +8,8 @@ HTML parsing plugin for [HyperRender](https://pub.dev/packages/hyper_render). Co
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.5.0
-  hyper_render_html: ^1.5.0
+  hyper_render_core: ^1.6.0
+  hyper_render_html: ^1.6.0
 ```
 
 ---

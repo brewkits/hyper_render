@@ -153,8 +153,8 @@ class CssPropertiesDemo extends StatelessWidget {
               <div style="width: 200px; height: 100px; background: #ffebee; border: 1px solid #f44336; padding: 8px;">
                 Fixed size: 200x100
               </div>
-              <div style="max-width: 300px; background: #e8f5e9; border: 1px solid #4caf50; padding: 8px; margin-top: 8px;">
-                Max width: 300px (responsive)
+              <div style="width: 50%; max-width: 300px; background: #e8f5e9; border: 1px solid #4caf50; padding: 8px; margin-top: 8px;">
+                Width 50% (Max 300px)
               </div>
             ''',
           ),
@@ -222,9 +222,10 @@ class CssPropertiesDemo extends StatelessWidget {
               <p style="line-height: 1.0; background: #f5f5f5; padding: 4px;">
                 Tight line height (1.0)
               </p>
-              <p style="line-height: 2.0; background: #f5f5f5; padding: 4px;">
-                Loose line height (2.0)
-              </p>
+              <div style="line-height: 2.5; background: #e3f2fd; padding: 4px;">
+                <p style="margin:0;">Inherited line-height (2.5) 🚀</p>
+                <p style="margin:0;">Demonstrating correct inheritance.</p>
+              </div>
               <p style="letter-spacing: 3px; background: #f5f5f5; padding: 4px;">
                 Wide letter spacing
               </p>

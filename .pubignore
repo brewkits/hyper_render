@@ -10,8 +10,7 @@ build/
 # Tests — not needed by package consumers
 test/
 
-# Example app — exclude platform dirs, tests, and extra files.
-# Keep only example/example.dart for pub.dev scoring.
+# Example app — exclude platform dirs (keep example/example.dart for pub.dev score)
 example/android/
 example/ios/
 example/macos/
@@ -20,15 +19,8 @@ example/windows/
 example/web/
 example/build/
 example/.dart_tool/
-example/.flutter-plugins
-example/.flutter-plugins-dependencies
-example/lib/
-example/pubspec.yaml
-example/pubspec.lock
-example/analysis_options.yaml
-example/.metadata
-example/README.md
-example/test/
+example/.flutter-plugins*
+
 
 # Screenshots (raw frames, not referenced in pubspec.yaml assets)
 assets/screenshots/
@@ -39,6 +31,8 @@ benchmark/
 # CI/CD and dev scripts
 .github/
 scripts/
+
+
 
 # Internal publish helpers
 pubspec.yaml.backup

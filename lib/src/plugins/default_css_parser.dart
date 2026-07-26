@@ -8,6 +8,7 @@ import 'package:csslib/visitor.dart' as css_ast;
 /// Provides full CSS stylesheet parsing with specificity calculation.
 /// This is the default implementation provided by HyperRender.
 class DefaultCssParser implements CssParserInterface {
+  /// Creates a new instance.
   const DefaultCssParser();
 
   @override

@@ -19,6 +19,7 @@ class VirtualizedChunk extends StatefulWidget {
     required this.selectable,
     this.selectionColor,
     this.textDirection,
+    this.textScaler,
     this.onLinkTap,
     this.widgetBuilder,
     this.debugShowBounds = false,
@@ -38,6 +39,7 @@ class VirtualizedChunk extends StatefulWidget {
   final bool selectable;
   final Color? selectionColor;
   final TextDirection? textDirection;
+  final TextScaler? textScaler;
   final HyperLinkTapCallback? onLinkTap;
   final HyperWidgetBuilder? widgetBuilder;
   final bool debugShowBounds;
@@ -153,6 +155,7 @@ class _VirtualizedChunkState extends State<VirtualizedChunk> {
         selectable: widget.selectable,
         selectionColor: widget.selectionColor,
         textDirection: widget.textDirection ?? Directionality.of(context),
+        textScaler: widget.textScaler,
         onLinkTap: widget.onLinkTap,
         widgetBuilder: widget.widgetBuilder,
         debugShowBounds: widget.debugShowBounds,

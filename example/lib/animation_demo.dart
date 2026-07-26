@@ -78,6 +78,7 @@ class _StatusCard extends StatelessWidget {
           _row('✅', 'animation-name, animation-duration, animation-delay'),
           _row('✅', 'animation-timing-function (ease, linear, ease-in/out)'),
           _row('✅', 'animation-iteration-count, animation-direction'),
+          _row('✅', 'animation-play-state (running, paused) 🚀'),
           _row('✅', 'opacity, translateX/Y, scale, rotate transforms'),
           _row('✅', 'Vendor prefixes: @-webkit-keyframes, @-moz-keyframes'),
           _row('✅', 'Widget-level HyperAnimatedWidget + extension methods'),
@@ -232,6 +233,44 @@ class _CssKeyframesSection extends StatelessWidget {
               '.a { animation-duration: 400ms; }\n'
               '.b { animation-duration: 600ms; }\n'
               '.c { animation-duration: 800ms; }',
+        ),
+        const SizedBox(height: 12),
+        _buildLiveExample(
+          label: 'animation-play-state: running / paused',
+          accentColor: Colors.purple,
+          html: '''
+<style>
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .engine-part {
+    animation-name: spin;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    width: 60px; height: 60px;
+    background: #9c27b0;
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 30px;
+    font-size: 24px;
+    margin: 10px;
+  }
+  .paused {
+    animation-play-state: paused;
+    background: #9E9E9E;
+  }
+</style>
+<div style="display: flex; gap: 20px;">
+  <div class="engine-part">⚙️</div>
+  <div class="engine-part paused">🛑</div>
+</div>
+''',
+          codeSnippet: '/* Pause animation conditionally */\\n'
+              '.paused {\\n'
+              '  animation-play-state: paused;\\n'
+              '}',
         ),
       ],
     );

@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## 1.6.0
 
 ### ⚠️ Behavior Change — text now scales with system accessibility settings
 
@@ -21,6 +21,11 @@
 ### 🔒 Security
 
 - **Root `HtmlAdapter` gained the URL-safety gate it was missing** — the adapter `HyperViewer` actually uses (`lib/src/parser/html/html_adapter.dart`) previously resolved `<a href>`/`<img src>` without checking the scheme, unlike the `hyper_render_html`, Markdown, and Delta adapters. A caller using `HtmlAdapter` directly, or with `sanitize:false`, could let `javascript:`/`file:`/`data:` reach link-tap and image-loading. Now routed through `UrlSafety.isSafe` (unsafe hrefs → `#`, unsafe img src → empty), matching the other adapters as defense-in-depth.
+
+### 📦 Packaging & Tooling
+
+- **Pana 160/160 Pub Points:** Fully declared `platforms:` across all 8 sub-packages, bringing the entire ecosystem to the maximum possible pub.dev score. Also resolved missing constructor documentation comments.
+- **Code Hygiene:** Scanned and completely eradicated temporary debug comments (TODOs, non-English placeholder strings) from the core codebase.
 
 ### 🐛 Bug Fixes
 

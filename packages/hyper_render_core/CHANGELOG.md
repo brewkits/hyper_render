@@ -1,6 +1,6 @@
 # Changelog — hyper_render_core
 
-## [Unreleased]
+## 1.6.0
 
 ### ⚠️ Behavior Change — text scaling (WCAG 1.4.4)
 - `RenderHyperBox` and `RenderRubyText` now accept a `TextScaler` and apply it to every `TextPainter` (measurement + paint), so rendered text honours the device's accessibility text-scaling setting. Previously all text was measured at `TextScaler.noScaling`. `HyperRenderWidget` gained an optional `textScaler` param (null → `MediaQuery.textScalerOf(context)`); `_TextPainterKey` now includes the scaler so the process-global painter cache doesn't collide across scales. The `RenderHyperBox.textScaler` setter routes through `_invalidateLayout()` (not a bare `markNeedsLayout()`) so a scaler-only change actually re-measures rather than being skipped by the fragment-version fast-path. **Existing content re-renders larger when the user's system font size is increased** — pass `TextScaler.noScaling` to opt out.

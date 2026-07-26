@@ -92,6 +92,18 @@ class _SecurityDemoState extends State<SecurityDemo> {
 ''',
       'description': 'Combines multiple attack vectors',
     },
+    'custom_schemes': {
+      'name': 'Custom URI Schemes (v1.6.0)',
+      'html': '''
+<h3>App Integrations</h3>
+<p>These links use custom schemes allowed explicitly:</p>
+<a href="hyper://open?id=123">Open in App (hyper://)</a><br>
+<a href="app://settings">Open Settings (app://)</a><br>
+<p>This link will be stripped because it's not allowed:</p>
+<a href="unknown://test">Unknown Scheme</a>
+''',
+      'description': 'Demonstrates allowing specific custom URL schemes',
+    },
     'safe_content': {
       'name': 'Safe Content (No Attacks)',
       'html': '''
@@ -330,6 +342,10 @@ class _SecurityDemoState extends State<SecurityDemo> {
                       html: preset['html']!,
                       sanitize: _sanitizeEnabled,
                       allowDataAttributes: _allowDataAttributes,
+                      allowedCustomSchemes: const [
+                        'hyper:',
+                        'app:'
+                      ], // Added in v1.6.0
                       semanticLabel: 'Security demo: ${preset['name']}',
                     ),
                   ),

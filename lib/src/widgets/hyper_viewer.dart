@@ -442,6 +442,13 @@ class HyperViewer extends StatefulWidget {
   /// Used by [HyperViewer.fromNode] and by consumers who pre-process the AST.
   final DocumentNode? _prebuiltDocument;
 
+  /// Optional text scaler to override the system accessibility text scaling.
+  ///
+  /// By default, text is scaled by `MediaQuery.textScalerOf(context)` to honour
+  /// WCAG accessibility guidelines. If you need text to ignore system font sizes
+  /// (e.g., in a strictly controlled UI layout), pass `TextScaler.noScaling`.
+  final TextScaler? textScaler;
+
   /// Creates a HyperViewer for HTML content (default)
   ///
   /// ```dart
@@ -475,6 +482,7 @@ class HyperViewer extends StatefulWidget {
     this.selectionContextMenuBuilder,
     this.sanitize = true,
     this.textDirection,
+    this.textScaler,
     this.allowedTags,
     this.allowDataAttributes = false,
     this.semanticLabel,
@@ -525,6 +533,7 @@ class HyperViewer extends StatefulWidget {
     this.selectionContextMenuBuilder,
     this.sanitize = true,
     this.textDirection,
+    this.textScaler,
     this.allowedTags,
     this.allowDataAttributes = false,
     this.semanticLabel,
@@ -575,6 +584,7 @@ class HyperViewer extends StatefulWidget {
     this.selectionContextMenuBuilder,
     this.sanitize = true,
     this.textDirection,
+    this.textScaler,
     this.allowedTags,
     this.allowDataAttributes = false,
     this.semanticLabel,
@@ -622,6 +632,7 @@ class HyperViewer extends StatefulWidget {
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
     this.textDirection,
+    this.textScaler,
     this.semanticLabel,
     this.excludeSemantics = false,
     this.debugShowHyperRenderBounds = false,
@@ -1609,6 +1620,7 @@ class _HyperViewerState extends State<HyperViewer>
                   document: _sections![index],
                   selectable: false,
                   textDirection: dir,
+                  textScaler: widget.textScaler,
                   onLinkTap: _safeOnLinkTap,
                   widgetBuilder: _effectiveWidgetBuilder,
                   debugShowBounds: widget.debugShowHyperRenderBounds,
@@ -1812,6 +1824,7 @@ class _HyperViewerState extends State<HyperViewer>
             document: sections[index],
             selectable: widget.selectable,
             textDirection: dir,
+            textScaler: widget.textScaler,
             onLinkTap: _safeOnLinkTap,
             widgetBuilder: _effectiveWidgetBuilder,
             debugShowBounds: widget.debugShowHyperRenderBounds,

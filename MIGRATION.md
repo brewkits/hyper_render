@@ -236,7 +236,7 @@ HyperViewer(
 
 ---
 
-## HyperViewer v1.3.3 stable API
+## HyperViewer v1.6.0 stable API
 
 ```dart
 HyperViewer({
@@ -246,6 +246,8 @@ HyperViewer({
   bool selectable = true,
   bool sanitize = true,
   List<String>? allowedTags,   // Custom allowlist for sanitize: true
+  bool allowDataAttributes = false, // Keep data-* attributes (v1.6)
+  List<String>? allowedCustomSchemes, // Allow custom URL schemes (v1.6)
   HyperRenderMode mode = HyperRenderMode.auto,
   Function(String)? onLinkTap,
   HyperWidgetBuilder? widgetBuilder,
@@ -253,18 +255,26 @@ HyperViewer({
   GlobalKey? captureKey,       // Screenshot export
   bool enableZoom = false,
   bool showSelectionMenu = true,
-  WidgetBuilder? placeholderBuilder,
+  Color? selectionColor,       // Override selection color (v1.6)
+  Color? selectionHandleColor, // Override selection handle color (v1.6)
+  TextDirection? textDirection, // Override text direction (v1.6)
+  TextScaler? textScaler,      // Override WCAG text scaling (v1.6)
   String? semanticLabel,
+  bool excludeSemantics = false, // Opt out of semantics tree (v1.6)
+  WidgetBuilder? placeholderBuilder,
   HyperViewerController? controller,
   HyperPageController? pageController, // Paged mode only
   HyperPluginRegistry? pluginRegistry, // Custom tag plugins
+  HyperRenderConfig renderConfig = HyperRenderConfig.defaults, // (v1.3.3)
   void Function(Object, StackTrace)? onError,
+  void Function()? onMemoryPressure, // (v1.3.3)
 })
 
 HyperViewer.markdown(markdown: '# Hello', ...)
 HyperViewer.delta(delta: jsonString, ...)
+HyperViewer.fromNode(document: documentNode, ...) // (v1.6)
 ```
 
 ---
 
-*Last updated: June 2026 — HyperRender v1.3.3*
+*Last updated: July 2026 — HyperRender v1.6.0*
