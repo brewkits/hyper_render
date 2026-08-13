@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### ✨ New Features
+
+- **`HyperViewer.imageLoader`**: expose a per-viewer custom image loader (previously only reachable via the lower-level `HyperRenderWidget`/`RenderHyperBox`, with no path down from `HyperViewer` itself). Lets a consumer resolve images from a non-`http(s)` source — `data:` URIs, an in-memory archive, a caching library — instead of the built-in `NetworkImage`-based fetch. Threaded through all four rendering paths (`sync`/`virtualized`/`paged`, and both the default selectable `HyperSelectionOverlay` path and the non-selectable direct `HyperRenderWidget`/`VirtualizedChunk` paths for each), not just the ones a naive pass-through would hit by accident. First consumer: an in-progress `hyper_render_epub` package that needs to decode images out of an EPUB's zip container.
+
+### 📝 Docs
+
+- Clarified that `HyperRenderMode.paged` paginates a document you already parsed — it does not read `.epub` files itself. The prior wording ("suitable for e-book / epub / reader UIs") was ambiguous enough to prompt a real user question about EPUB file support.
+
 ## 1.6.0
 
 ### ⚠️ Behavior Change — text now scales with system accessibility settings
