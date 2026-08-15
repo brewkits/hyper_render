@@ -147,6 +147,35 @@ void main() {
       expect(_viewer(tester).content, isNot(contains('First')));
     });
 
+    testWidgets('keys the viewer by position, not by chapter id',
+        (tester) async {
+      // A spine may list the same manifest item twice. Keyed by id, the two
+      // positions would collide, Flutter would reuse the element, and paged
+      // mode would not reset to page 0 — the very thing the key is for.
+      final book = await EpubBook.open(buildEpub({
+        'META-INF/container.xml': containerXml,
+        'OEBPS/content.opf': opfXml(
+          manifest:
+              '<item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>',
+          spine: '<itemref idref="ch1"/><itemref idref="ch1"/>',
+        ),
+        'OEBPS/ch1.xhtml': '<html><body><p>Repeated</p></body></html>',
+      }));
+      expect(book.chapters.map((c) => c.id), ['ch1', 'ch1']);
+
+      final controller = EpubReaderController(book: book);
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(_host(EpubReader(controller: controller)));
+      await tester.pump();
+      final firstKey = _viewer(tester).key;
+
+      controller.next();
+      await tester.pump();
+
+      expect(_viewer(tester).key, isNot(firstKey));
+    });
+
     testWidgets('passes the chapter stylesheet, ahead of the reader\'s own CSS',
         (tester) async {
       final book = await EpubBook.open(_twoChapterEpub());

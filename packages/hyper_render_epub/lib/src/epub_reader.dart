@@ -27,6 +27,13 @@ class EpubReaderController extends ChangeNotifier {
 
   int _chapterIndex;
 
+  /// Zip-relative chapter path → index, resolved once.
+  ///
+  /// [chapterIndexForHref] is called per table-of-contents row per rebuild, so
+  /// resolving every chapter's href on every call would be O(chapters × rows).
+  /// First entry wins, matching [EpubBook.chapters] order.
+  final Map<String, int> _indexByPath;
+
   /// Creates a controller positioned at [initialChapter].
   ///
   /// [initialChapter] is clamped into range, so restoring a saved position
@@ -37,7 +44,12 @@ class EpubReaderController extends ChangeNotifier {
             : initialChapter.clamp(
                 0,
                 book.chapters.length - 1,
-              );
+              ),
+        _indexByPath = {
+          for (var i = book.chapters.length - 1; i >= 0; i--)
+            if (epubResolve('', book.chapters[i].href) case final path?)
+              path: i,
+        };
 
   /// Index of the chapter currently being read.
   int get chapterIndex => _chapterIndex;
@@ -82,13 +94,9 @@ class EpubReaderController extends ChangeNotifier {
   /// directory) — pass [relativeTo] for the latter, which [EpubReader] does
   /// automatically on link taps.
   int? chapterIndexForHref(String href, {String? relativeTo}) {
-    final baseDir = epubDirOf(relativeTo ?? '');
-    final target = epubResolve(baseDir, href);
+    final target = epubResolve(epubDirOf(relativeTo ?? ''), href);
     if (target == null) return null; // external URL or same-document anchor
-    for (var i = 0; i < book.chapters.length; i++) {
-      if (epubResolve('', book.chapters[i].href) == target) return i;
-    }
-    return null;
+    return _indexByPath[target];
   }
 
   /// Navigates to whatever [href] points at, relative to the open chapter.
@@ -176,8 +184,11 @@ class EpubReader extends StatelessWidget {
           // A new key per chapter rather than one long-lived viewer: it resets
           // paged mode to page 0 and drops the previous chapter's parsed
           // document (and its decoded images) instead of holding the whole
-          // book resident.
-          key: ValueKey<String>('epub-chapter-${chapter.id}'),
+          // book resident. Keyed by index, not by chapter id — a spine may
+          // list the same manifest item twice, and two adjacent chapters
+          // sharing a key would have Flutter reuse the element, which is the
+          // page-reset this key exists to force.
+          key: ValueKey<int>(controller.chapterIndex),
           html: chapter.html,
           customCss: _mergeCss(chapter.css, customCss),
           // Chapter images are inline `data:` URIs; the default network loader
