@@ -72,6 +72,15 @@ String epubDecode(String value) {
   }
 }
 
+/// Expresses the zip entry [path] the way public hrefs are documented: relative
+/// to the OPF's directory, or rooted at `/` for the rare entry that lives
+/// outside it.
+///
+/// The inverse of [epubResolve] against the OPF directory, and the shared
+/// coordinate system that lets a TOC href be matched against a chapter.
+String epubHrefFromOpf(String path, String opfDir) =>
+    path.startsWith(opfDir) ? path.substring(opfDir.length) : '/$path';
+
 /// The `#fragment` of [href] including the `#`, or `''` when there is none.
 String epubFragment(String href) {
   final hash = href.indexOf('#');

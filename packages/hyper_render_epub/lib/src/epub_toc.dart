@@ -157,9 +157,7 @@ ResolvedTocEntry _entry({
   if (path == null) {
     href = rawHref;
   } else {
-    final relative =
-        path.startsWith(opfDir) ? path.substring(opfDir.length) : '/$path';
-    href = '$relative${epubFragment(rawHref)}';
+    href = '${epubHrefFromOpf(path, opfDir)}${epubFragment(rawHref)}';
   }
   return ResolvedTocEntry(
     EpubTocEntry(

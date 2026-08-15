@@ -4,6 +4,7 @@ import 'epub_archive.dart';
 import 'epub_chapter_transform.dart';
 import 'epub_exception.dart';
 import 'epub_opf.dart';
+import 'epub_path.dart';
 import 'epub_toc.dart';
 
 /// A single chapter (spine item) of an [EpubBook], already resolved to
@@ -20,6 +21,12 @@ import 'epub_toc.dart';
 class EpubChapter {
   /// The manifest id of this chapter, from the OPF `<spine>`.
   final String id;
+
+  /// Where this chapter's source file lives, relative to the OPF's directory —
+  /// the same coordinate system as [EpubTocEntry.href], so the two can be
+  /// compared to turn a TOC entry (or a cross-chapter link) into a chapter.
+  /// [EpubReaderController.chapterIndexForHref] does exactly that.
+  final String href;
 
   /// Chapter title, if one could be resolved from the EPUB3 `nav.xhtml` or
   /// EPUB2 `toc.ncx` table of contents. `null` when the TOC doesn't map a
@@ -49,6 +56,7 @@ class EpubChapter {
 
   const EpubChapter({
     required this.id,
+    required this.href,
     required this.html,
     required this.css,
     this.title,
@@ -173,6 +181,7 @@ class EpubBook {
       chapters.add(
         EpubChapter(
           id: item.id,
+          href: epubHrefFromOpf(item.path!, opf.dir),
           title: titles[item.path],
           html: content.html,
           css: content.css,

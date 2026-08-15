@@ -27,3 +27,4 @@ library;
 export 'src/epub_book.dart';
 export 'src/epub_exception.dart';
 export 'src/epub_image_loader.dart';
+export 'src/epub_reader.dart';

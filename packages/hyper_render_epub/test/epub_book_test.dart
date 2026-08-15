@@ -3,83 +3,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_epub/hyper_render_epub.dart';
 
-/// Zips [entries] in memory — a `String` value becomes a UTF-8 text entry,
-/// a byte list is stored as-is. Building fixtures this way (rather than
-/// committing a binary `.epub`) is what makes the malformed variants below
-/// possible.
-Uint8List buildEpub(Map<String, Object> entries) {
-  final archive = Archive();
-  entries.forEach((name, value) {
-    archive.addFile(
-      value is String
-          ? ArchiveFile.string(name, value)
-          : ArchiveFile.bytes(name, value as List<int>),
-    );
-  });
-  return ZipEncoder().encodeBytes(archive);
-}
-
-const String _containerXml = '''
-<?xml version="1.0" encoding="UTF-8"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-  </rootfiles>
-</container>
-''';
-
-/// 1×1 transparent PNG.
-final Uint8List _pngBytes = base64.decode(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAE'
-  'hQGAhKmMIQAAAABJRU5ErkJggg==',
-);
-
-String _opf({
-  String metadata = '''
-    <dc:title>Test Book</dc:title>
-    <dc:creator>A. Writer</dc:creator>''',
-  String manifest = '''
-    <item id="ch1" href="text/chapter1.xhtml" media-type="application/xhtml+xml"/>
-    <item id="ch2" href="text/chapter2.xhtml" media-type="application/xhtml+xml"/>
-    <item id="css" href="styles/main.css" media-type="text/css"/>
-    <item id="img" href="images/pic.png" media-type="image/png"/>''',
-  String spine = '''
-    <itemref idref="ch1"/>
-    <itemref idref="ch2"/>''',
-  String spineAttrs = '',
-}) =>
-    '''
-<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-$metadata
-  </metadata>
-  <manifest>
-$manifest
-  </manifest>
-  <spine$spineAttrs>
-$spine
-  </spine>
-</package>
-''';
-
-String _chapter(String body) => '''
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-  <head>
-    <title>Chapter</title>
-    <link rel="stylesheet" type="text/css" href="../styles/main.css"/>
-  </head>
-  <body>
-$body
-  </body>
-</html>
-''';
+import 'epub_fixtures.dart';
 
 void main() {
   group('EpubBook.open', () {
@@ -87,11 +14,11 @@ void main() {
       final book = await EpubBook.open(
         buildEpub({
           'mimetype': 'application/epub+zip',
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(),
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(),
           'OEBPS/styles/main.css': 'p { color: red; }',
-          'OEBPS/text/chapter1.xhtml': _chapter('<p>First</p>'),
-          'OEBPS/text/chapter2.xhtml': _chapter('<p>Second</p>'),
+          'OEBPS/text/chapter1.xhtml': chapterXhtml('<p>First</p>'),
+          'OEBPS/text/chapter2.xhtml': chapterXhtml('<p>Second</p>'),
         }),
       );
 
@@ -107,11 +34,11 @@ void main() {
     test('collects linked stylesheets into css and drops the <link>', () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(),
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(),
           'OEBPS/styles/main.css': 'p { color: red; }',
-          'OEBPS/text/chapter1.xhtml': _chapter('<p>First</p>'),
-          'OEBPS/text/chapter2.xhtml': _chapter('<p>Second</p>'),
+          'OEBPS/text/chapter1.xhtml': chapterXhtml('<p>First</p>'),
+          'OEBPS/text/chapter2.xhtml': chapterXhtml('<p>Second</p>'),
         }),
       );
 
@@ -123,8 +50,8 @@ void main() {
         () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             manifest:
                 '<item id="ch1" href="text/chapter1.xhtml" media-type="application/xhtml+xml"/>',
             spine: '<itemref idref="ch1"/>',
@@ -162,20 +89,20 @@ void main() {
     test('inlines <img src> from the archive as a base64 data URI', () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(),
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(),
           'OEBPS/styles/main.css': 'p { color: red; }',
-          'OEBPS/images/pic.png': _pngBytes,
-          'OEBPS/text/chapter1.xhtml': _chapter(
+          'OEBPS/images/pic.png': pngBytes,
+          'OEBPS/text/chapter1.xhtml': chapterXhtml(
               '<img src="../images/pic.png" srcset="../images/pic.png 2x"/>'),
-          'OEBPS/text/chapter2.xhtml': _chapter('<p>Second</p>'),
+          'OEBPS/text/chapter2.xhtml': chapterXhtml('<p>Second</p>'),
         }),
       );
 
       final html = book.chapters.first.html;
       expect(
         html,
-        contains('src="data:image/png;base64,${base64.encode(_pngBytes)}"'),
+        contains('src="data:image/png;base64,${base64.encode(pngBytes)}"'),
       );
       // A srcset would still point at an unresolvable relative path.
       expect(html, isNot(contains('srcset')));
@@ -184,14 +111,14 @@ void main() {
     test('percent-decodes hrefs before looking them up in the zip', () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             manifest: '''
     <item id="ch1" href="text/chapter%201.xhtml" media-type="application/xhtml+xml"/>
     <item id="img" href="images/my%20pic.png" media-type="image/png"/>''',
             spine: '<itemref idref="ch1"/>',
           ),
-          'OEBPS/images/my pic.png': _pngBytes,
+          'OEBPS/images/my pic.png': pngBytes,
           'OEBPS/text/chapter 1.xhtml':
               '<html><body><img src="../images/my%20pic.png"/></body></html>',
         }),
@@ -205,8 +132,8 @@ void main() {
         () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             manifest: '''
     <item id="ch1" href="text/chapter1.xhtml" media-type="application/xhtml+xml"/>
     <item id="svg" href="images/logo.svg" media-type="image/svg+xml"/>''',
@@ -250,7 +177,7 @@ void main() {
     <rootfile full-path="book/package.opf" media-type="application/oebps-package+xml"/>
   </rootfiles>
 </container>''',
-          'book/package.opf': _opf(
+          'book/package.opf': opfXml(
             manifest:
                 '<item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>',
             spine: '<itemref idref="ch1"/>',
@@ -265,8 +192,8 @@ void main() {
     test('keeps linear="no" spine items', () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             manifest: '''
     <item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>
     <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>''',
@@ -288,8 +215,8 @@ void main() {
         () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             manifest: '''
     <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
     <item id="ghost" href="ghost.xhtml" media-type="application/xhtml+xml"/>''',
@@ -308,8 +235,8 @@ void main() {
         () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             manifest:
                 '<item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>',
             spine: '<itemref idref="ch1"/>',
@@ -325,27 +252,27 @@ void main() {
     test('exposes the EPUB3 cover-image bytes', () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             manifest: '''
     <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
     <item id="cover" href="cover.png" media-type="image/png" properties="cover-image"/>''',
             spine: '<itemref idref="ch1"/>',
           ),
-          'OEBPS/cover.png': _pngBytes,
+          'OEBPS/cover.png': pngBytes,
           'OEBPS/ch1.xhtml': '<html><body><p>One</p></body></html>',
         }),
       );
 
-      expect(book.coverImage, _pngBytes);
+      expect(book.coverImage, pngBytes);
     });
 
     test('reports an SVG cover with its media type, rather than dropping it',
         () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             manifest: '''
     <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
     <item id="cover" href="cover.svg" media-type="image/svg+xml" properties="cover-image"/>''',
@@ -365,8 +292,8 @@ void main() {
     test('falls back to the EPUB2 <meta name="cover"> pointer', () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             metadata: '''
     <dc:title>Old Book</dc:title>
     <meta name="cover" content="coverimg"/>''',
@@ -375,13 +302,13 @@ void main() {
     <item id="coverimg" href="cover.png" media-type="image/png"/>''',
             spine: '<itemref idref="ch1"/>',
           ),
-          'OEBPS/cover.png': _pngBytes,
+          'OEBPS/cover.png': pngBytes,
           'OEBPS/ch1.xhtml': '<html><body><p>One</p></body></html>',
         }),
       );
 
       expect(book.title, 'Old Book');
-      expect(book.coverImage, _pngBytes);
+      expect(book.coverImage, pngBytes);
     });
 
     test('throws EpubFormatException on bytes that are not a zip', () async {
@@ -402,8 +329,8 @@ void main() {
       await expectLater(
         EpubBook.open(
           buildEpub({
-            'META-INF/container.xml': _containerXml,
-            'OEBPS/content.opf': _opf(manifest: '', spine: ''),
+            'META-INF/container.xml': containerXml,
+            'OEBPS/content.opf': opfXml(manifest: '', spine: ''),
           }),
         ),
         throwsA(isA<EpubFormatException>()),
@@ -415,14 +342,14 @@ void main() {
       () async {
     final book = await EpubBook.open(
       buildEpub({
-        'META-INF/container.xml': _containerXml,
-        'OEBPS/content.opf': _opf(
+        'META-INF/container.xml': containerXml,
+        'OEBPS/content.opf': opfXml(
           manifest: '''
     <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
     <item id="img" href="pic.png" media-type="image/png"/>''',
           spine: '<itemref idref="ch1"/>',
         ),
-        'OEBPS/pic.png': _pngBytes,
+        'OEBPS/pic.png': pngBytes,
         'OEBPS/ch1.xhtml': '<html><body><img src="pic.png"/></body></html>',
       }),
     );
@@ -444,8 +371,8 @@ void main() {
     test('parses a nested EPUB3 nav document and titles chapters', () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             manifest: '''
     <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
     <item id="ch1" href="text/chapter1.xhtml" media-type="application/xhtml+xml"/>
@@ -488,8 +415,8 @@ void main() {
     test('falls back to toc.ncx when there is no nav document', () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             manifest: '''
     <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
     <item id="ch1" href="text/chapter1.xhtml" media-type="application/xhtml+xml"/>''',
@@ -524,8 +451,8 @@ void main() {
     test('an unparsable TOC yields an empty list, not a failed open', () async {
       final book = await EpubBook.open(
         buildEpub({
-          'META-INF/container.xml': _containerXml,
-          'OEBPS/content.opf': _opf(
+          'META-INF/container.xml': containerXml,
+          'OEBPS/content.opf': opfXml(
             manifest: '''
     <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
     <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>''',

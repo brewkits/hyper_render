@@ -23,20 +23,30 @@ topics:
   - ebook-reader
 
 dependencies:
-  archive: ^4.0.9
   flutter:
     sdk: flutter
-  # Version dep so pana/pub.dev can resolve without local path.
-  # The dependency_overrides below point to the local monorepo copy during dev.
-  html: ^0.15.6
+
+  archive: ^4.0.9 # pure-dart zip, keeps `web` support (no dart:io)
+  html: ^0.15.6 # html5 parser for chapter XHTML / nav documents
+  xml: ^7.0.1 # container.xml, OPF, toc.ncx
+
+  # Version deps so pana/pub.dev can resolve without local paths; the
+  # dependency_overrides below point at the monorepo copies during dev.
   hyper_render_core: ^1.6.0
-  xml: ^7.0.1
+  # ⚠️ 1.7.0 IS NOT PUBLISHED YET. EpubReader needs HyperViewer.imageLoader to
+  # decode the data: URIs the chapter transform emits, and that parameter only
+  # exists on `main`. This package therefore cannot be published until
+  # hyper_render 1.7.0 ships — in-repo development is unaffected.
+  hyper_render: ^1.7.0
 
 dependency_overrides:
   hyper_render_core:
     path: ../hyper_render_core
+  hyper_render:
+    path: ../..
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_svg: ^2.3.0
