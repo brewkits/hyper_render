@@ -23,11 +23,14 @@ topics:
   - ebook-reader
 
 dependencies:
+  archive: ^4.0.9
   flutter:
     sdk: flutter
   # Version dep so pana/pub.dev can resolve without local path.
   # The dependency_overrides below point to the local monorepo copy during dev.
+  html: ^0.15.6
   hyper_render_core: ^1.6.0
+  xml: ^7.0.1
 
 dependency_overrides:
   hyper_render_core:

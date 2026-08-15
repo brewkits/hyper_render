@@ -1,5 +1,11 @@
 import 'dart:typed_data';
 
+import 'epub_archive.dart';
+import 'epub_chapter_transform.dart';
+import 'epub_exception.dart';
+import 'epub_opf.dart';
+import 'epub_toc.dart';
+
 /// A single chapter (spine item) of an [EpubBook], already resolved to
 /// content `HyperViewer` can render directly.
 ///
@@ -28,17 +34,25 @@ class EpubChapter {
   /// content is concatenated into [css] instead.
   final String html;
 
-  /// CSS text collected from every `<link rel="stylesheet">` this chapter
-  /// referenced, in document order. Pass this to `HyperViewer.customCss` —
-  /// HyperRender does not fetch external stylesheets on its own, only
-  /// inline `<style>` tags.
+  /// CSS text collected from every `<link rel="stylesheet">` and `<style>`
+  /// this chapter carried, in document order. Pass this to
+  /// `HyperViewer.customCss` — HyperRender does not fetch external stylesheets
+  /// on its own, and a `<head>` `<style>` would otherwise be lost with the
+  /// rest of the head.
   final String css;
+
+  /// False when the spine marks this item `linear="no"` — front/back matter
+  /// (cover pages, colophons, note collections) that a reader may present out
+  /// of the main flow, or skip. Such items are still in [EpubBook.chapters];
+  /// this flag is what lets a reader UX decide.
+  final bool linear;
 
   const EpubChapter({
     required this.id,
     required this.html,
     required this.css,
     this.title,
+    this.linear = true,
   });
 }
 
@@ -70,7 +84,7 @@ class EpubTocEntry {
 ///
 /// ```dart
 /// final bytes = await File('book.epub').readAsBytes();
-/// final book = EpubBook.open(bytes);
+/// final book = await EpubBook.open(bytes);
 /// HyperViewer(
 ///   html: book.chapters.first.html,
 ///   customCss: book.chapters.first.css,
@@ -90,41 +104,111 @@ class EpubBook {
   final Uint8List? coverImage;
 
   /// Chapters in spine (reading) order.
+  ///
+  /// Includes items the spine marks `linear="no"` (covers, notes, colophons):
+  /// they are part of the book, and dropping content silently is worse than
+  /// showing a page a reader can skip — see [EpubChapter.linear] to tell them
+  /// apart. A spine item whose file is missing from the archive *is* dropped,
+  /// so this can be shorter than the spine.
   final List<EpubChapter> chapters;
 
   /// Table of contents, top-level entries (each may have [EpubTocEntry.children]).
+  ///
+  /// Empty when the book ships no navigation document / `toc.ncx`, or when the
+  /// one it ships cannot be parsed — a broken TOC never fails the open.
   final List<EpubTocEntry> tableOfContents;
 
-  // title/author/coverImage have no call site yet — the container/OPF/TOC
-  // parser (next change) is the only intended caller, and EpubBook.open()
-  // below is still a scaffolding stub. Expected for this commit; the
-  // `ignore:` comments below should come out once the parser lands and
-  // actually passes these.
   const EpubBook._({
     required this.chapters,
     required this.tableOfContents,
-    this.title, // ignore: unused_element_parameter
-    this.author, // ignore: unused_element_parameter
-    this.coverImage, // ignore: unused_element_parameter
+    this.title,
+    this.author,
+    this.coverImage,
   });
 
   /// Parses [bytes] — the raw contents of an `.epub` file — into an
   /// [EpubBook].
   ///
-  /// `async` on purpose even though today's stub doesn't await anything:
-  /// the real implementation does `ZipDecoder` + per-chapter base64 encoding
-  /// over a whole book, which is real main-thread work for a large,
-  /// illustrated EPUB. Fixing the signature now (while nothing depends on
-  /// it yet) is cheaper than changing a published API later.
+  /// Unzips the archive, locates the OPF package document through
+  /// `META-INF/container.xml`, then resolves every spine item into an
+  /// [EpubChapter] whose images are inlined as `data:` URIs and whose linked
+  /// stylesheets are collected into [EpubChapter.css].
   ///
-  /// **Not implemented yet.** This is a scaffolding commit: the public shape
-  /// above (`EpubChapter`/`EpubTocEntry`/`EpubBook`) is what the container/
-  /// OPF/TOC parser (next change) and its callers will be written against.
-  /// Calling this now throws [UnimplementedError].
+  /// `async` because this is real main-thread work for a large, illustrated
+  /// book (zip inflate + base64 over every image); the returned future
+  /// completes on the same frame for small books.
+  ///
+  /// Throws [EpubFormatException] when the bytes are not a usable EPUB — not a
+  /// zip, no OPF, or an OPF with no spine. Partial damage (a missing chapter
+  /// file, an unparsable TOC, an image whose entry is absent) degrades
+  /// gracefully instead of throwing; see [EpubFormatException].
   static Future<EpubBook> open(Uint8List bytes) async {
-    throw UnimplementedError(
-      'EpubBook.open is not implemented yet — hyper_render_epub is still '
-      'scaffolding container/OPF/TOC parsing. See CHANGELOG.md.',
+    final archive = EpubArchive.decode(bytes);
+    final opf = parseOpf(archive, findOpfPath(archive));
+
+    final toc = _readToc(archive, opf);
+    final titles = tocTitlesByPath(toc);
+
+    final chapters = <EpubChapter>[];
+    for (final idref in opf.spine) {
+      final item = opf.manifest[idref];
+      final source = archive.readText(item?.path);
+      if (item == null || source == null) continue;
+      final content = transformChapter(
+        source: source,
+        chapterPath: item.path!,
+        archive: archive,
+        opf: opf,
+      );
+      chapters.add(
+        EpubChapter(
+          id: item.id,
+          title: titles[item.path],
+          html: content.html,
+          css: content.css,
+          linear: !opf.nonLinear.contains(idref),
+        ),
+      );
+    }
+
+    return EpubBook._(
+      chapters: chapters,
+      tableOfContents: [for (final entry in toc) entry.entry],
+      title: opf.title,
+      author: opf.author,
+      coverImage: archive.read(opf.coverItem?.path),
     );
   }
+
+  /// EPUB3 navigation document first, EPUB2 `toc.ncx` as fallback — a book may
+  /// legally ship both (for reader compatibility), and the nav document is the
+  /// authoritative one when it does.
+  static List<ResolvedTocEntry> _readToc(
+    EpubArchive archive,
+    OpfPackage opf,
+  ) {
+    final nav = opf.navItem;
+    if (nav?.path != null) {
+      final source = archive.readText(nav!.path);
+      if (source != null) {
+        final entries = parseNavDocument(source, nav.path!, opf.dir);
+        if (entries.isNotEmpty) return entries;
+      }
+    }
+
+    final ncx = opf.ncxId == null ? null : opf.manifest[opf.ncxId];
+    final ncxPath = ncx?.path ??
+        opf.byPath.keys
+            .where((p) => p.toLowerCase().endsWith('.ncx'))
+            .firstOrNull;
+    if (ncxPath != null) {
+      final source = archive.readText(ncxPath);
+      if (source != null) return parseNcx(source, ncxPath, opf.dir);
+    }
+    return const [];
+  }
+}
+
+extension<T> on Iterable<T> {
+  T? get firstOrNull => isEmpty ? null : first;
 }

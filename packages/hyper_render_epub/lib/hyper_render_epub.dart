@@ -6,11 +6,7 @@
 /// `http(s)://` URL) and external stylesheets concatenated for
 /// `HyperViewer.customCss`.
 ///
-/// **Status**: scaffolding. [EpubBook.open] is not implemented yet (see its
-/// dartdoc); [epubImageLoader] is fully implemented and can already be used
-/// with hand-built `data:` URIs today.
-///
-/// ## Quick start (once [EpubBook.open] lands)
+/// ## Quick start
 ///
 /// ```dart
 /// import 'package:hyper_render/hyper_render.dart';
@@ -29,4 +25,5 @@
 library;
 
 export 'src/epub_book.dart';
+export 'src/epub_exception.dart';
 export 'src/epub_image_loader.dart';

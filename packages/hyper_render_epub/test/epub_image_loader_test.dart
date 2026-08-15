@@ -78,15 +78,4 @@ void main() {
       );
     });
   });
-
-  group('EpubBook.open', () {
-    test('is not implemented yet (scaffolding)', () async {
-      // open() is async (see its dartdoc for why) — pass the Future itself
-      // to throwsA/expectLater, not a closure, and await the expectation.
-      await expectLater(
-        EpubBook.open(Uint8List(0)),
-        throwsA(isA<UnimplementedError>()),
-      );
-    });
-  });
 }

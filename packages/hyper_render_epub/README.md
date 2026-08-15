@@ -6,19 +6,26 @@ content `HyperViewer` can render directly.
 
 ---
 
-## Status: early scaffolding (v0.1.0)
+## Status: v0.1.0
 
-This package is **not feature-complete yet**. What exists today:
+What the package does today:
 
-- ✅ `epubImageLoader` — a `HyperImageLoader` that decodes the `data:` URIs a future chapter
-  parser will emit (EPUB images live inside the zip, not at a fetchable `http(s)://` URL),
-  falling back to the normal network loader for anything else. Usable today with hand-built
-  `data:` URIs.
-- ❌ `EpubBook.open()` — container/OPF/spine/TOC parsing. Currently throws
-  `UnimplementedError`. This is the next change.
+- ✅ `EpubBook.open(bytes)` — unzips the archive, locates the OPF through
+  `META-INF/container.xml`, and parses metadata, manifest, spine and table of contents
+  (EPUB3 `nav.xhtml`, falling back to EPUB2 `toc.ncx`).
+- ✅ Per-chapter transform — `<img src>` inlined as base64 `data:` URIs, `<link
+  rel="stylesheet">` **and** `<style>` collected into `EpubChapter.css` in document order
+  (a `<head>` `<style>` would otherwise be lost with the rest of the head), body content
+  extracted.
+- ✅ `epubImageLoader` — a `HyperImageLoader` that decodes those `data:` URIs (EPUB images
+  live inside the zip, not at a fetchable `http(s)://` URL), falling back to the normal
+  network loader for anything else.
+- ❌ Reading UX (cross-chapter pagination, TOC navigation widget) — build it yourself for
+  now; see the note on pagination below.
 
-The public shape (`EpubBook`, `EpubChapter`, `EpubTocEntry`) is fixed so the rest of the
-package — and anyone building against it — has a stable target while parsing is filled in.
+Structural damage throws `EpubFormatException` (not a zip, no OPF, no spine). Partial
+damage never does: a spine item whose file is missing is skipped, an unparsable TOC yields
+an empty `tableOfContents`, and an `<img>` whose target is absent keeps its original `src`.
 
 ---
 
@@ -31,7 +38,7 @@ dependencies:
 
 ---
 
-## Usage (once `EpubBook.open` lands)
+## Usage
 
 ```dart
 import 'dart:io';
@@ -60,6 +67,18 @@ single continuously-swipeable reader. This package's reading UX is chapter-at-a-
 one `HyperViewer(mode: paged)` per `book.chapters[i]` and handle next/previous-*chapter*
 navigation yourself. Seamless pagination across chapter boundaries is a possible future
 addition, not something this package (or HyperRender's engine) does today.
+
+### What this package deliberately does not rewrite
+
+- **SVG images** keep their original, unresolvable `src`. Two independent reasons: the
+  engine's `UrlSafety` blocklist rejects `data:image/svg` outright (inline SVG can carry
+  `<script>`), and the canvas painter has no SVG rasteriser, so an inlined SVG could not be
+  drawn even if it passed. Books whose *cover* is SVG show no cover image.
+- **Cross-chapter `<a href>` links** are left as authored (e.g. `text/chapter3.xhtml#note`).
+  They point at other spine items, not at anything a single `HyperViewer` can navigate to —
+  resolve them against `EpubBook.chapters` in your own `onLinkTap`.
+- **`url(...)` inside collected CSS** is not rewritten, because the properties that use it
+  are not rendered anyway (see below).
 
 ### Known CSS gaps this package inherits from the engine
 
