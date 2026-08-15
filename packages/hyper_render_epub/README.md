@@ -20,12 +20,20 @@ What the package does today:
 - ✅ `epubImageLoader` — a `HyperImageLoader` that decodes those `data:` URIs (EPUB images
   live inside the zip, not at a fetchable `http(s)://` URL), falling back to the normal
   network loader for anything else.
-- ❌ Reading UX (cross-chapter pagination, TOC navigation widget) — build it yourself for
-  now; see the note on pagination below.
+- ✅ `EpubReader` + `EpubReaderController` — chapter-at-a-time reading, TOC/cross-chapter
+  href resolution, link taps wired. Rendering only; the chrome around it is yours.
+- ❌ Seamless pagination *across* chapter boundaries — see the note on pagination below.
 
 Structural damage throws `EpubFormatException` (not a zip, no OPF, no spine). Partial
 damage never does: a spine item whose file is missing is skipped, an unparsable TOC yields
 an empty `tableOfContents`, and an `<img>` whose target is absent keeps its original `src`.
+
+> ### ⚠️ Not publishable yet
+>
+> This package depends on `hyper_render: ^1.7.0`, which **is not on pub.dev**. `EpubReader`
+> needs `HyperViewer.imageLoader` — the parameter that lets it decode the inline `data:`
+> URIs chapters carry — and that only exists on `main`. `hyper_render_epub` can ship once
+> `hyper_render` 1.7.0 does. Using it from the monorepo today works fine.
 
 ---
 
@@ -42,31 +50,97 @@ dependencies:
 
 ```dart
 import 'dart:io';
-import 'package:hyper_render/hyper_render.dart';
 import 'package:hyper_render_epub/hyper_render_epub.dart';
 
-final bytes = await File('book.epub').readAsBytes();
-final book = await EpubBook.open(bytes);
+final book = await EpubBook.open(await File('book.epub').readAsBytes());
+final controller = EpubReaderController(book: book); // dispose() when done
 
+Column(children: [
+  Expanded(child: EpubReader(controller: controller)),
+  Row(children: [
+    TextButton(
+      onPressed: controller.hasPrevious ? controller.previous : null,
+      child: const Text('Previous'),
+    ),
+    TextButton(
+      onPressed: controller.hasNext ? controller.next : null,
+      child: const Text('Next'),
+    ),
+  ]),
+])
+```
+
+`EpubReaderController` is a `ChangeNotifier`, so a chapter title, a progress bar and a
+table-of-contents panel can all watch the same position:
+
+```dart
+ListenableBuilder(
+  listenable: controller,
+  builder: (context, _) => ListView(
+    children: [
+      for (final entry in book.tableOfContents)
+        ListTile(
+          title: Text(entry.title),
+          selected: controller.chapterIndexForHref(entry.href) ==
+              controller.chapterIndex,
+          onTap: () {
+            final index = controller.chapterIndexForHref(entry.href);
+            if (index != null) controller.goTo(index);
+          },
+        ),
+    ],
+  ),
+)
+```
+
+Links inside a chapter are resolved on tap: one pointing at another chapter moves the
+controller, anything else (an `http(s)://` reference, a broken path) is handed to
+`onExternalLinkTap`.
+
+### Rendering chapters yourself
+
+`EpubReader` is thin on purpose. Everything it does is available directly:
+
+```dart
 HyperViewer(
-  html: book.chapters.first.html,
-  customCss: book.chapters.first.css,
-  imageLoader: epubImageLoader,
+  html: chapter.html,
+  customCss: chapter.css,      // the chapter's own <link>/<style> CSS
+  imageLoader: epubImageLoader, // required — chapter images are data: URIs
   mode: HyperRenderMode.paged,
 )
 ```
 
-`HyperViewer.imageLoader` requires `hyper_render` from `main` (not yet published to pub.dev
-as of this package's 0.1.0) — on the current pub.dev release, pass `imageLoader` to the
-lower-level `HyperRenderWidget` instead.
+The one thing not to skip is `imageLoader`: the default network loader cannot decode a
+`data:` URI, so every image in the book silently fails without it.
 
 ### A note on pagination
 
-`HyperRenderMode.paged` paginates **one document** — it does not turn a whole book into a
-single continuously-swipeable reader. This package's reading UX is chapter-at-a-time: build
-one `HyperViewer(mode: paged)` per `book.chapters[i]` and handle next/previous-*chapter*
-navigation yourself. Seamless pagination across chapter boundaries is a possible future
-addition, not something this package (or HyperRender's engine) does today.
+`HyperRenderMode.paged` paginates **one document** — page-turns stay inside a chapter, and
+chapter boundaries are crossed through the controller (`next()` / `previous()`), which is
+what `EpubReader` is built around. A single continuously-swipeable surface spanning the
+whole book is a possible future addition, not something this package (or HyperRender's
+engine) does today.
+
+---
+
+## API
+
+| Type | What it is |
+|---|---|
+| `EpubBook.open(Uint8List)` | `Future<EpubBook>` — the whole parse. Throws `EpubFormatException` on structural damage |
+| `EpubBook` | `title`, `author`, `coverImage` + `coverMediaType`, `chapters`, `tableOfContents` |
+| `EpubChapter` | `id`, `href` (OPF-relative), `title`, `html`, `css`, `linear` |
+| `EpubTocEntry` | `title`, `href` (OPF-relative, may carry `#fragment`), `level`, `children` |
+| `EpubReaderController` | `ChangeNotifier` — `chapterIndex`, `chapter`, `next`/`previous`/`goTo`, `chapterIndexForHref`, `openHref` |
+| `EpubReader` | Renders the controller's current chapter through `HyperViewer` |
+| `epubImageLoader` | `HyperImageLoader` decoding the inline `data:` URIs chapters carry |
+| `EpubFormatException` | Not a zip / no OPF / no spine |
+
+Chapters marked `linear="no"` in the spine (covers, colophons, note collections) stay in
+`chapters` — dropping content silently is worse — and are flagged via `EpubChapter.linear`
+so a reader can present them out of the main flow.
+
+---
 
 ### SVG images
 

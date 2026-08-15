@@ -2,7 +2,10 @@
 
 ## 0.1.0
 
-Initial release — not published to pub.dev yet.
+Initial release — **not publishable yet**: it depends on `hyper_render: ^1.7.0`, which is
+not on pub.dev. `EpubReader` needs `HyperViewer.imageLoader` (unreleased, on `main`) to
+decode the inline `data:` URIs chapters carry, so this package ships once `hyper_render`
+1.7.0 does. Monorepo development is unaffected.
 
 ### ✨ New
 
@@ -23,6 +26,14 @@ Initial release — not published to pub.dev yet.
   them out of the main flow.
 - `epubImageLoader`: a `HyperImageLoader` that decodes those `data:` URIs (falls back to
   the normal network loader for any other scheme).
+- `EpubReaderController` (a `ChangeNotifier`: position, `next`/`previous`/`goTo`,
+  `chapterIndexForHref`, `openHref`) and `EpubReader`, which renders the current chapter
+  through `HyperViewer` and resolves link taps — in-book links move the controller,
+  everything else goes to `onExternalLinkTap`. No `Scaffold`/app bar/TOC drawer: chrome is
+  the app's, and it has the controller to drive it.
+- `EpubChapter.href` (OPF-relative, matching `EpubTocEntry.href`) so TOC entries and
+  cross-chapter links can be resolved to a chapter. Links inside a chapter resolve against
+  *that chapter's* directory — pass `relativeTo`, which `EpubReader` does for you.
 - `EpubFormatException` for structural damage (not a zip, no OPF, no spine). Partial damage
   degrades instead of throwing: a missing chapter file is skipped, an unparsable TOC yields
   an empty list, an `<img>` with no matching entry keeps its original `src`.

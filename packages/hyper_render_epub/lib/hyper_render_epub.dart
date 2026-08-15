@@ -9,19 +9,19 @@
 /// ## Quick start
 ///
 /// ```dart
-/// import 'package:hyper_render/hyper_render.dart';
 /// import 'package:hyper_render_epub/hyper_render_epub.dart';
 ///
-/// final bytes = await File('book.epub').readAsBytes();
-/// final book = await EpubBook.open(bytes);
+/// final book = await EpubBook.open(await File('book.epub').readAsBytes());
+/// final controller = EpubReaderController(book: book);
 ///
-/// HyperViewer(
-///   html: book.chapters.first.html,
-///   customCss: book.chapters.first.css,
-///   imageLoader: epubImageLoader,
-///   mode: HyperRenderMode.paged,
-/// )
+/// EpubReader(controller: controller) // dispose the controller when done
 /// ```
+///
+/// [EpubReader] is thin — it renders [EpubReaderController]'s current chapter
+/// through `HyperViewer` and resolves link taps. To render chapters yourself,
+/// pass [EpubChapter.html] / [EpubChapter.css] to a `HyperViewer` directly, and
+/// do not omit `imageLoader: epubImageLoader`: chapter images are inline
+/// `data:` URIs and the default network loader cannot decode them.
 library;
 
 export 'src/epub_book.dart';
