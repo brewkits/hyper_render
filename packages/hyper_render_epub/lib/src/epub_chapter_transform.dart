@@ -26,9 +26,14 @@ class ChapterContent {
 ///   would be lost outright since only body content is kept.
 /// * `<img src>` pointing inside the archive becomes an inline base64 `data:`
 ///   URI, because the bytes live in the zip and there is nothing for a network
-///   image loader to fetch. SVG sources are deliberately left untouched: the
-///   engine's `UrlSafety` blocklist rejects `data:image/svg` (script carrier)
-///   and the canvas painter cannot rasterise SVG anyway.
+///   image loader to fetch.
+/// * `<img src="*.svg">` is *replaced by the SVG markup itself*, not by a
+///   `data:` URI: `UrlSafety` blocks `data:image/svg` outright (an SVG can
+///   carry `<script>`), while an inline `<svg>` element is explicitly kept by
+///   `HyperRender`'s sanitizer (scripts stripped) and rendered by `HyperViewer`
+///   through `flutter_svg`. Note the scope — that renderer is chained in by
+///   `HyperViewer`, so SVG chapters need the `hyper_render` package, not core's
+///   `HyperRenderWidget` alone.
 /// * Everything else — `<a href>` cross-chapter links, unresolvable sources —
 ///   is preserved as authored.
 ///
@@ -82,7 +87,21 @@ ChapterContent transformChapter({
     final bytes = archive.read(path);
     if (bytes == null) continue; // missing entry — leave the src visible
     final mediaType = _mediaTypeFor(path, opf);
-    if (mediaType.contains('svg')) continue;
+    if (mediaType.contains('svg')) {
+      final svg = _svgElementFrom(decodeEpubText(bytes));
+      // A file that declares itself SVG but holds no <svg> element keeps its
+      // original src rather than being replaced by nothing.
+      if (svg != null) {
+        for (final attribute in const ['width', 'height', 'class', 'style']) {
+          final value = img.attributes[attribute];
+          if (value != null && !svg.attributes.containsKey(attribute)) {
+            svg.attributes[attribute] = value;
+          }
+        }
+        img.replaceWith(svg);
+      }
+      continue;
+    }
     img.attributes['src'] = 'data:$mediaType;base64,${base64.encode(bytes)}';
     // A srcset left behind would point at unresolvable relative paths.
     img.attributes.remove('srcset');
@@ -93,6 +112,21 @@ ChapterContent transformChapter({
     (body?.innerHtml ?? document.outerHtml).trim(),
     css.toString(),
   );
+}
+
+/// The `<svg>` element inside [source], detached from its parse tree.
+///
+/// Going through the HTML5 parser also drops the `<?xml …?>` declaration and
+/// `<!DOCTYPE svg …>` preamble standalone SVG files carry, and it preserves
+/// camelCase attributes (`viewBox`, `preserveAspectRatio`) — verified, because
+/// a lowercased `viewbox` would silently break every SVG's scaling.
+dom.Element? _svgElementFrom(String source) {
+  try {
+    final svg = html_parser.parse(source).querySelector('svg');
+    return svg?..remove();
+  } catch (_) {
+    return null;
+  }
 }
 
 /// The `media-type` to stamp on a `data:` URI — the OPF manifest's declaration

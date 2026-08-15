@@ -101,7 +101,16 @@ class EpubBook {
 
   /// Cover image bytes, if the OPF manifest declares one (`properties`
   /// `"cover-image"` in EPUB3, or a `<meta name="cover">` in EPUB2).
+  ///
+  /// Raw, undecoded bytes of whatever the manifest points at — check
+  /// [coverMediaType] before handing them to `Image.memory`, since a cover may
+  /// legitimately be SVG (which needs `SvgPicture.memory` instead).
   final Uint8List? coverImage;
+
+  /// The manifest's declared `media-type` for [coverImage], e.g. `image/jpeg`
+  /// or `image/svg+xml`. `null` when there is no cover, empty when the book
+  /// declares none.
+  final String? coverMediaType;
 
   /// Chapters in spine (reading) order.
   ///
@@ -124,6 +133,7 @@ class EpubBook {
     this.title,
     this.author,
     this.coverImage,
+    this.coverMediaType,
   });
 
   /// Parses [bytes] — the raw contents of an `.epub` file — into an
@@ -177,6 +187,7 @@ class EpubBook {
       title: opf.title,
       author: opf.author,
       coverImage: archive.read(opf.coverItem?.path),
+      coverMediaType: opf.coverItem?.mediaType,
     );
   }
 

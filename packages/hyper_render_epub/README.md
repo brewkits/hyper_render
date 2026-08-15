@@ -68,15 +68,26 @@ one `HyperViewer(mode: paged)` per `book.chapters[i]` and handle next/previous-*
 navigation yourself. Seamless pagination across chapter boundaries is a possible future
 addition, not something this package (or HyperRender's engine) does today.
 
+### SVG images
+
+`<img src="cover.svg">` is replaced by the SVG file's markup **inline**, not by a `data:`
+URI: `UrlSafety` blocks `data:image/svg` outright (an SVG can carry `<script>`), while an
+inline `<svg>` element is explicitly preserved by HyperRender's sanitizer — scripts and
+event handlers stripped — and rendered through `flutter_svg`.
+
+That renderer is chained in by **`HyperViewer`** (`hyper_render`), not by core's
+`HyperRenderWidget`, so an SVG-illustrated book needs the root package. `EpubReader` uses
+`HyperViewer`, so it just works.
+
+`EpubBook.coverImage` is likewise handed back undecoded, with `coverMediaType` alongside it
+— an SVG cover is a real cover, it just needs `SvgPicture.memory` instead of
+`Image.memory`.
+
 ### What this package deliberately does not rewrite
 
-- **SVG images** keep their original, unresolvable `src`. Two independent reasons: the
-  engine's `UrlSafety` blocklist rejects `data:image/svg` outright (inline SVG can carry
-  `<script>`), and the canvas painter has no SVG rasteriser, so an inlined SVG could not be
-  drawn even if it passed. Books whose *cover* is SVG show no cover image.
-- **Cross-chapter `<a href>` links** are left as authored (e.g. `text/chapter3.xhtml#note`).
-  They point at other spine items, not at anything a single `HyperViewer` can navigate to —
-  resolve them against `EpubBook.chapters` in your own `onLinkTap`.
+- **Cross-chapter `<a href>` links** are left as authored (e.g. `text/chapter3.xhtml#note`)
+  in `EpubChapter.html`. `EpubReader` resolves them at tap time via
+  `EpubReaderController.chapterIndexForHref`; if you render chapters yourself, do the same.
 - **`url(...)` inside collected CSS** is not rewritten, because the properties that use it
   are not rendered anyway (see below).
 

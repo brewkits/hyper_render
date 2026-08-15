@@ -84,28 +84,28 @@ class OpfPackage {
   /// The cover image item — EPUB3 `properties="cover-image"` first, then the
   /// EPUB2 `<meta name="cover">` pointer.
   ///
-  /// Both paths require decodable raster bytes: an SVG cover is reported as no
-  /// cover at all rather than as bytes `ui.instantiateImageCodec` will choke
-  /// on, and a `<meta name="cover">` pointing at the cover *page* (a common
-  /// EPUB2 mistake) is rejected the same way.
+  /// Both paths require an *image*: a `<meta name="cover">` pointing at the
+  /// cover *page* (a common EPUB2 mistake) is not a cover image. SVG counts —
+  /// the caller is told the media type and can pick its own renderer.
   OpfItem? get coverItem {
     for (final item in manifest.values) {
-      if (item.properties.contains('cover-image') && _isRaster(item)) {
+      if (item.properties.contains('cover-image') && _isImage(item)) {
         return item;
       }
     }
     final byMeta = coverMetaId == null ? null : manifest[coverMetaId];
-    if (byMeta != null && _isRaster(byMeta)) return byMeta;
+    if (byMeta != null && _isImage(byMeta)) return byMeta;
     return null;
   }
 
-  static bool _isRaster(OpfItem item) {
+  static bool _isImage(OpfItem item) {
     final type = item.mediaType.toLowerCase();
-    if (type.isEmpty) {
-      // Undeclared media-type: fall back to the extension.
-      return !(item.path?.toLowerCase().endsWith('.svg') ?? true);
-    }
-    return type.startsWith('image/') && !type.contains('svg');
+    if (type.isNotEmpty) return type.startsWith('image/');
+    // Undeclared media-type: fall back to the extension.
+    final path = item.path?.toLowerCase();
+    if (path == null) return false;
+    return const ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg']
+        .any(path.endsWith);
   }
 }
 

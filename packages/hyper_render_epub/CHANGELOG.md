@@ -27,11 +27,15 @@ Initial release — not published to pub.dev yet.
   degrades instead of throwing: a missing chapter file is skipped, an unparsable TOC yields
   an empty list, an `<img>` with no matching entry keeps its original `src`.
 
+- SVG handling: `<img src="*.svg">` is replaced by the SVG markup inline (a
+  `data:image/svg` URI would be blocked by `UrlSafety`; an inline `<svg>` is preserved by
+  the sanitizer and rendered through `flutter_svg` — note that renderer is chained in by
+  `HyperViewer`, not by core's `HyperRenderWidget`). `EpubBook.coverMediaType` accompanies
+  `coverImage` so an SVG cover can be routed to `SvgPicture.memory`.
+
 ### 📌 Deliberate limits
 
-- SVG images are left un-inlined — `UrlSafety` blocks `data:image/svg` and the canvas
-  painter cannot rasterise SVG. For the same reason an SVG cover is reported as
-  `coverImage: null` rather than as bytes nothing can decode.
-- Cross-chapter `<a href>` links are left as authored; resolving them is the app's job.
+- Cross-chapter `<a href>` links are left as authored in `EpubChapter.html`; `EpubReader`
+  resolves them at tap time.
 - Embedded fonts (`@font-face`) and `background-image` are engine-level gaps, not worked
   around here. See the README.

@@ -201,7 +201,8 @@ void main() {
       expect(book.chapters.first.html, contains('data:image/png;base64,'));
     });
 
-    test('leaves SVG images and remote URLs untouched', () async {
+    test('splices SVG images inline and leaves remote URLs untouched',
+        () async {
       final book = await EpubBook.open(
         buildEpub({
           'META-INF/container.xml': _containerXml,
@@ -211,18 +212,32 @@ void main() {
     <item id="svg" href="images/logo.svg" media-type="image/svg+xml"/>''',
             spine: '<itemref idref="ch1"/>',
           ),
-          'OEBPS/images/logo.svg': '<svg xmlns="http://www.w3.org/2000/svg"/>',
+          'OEBPS/images/logo.svg': '''
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50"><rect width="100" height="50"/></svg>''',
           'OEBPS/text/chapter1.xhtml': '<html><body>'
-              '<img src="../images/logo.svg"/>'
+              '<img src="../images/logo.svg" width="40"/>'
               '<img src="https://example.com/remote.png"/>'
               '</body></html>',
         }),
       );
 
       final html = book.chapters.first.html;
-      expect(html, contains('src="../images/logo.svg"'));
+      // A data:image/svg URI would be blocked by UrlSafety; an inline <svg>
+      // element is kept by the sanitizer and rendered via flutter_svg.
+      expect(html, contains('<svg'));
+      expect(html, contains('<rect'));
+      expect(html, isNot(contains('src="../images/logo.svg"')));
+      // camelCase attributes must survive the parse/serialise round trip, or
+      // every spliced SVG scales wrong.
+      expect(html, contains('viewBox="0 0 100 50"'));
+      // The <img>'s sizing carries over when the SVG doesn't set its own.
+      expect(html, contains('width="40"'));
+      // The XML declaration and DOCTYPE of the standalone file do not.
+      expect(html, isNot(contains('<?xml')));
+      expect(html, isNot(contains('DOCTYPE')));
       expect(html, contains('src="https://example.com/remote.png"'));
-      expect(html, isNot(contains('data:')));
     });
 
     test('honours the container rootfile path, not a hardcoded default',
@@ -325,7 +340,8 @@ void main() {
       expect(book.coverImage, _pngBytes);
     });
 
-    test('reports no cover for an SVG cover image', () async {
+    test('reports an SVG cover with its media type, rather than dropping it',
+        () async {
       final book = await EpubBook.open(
         buildEpub({
           'META-INF/container.xml': _containerXml,
@@ -340,8 +356,10 @@ void main() {
         }),
       );
 
-      // Bytes the engine cannot decode are worse than no cover at all.
-      expect(book.coverImage, isNull);
+      // The app picks the renderer (SvgPicture.memory, not Image.memory);
+      // silently discarding the book's cover is not ours to do.
+      expect(book.coverImage, isNotNull);
+      expect(book.coverMediaType, 'image/svg+xml');
     });
 
     test('falls back to the EPUB2 <meta name="cover"> pointer', () async {
