@@ -127,6 +127,25 @@ void main() {
     });
   });
 
+  group('Float — inline', () {
+    testWidgets('KNOWN GAP — float on an inline span (drop cap) does nothing',
+        (tester) async {
+      // The classic drop-cap idiom. Two demo screens use it; neither actually
+      // wraps. Same root cause as the block case: the float box is sized from
+      // the element's own box properties, and a span has none.
+      const drop = '<p><span style="font-size:48px;line-height:1;FLOAT'
+          'margin:8px 12px 0 0">A</span>The rest of the paragraph would wrap '
+          'around the drop cap for two or three lines of body text.</p>';
+
+      final floated =
+          await _height(tester, drop.replaceFirst('FLOAT', 'float:left;'));
+      final plain = await _height(tester, drop.replaceFirst('FLOAT', ''));
+
+      expect(floated, plain,
+          reason: 'flip this to lessThan when inline floats are implemented');
+    });
+  });
+
   group('CJK ruby typography', () {
     testWidgets('rt annotations occupy space above the base text',
         (tester) async {

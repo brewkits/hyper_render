@@ -2,11 +2,14 @@
 
 ## 1.7.0
 
-Additive release. One new parameter, no behavior change for existing code: a
-viewer that doesn't pass `imageLoader` renders exactly as it did in 1.6.0.
-
 Requires `hyper_render_core` 1.7.0 — `HyperViewer` passes the loader down
 through `HyperSelectionOverlay`, which is a core widget.
+
+**One visible behavior change, and only for viewers that pass a
+`pluginRegistry`**: their plugin tags are no longer stripped by the default
+sanitizer, so content that previously rendered blank now renders the plugin's
+widget (see Fixes). Anything without a `pluginRegistry` renders exactly as it
+did in 1.6.0 — `imageLoader` is purely additive.
 
 ### ✨ New Features
 

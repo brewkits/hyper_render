@@ -125,7 +125,7 @@ impressions — they are reproducible by anyone.
 | Measure | HyperRender | flutter_html v3.0.0 |
 |---|---|---|
 | CSS declarations handled by the parser | **189** | **51** |
-| `float` / `clear` | Supported | Not present in `css_parser.dart` |
+| `float` / `clear` | Supported for images and sized boxes (not text-sized blocks — see LIMITATIONS.md) | Not present in `css_parser.dart` |
 | Flexbox (`display:flex` + children) | Supported | Not present |
 | CSS Grid | Supported | Not present |
 | `@keyframes` / `animation` / `transition` | Supported | Not present |
@@ -192,7 +192,7 @@ a `WebView` is the honest answer — not this library, and not flutter_html.
 | `text-transform` | ⚠️ | ✅ | ✅ |
 | `white-space` | ⚠️ | ✅ | ✅ |
 | **Box Model** | | | |
-| `width`, `height` | ✅ | ✅ | ✅ |
+| `width`, `height` | ✅ | ✅ | ✅ `width`; `height` on replaced elements only |
 | `min-width`, `max-width` | ⚠️ | ✅ | ✅ px + % |
 | `margin` | ✅ | ✅ | ✅ |
 | `padding` | ✅ | ✅ | ✅ |
@@ -204,7 +204,7 @@ a `WebView` is the honest answer — not this library, and not flutter_html.
 | `display: none` | ✅ | ✅ | ✅ |
 | `display: flex` | ⚠️ Partial | ✅ | ✅ |
 | `display: grid` | ❌ | ✅ | ✅ |
-| `float` | ⚠️ Basic | ✅ | ✅ |
+| `float` | ⚠️ Basic | ✅ | ⚠️ images + sized boxes |
 | `clear` | ⚠️ | ✅ | ✅ |
 | `position` | ❌ | ✅ | ❌ Not planned |
 | **List** | | | |
@@ -384,7 +384,7 @@ Enable `sanitize: true` (default in HyperRender) when rendering user-generated c
 ### Choose HyperRender if:
 - ✅ **Large documents (5K+ chars)** — single-RenderObject selection stays stable
 - ✅ **CJK content (Japanese, Korean, Chinese)** — Ruby + Kinsoku shori
-- ✅ **CSS `float` layouts** — the only native Flutter renderer with float/clear
+- ✅ **CSS `float` layouts** — text wraps around floated images; the only native Flutter renderer that does
 - ✅ **Web/WASM target** — builds with `--wasm` (FWFH does not, see #1528)
 - ✅ **Flutter 3.41+** — unaffected by the crash that hits flutter_html
 - ✅ **Native feel + bundle size matter**

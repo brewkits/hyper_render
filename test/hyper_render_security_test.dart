@@ -5,7 +5,8 @@ import 'package:hyper_render_core/hyper_render_core.dart';
 
 void main() {
   group('HyperRender Security Tests', () {
-    testWidgets('Strips dangerous tags when sanitize: true', (WidgetTester tester) async {
+    testWidgets('Strips dangerous tags when sanitize: true',
+        (WidgetTester tester) async {
       const html = '''
         <div>Safe Content</div>
         <script>alert(1);</script>
@@ -32,8 +33,9 @@ void main() {
       expect(UrlSafety.isSafe('jav\tascript:alert(1)'), isFalse);
       expect(UrlSafety.isSafe('vbscript:alert(1)'), isFalse);
       expect(UrlSafety.isSafe('file:///etc/passwd'), isFalse);
-      expect(UrlSafety.isSafe('data:text/html,<script>alert(1)</script>'), isFalse);
-      
+      expect(UrlSafety.isSafe('data:text/html,<script>alert(1)</script>'),
+          isFalse);
+
       expect(UrlSafety.isSafe('https://google.com'), isTrue);
       expect(UrlSafety.isSafe('mailto:test@example.com'), isTrue);
       expect(UrlSafety.isSafe('tel:+123456789'), isTrue);

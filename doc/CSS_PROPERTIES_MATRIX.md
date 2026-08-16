@@ -136,7 +136,7 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `float` | ⚠️ | left, right, none | Text wraps around a floated **replaced element** (`<img>`) or an explicitly sized box. A floated block that would size itself from its own text is NOT floated — the float reserves a `width`/`height` box but does not lay the element's content out inside it, so the text falls back into normal flow. See LIMITATIONS.md |
+| `float` | ⚠️ | left, right, none | Text wraps around a floated **replaced element** (`<img>`) or an empty explicitly sized box. An element sized by its own text is NOT floated — the float reserves a box but the element's content stays in normal flow (a floated `<div>` with text can end up *taller*; a floated `<span>` drop cap has no effect). See LIMITATIONS.md |
 | `clear` | ✅ | left, right, both, none | Proper float clearing |
 
 ---
@@ -233,7 +233,7 @@ This document lists CSS property support in HyperRender.
 ## Notes
 
 ### Unique Features
-- CSS Float Layout: Proper float/clear support around text
+- CSS Float Layout: text wraps around floated **images** and empty sized boxes; `clear` cancels the wrap. Elements sized by their own text (a `<div>` with content, a `<span>` drop cap) are not floated — see the `float` row above and LIMITATIONS.md
 - Kinsoku Line-Breaking: Professional CJK typography rules
 - Ruby Annotations: Furigana rendering for Japanese
 - CSS Grid: fr-unit layout with repeat() support
