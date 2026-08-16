@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 1.7.0
+
+Additive release. One new parameter, no behavior change for existing code: a
+viewer that doesn't pass `imageLoader` renders exactly as it did in 1.6.0.
+
+Requires `hyper_render_core` 1.7.0 — `HyperViewer` passes the loader down
+through `HyperSelectionOverlay`, which is a core widget.
 
 ### ✨ New Features
 

@@ -1,5 +1,19 @@
 # Changelog — hyper_render_core
 
+## 1.7.0
+
+### ✨ New
+
+- **`HyperSelectionOverlay.imageLoader`**: the overlay now forwards an optional
+  `HyperImageLoader` to the `HyperRenderWidget` it wraps. `HyperRenderWidget`
+  and `RenderHyperBox` already accepted one; the overlay did not, and it is the
+  *default* path for a selectable viewer — so a custom loader set upstream was
+  silently dropped for every selectable render mode. Additive: omitting it keeps
+  the built-in `NetworkImage`-based loader.
+
+This is the only change since 1.6.0. It exists so `hyper_render` 1.7.0 can
+expose `HyperViewer.imageLoader` across all render modes.
+
 ## 1.6.0
 
 ### ⚠️ Behavior Change — text scaling (WCAG 1.4.4)

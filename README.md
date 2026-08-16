@@ -39,7 +39,7 @@
 
 ```yaml
 dependencies:
-  hyper_render: ^1.6.0
+  hyper_render: ^1.7.0
 ```
 
 ```dart
