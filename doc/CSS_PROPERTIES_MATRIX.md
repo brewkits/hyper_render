@@ -28,8 +28,8 @@ This document lists CSS property support in HyperRender.
 | `height` | ✅ | px, auto | Absolute px on replaced elements. `%` height not supported (needs a deferred-height model) |
 | `min-width` | ✅ | px, % | Applied to block content width; wins over `max-width` per CSS |
 | `max-width` | ✅ | px, % | Constrains a block's content width (text wraps inside it) |
-| `min-height` | ✅ | px, % | |
-| `max-height` | ✅ | px, % | |
+| `min-height` | ❌ | — | Parsed into `ComputedStyle.minHeight`, then read by nothing in the render path. Found by `test/flagship_execution_audit_test.dart` |
+| `max-height` | ❌ | — | Parsed into `ComputedStyle.maxHeight`, then read by nothing in the render path. Found by `test/flagship_execution_audit_test.dart` |
 | `margin` | ✅ | px, %, auto | All 4 directions + shorthand |
 | `margin-top` | ✅ | px, %, auto | |
 | `margin-right` | ✅ | px, %, auto | |
@@ -136,7 +136,7 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `float` | ✅ | left, right, none | Proper float wrapping around text |
+| `float` | ⚠️ | left, right, none | Text wraps around a floated **replaced element** (`<img>`) or an explicitly sized box. A floated block that would size itself from its own text is NOT floated — the float reserves a `width`/`height` box but does not lay the element's content out inside it, so the text falls back into normal flow. See LIMITATIONS.md |
 | `clear` | ✅ | left, right, both, none | Proper float clearing |
 
 ---

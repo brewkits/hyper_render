@@ -1333,6 +1333,22 @@ class _HyperViewerState extends State<HyperViewer>
   /// Returns the CSS parser used for @keyframes extraction.
   CssParserInterface _getDefaultCssParser() => const DefaultCssParser();
 
+  /// The tag allow-list handed to [HtmlSanitizer], with every registered
+  /// plugin's tag added.
+  ///
+  /// A plugin tag (`<my-chart>`, `<x-badge>`) is by definition not in any
+  /// default allow-list, so without this the documented three-line plugin
+  /// setup — register, pass `pluginRegistry`, done — sanitizes the tag away
+  /// and renders nothing, with no error to explain the blank space. Registering
+  /// a plugin *is* the author declaring that tag safe; it does not loosen
+  /// anything else, since attribute-level sanitization still applies.
+  List<String>? get _sanitizerAllowedTags {
+    final registry = widget.pluginRegistry;
+    if (registry == null || registry.isEmpty) return widget.allowedTags;
+    final base = widget.allowedTags ?? HtmlSanitizer.defaultAllowedTags;
+    return <String>{...base, ...registry.registeredTags}.toList();
+  }
+
   void _parseContent() {
     // Fast path: pre-parsed AST — skip all parsing.
     if (widget._prebuiltDocument != null) {
@@ -1390,12 +1406,13 @@ class _HyperViewerState extends State<HyperViewer>
       }
 
       // 2. Sanitize (strips <style> tags — safe, CSS already extracted above)
+      //    Plugin tags are added to the allow-list by _sanitizerAllowedTags.
       // Note: baseUrl resolution is handled INSIDE the parser/adapter
       // for better robustness than regex replacement.
       if (widget.sanitize) {
         contentToRender = HtmlSanitizer.sanitize(
           contentToRender,
-          allowedTags: widget.allowedTags,
+          allowedTags: _sanitizerAllowedTags,
           allowDataAttributes: widget.allowDataAttributes,
         );
       }
@@ -1411,7 +1428,7 @@ class _HyperViewerState extends State<HyperViewer>
       // text content.
       contentToRender = HtmlSanitizer.sanitize(
         contentToRender,
-        allowedTags: widget.allowedTags,
+        allowedTags: _sanitizerAllowedTags,
         allowDataAttributes: widget.allowDataAttributes,
       );
     }

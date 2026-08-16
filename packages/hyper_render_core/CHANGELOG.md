@@ -11,8 +11,13 @@
   silently dropped for every selectable render mode. Additive: omitting it keeps
   the built-in `NetworkImage`-based loader.
 
-This is the only change since 1.6.0. It exists so `hyper_render` 1.7.0 can
-expose `HyperViewer.imageLoader` across all render modes.
+- **`HyperPluginRegistry.registeredTags`**: the set of every tag any registered
+  plugin handles. A sanitizing host needs it to avoid stripping the very tags a
+  plugin was registered for — `hyper_render` 1.7.0 uses it for exactly that.
+
+These are the only changes since 1.6.0. They exist so `hyper_render` 1.7.0 can
+expose `HyperViewer.imageLoader` across all render modes, and stop the default
+sanitizer from erasing registered plugin tags.
 
 ## 1.6.0
 
