@@ -149,6 +149,7 @@ PACKAGES=(
   hyper_render_clipboard
   hyper_render_devtools
   hyper_render_math
+  hyper_render_epub
 )
 
 ANALYZE_FAILED=0
@@ -180,7 +181,7 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Step 1: hyper_render_core (no deps)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-# publish_package "hyper_render_core"
+publish_package "hyper_render_core"
 
 if [[ "$MODE" == "publish" ]]; then
   echo ""
@@ -215,6 +216,18 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "  Step 4: hyper_render (root wrapper)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 publish_root
+
+if [[ "$MODE" == "publish" ]]; then
+  echo ""
+  echo "  Waiting 30s for pub.dev to index hyper_render..."
+  sleep 30
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  Step 5: hyper_render_epub (depends on root)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+publish_package "hyper_render_epub"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

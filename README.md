@@ -438,18 +438,40 @@ HTML / Markdown / Quill Delta
 
 ### Optional add-ons
 
-These packages bring native dependencies and are **not bundled** by default. Install only what you need.
+These packages bring specialized dependencies and are **not bundled** by default. Install only what you need.
 
 | Package | pub.dev | Description |
 |---------|---------|-------------|
+| [`hyper_render_epub`](https://pub.dev/packages/hyper_render_epub) | [![pub](https://img.shields.io/pub/v/hyper_render_epub.svg)](https://pub.dev/packages/hyper_render_epub) | Full EPUB 2/3 container reader with chapter pagination & in-memory zip decoding |
 | [`hyper_render_clipboard`](https://pub.dev/packages/hyper_render_clipboard) | [![pub](https://img.shields.io/pub/v/hyper_render_clipboard.svg)](https://pub.dev/packages/hyper_render_clipboard) | Native image copy / share via `super_clipboard` |
 | [`hyper_render_math`](https://pub.dev/packages/hyper_render_math) | [![pub](https://img.shields.io/pub/v/hyper_render_math.svg)](https://pub.dev/packages/hyper_render_math) | LaTeX / MathML via `flutter_math_fork` |
+
+#### `hyper_render_epub` — EPUB 2/3 Reader Container
+
+```yaml
+dependencies:
+  hyper_render_epub: ^0.1.0
+```
+
+```dart
+import 'package:hyper_render_epub/hyper_render_epub.dart';
+
+// 1. Open EPUB from file bytes or asset
+final book = await EpubBook.openBytes(epubBytes);
+
+// 2. Render book with chapter navigation
+EpubReader(
+  book: book,
+  controller: EpubReaderController(),
+  onChapterChanged: (chapter) => print('Now reading: ${chapter.title}'),
+)
+```
 
 #### `hyper_render_clipboard` — Native image copy / share
 
 ```yaml
 dependencies:
-  hyper_render_clipboard: ^1.6.0
+  hyper_render_clipboard: ^1.7.0
 ```
 
 ```dart
@@ -479,7 +501,7 @@ HyperViewer(
 
 ```yaml
 dependencies:
-  hyper_render_math: ^1.6.0
+  hyper_render_math: ^1.7.0
 ```
 
 ```dart
