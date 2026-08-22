@@ -378,7 +378,7 @@ packages:
       path: "../packages/hyper_render_html"
       relative: true
     source: path
-    version: "1.7.0"
+    version: "1.6.0"
   hyper_render_markdown:
     dependency: "direct overridden"
     description:

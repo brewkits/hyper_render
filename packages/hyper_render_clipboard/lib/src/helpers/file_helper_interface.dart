@@ -6,7 +6,8 @@ abstract class PlatformFileHelper {
   Future<String?> saveImageBytes(Uint8List bytes, String filename);
 
   /// Share image bytes via system share dialog.
-  Future<bool> shareImageBytes(Uint8List bytes, {String? text, String? filename});
+  Future<bool> shareImageBytes(Uint8List bytes,
+      {String? text, String? filename});
 
   /// Path to cache directory.
   Future<String?> getCacheDirectoryPath();

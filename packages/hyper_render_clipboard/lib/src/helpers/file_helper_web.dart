@@ -25,7 +25,8 @@ class PlatformFileHelperImpl implements PlatformFileHelper {
     String? filename,
   }) async {
     try {
-      final name = filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png';
+      final name =
+          filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png';
       await share_plus.SharePlus.instance.share(
         share_plus.ShareParams(
           files: [share_plus.XFile.fromData(bytes, name: name)],

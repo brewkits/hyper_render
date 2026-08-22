@@ -57,7 +57,8 @@ class PlatformFileHelperImpl implements PlatformFileHelper {
     try {
       final cachePath = await getCacheDirectoryPath();
       if (cachePath == null) return false;
-      final name = filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png';
+      final name =
+          filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File('$cachePath/$name');
       await file.writeAsBytes(bytes);
 

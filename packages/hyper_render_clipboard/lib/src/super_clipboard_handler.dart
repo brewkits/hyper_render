@@ -153,7 +153,8 @@ class SuperClipboardHandler implements ImageClipboardHandler {
     try {
       final name = _sanitiseFilename(
           filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png');
-      return await _fileHelper.shareImageBytes(bytes, text: text, filename: name);
+      return await _fileHelper.shareImageBytes(bytes,
+          text: text, filename: name);
     } catch (e) {
       debugPrint('SuperClipboardHandler.shareImageBytes error: $e');
       return false;

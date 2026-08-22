@@ -89,9 +89,8 @@ class Html extends StatelessWidget {
       selectable: selectable,
       widgetBuilder: customWidgetBuilder,
       shrinkWrap: shrinkWrap ?? false,
-      onLinkTap: onLinkTap != null
-          ? (url) => onLinkTap!(url, const {}, null)
-          : null,
+      onLinkTap:
+          onLinkTap != null ? (url) => onLinkTap!(url, const {}, null) : null,
       fallbackBuilder: onError != null
           ? (context) => onError!(context, 'An error occurred during rendering')
           : null,
