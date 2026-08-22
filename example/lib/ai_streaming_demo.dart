@@ -4,7 +4,8 @@ import 'package:hyper_render/hyper_render.dart';
 
 /// Interactive AI & LLM Streaming Demo for HyperRender v1.8.0.
 class AiStreamingDemo extends StatefulWidget {
-  const AiStreamingDemo({super.key});
+  final bool autoStart;
+  const AiStreamingDemo({super.key, this.autoStart = false});
 
   @override
   State<AiStreamingDemo> createState() => _AiStreamingDemoState();
@@ -20,6 +21,14 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
   bool _autoScroll = true;
   Timer? _streamTimer;
   int _chunkIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startSimulation());
+    }
+  }
 
   static const List<String> _sampleTokens = [
     '# 🧠 HyperRender AI Assistant\n\n',
@@ -105,31 +114,44 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
         children: [
           // Control Panel
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
               border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: WrapAlignment.spaceBetween,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: _startSimulation,
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('Start Stream'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _startSimulation,
+                          icon: const Icon(Icons.play_arrow, size: 18),
+                          label: const Text('Start Stream'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: _stopSimulation,
+                          icon: const Icon(Icons.stop, size: 18),
+                          label: const Text('Stop'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      onPressed: _stopSimulation,
-                      icon: const Icon(Icons.stop),
-                      label: const Text('Stop'),
-                    ),
-                    const Spacer(),
                     ValueListenableBuilder<HyperStreamingState>(
                       valueListenable: _controller,
                       builder: (context, state, _) {
@@ -140,12 +162,12 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                           case HyperStreamingStatus.streaming:
                             badgeColor = Colors.green;
                             statusLabel =
-                                'STREAMING (${state.tokenCount} chunks · ${state.tokensPerSecond.toStringAsFixed(1)} tps)';
+                                'STREAMING (${state.tokenCount} tokens · ${state.tokensPerSecond.toStringAsFixed(1)} tps)';
                             break;
                           case HyperStreamingStatus.completed:
                             badgeColor = Colors.blue;
                             statusLabel =
-                                'DONE (${state.tokenCount} chunks · ${state.tokensPerSecond.toStringAsFixed(1)} tps avg)';
+                                'DONE (${state.tokenCount} tokens · ${state.tokensPerSecond.toStringAsFixed(1)} tps avg)';
                             break;
                           case HyperStreamingStatus.error:
                             badgeColor = Colors.red;
@@ -157,9 +179,9 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
 
                         return Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: badgeColor.withAlpha(30),
+                            color: badgeColor.withAlpha(25),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: badgeColor),
                           ),
@@ -168,7 +190,7 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                             style: TextStyle(
                               color: badgeColor,
                               fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                              fontSize: 11,
                             ),
                           ),
                         );
@@ -176,57 +198,55 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Text('Caret Style: ',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                    DropdownButton<HyperTypingCaretStyle>(
-                      value: _caretStyle,
-                      underline: const SizedBox.shrink(),
-                      items: const [
-                        DropdownMenuItem(
-                          value: HyperTypingCaretStyle.bar,
-                          child: Text('Bar (▍)'),
-                        ),
-                        DropdownMenuItem(
-                          value: HyperTypingCaretStyle.block,
-                          child: Text('Block (█)'),
-                        ),
-                        DropdownMenuItem(
-                          value: HyperTypingCaretStyle.underscore,
-                          child: Text('Underscore (_)'),
-                        ),
-                        DropdownMenuItem(
-                          value: HyperTypingCaretStyle.dot,
-                          child: Text('Dot (●)'),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _caretStyle = val);
-                      },
-                    ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        const Text('Auto Scroll: '),
-                        Switch(
-                          value: _autoScroll,
-                          onChanged: (v) => setState(() => _autoScroll = v),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 8),
-                    Row(
-                      children: [
-                        const Text('Auto Repair: '),
-                        Switch(
-                          value: _autoRepair,
-                          onChanged: (v) => setState(() => _autoRepair = v),
-                        ),
-                      ],
-                    ),
-                  ],
+                const SizedBox(height: 6),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      const Text('Caret: ',
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      DropdownButton<HyperTypingCaretStyle>(
+                        value: _caretStyle,
+                        underline: const SizedBox.shrink(),
+                        isDense: true,
+                        items: const [
+                          DropdownMenuItem(
+                            value: HyperTypingCaretStyle.bar,
+                            child: Text('Bar (▍)', style: TextStyle(fontSize: 13)),
+                          ),
+                          DropdownMenuItem(
+                            value: HyperTypingCaretStyle.block,
+                            child: Text('Block (█)', style: TextStyle(fontSize: 13)),
+                          ),
+                          DropdownMenuItem(
+                            value: HyperTypingCaretStyle.underscore,
+                            child: Text('Underscore (_)', style: TextStyle(fontSize: 13)),
+                          ),
+                          DropdownMenuItem(
+                            value: HyperTypingCaretStyle.dot,
+                            child: Text('Dot (●)', style: TextStyle(fontSize: 13)),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _caretStyle = val);
+                        },
+                      ),
+                      const SizedBox(width: 16),
+                      const Text('Auto Scroll: ', style: TextStyle(fontSize: 13)),
+                      Switch(
+                        value: _autoScroll,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        onChanged: (v) => setState(() => _autoScroll = v),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text('Auto Repair: ', style: TextStyle(fontSize: 13)),
+                      Switch(
+                        value: _autoRepair,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        onChanged: (v) => setState(() => _autoRepair = v),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

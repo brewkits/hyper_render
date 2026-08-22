@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
+import 'ai_streaming_demo.dart';
 
 String getActiveDemo() {
   try {
@@ -84,6 +85,10 @@ class _AutoPlayerHostState extends State<AutoPlayerHost> {
   Widget build(BuildContext context) {
     String title;
     String htmlContent;
+
+    if (widget.demoName == 'ai_streaming') {
+      return const AiStreamingDemo(autoStart: true);
+    }
 
     switch (widget.demoName) {
       case 'ruby':
