@@ -111,6 +111,10 @@ publish_package() {
     if [[ $exit_code -ne 0 ]]; then
       if echo "$output" | grep -q "already exists"; then
         echo "  ℹ Package $name version already published on pub.dev, continuing..."
+      elif [[ "$MODE" == "dry-run" ]] && echo "$output" | grep -q "Package has 1 warning" && echo "$output" | grep -q "modified in git"; then
+        echo "  ✓ Package validation dry-run OK (ignoring temporary pubspec override removal warning)"
+      elif [[ "$MODE" == "dry-run" ]] && echo "$output" | grep -q "doesn't match any versions"; then
+        echo "  ✓ Dry-run dependency resolution expected (upstream package v$VERSION will be published in Step 1 before this step in live mode)"
       else
         exit $exit_code
       fi
@@ -144,6 +148,10 @@ publish_root() {
     if [[ $exit_code -ne 0 ]]; then
       if echo "$output" | grep -q "already exists"; then
         echo "  ℹ Package hyper_render version already published on pub.dev, continuing..."
+      elif [[ "$MODE" == "dry-run" ]] && echo "$output" | grep -q "Package has 1 warning" && echo "$output" | grep -q "modified in git"; then
+        echo "  ✓ Package validation dry-run OK (ignoring temporary pubspec override removal warning)"
+      elif [[ "$MODE" == "dry-run" ]] && echo "$output" | grep -q "doesn't match any versions"; then
+        echo "  ✓ Dry-run dependency resolution expected (upstream package v$VERSION will be published in Step 1 before this step in live mode)"
       else
         exit $exit_code
       fi
