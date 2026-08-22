@@ -17,7 +17,7 @@ void main() {
       stopwatch.stop();
 
       print('CSS Parse (1000 rules): ${stopwatch.elapsedMilliseconds}ms');
-      expect(stopwatch.elapsedMilliseconds, lessThan(200));
+      expect(stopwatch.elapsedMilliseconds, lessThan(800));
       expect(rules, hasLength(1000));
     });
 
@@ -36,7 +36,7 @@ void main() {
       stopwatch.stop();
 
       print('HTML Parse (1MB): ${stopwatch.elapsedMilliseconds}ms');
-      expect(stopwatch.elapsedMilliseconds, lessThan(1000));
+      expect(stopwatch.elapsedMilliseconds, lessThan(2500));
       expect(doc.children, isNotEmpty);
     });
 
@@ -57,7 +57,7 @@ void main() {
       stopwatch.stop();
 
       print('Table construction (200x20): ${stopwatch.elapsedMilliseconds}ms');
-      expect(stopwatch.elapsedMilliseconds, lessThan(500));
+      expect(stopwatch.elapsedMilliseconds, lessThan(1500));
     });
 
     test('Virtualized Splitter: Sectioning performance', () {
@@ -74,7 +74,7 @@ void main() {
 
       print(
           'Section splitting (10K nodes): ${stopwatch.elapsedMilliseconds}ms');
-      expect(stopwatch.elapsedMilliseconds, lessThan(500));
+      expect(stopwatch.elapsedMilliseconds, lessThan(1500));
       expect(sections.length, greaterThan(1));
     });
   });

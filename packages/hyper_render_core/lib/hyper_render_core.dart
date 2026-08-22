@@ -13,10 +13,10 @@
 /// - Text selection with handles
 /// - CSS cascade style resolution
 ///
-/// ## Zero External Dependencies
-/// This package only depends on Flutter SDK.
-/// Parsing (HTML, Markdown, CSS) and syntax highlighting are provided
-/// by separate plugin packages.
+/// ## Minimal Core Dependencies
+/// This package contains the core rendering pipeline, UDT model, and CSS style resolution.
+/// Content parsers (HTML, Markdown, Quill Delta), syntax highlighting, and native clipboard
+/// integrations are provided by separate modular plugin packages.
 ///
 /// ## Plugin Interfaces
 /// - [ContentParser] - For content parsing (HTML, Markdown, Delta)

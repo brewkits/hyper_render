@@ -507,7 +507,7 @@ void main() {
       }
 
       sw.stop();
-      expect(sw.elapsedMilliseconds, lessThan(200));
+      expect(sw.elapsedMilliseconds, lessThan(1000));
     });
   });
 

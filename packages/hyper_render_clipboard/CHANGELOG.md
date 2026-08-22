@@ -1,5 +1,12 @@
 # Changelog — hyper_render_clipboard
 
+## [1.7.0] - 2026-08-22
+
+### ⚡ Improvements & Static Analysis Fixes
+- Added `await` to all async returns inside `try-catch` blocks in `SuperClipboardHandler` to resolve pub.dev static analysis warnings.
+- Added conditional platform file helper abstraction (`PlatformFileHelper`) to ensure full Web / WASM runtime compatibility without unconditional `dart:io` imports.
+- Bump `hyper_render_core` dependency to `^1.7.0`.
+
 ## [1.6.0] - 2026-07-26
 
 ### 🚀 Update

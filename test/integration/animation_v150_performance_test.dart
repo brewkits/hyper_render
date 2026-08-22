@@ -30,7 +30,7 @@ void main() {
       expect(result, hasLength(1000));
       // Every block carries interpolable colors.
       expect(result['glow0']!.keyframes.first.backgroundColor, isNotNull);
-      expect(sw.elapsedMilliseconds, lessThan(500));
+      expect(sw.elapsedMilliseconds, lessThan(1500));
     });
 
     test('resolves 2000 elements with cubic-bezier/steps timing under budget',

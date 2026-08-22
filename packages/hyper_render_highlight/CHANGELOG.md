@@ -1,5 +1,11 @@
 # Changelog — hyper_render_highlight
 
+## [1.7.0] - 2026-08-22
+
+### 🚀 Update
+- Bump `hyper_render_core` dependency to `^1.7.0`.
+- Synchronized release with HyperRender 1.7.0 core engine.
+
 ## [1.6.0] - 2026-07-26
 
 ### 🚀 Update

@@ -1,13 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:hyper_render_core/hyper_render_core.dart';
-import 'package:share_plus/share_plus.dart' as share_plus;
 import 'package:super_clipboard/super_clipboard.dart' as super_clipboard;
 
-import 'interfaces/file_system_provider.dart';
-import 'providers/default_file_system_provider.dart';
+import 'helpers/file_helper.dart';
 
 /// Image clipboard handler using super_clipboard package
 ///
@@ -32,21 +28,21 @@ import 'providers/default_file_system_provider.dart';
 /// - Linux: Full support (requires xclip)
 /// - iOS: Copy/Share support
 /// - Android: Copy/Share support
-/// - Web: Limited support
+/// - Web / WASM: Copy support
 class SuperClipboardHandler implements ImageClipboardHandler {
   /// HTTP client for downloading images
   final http.Client _client;
-  final FileSystemProvider _fileSystem;
+  final PlatformFileHelper _fileHelper;
 
   /// Creates a SuperClipboardHandler
   ///
   /// Optionally provide a custom [httpClient] for testing or custom configuration.
-  /// Optionally provide a custom [fileSystem] for platform-specific file handling.
+  /// Optionally provide a custom [fileHelper] for platform-specific file handling.
   SuperClipboardHandler({
     http.Client? httpClient,
-    FileSystemProvider? fileSystem,
+    PlatformFileHelper? fileHelper,
   })  : _client = httpClient ?? http.Client(),
-        _fileSystem = fileSystem ?? DefaultFileSystemProvider();
+        _fileHelper = fileHelper ?? getPlatformFileHelper();
 
   @override
   Future<bool> copyImageFromUrl(String imageUrl) async {
@@ -55,7 +51,7 @@ class SuperClipboardHandler implements ImageClipboardHandler {
       final response = await _client.get(Uri.parse(imageUrl));
       if (response.statusCode != 200) return false;
 
-      return copyImageBytes(
+      return await copyImageBytes(
         response.bodyBytes,
         mimeType: response.headers['content-type'],
       );
@@ -113,7 +109,7 @@ class SuperClipboardHandler implements ImageClipboardHandler {
       // Generate filename from URL if not provided
       final name = filename ?? _getFilenameFromUrl(imageUrl);
 
-      return saveImageBytes(response.bodyBytes, filename: name);
+      return await saveImageBytes(response.bodyBytes, filename: name);
     } catch (e) {
       debugPrint('SuperClipboardHandler.saveImageFromUrl error: $e');
       return null;
@@ -123,18 +119,9 @@ class SuperClipboardHandler implements ImageClipboardHandler {
   @override
   Future<String?> saveImageBytes(Uint8List bytes, {String? filename}) async {
     try {
-      final dir = await _fileSystem.getStorageDirectory();
-
-      // Generate unique filename if not provided, then always sanitise —
-      // a caller-supplied `filename` is otherwise concatenated raw into the
-      // path, re-introducing the traversal vector the URL-decoded
-      // `_getFilenameFromUrl` already guards against.
       final name = _sanitiseFilename(
           filename ?? 'image_${DateTime.now().millisecondsSinceEpoch}.png');
-      final file = File('${dir.path}/$name');
-
-      await file.writeAsBytes(bytes);
-      return file.path;
+      return await _fileHelper.saveImageBytes(bytes, name);
     } catch (e) {
       debugPrint('SuperClipboardHandler.saveImageBytes error: $e');
       return null;
@@ -149,7 +136,7 @@ class SuperClipboardHandler implements ImageClipboardHandler {
       if (response.statusCode != 200) return false;
 
       final filename = _getFilenameFromUrl(imageUrl);
-      return shareImageBytes(response.bodyBytes,
+      return await shareImageBytes(response.bodyBytes,
           text: text, filename: filename);
     } catch (e) {
       debugPrint('SuperClipboardHandler.shareImageFromUrl error: $e');
@@ -164,27 +151,16 @@ class SuperClipboardHandler implements ImageClipboardHandler {
     String? filename,
   }) async {
     try {
-      // Save to temp file for sharing — same sanitisation as saveImageBytes.
-      final tempDir = await _fileSystem.getCacheDirectory();
       final name = _sanitiseFilename(
           filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png');
-      final file = File('${tempDir.path}/$name');
-      await file.writeAsBytes(bytes);
-
-      // Share using share_plus
-      await share_plus.SharePlus.instance.share(
-        share_plus.ShareParams(
-          files: [share_plus.XFile(file.path)],
-          text: text,
-        ),
-      );
-      return true;
+      return await _fileHelper.shareImageBytes(bytes, text: text, filename: name);
     } catch (e) {
       debugPrint('SuperClipboardHandler.shareImageBytes error: $e');
       return false;
     }
   }
 
+  /// Check if copy operations are supported
   bool get isCopySupported => true;
 
   @override
@@ -195,7 +171,9 @@ class SuperClipboardHandler implements ImageClipboardHandler {
 
   @override
   bool get isShareSupported =>
-      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
 
   @override
   List<String> get supportedFormats => const [
@@ -210,13 +188,12 @@ class SuperClipboardHandler implements ImageClipboardHandler {
   ///
   /// Visible to tests so we can verify the path-traversal guard
   /// (URL-encoded `/` and `\\` in the URL must not survive into the
-  /// on-disk filename, otherwise `File('${dir.path}/$name')` would write
-  /// outside [dir]).
+  /// on-disk filename, otherwise writing outside target directory could occur).
   @visibleForTesting
   String getFilenameFromUrlForTest(String url) => _getFilenameFromUrl(url);
 
   /// Visible to tests — exercises the same gate every save/share path
-  /// hits before concatenating into a `File('${dir}/$name')`.
+  /// hits before writing file to disk.
   @visibleForTesting
   String sanitiseFilenameForTest(String name) => _sanitiseFilename(name);
 
@@ -236,13 +213,7 @@ class SuperClipboardHandler implements ImageClipboardHandler {
   }
 
   /// Strip path separators from a filename so it cannot escape its target
-  /// directory when concatenated with `dir.path`.
-  ///
-  /// Applied to every external string that lands in a `File('${dir}/$name')`
-  /// expression, not just URL-derived ones. `Uri.pathSegments.last` decodes
-  /// `%2F` / `%5C` into literal slashes, so a single point of sanitisation
-  /// has historically drifted out of sync — keep this routine the only
-  /// gate.
+  /// directory when concatenated with directory path.
   String _sanitiseFilename(String name) {
     return name.replaceAll(RegExp(r'[/\\]'), '_');
   }
