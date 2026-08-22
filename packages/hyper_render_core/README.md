@@ -10,7 +10,27 @@ Most apps should depend on [`hyper_render`](https://pub.dev/packages/hyper_rende
 
 ```yaml
 dependencies:
-  hyper_render_core: ^1.7.0
+  hyper_render_core: ^1.8.0
+```
+
+---
+
+## AI & LLM Streaming Architecture
+
+HyperRender Core provides low-level streaming controllers and syntax auto-repair engines for AI chat:
+
+```dart
+import 'package:hyper_render_core/hyper_render_core.dart';
+
+final controller = HyperStreamingController(
+  throttleDuration: Duration(milliseconds: 16), // 60 FPS aligned
+);
+
+// Append tokens or bind to streams:
+controller.bindStream(myTokenStream);
+
+// Syntax Auto-Repair:
+final safeMarkdown = StreamSyntaxNormalizer.normalizeMarkdown(controller.text);
 ```
 
 ---

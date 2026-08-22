@@ -13,7 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.10+-54C5F8.svg?logo=flutter)](https://flutter.dev)
 
-**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · 1 200+ tests · XSS-safe · Zero Gradle config**
+**CSS float · crash-free selection · AI/LLM streaming · CJK/Furigana · `@keyframes` · 1 980+ tests · XSS-safe · Zero Gradle config**
 
 <br/>
 
@@ -21,7 +21,7 @@
 
 <br/>
 
-[**Live Web Playground**](https://brewkits.github.io/hyper_render/) · [**Quick Start**](#-quick-start) · [**30s Migration**](#-30-second-drop-in-migration-from-flutter_html) · [**Why Switch?**](#️-why-switch-the-architecture-argument) · [**API**](#-api-reference) · [**Packages**](#-packages)
+[**Live Web Playground**](https://brewkits.github.io/hyper_render/) · [**Quick Start**](#-quick-start) · [**AI Streaming**](#-aillm-real-time-streaming) · [**30s Migration**](#-30-second-drop-in-migration-from-flutter_html) · [**Why Switch?**](#️-why-switch-the-architecture-argument) · [**API**](#-api-reference) · [**Packages**](#-packages)
 
 </div>
 
@@ -34,7 +34,7 @@ Already using `flutter_html`? You don't need to rewrite your widget tree or lear
 ```dart
 // 1. In your pubspec.yaml:
 // dependencies:
-//   hyper_render: ^1.7.0
+//   hyper_render: ^1.8.0
 
 // 2. In your Dart file — replace this single line:
 // ❌ import 'package:flutter_html/flutter_html.dart';
@@ -67,7 +67,7 @@ Html(
 
 ```yaml
 dependencies:
-  hyper_render: ^1.7.0
+  hyper_render: ^1.8.0
 ```
 
 ```dart
@@ -80,6 +80,29 @@ HyperViewer(
 ```
 
 Zero configuration. XSS sanitization is **on by default**. No Gradle setup required.
+
+---
+
+## 🤖 AI / LLM Real-Time Streaming
+
+Render live streaming token feeds from **Google Gemini, OpenAI ChatGPT, Anthropic Claude**, or WebSocket backends with zero UI jank and automatic transient syntax repair.
+
+```dart
+final controller = HyperStreamingController();
+
+// Bind directly to any Dart Stream (e.g. OpenAI / Gemini SDK):
+controller.bindStream(aiTokenStream);
+
+// Render with automatic stick-to-bottom auto-scroller and pulsing caret:
+HyperViewer.streaming(
+  streamingController: controller,
+  contentType: HyperContentType.markdown,
+  showTypingCaret: true,
+  caretStyle: HyperTypingCaretStyle.bar,
+  autoRepairSyntax: true,   // Auto-closes incomplete ```, **, $$, | on the fly
+  autoScrollToBottom: true, // Smoothly tracks stream tail
+)
+```
 
 ---
 
@@ -97,6 +120,7 @@ HyperRender renders the whole document inside **one custom `RenderObject`**. CSS
 | Feature | `flutter_html` | `flutter_widget_from_html` | **HyperRender** |
 |---|:---:|:---:|:---:|
 | `float: left / right` | ❌ | ❌ | ✅ |
+| AI / LLM Streaming (60 FPS) | ❌ | ❌ | ✅ Frame-aligned |
 | Text selection — large docs | ❌ Crashes | ❌ Crashes | ✅ Crash-free |
 | Ruby / Furigana + Kinsoku | ❌ Raw text | ❌ Raw text | ✅ |
 | RTL / BiDi (Arabic, Hebrew) | ⚠️ | ⚠️ | ✅ |

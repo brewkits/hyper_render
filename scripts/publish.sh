@@ -22,9 +22,9 @@
 
 set -euo pipefail
 
-VERSION="1.7.1"
-MODE="${1:-dry-run}"   # dry-run | publish
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+VERSION="$(grep -E '^version:' "$ROOT/pubspec.yaml" | awk '{print $2}')"
+MODE="${1:-dry-run}"   # dry-run | publish
 
 # Use fvm if available, otherwise fall back to system flutter
 if command -v fvm &>/dev/null; then

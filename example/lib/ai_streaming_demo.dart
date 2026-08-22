@@ -138,7 +138,8 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF10B981),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -147,7 +148,8 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                           icon: const Icon(Icons.stop, size: 18),
                           label: const Text('Stop'),
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                           ),
                         ),
                       ],
@@ -204,7 +206,8 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                   child: Row(
                     children: [
                       const Text('Caret: ',
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13)),
                       DropdownButton<HyperTypingCaretStyle>(
                         value: _caretStyle,
                         underline: const SizedBox.shrink(),
@@ -212,19 +215,23 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                         items: const [
                           DropdownMenuItem(
                             value: HyperTypingCaretStyle.bar,
-                            child: Text('Bar (▍)', style: TextStyle(fontSize: 13)),
+                            child:
+                                Text('Bar (▍)', style: TextStyle(fontSize: 13)),
                           ),
                           DropdownMenuItem(
                             value: HyperTypingCaretStyle.block,
-                            child: Text('Block (█)', style: TextStyle(fontSize: 13)),
+                            child: Text('Block (█)',
+                                style: TextStyle(fontSize: 13)),
                           ),
                           DropdownMenuItem(
                             value: HyperTypingCaretStyle.underscore,
-                            child: Text('Underscore (_)', style: TextStyle(fontSize: 13)),
+                            child: Text('Underscore (_)',
+                                style: TextStyle(fontSize: 13)),
                           ),
                           DropdownMenuItem(
                             value: HyperTypingCaretStyle.dot,
-                            child: Text('Dot (●)', style: TextStyle(fontSize: 13)),
+                            child:
+                                Text('Dot (●)', style: TextStyle(fontSize: 13)),
                           ),
                         ],
                         onChanged: (val) {
@@ -232,14 +239,16 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                         },
                       ),
                       const SizedBox(width: 16),
-                      const Text('Auto Scroll: ', style: TextStyle(fontSize: 13)),
+                      const Text('Auto Scroll: ',
+                          style: TextStyle(fontSize: 13)),
                       Switch(
                         value: _autoScroll,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         onChanged: (v) => setState(() => _autoScroll = v),
                       ),
                       const SizedBox(width: 16),
-                      const Text('Auto Repair: ', style: TextStyle(fontSize: 13)),
+                      const Text('Auto Repair: ',
+                          style: TextStyle(fontSize: 13)),
                       Switch(
                         value: _autoRepair,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

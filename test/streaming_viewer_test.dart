@@ -108,5 +108,39 @@ void main() {
       // Caret disappears on completion
       expect(find.byType(HyperTypingCaret), findsNothing);
     });
+
+    testWidgets(
+        'autoScrollToBottom works seamlessly without external controller',
+        (tester) async {
+      final controller =
+          HyperStreamingController(throttleDuration: Duration.zero);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 200,
+              child: HyperViewer.streaming(
+                streamingController: controller,
+                autoScrollToBottom: true,
+                contentType: HyperContentType.markdown,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Append large content that causes overflow
+      for (var i = 0; i < 20; i++) {
+        controller
+            .append('Paragraph $i with enough text to overflow viewport.\n\n');
+        await tester.pump();
+      }
+
+      controller.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(HyperViewer), findsOneWidget);
+    });
   });
 }

@@ -209,6 +209,12 @@ void main() {
       final normalized = StreamSyntaxNormalizer.normalizeHtml(incomplete);
       expect(normalized, equals('<p>Hello</p>'));
     });
+
+    test('preserves mathematical < comparison symbol in HTML text', () {
+      const mathExpr = '<p>Formula: 5 < 10 and processing...</p>';
+      final normalized = StreamSyntaxNormalizer.normalizeHtml(mathExpr);
+      expect(normalized, equals(mathExpr));
+    });
   });
 
   group('HyperTypingCaret Widget Tests', () {

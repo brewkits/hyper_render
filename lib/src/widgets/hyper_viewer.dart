@@ -985,6 +985,14 @@ class _HyperViewerState extends State<HyperViewer>
     );
   }
 
+  /// Internal [ScrollController] used when [widget.autoScrollToBottom] is true
+  /// and no external [widget.controller] is provided.
+  ScrollController? _internalScrollController;
+
+  /// Effective scroll controller for sync / streaming view.
+  ScrollController? get _effectiveScrollController =>
+      widget.controller?.scrollController ?? _internalScrollController;
+
   @override
   void initState() {
     super.initState();
@@ -1013,6 +1021,9 @@ class _HyperViewerState extends State<HyperViewer>
     if (widget.mode == HyperRenderMode.paged && widget.pageController == null) {
       _ownedPageController = PageController();
     }
+    if (widget.controller == null && widget.autoScrollToBottom) {
+      _internalScrollController = ScrollController();
+    }
     widget.streamingController?.addListener(_onStreamingStateChanged);
     _parseContent();
   }
@@ -1027,7 +1038,7 @@ class _HyperViewerState extends State<HyperViewer>
     if (!widget.autoScrollToBottom) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final scrollCtrl = widget.controller?.scrollController;
+      final scrollCtrl = _effectiveScrollController;
       if (scrollCtrl != null && scrollCtrl.hasClients) {
         final position = scrollCtrl.position;
         if (position.maxScrollExtent > 0) {
@@ -1047,6 +1058,15 @@ class _HyperViewerState extends State<HyperViewer>
   @override
   void didUpdateWidget(covariant HyperViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (widget.controller == null &&
+        widget.autoScrollToBottom &&
+        _internalScrollController == null) {
+      _internalScrollController = ScrollController();
+    } else if (widget.controller != null && _internalScrollController != null) {
+      _internalScrollController?.dispose();
+      _internalScrollController = null;
+    }
 
     if (oldWidget.streamingController != widget.streamingController) {
       oldWidget.streamingController?.removeListener(_onStreamingStateChanged);
@@ -1120,6 +1140,7 @@ class _HyperViewerState extends State<HyperViewer>
     _contentFadeController.dispose();
     _virtualizedSelectionController?.dispose();
     _ownedPageController?.dispose();
+    _internalScrollController?.dispose();
     super.dispose();
   }
 
@@ -1957,7 +1978,7 @@ class _HyperViewerState extends State<HyperViewer>
             child: widget.shrinkWrap
                 ? content
                 : SingleChildScrollView(
-                    controller: widget.controller?.scrollController,
+                    controller: _effectiveScrollController,
                     physics:
                         widget.physics ?? const AlwaysScrollableScrollPhysics(),
                     child: content,
@@ -1977,7 +1998,7 @@ class _HyperViewerState extends State<HyperViewer>
       return KeyedSubtree(
         key: const ValueKey('sync'),
         child: SingleChildScrollView(
-          controller: widget.controller?.scrollController,
+          controller: _effectiveScrollController,
           physics: widget.physics ?? const AlwaysScrollableScrollPhysics(),
           child: content,
         ),

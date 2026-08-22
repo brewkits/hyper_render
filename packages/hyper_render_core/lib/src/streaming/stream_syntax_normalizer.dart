@@ -96,12 +96,12 @@ class StreamSyntaxNormalizer {
     var text = input;
 
     // 1. If trailing is an incomplete tag opening like '<div style="foo' without '>'
-    final lastOpenBracket = text.lastIndexOf('<');
-    final lastCloseBracket = text.lastIndexOf('>');
-    if (lastOpenBracket > lastCloseBracket) {
-      // Truncated tag in progress: strip or complete the tag
-      final candidateTag = text.substring(lastOpenBracket);
-      if (!candidateTag.contains('>')) {
+    // Check for '<' followed by an HTML tag identifier (letter, '/', or '!') to avoid stripping mathematical '<'
+    final tagMatches = RegExp(r'<[a-zA-Z/!]').allMatches(text);
+    if (tagMatches.isNotEmpty) {
+      final lastOpenBracket = tagMatches.last.start;
+      final lastCloseBracket = text.lastIndexOf('>');
+      if (lastOpenBracket > lastCloseBracket) {
         // Tag is cut midway, remove the partial tag for this frame
         text = text.substring(0, lastOpenBracket);
       }
