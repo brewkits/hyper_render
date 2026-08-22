@@ -33,11 +33,7 @@ dependencies:
   # Version deps so pana/pub.dev can resolve without local paths; the
   # dependency_overrides below point at the monorepo copies during dev.
   hyper_render_core: ">=1.6.0 <2.0.0"
-  # ⚠️ 1.7.0 IS NOT PUBLISHED YET. EpubReader needs HyperViewer.imageLoader to
-  # decode the data: URIs the chapter transform emits, and that parameter only
-  # exists on `main`. This package therefore cannot be published until
-  # hyper_render 1.7.0 ships — in-repo development is unaffected.
-  hyper_render: ^1.7.0
+  hyper_render: ">=1.6.0 <2.0.0"
 
 dependency_overrides:
   hyper_render_core:
