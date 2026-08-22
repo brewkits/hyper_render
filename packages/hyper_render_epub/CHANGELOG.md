@@ -1,5 +1,11 @@
 # Changelog — hyper_render_epub
 
+## 0.1.1
+
+- Added standalone `example/example.dart` demonstrating `EpubBook.open` and `EpubReader`.
+- Added doc comments to `EpubChapter` and `EpubTocEntry` constructors for 100% dartdoc coverage.
+- Tightened `hyper_render` and `hyper_render_core` dependency constraints to `^1.7.0` to ensure downgrade test lower bound compatibility on pub.dev.
+
 ## 0.1.0
 
 Initial release — **not publishable yet**: it depends on `hyper_render: ^1.7.0`, which is

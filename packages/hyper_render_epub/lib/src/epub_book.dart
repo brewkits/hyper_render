@@ -54,6 +54,7 @@ class EpubChapter {
   /// this flag is what lets a reader UX decide.
   final bool linear;
 
+  /// Creates a chapter representation from parsed EPUB package data.
   const EpubChapter({
     required this.id,
     required this.href,
@@ -80,6 +81,7 @@ class EpubTocEntry {
   /// Nested entries (sub-chapters/sections).
   final List<EpubTocEntry> children;
 
+  /// Creates a table-of-contents entry with [title], [href], [level], and optional [children].
   const EpubTocEntry({
     required this.title,
     required this.href,
