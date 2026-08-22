@@ -1,5 +1,24 @@
 # Changelog — hyper_render_core
 
+## 1.7.0
+
+### ✨ New
+
+- **`HyperSelectionOverlay.imageLoader`**: the overlay now forwards an optional
+  `HyperImageLoader` to the `HyperRenderWidget` it wraps. `HyperRenderWidget`
+  and `RenderHyperBox` already accepted one; the overlay did not, and it is the
+  *default* path for a selectable viewer — so a custom loader set upstream was
+  silently dropped for every selectable render mode. Additive: omitting it keeps
+  the built-in `NetworkImage`-based loader.
+
+- **`HyperPluginRegistry.registeredTags`**: the set of every tag any registered
+  plugin handles. A sanitizing host needs it to avoid stripping the very tags a
+  plugin was registered for — `hyper_render` 1.7.0 uses it for exactly that.
+
+These are the only changes since 1.6.0. They exist so `hyper_render` 1.7.0 can
+expose `HyperViewer.imageLoader` across all render modes, and stop the default
+sanitizer from erasing registered plugin tags.
+
 ## 1.6.0
 
 ### ⚠️ Behavior Change — text scaling (WCAG 1.4.4)

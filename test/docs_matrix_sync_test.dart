@@ -41,12 +41,19 @@ const _executionVerified = <String>[
   'border-spacing',
 ];
 
-/// Properties the architecture cannot fully support (see LIMITATIONS.md).
+/// Properties that must never be marked ✅: either the single-RenderObject
+/// architecture cannot support them, or they parse into `ComputedStyle` and no
+/// code in the render path reads them. Both are documented in LIMITATIONS.md.
 /// The exact first-cell text as it appears in the matrix.
 const _mustNotBeFull = <String>[
   'position: absolute',
   'position: fixed',
   'z-index',
+  // Parsed into ComputedStyle and read by nothing in the render path —
+  // measured, not assumed, by test/flagship_execution_audit_test.dart.
+  // Marked ✅ here until 2026-08-16; this row stops that recurring.
+  'min-height',
+  'max-height',
 ];
 
 /// Returns the status symbol (first char of the Status cell) for the first
@@ -85,12 +92,13 @@ void main() {
     }
 
     for (final prop in _mustNotBeFull) {
-      test('structurally-unsupported "$prop" is NOT marked ✅', () {
+      test('unsupported "$prop" is NOT marked ✅', () {
         final status = _statusOf(lines, prop);
         if (status == null) return; // absent is fine
         expect(status.contains('✅'), isFalse,
-            reason: '`$prop` is unsupported by the single-RenderObject design '
-                '(see LIMITATIONS.md) but the matrix claims full support.');
+            reason: '`$prop` does not execute — either the architecture cannot '
+                'support it or nothing in the render path reads it (see '
+                'LIMITATIONS.md) — but the matrix claims full support.');
       });
     }
   });

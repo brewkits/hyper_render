@@ -148,6 +148,13 @@ class HyperPluginRegistry {
           if (e.value.isInline) e.key,
       };
 
+  /// Every tag name any registered plugin handles, block and inline alike.
+  ///
+  /// A host that sanitizes its input must let these through — a custom tag is
+  /// not in any default allow-list, so a registered plugin would otherwise
+  /// render nothing at all with no error to explain why.
+  Set<String> get registeredTags => _map.keys.toSet();
+
   bool get isEmpty => _map.isEmpty;
   bool get isNotEmpty => _map.isNotEmpty;
 }

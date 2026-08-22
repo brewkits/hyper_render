@@ -25,6 +25,7 @@ import 'package:example/css_properties_demo.dart';
 import 'package:example/email_demo.dart';
 import 'package:example/enhanced_selection_demo.dart';
 import 'package:example/enterprise_features_demo.dart';
+import 'package:example/epub_demo.dart';
 import 'package:example/flexbox_demo.dart';
 import 'package:example/float_hell_demo.dart';
 import 'package:example/formula_demo.dart';
@@ -50,6 +51,7 @@ final _demos = <String, Widget Function()>{
   'EmailDemo': () => const EmailDemo(),
   'EnhancedSelectionDemo': () => const EnhancedSelectionDemo(),
   'EnterpriseFeaturesDemo': () => const EnterpriseFeaturesDemo(),
+  'EpubDemo': () => const EpubDemo(),
   'FlexboxDemo': () => const FlexboxDemo(),
   'FloatHellDemo': () => const FloatHellDemo(),
   'FormulaDemo': () => const FormulaDemo(),

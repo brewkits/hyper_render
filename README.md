@@ -13,11 +13,39 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.10+-54C5F8.svg?logo=flutter)](https://flutter.dev)
 
-**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · 1 900 tests · XSS-safe · Zero Gradle config**
+**CSS float · crash-free selection · CJK/Furigana · `@keyframes` · 1 200+ tests · XSS-safe · Zero Gradle config**
 
-[**Quick Start**](#-quick-start) · [**Why Switch?**](#️-why-switch-the-architecture-argument) · [**API**](#-api-reference) · [**Packages**](#-packages)
+<br/>
+
+[![Try Live Web Demo](https://img.shields.io/badge/🌐_Live_Demo-Try_in_Browser-blueviolet?style=for-the-badge)](https://brewkits.github.io/hyper_render/)
+
+<br/>
+
+[**Live Web Playground**](https://brewkits.github.io/hyper_render/) · [**Quick Start**](#-quick-start) · [**30s Migration**](#-30-second-drop-in-migration-from-flutter_html) · [**Why Switch?**](#️-why-switch-the-architecture-argument) · [**API**](#-api-reference) · [**Packages**](#-packages)
 
 </div>
+
+---
+
+## ⚡ 30-Second Drop-in Migration from `flutter_html`
+
+Already using `flutter_html`? You don't need to rewrite your widget tree or learn a new API. Just change your single import:
+
+```dart
+// 1. In your pubspec.yaml:
+// dependencies:
+//   hyper_render: ^1.7.0
+
+// 2. In your Dart file — replace this single line:
+// ❌ import 'package:flutter_html/flutter_html.dart';
+import 'package:hyper_render/compat/flutter_html.dart';
+
+// 3. Your existing code works out of the box with 5x faster RenderObject speed!
+Html(
+  data: '<h1>Hello</h1><p>Text wraps seamlessly around floats!</p>',
+  onLinkTap: (url, attributes, element) => launchUrl(Uri.parse(url!)),
+)
+```
 
 ---
 
@@ -39,7 +67,7 @@
 
 ```yaml
 dependencies:
-  hyper_render: ^1.6.0
+  hyper_render: ^1.7.0
 ```
 
 ```dart

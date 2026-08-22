@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.7.0
+
+Requires `hyper_render_core` 1.7.0 — `HyperViewer` passes the loader down
+through `HyperSelectionOverlay`, which is a core widget.
+
+**One visible behavior change, and only for viewers that pass a
+`pluginRegistry`**: their plugin tags are no longer stripped by the default
+sanitizer, so content that previously rendered blank now renders the plugin's
+widget (see Fixes). Anything without a `pluginRegistry` renders exactly as it
+did in 1.6.0 — `imageLoader` is purely additive.
+
+### ✨ New Features
+
+- **`HyperViewer.imageLoader`**: expose a per-viewer custom image loader (previously only reachable via the lower-level `HyperRenderWidget`/`RenderHyperBox`, with no path down from `HyperViewer` itself). Lets a consumer resolve images from a non-`http(s)` source — `data:` URIs, an in-memory archive, a caching library — instead of the built-in `NetworkImage`-based fetch. Threaded through all four rendering paths (`sync`/`virtualized`/`paged`, and both the default selectable `HyperSelectionOverlay` path and the non-selectable direct `HyperRenderWidget`/`VirtualizedChunk` paths for each), not just the ones a naive pass-through would hit by accident. First consumer: an in-progress `hyper_render_epub` package that needs to decode images out of an EPUB's zip container.
+
+### 🐛 Fixes
+
+- **A registered plugin's tag is no longer sanitized away.** `HyperViewer` now merges `pluginRegistry`'s tag names into the sanitizer's allow-list. Custom tags (`<my-chart>`, `<x-badge>`) are in no default allow-list, so the documented three-line plugin setup — register a plugin, pass `pluginRegistry`, done — silently rendered **nothing** under the default `sanitize: true`, with no error to explain the blank space. Callers previously had to discover `allowedTags:` or `sanitize: false` for themselves. Registering a plugin is the author declaring that tag safe; attribute-level sanitization is unchanged. New `HyperPluginRegistry.registeredTags` (in `hyper_render_core` 1.7.0) exposes the set.
+
+### 📝 Docs
+
+- **CSS matrix corrections after a differential render audit** (`test/flagship_execution_audit_test.dart`, new): `min-height` / `max-height` were marked ✅ but are parsed and then read by nothing in the render path — now ❌. `float` is downgraded to ⚠️: it wraps text around a replaced element (`<img>`) or an explicitly sized box, but a floated block that would size itself from its own text is not floated. Both gaps are now pinned by tests that fail if the behaviour changes in either direction, and documented in LIMITATIONS.md.
+- Clarified that `HyperRenderMode.paged` paginates a document you already parsed — it does not read `.epub` files itself. The prior wording ("suitable for e-book / epub / reader UIs") was ambiguous enough to prompt a real user question about EPUB file support.
+
 ## 1.6.0
 
 ### ⚠️ Behavior Change — text now scales with system accessibility settings

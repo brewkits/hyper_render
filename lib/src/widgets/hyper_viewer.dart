@@ -35,8 +35,11 @@ enum HyperRenderMode {
   /// Asynchronous parse + [PageView.builder]-based paginated rendering.
   ///
   /// Each page corresponds to one document chunk (same chunking as
-  /// [virtualized]). Suitable for e-book / epub / reader UIs where the user
-  /// swipes between pages rather than scrolling continuously.
+  /// [virtualized]) — this paginates *one already-parsed HTML/Markdown/Delta
+  /// document*, it does not read `.epub` files. Useful for reader UIs where
+  /// the user swipes between pages rather than scrolling continuously; e.g.
+  /// feeding it one EPUB chapter's XHTML at a time after you've unzipped
+  /// and parsed the container yourself.
   ///
   /// Supply a [HyperPageController] via [HyperViewer.pageController] to
   /// programmatically jump to a page or observe page changes.
@@ -449,6 +452,23 @@ class HyperViewer extends StatefulWidget {
   /// (e.g., in a strictly controlled UI layout), pass `TextScaler.noScaling`.
   final TextScaler? textScaler;
 
+  /// Custom image loader, overriding the default [NetworkImage]-based fetch.
+  ///
+  /// Use this to resolve images from a non-`http(s)` source — e.g. `data:`
+  /// URIs, an in-memory archive (EPUB, zipped asset bundle), or a caching
+  /// library. Passed straight through to every rendering mode ([sync],
+  /// [virtualized], [paged]).
+  ///
+  /// The loader is looked up by `src` string identity on every rebuild, so
+  /// pass a stable instance (a top-level function, or a field held on a
+  /// long-lived object) rather than a closure created inside `build()` —
+  /// an unstable closure disposes and reloads every image on each rebuild.
+  ///
+  /// ```dart
+  /// HyperViewer(html: html, imageLoader: myEpubBook.imageLoader)
+  /// ```
+  final HyperImageLoader? imageLoader;
+
   /// Creates a HyperViewer for HTML content (default)
   ///
   /// ```dart
@@ -500,6 +520,7 @@ class HyperViewer extends StatefulWidget {
     this.pluginRegistry,
     this.onMemoryPressure,
     this.renderConfig = HyperRenderConfig.defaults,
+    this.imageLoader,
   })  : content = html,
         contentType = HyperContentType.html,
         _prebuiltDocument = null;
@@ -551,6 +572,7 @@ class HyperViewer extends StatefulWidget {
     this.pluginRegistry,
     this.onMemoryPressure,
     this.renderConfig = HyperRenderConfig.defaults,
+    this.imageLoader,
   })  : content = delta,
         contentType = HyperContentType.delta,
         _prebuiltDocument = null;
@@ -602,6 +624,7 @@ class HyperViewer extends StatefulWidget {
     this.pluginRegistry,
     this.onMemoryPressure,
     this.renderConfig = HyperRenderConfig.defaults,
+    this.imageLoader,
   })  : content = markdown,
         contentType = HyperContentType.markdown,
         _prebuiltDocument = null;
@@ -645,6 +668,7 @@ class HyperViewer extends StatefulWidget {
     this.pluginRegistry,
     this.onError,
     this.onMemoryPressure,
+    this.imageLoader,
   })  : content = '',
         contentType = HyperContentType.html,
         mode = HyperRenderMode.sync,
@@ -1309,6 +1333,22 @@ class _HyperViewerState extends State<HyperViewer>
   /// Returns the CSS parser used for @keyframes extraction.
   CssParserInterface _getDefaultCssParser() => const DefaultCssParser();
 
+  /// The tag allow-list handed to [HtmlSanitizer], with every registered
+  /// plugin's tag added.
+  ///
+  /// A plugin tag (`<my-chart>`, `<x-badge>`) is by definition not in any
+  /// default allow-list, so without this the documented three-line plugin
+  /// setup — register, pass `pluginRegistry`, done — sanitizes the tag away
+  /// and renders nothing, with no error to explain the blank space. Registering
+  /// a plugin *is* the author declaring that tag safe; it does not loosen
+  /// anything else, since attribute-level sanitization still applies.
+  List<String>? get _sanitizerAllowedTags {
+    final registry = widget.pluginRegistry;
+    if (registry == null || registry.isEmpty) return widget.allowedTags;
+    final base = widget.allowedTags ?? HtmlSanitizer.defaultAllowedTags;
+    return <String>{...base, ...registry.registeredTags}.toList();
+  }
+
   void _parseContent() {
     // Fast path: pre-parsed AST — skip all parsing.
     if (widget._prebuiltDocument != null) {
@@ -1366,12 +1406,13 @@ class _HyperViewerState extends State<HyperViewer>
       }
 
       // 2. Sanitize (strips <style> tags — safe, CSS already extracted above)
+      //    Plugin tags are added to the allow-list by _sanitizerAllowedTags.
       // Note: baseUrl resolution is handled INSIDE the parser/adapter
       // for better robustness than regex replacement.
       if (widget.sanitize) {
         contentToRender = HtmlSanitizer.sanitize(
           contentToRender,
-          allowedTags: widget.allowedTags,
+          allowedTags: _sanitizerAllowedTags,
           allowDataAttributes: widget.allowDataAttributes,
         );
       }
@@ -1387,7 +1428,7 @@ class _HyperViewerState extends State<HyperViewer>
       // text content.
       contentToRender = HtmlSanitizer.sanitize(
         contentToRender,
-        allowedTags: widget.allowedTags,
+        allowedTags: _sanitizerAllowedTags,
         allowDataAttributes: widget.allowDataAttributes,
       );
     }
@@ -1615,6 +1656,7 @@ class _HyperViewerState extends State<HyperViewer>
                       _onFloatCarryover(index, carryovers),
                   pluginRegistry: widget.pluginRegistry,
                   onRenderBoxReady: (box) => _sectionBoxes[index] = box,
+                  imageLoader: widget.imageLoader,
                 )
               : HyperRenderWidget(
                   document: _sections![index],
@@ -1632,6 +1674,7 @@ class _HyperViewerState extends State<HyperViewer>
                       _onFloatCarryover(index, carryovers),
                   pluginRegistry: widget.pluginRegistry,
                   onRenderBoxReady: (box) => _sectionBoxes[index] = box,
+                  imageLoader: widget.imageLoader,
                 );
 
           // RenderHyperBox is already an internal RepaintBoundary
@@ -1706,6 +1749,7 @@ class _HyperViewerState extends State<HyperViewer>
           config: _effectiveConfig,
           pluginRegistry: widget.pluginRegistry,
           enableComplexFilters: widget.enableComplexFilters,
+          imageLoader: widget.imageLoader,
         );
       } else {
         // Use HyperRenderWidget directly (no popup menu)
@@ -1718,6 +1762,7 @@ class _HyperViewerState extends State<HyperViewer>
           onAnchorLayout: widget.controller?._onAnchorLayout,
           config: _effectiveConfig,
           pluginRegistry: widget.pluginRegistry,
+          imageLoader: widget.imageLoader,
         );
       }
 
@@ -1818,6 +1863,7 @@ class _HyperViewerState extends State<HyperViewer>
             config: _effectiveConfig,
             pluginRegistry: widget.pluginRegistry,
             enableComplexFilters: widget.enableComplexFilters,
+            imageLoader: widget.imageLoader,
           );
         } else {
           pageContent = HyperRenderWidget(
@@ -1835,6 +1881,7 @@ class _HyperViewerState extends State<HyperViewer>
             // in paged mode (previously missing, scrollToId always returned null).
             onAnchorLayout: widget.controller?._onAnchorLayout,
             pluginRegistry: widget.pluginRegistry,
+            imageLoader: widget.imageLoader,
           );
         }
 

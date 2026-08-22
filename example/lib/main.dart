@@ -16,6 +16,7 @@ import 'video_demo_improved.dart';
 import 'enhanced_selection_demo.dart';
 import 'css_properties_demo.dart';
 import 'css_mastery_demo.dart';
+import 'epub_demo.dart';
 import 'essence_tour_demo.dart';
 import 'flexbox_demo.dart';
 import 'demo_colors.dart';
@@ -167,6 +168,17 @@ class DemoHomePage extends StatelessWidget {
           ),
           // ── Applications ──────────────────────────────────────────────────
           _buildSectionHeader(context, 'Real-World Applications'),
+          _buildDemoCard(
+            context,
+            icon: Icons.folder_zip_outlined,
+            title: 'EPUB Container',
+            subtitle:
+                'A real .epub unzipped live: container.xml → OPF spine → chapters, '
+                'with images and CSS pulled out of the archive',
+            color: Colors.deepPurple,
+            onTap: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const EpubDemo())),
+          ),
           _buildDemoCard(
             context,
             icon: Icons.auto_stories,

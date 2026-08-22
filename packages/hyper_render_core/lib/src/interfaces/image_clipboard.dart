@@ -86,6 +86,7 @@ abstract class ImageClipboardHandler {
 /// For full image clipboard support, use a package like `super_clipboard`
 /// and implement [ImageClipboardHandler].
 class DefaultImageClipboardHandler implements ImageClipboardHandler {
+  /// Creates a [DefaultImageClipboardHandler] instance.
   const DefaultImageClipboardHandler();
 
   @override
@@ -151,15 +152,18 @@ class ImageOperationResult {
   /// File path if operation saved a file
   final String? filePath;
 
+  /// Creates an [ImageOperationResult] instance.
   const ImageOperationResult({
     required this.success,
     this.error,
     this.filePath,
   });
 
+  /// Creates a successful [ImageOperationResult] with an optional [filePath].
   factory ImageOperationResult.success({String? filePath}) =>
       ImageOperationResult(success: true, filePath: filePath);
 
+  /// Creates a failed [ImageOperationResult] with an [error] message.
   factory ImageOperationResult.failure(String error) =>
       ImageOperationResult(success: false, error: error);
 }

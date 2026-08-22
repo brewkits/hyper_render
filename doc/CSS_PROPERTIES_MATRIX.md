@@ -28,8 +28,8 @@ This document lists CSS property support in HyperRender.
 | `height` | ✅ | px, auto | Absolute px on replaced elements. `%` height not supported (needs a deferred-height model) |
 | `min-width` | ✅ | px, % | Applied to block content width; wins over `max-width` per CSS |
 | `max-width` | ✅ | px, % | Constrains a block's content width (text wraps inside it) |
-| `min-height` | ✅ | px, % | |
-| `max-height` | ✅ | px, % | |
+| `min-height` | ❌ | — | Parsed into `ComputedStyle.minHeight`, then read by nothing in the render path. Found by `test/flagship_execution_audit_test.dart` |
+| `max-height` | ❌ | — | Parsed into `ComputedStyle.maxHeight`, then read by nothing in the render path. Found by `test/flagship_execution_audit_test.dart` |
 | `margin` | ✅ | px, %, auto | All 4 directions + shorthand |
 | `margin-top` | ✅ | px, %, auto | |
 | `margin-right` | ✅ | px, %, auto | |
@@ -136,7 +136,7 @@ This document lists CSS property support in HyperRender.
 
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
-| `float` | ✅ | left, right, none | Proper float wrapping around text |
+| `float` | ⚠️ | left, right, none | Text wraps around a floated **replaced element** (`<img>`) or an empty explicitly sized box. An element sized by its own text is NOT floated — the float reserves a box but the element's content stays in normal flow (a floated `<div>` with text can end up *taller*; a floated `<span>` drop cap has no effect). See LIMITATIONS.md |
 | `clear` | ✅ | left, right, both, none | Proper float clearing |
 
 ---
@@ -233,7 +233,7 @@ This document lists CSS property support in HyperRender.
 ## Notes
 
 ### Unique Features
-- CSS Float Layout: Proper float/clear support around text
+- CSS Float Layout: text wraps around floated **images** and empty sized boxes; `clear` cancels the wrap. Elements sized by their own text (a `<div>` with content, a `<span>` drop cap) are not floated — see the `float` row above and LIMITATIONS.md
 - Kinsoku Line-Breaking: Professional CJK typography rules
 - Ruby Annotations: Furigana rendering for Japanese
 - CSS Grid: fr-unit layout with repeat() support

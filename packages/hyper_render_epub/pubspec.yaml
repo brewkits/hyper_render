@@ -1,0 +1,52 @@
+name: hyper_render_epub
+description: EPUB container support for HyperRender. Unzips an .epub, parses its OPF manifest/spine/TOC, and resolves chapters to HyperViewer-ready content.
+version: 0.1.0
+homepage: https://github.com/brewkits/hyper_render
+repository: https://github.com/brewkits/hyper_render/tree/main/packages/hyper_render_epub
+issue_tracker: https://github.com/brewkits/hyper_render/issues
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+topics:
+  - flutter
+  - epub
+  - ebook-reader
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  archive: ^4.0.9 # pure-dart zip, keeps `web` support (no dart:io)
+  html: ^0.15.6 # html5 parser for chapter XHTML / nav documents
+  xml: ^7.0.1 # container.xml, OPF, toc.ncx
+
+  # Version deps so pana/pub.dev can resolve without local paths; the
+  # dependency_overrides below point at the monorepo copies during dev.
+  hyper_render_core: ">=1.6.0 <2.0.0"
+  # ⚠️ 1.7.0 IS NOT PUBLISHED YET. EpubReader needs HyperViewer.imageLoader to
+  # decode the data: URIs the chapter transform emits, and that parameter only
+  # exists on `main`. This package therefore cannot be published until
+  # hyper_render 1.7.0 ships — in-repo development is unaffected.
+  hyper_render: ^1.7.0
+
+dependency_overrides:
+  hyper_render_core:
+    path: ../hyper_render_core
+  hyper_render:
+    path: ../..
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_svg: ^2.3.0

@@ -21,6 +21,14 @@ dependencies:
   hyper_render_core:
     path: ../packages/hyper_render_core
 
+  # EPUB container support (EpubBook / EpubReader demo)
+  hyper_render_epub:
+    path: ../packages/hyper_render_epub
+
+  # Used by the EPUB demo to zip a sample book in memory at runtime,
+  # so the repo carries no binary .epub fixture.
+  archive: ^4.0.9
+
   # Clipboard/sharing support
 
   # Competitor libraries for comparison
@@ -50,6 +58,8 @@ dependency_overrides:
     path: ../packages/hyper_render_markdown
   hyper_render_highlight:
     path: ../packages/hyper_render_highlight
+  hyper_render_epub:
+    path: ../packages/hyper_render_epub
 
 dev_dependencies:
   flutter_test:

@@ -22,7 +22,7 @@
 
 set -euo pipefail
 
-VERSION="1.3.3"
+VERSION="1.7.0"
 MODE="${1:-dry-run}"   # dry-run | publish
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
@@ -180,12 +180,12 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Step 1: hyper_render_core (no deps)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-publish_package "hyper_render_core"
+# publish_package "hyper_render_core"
 
 if [[ "$MODE" == "publish" ]]; then
   echo ""
-  echo "  Waiting 30s for pub.dev to index hyper_render_core..."
-  sleep 30
+  echo "  Waiting 120s for pub.dev to index hyper_render_core..."
+  sleep 120
 fi
 
 echo ""

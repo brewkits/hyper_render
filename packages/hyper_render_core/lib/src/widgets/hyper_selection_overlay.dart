@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:hyper_render_core/hyper_render_core.dart' show DesignTokens;
 import '../core/hyper_render_config.dart';
+import '../core/image_provider.dart';
 import '../core/render_hyper_box.dart';
 import '../interfaces/node_plugin.dart';
 import '../model/node.dart';
@@ -97,6 +98,11 @@ class HyperSelectionOverlay extends StatefulWidget {
   /// Forwarded to the inner [HyperRenderWidget].
   final bool enableComplexFilters;
 
+  /// Custom image loader (e.g. to resolve `data:` URIs or a private byte
+  /// source instead of the default [NetworkImage]-based fetch).
+  /// Forwarded to the inner [HyperRenderWidget].
+  final HyperImageLoader? imageLoader;
+
   const HyperSelectionOverlay({
     super.key,
     required this.document,
@@ -117,6 +123,7 @@ class HyperSelectionOverlay extends StatefulWidget {
     this.config = HyperRenderConfig.defaults,
     this.pluginRegistry,
     this.enableComplexFilters = true,
+    this.imageLoader,
   });
 
   @override
@@ -423,6 +430,7 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
                     config: widget.config,
                     pluginRegistry: widget.pluginRegistry,
                     enableComplexFilters: widget.enableComplexFilters,
+                    imageLoader: widget.imageLoader,
                   ),
                 ),
               ),
