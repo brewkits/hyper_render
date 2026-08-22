@@ -1,5 +1,10 @@
 # Changelog — hyper_render_clipboard
 
+## [1.7.2] - 2026-08-22
+
+### 🧹 Dead Code Removal & WASM Compatibility
+- Removed legacy unused `file_system_provider.dart` and `default_file_system_provider.dart` files containing unconditional `dart:io` imports to ensure 100% pure WASM compatibility on pub.dev.
+
 ## [1.7.1] - 2026-08-22
 
 ### 🌐 WASM Runtime Compatibility

@@ -364,7 +364,7 @@ packages:
       path: "../packages/hyper_render_epub"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   hyper_render_highlight:
     dependency: "direct overridden"
     description:

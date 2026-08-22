@@ -1,8 +1,0 @@
-import 'dart:io';
-
-abstract class FileSystemProvider {
-  Future<Directory> getStorageDirectory();
-  Future<Directory> getCacheDirectory();
-  Future<Directory> getDocumentsDirectory();
-  Future<Directory?> getDownloadsDirectory();
-}
