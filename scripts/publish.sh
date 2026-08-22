@@ -104,7 +104,17 @@ publish_package() {
   (
     cd "$dir"
     echo "  Running: $FLUTTER pub publish $DRY_FLAG $FORCE_FLAG"
-    $FLUTTER pub publish $DRY_FLAG $FORCE_FLAG
+    set +e
+    output=$($FLUTTER pub publish $DRY_FLAG $FORCE_FLAG 2>&1)
+    exit_code=$?
+    echo "$output"
+    if [[ $exit_code -ne 0 ]]; then
+      if echo "$output" | grep -q "already exists"; then
+        echo "  ℹ Package $name version already published on pub.dev, continuing..."
+      else
+        exit $exit_code
+      fi
+    fi
   )
 
   _restore_pubspec "$pubspec"
@@ -127,7 +137,17 @@ publish_root() {
   (
     cd "$ROOT"
     echo "  Running: $FLUTTER pub publish $DRY_FLAG $FORCE_FLAG"
-    $FLUTTER pub publish $DRY_FLAG $FORCE_FLAG
+    set +e
+    output=$($FLUTTER pub publish $DRY_FLAG $FORCE_FLAG 2>&1)
+    exit_code=$?
+    echo "$output"
+    if [[ $exit_code -ne 0 ]]; then
+      if echo "$output" | grep -q "already exists"; then
+        echo "  ℹ Package hyper_render version already published on pub.dev, continuing..."
+      else
+        exit $exit_code
+      fi
+    fi
   )
 
   _restore_pubspec "$pubspec"

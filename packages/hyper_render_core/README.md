@@ -106,6 +106,7 @@ Implement these to extend the engine:
 | [hyper_render_html](https://pub.dev/packages/hyper_render_html) | HTML + CSS → UDT parser |
 | [hyper_render_markdown](https://pub.dev/packages/hyper_render_markdown) | Markdown (GFM) → UDT parser |
 | [hyper_render_highlight](https://pub.dev/packages/hyper_render_highlight) | Syntax highlighting for `<code>` / `<pre>` blocks |
+| [hyper_render_epub](https://pub.dev/packages/hyper_render_epub) | EPUB 2/3 reader container & archive decoder *(opt-in)* |
 | [hyper_render_clipboard](https://pub.dev/packages/hyper_render_clipboard) | Image copy / save / share *(opt-in)* |
 | [hyper_render_math](https://pub.dev/packages/hyper_render_math) | LaTeX / MathML rendering *(opt-in)* |
 | [hyper_render_devtools](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools inspector |

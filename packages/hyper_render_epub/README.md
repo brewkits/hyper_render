@@ -28,13 +28,6 @@ Structural damage throws `EpubFormatException` (not a zip, no OPF, no spine). Pa
 damage never does: a spine item whose file is missing is skipped, an unparsable TOC yields
 an empty `tableOfContents`, and an `<img>` whose target is absent keeps its original `src`.
 
-> ### ⚠️ Not publishable yet
->
-> This package depends on `hyper_render: ^1.7.0`, which **is not on pub.dev**. `EpubReader`
-> needs `HyperViewer.imageLoader` — the parameter that lets it decode the inline `data:`
-> URIs chapters carry — and that only exists on `main`. `hyper_render_epub` can ship once
-> `hyper_render` 1.7.0 does. Using it from the monorepo today works fine.
-
 ---
 
 ## Installation

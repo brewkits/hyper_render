@@ -9,7 +9,7 @@ Renders `<math>` and `<latex>` tags using [flutter_math_fork](https://pub.dev/pa
 
 ```yaml
 dependencies:
-  hyper_render_math: ^1.6.0
+  hyper_render_math: ^1.7.0
 ```
 
 ---
@@ -72,6 +72,7 @@ so you can identify and fix the malformed formula.
 | [hyper_render_html](https://pub.dev/packages/hyper_render_html) | HTML + CSS → UDT parser |
 | [hyper_render_markdown](https://pub.dev/packages/hyper_render_markdown) | Markdown (GFM) → UDT parser |
 | [hyper_render_highlight](https://pub.dev/packages/hyper_render_highlight) | Syntax highlighting for `<code>` / `<pre>` blocks |
+| [hyper_render_epub](https://pub.dev/packages/hyper_render_epub) | EPUB 2/3 reader container & archive decoder *(opt-in)* |
 | [hyper_render_clipboard](https://pub.dev/packages/hyper_render_clipboard) | Image copy / save / share *(opt-in)* |
 | **[hyper_render_math](https://pub.dev/packages/hyper_render_math)** | **LaTeX / MathML rendering** ← you are here |
 | [hyper_render_devtools](https://pub.dev/packages/hyper_render_devtools) | Flutter DevTools inspector |

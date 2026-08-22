@@ -17,14 +17,14 @@ Add the package to your app's `dev_dependencies` (debug-only usage):
 
 ```yaml
 dev_dependencies:
-  hyper_render_devtools: ^1.6.0
+  hyper_render_devtools: ^1.7.0
 ```
 
 Or add to `dependencies` if you want it available in profile builds:
 
 ```yaml
 dependencies:
-  hyper_render_devtools: ^1.6.0
+  hyper_render_devtools: ^1.7.0
 ```
 
 ## Usage
@@ -117,6 +117,7 @@ The `devtools_ui` sub-directory contains the Flutter Web source for the panel UI
 | [hyper_render_html](https://pub.dev/packages/hyper_render_html) | HTML + CSS → UDT parser |
 | [hyper_render_markdown](https://pub.dev/packages/hyper_render_markdown) | Markdown (GFM) → UDT parser |
 | [hyper_render_highlight](https://pub.dev/packages/hyper_render_highlight) | Syntax highlighting for `<code>` / `<pre>` blocks |
+| [hyper_render_epub](https://pub.dev/packages/hyper_render_epub) | EPUB 2/3 reader container & archive decoder *(opt-in)* |
 | [hyper_render_clipboard](https://pub.dev/packages/hyper_render_clipboard) | Image copy / save / share *(opt-in)* |
 | [hyper_render_math](https://pub.dev/packages/hyper_render_math) | LaTeX / MathML rendering *(opt-in)* |
 | **[hyper_render_devtools](https://pub.dev/packages/hyper_render_devtools)** | **Flutter DevTools inspector** ← you are here |
