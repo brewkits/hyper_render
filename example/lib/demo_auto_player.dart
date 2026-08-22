@@ -2,12 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hyper_render/hyper_render.dart';
-import 'main.dart';
-import 'smart_table_demo.dart';
-import 'manga_demo.dart';
-import 'enhanced_selection_demo.dart';
-import 'ultra_showcase_2026.dart';
-import 'stress_test_demo.dart';
 
 String getActiveDemo() {
   try {
@@ -238,11 +232,14 @@ class _AutoPlayerHostState extends State<AutoPlayerHost> {
         title = '60 FPS Virtualized Rendering';
         final buf = StringBuffer();
         buf.write('<div style="font-family: sans-serif; padding: 16px;">');
-        buf.write('<h2 style="color: #1A56DB;">100,000+ Chars Virtualized Mode</h2>');
-        buf.write('<div style="background: #1E293B; color: #38BDF8; padding: 12px; border-radius: 8px; font-weight: bold; margin-bottom: 16px;">🚀 FPS: 60.0 | Memory: 2.4 MB | Active Nodes: 12</div>');
+        buf.write(
+            '<h2 style="color: #1A56DB;">100,000+ Chars Virtualized Mode</h2>');
+        buf.write(
+            '<div style="background: #1E293B; color: #38BDF8; padding: 12px; border-radius: 8px; font-weight: bold; margin-bottom: 16px;">🚀 FPS: 60.0 | Memory: 2.4 MB | Active Nodes: 12</div>');
         for (int i = 1; i <= 60; i++) {
           final bg = i % 2 == 0 ? '#F8FAFC' : '#FFFFFF';
-          buf.write('<div style="background: $bg; border-left: 4px solid #3B82F6; padding: 8px 12px; margin-bottom: 8px; border-radius: 4px;"><b style="color: #1D4ED8;">Section $i:</b> HyperRender utilizes intelligent chunking. Only blocks visible on screen are painted, achieving smooth 60 FPS scrolling.</div>');
+          buf.write(
+              '<div style="background: $bg; border-left: 4px solid #3B82F6; padding: 8px 12px; margin-bottom: 8px; border-radius: 4px;"><b style="color: #1D4ED8;">Section $i:</b> HyperRender utilizes intelligent chunking. Only blocks visible on screen are painted, achieving smooth 60 FPS scrolling.</div>');
         }
         buf.write('</div>');
         htmlContent = buf.toString();
@@ -280,7 +277,8 @@ class _AutoPlayerHostState extends State<AutoPlayerHost> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         backgroundColor: const Color(0xFF1A56DB),
         foregroundColor: Colors.white,
         elevation: 2,

@@ -37,6 +37,7 @@ import 'reader_app/library_screen.dart';
 import 'float_hell_demo.dart';
 import 'zero_padding_image_demo.dart';
 import 'base_url_demo.dart';
+import 'ai_streaming_demo.dart';
 
 /// Optimized base TextStyle for better readability.
 ///
@@ -125,6 +126,16 @@ class DemoHomePage extends StatelessWidget {
           const SizedBox(height: 8),
           // ── Signature Features ────────────────────────────────────────────
           _buildSectionHeader(context, 'Signature Features'),
+          _buildDemoCard(
+            context,
+            icon: Icons.psychology,
+            title: 'AI / LLM Streaming Engine (v1.8.0)',
+            subtitle:
+                'Real-time token streaming with 60 FPS throttling, syntax auto-repair, auto-scroll & animated carets',
+            color: const Color(0xFF10B981),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AiStreamingDemo())),
+          ),
           _buildDemoCard(
             context,
             icon: Icons.explore,

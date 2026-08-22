@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.0
+
+- **AI & LLM Real-Time Token Streaming Engine**:
+  - `HyperStreamingController`: High-performance streaming controller for batching rapid SSE / WebSocket token bursts with 16ms frame-aligned throttling to eliminate UI jank.
+  - `StreamSyntaxNormalizer`: Transient auto-repair utility for incomplete in-flight tokens (auto-closes unclosed code block fences, inline code, bold/italic asterisks, incomplete table rows, and truncated HTML tags).
+  - `HyperTypingCaret`: Animated typing caret widget with customizable blinking styles (`bar`, `block`, `underscore`, `dot`, `custom`).
+  - `HyperViewer.streaming(...)`: Dedicated streaming constructor with stick-to-bottom auto-scroller, syntax auto-repair, and typing caret integration.
+  - Interactive AI streaming demo added to showcase app (`example/lib/ai_streaming_demo.dart`).
+
 ## 1.7.1
 
 - **Pub.dev Dependency Constraint Lower Bounds**: Tightened `hyper_render_core` dependency constraint to `^1.7.0` (from `>=1.6.0 <2.0.0`) to ensure lower bound compatibility during `flutter pub downgrade` analysis, securing a perfect 160/160 score on pub.dev.

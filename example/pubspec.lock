@@ -350,14 +350,14 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.7.1"
+    version: "1.8.0"
   hyper_render_core:
     dependency: "direct main"
     description:
       path: "../packages/hyper_render_core"
       relative: true
     source: path
-    version: "1.7.0"
+    version: "1.8.0"
   hyper_render_epub:
     dependency: "direct main"
     description:

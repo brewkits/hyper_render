@@ -469,6 +469,36 @@ class HyperViewer extends StatefulWidget {
   /// ```
   final HyperImageLoader? imageLoader;
 
+  /// Optional streaming controller for real-time AI and LLM token feeds.
+  ///
+  /// When non-null, [HyperViewer] listens to tokens from [streamingController],
+  /// batch-renders them with frame throttling, auto-repairs in-flight markdown/HTML,
+  /// displays the typing caret, and maintains stick-to-bottom scroll.
+  final HyperStreamingController? streamingController;
+
+  /// Whether to auto-repair transient incomplete syntax tokens (e.g. unclosed
+  /// code blocks or bold asterisks) during in-flight streaming.
+  ///
+  /// Default: true.
+  final bool autoRepairSyntax;
+
+  /// Whether to automatically follow the stream tail and scroll down as new tokens
+  /// arrive.
+  ///
+  /// Default: true.
+  final bool autoScrollToBottom;
+
+  /// Whether to display an animated typing cursor at the tail while streaming is active.
+  ///
+  /// Default: true.
+  final bool showTypingCaret;
+
+  /// Visual style of the typing caret.
+  final HyperTypingCaretStyle caretStyle;
+
+  /// Color of the typing caret (defaults to theme primary color).
+  final Color? caretColor;
+
   /// Creates a HyperViewer for HTML content (default)
   ///
   /// ```dart
@@ -523,6 +553,12 @@ class HyperViewer extends StatefulWidget {
     this.imageLoader,
   })  : content = html,
         contentType = HyperContentType.html,
+        streamingController = null,
+        autoRepairSyntax = false,
+        autoScrollToBottom = false,
+        showTypingCaret = false,
+        caretStyle = HyperTypingCaretStyle.bar,
+        caretColor = null,
         _prebuiltDocument = null;
 
   /// Creates a HyperViewer for Quill Delta JSON content
@@ -575,6 +611,12 @@ class HyperViewer extends StatefulWidget {
     this.imageLoader,
   })  : content = delta,
         contentType = HyperContentType.delta,
+        streamingController = null,
+        autoRepairSyntax = false,
+        autoScrollToBottom = false,
+        showTypingCaret = false,
+        caretStyle = HyperTypingCaretStyle.bar,
+        caretColor = null,
         _prebuiltDocument = null;
 
   /// Creates a HyperViewer for Markdown content
@@ -627,6 +669,76 @@ class HyperViewer extends StatefulWidget {
     this.imageLoader,
   })  : content = markdown,
         contentType = HyperContentType.markdown,
+        streamingController = null,
+        autoRepairSyntax = false,
+        autoScrollToBottom = false,
+        showTypingCaret = false,
+        caretStyle = HyperTypingCaretStyle.bar,
+        caretColor = null,
+        _prebuiltDocument = null;
+
+  /// Creates a [HyperViewer] for real-time AI and LLM streaming token feeds.
+  ///
+  /// Listens to [streamingController], automatically repairs incomplete syntactic tokens
+  /// on-the-fly, displays an animated [HyperTypingCaret], and smoothly auto-scrolls down.
+  ///
+  /// ```dart
+  /// final controller = HyperStreamingController();
+  /// controller.bindStream(geminiResponseStream);
+  ///
+  /// HyperViewer.streaming(
+  ///   streamingController: controller,
+  ///   contentType: HyperContentType.markdown,
+  /// )
+  /// ```
+  const HyperViewer.streaming({
+    super.key,
+    required this.streamingController,
+    this.contentType = HyperContentType.markdown,
+    this.autoRepairSyntax = true,
+    this.autoScrollToBottom = true,
+    this.showTypingCaret = true,
+    this.caretStyle = HyperTypingCaretStyle.bar,
+    this.caretColor,
+    this.mode = HyperRenderMode.sync,
+    this.selectable = true,
+    this.onLinkTap,
+    this.allowedCustomSchemes,
+    this.widgetBuilder,
+    this.placeholderBuilder,
+    this.fallbackBuilder,
+    this.enableZoom = false,
+    this.minScale = 0.5,
+    this.maxScale = 4.0,
+    this.contentParser,
+    this.codeHighlighter,
+    this.showSelectionMenu = true,
+    this.selectionHandleColor,
+    this.selectionColor,
+    this.selectionMenuActionsBuilder,
+    this.selectionContextMenuBuilder,
+    this.sanitize = true,
+    this.textDirection,
+    this.textScaler,
+    this.allowedTags,
+    this.allowDataAttributes = false,
+    this.semanticLabel,
+    this.excludeSemantics = false,
+    this.baseUrl,
+    this.customCss,
+    this.debugShowHyperRenderBounds = false,
+    this.enableComplexFilters = true,
+    this.captureKey,
+    this.shrinkWrap = false,
+    this.physics,
+    this.onError,
+    this.controller,
+    this.pageController,
+    this.pluginRegistry,
+    this.onMemoryPressure,
+    this.renderConfig = HyperRenderConfig.defaults,
+    this.imageLoader,
+  })  : content = '',
         _prebuiltDocument = null;
 
   /// Creates a [HyperViewer] from a pre-parsed [DocumentNode], skipping
@@ -671,6 +783,12 @@ class HyperViewer extends StatefulWidget {
     this.imageLoader,
   })  : content = '',
         contentType = HyperContentType.html,
+        streamingController = null,
+        autoRepairSyntax = false,
+        autoScrollToBottom = false,
+        showTypingCaret = false,
+        caretStyle = HyperTypingCaretStyle.bar,
+        caretColor = null,
         mode = HyperRenderMode.sync,
         placeholderBuilder = null,
         fallbackBuilder = null,
@@ -895,12 +1013,45 @@ class _HyperViewerState extends State<HyperViewer>
     if (widget.mode == HyperRenderMode.paged && widget.pageController == null) {
       _ownedPageController = PageController();
     }
+    widget.streamingController?.addListener(_onStreamingStateChanged);
     _parseContent();
+  }
+
+  void _onStreamingStateChanged() {
+    if (!mounted) return;
+    _parseContent();
+    _scrollToBottomIfApplicable();
+  }
+
+  void _scrollToBottomIfApplicable() {
+    if (!widget.autoScrollToBottom) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final scrollCtrl = widget.controller?.scrollController;
+      if (scrollCtrl != null && scrollCtrl.hasClients) {
+        final position = scrollCtrl.position;
+        if (position.maxScrollExtent > 0) {
+          final distanceToBottom = position.maxScrollExtent - position.pixels;
+          if (distanceToBottom < 350) {
+            scrollCtrl.animateTo(
+              position.maxScrollExtent,
+              duration: const Duration(milliseconds: 100),
+              curve: Curves.easeOut,
+            );
+          }
+        }
+      }
+    });
   }
 
   @override
   void didUpdateWidget(covariant HyperViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.streamingController != widget.streamingController) {
+      oldWidget.streamingController?.removeListener(_onStreamingStateChanged);
+      widget.streamingController?.addListener(_onStreamingStateChanged);
+    }
 
     // BUG-02: Handle selectable toggle — create/dispose controller as needed.
     if (oldWidget.selectable != widget.selectable) {
@@ -960,6 +1111,7 @@ class _HyperViewerState extends State<HyperViewer>
 
   @override
   void dispose() {
+    widget.streamingController?.removeListener(_onStreamingStateChanged);
     // CRIT-03: Release our size from the global ref-count so peer HyperViewers
     // see the correct maximum cache size after we're gone.
     _releaseTextCacheSize(_ownedTextCacheSize);
@@ -1377,7 +1529,19 @@ class _HyperViewerState extends State<HyperViewer>
     // RenderObject belonging to the previous document.
     _sectionBoxes.clear();
 
-    String contentToRender = widget.content;
+    String contentToRender = widget.streamingController != null
+        ? widget.streamingController!.text
+        : widget.content;
+
+    if (widget.streamingController != null && widget.autoRepairSyntax) {
+      if (widget.contentType == HyperContentType.markdown) {
+        contentToRender =
+            StreamSyntaxNormalizer.normalizeMarkdown(contentToRender);
+      } else if (widget.contentType == HyperContentType.html) {
+        contentToRender = StreamSyntaxNormalizer.normalizeHtml(contentToRender);
+      }
+    }
+
     // CSS collected from <style> tags + customCss (applied to resolver directly,
     // not injected as a <style> tag so the sanitizer cannot strip it).
     // customCss applies to all content types (HTML, Markdown, Delta).
@@ -1763,6 +1927,22 @@ class _HyperViewerState extends State<HyperViewer>
           config: _effectiveConfig,
           pluginRegistry: widget.pluginRegistry,
           imageLoader: widget.imageLoader,
+        );
+      }
+
+      // Attach typing caret when actively streaming
+      if (widget.showTypingCaret &&
+          widget.streamingController?.isStreaming == true) {
+        content = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            content,
+            HyperTypingCaret(
+              style: widget.caretStyle,
+              color: widget.caretColor,
+            ),
+          ],
         );
       }
 

@@ -148,6 +148,13 @@ export 'package:hyper_render_core/hyper_render_core.dart'
         HyperNodePlugin,
         HyperPluginRegistry,
         HyperPluginBuildContext,
+        // Streaming (v1.8.0)
+        HyperStreamingController,
+        HyperStreamingState,
+        HyperStreamingStatus,
+        StreamSyntaxNormalizer,
+        HyperTypingCaret,
+        HyperTypingCaretStyle,
         // Loading / error UI
         LoadingSkeleton,
         HyperErrorWidget,
