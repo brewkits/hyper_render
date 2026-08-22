@@ -140,11 +140,12 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                           case HyperStreamingStatus.streaming:
                             badgeColor = Colors.green;
                             statusLabel =
-                                'STREAMING (${state.tokenCount} chunks)';
+                                'STREAMING (${state.tokenCount} chunks · ${state.tokensPerSecond.toStringAsFixed(1)} tps)';
                             break;
                           case HyperStreamingStatus.completed:
                             badgeColor = Colors.blue;
-                            statusLabel = 'DONE (${state.tokenCount} chunks)';
+                            statusLabel =
+                                'DONE (${state.tokenCount} chunks · ${state.tokensPerSecond.toStringAsFixed(1)} tps avg)';
                             break;
                           case HyperStreamingStatus.error:
                             badgeColor = Colors.red;

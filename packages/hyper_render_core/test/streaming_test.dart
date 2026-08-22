@@ -91,6 +91,50 @@ void main() {
       expect(controller.status, HyperStreamingStatus.completed);
       expect(controller.value.tokenCount, equals(3));
     });
+
+    test('tokensPerSecond calculation works accurately', () {
+      final controller =
+          HyperStreamingController(throttleDuration: Duration.zero);
+      controller.append('Word 1 ');
+      controller.append('Word 2 ');
+      controller.append('Word 3');
+      expect(controller.value.tokenCount, equals(3));
+      expect(controller.tokensPerSecond, greaterThanOrEqualTo(0.0));
+    });
+
+    test('bindCustomStream maps custom object stream to string tokens',
+        () async {
+      final controller =
+          HyperStreamingController(throttleDuration: Duration.zero);
+      final streamController = StreamController<Map<String, String>>();
+
+      controller.bindCustomStream(
+        streamController.stream,
+        (map) => map['delta'] ?? '',
+      );
+
+      streamController.add({'delta': 'A '});
+      streamController.add({'delta': 'B '});
+      streamController.add({'delta': 'C'});
+      await streamController.close();
+
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(controller.text, equals('A B C'));
+      expect(controller.isCompleted, isTrue);
+    });
+
+    test('pause and resume stream operations execute without error', () async {
+      final controller =
+          HyperStreamingController(throttleDuration: Duration.zero);
+      final streamController = StreamController<String>();
+
+      controller.bindStream(streamController.stream);
+      controller.pause();
+      controller.resume();
+      controller.cancel();
+      await streamController.close();
+    });
   });
 
   group('StreamSyntaxNormalizer Tests', () {
@@ -129,6 +173,28 @@ void main() {
       const incomplete = 'This is ~~deleted text';
       final normalized = StreamSyntaxNormalizer.normalizeMarkdown(incomplete);
       expect(normalized, equals('This is ~~deleted text~~'));
+    });
+
+    test('auto-closes unclosed LaTeX block math', () {
+      const incomplete = r'Formula: $$ \frac{a}{b} + c';
+      final normalized = StreamSyntaxNormalizer.normalizeMarkdown(incomplete);
+      expect(normalized.endsWith('\$\$\n'), isTrue);
+    });
+
+    test('auto-closes unclosed inline LaTeX math', () {
+      const incomplete = r'Formula: $x^2 + y^2';
+      final normalized = StreamSyntaxNormalizer.normalizeMarkdown(incomplete);
+      expect(normalized, equals(r'Formula: $x^2 + y^2$'));
+    });
+
+    test('auto-closes incomplete markdown links', () {
+      const incomplete1 = '[HyperRender documentation';
+      expect(StreamSyntaxNormalizer.normalizeMarkdown(incomplete1),
+          equals('[HyperRender documentation]'));
+
+      const incomplete2 = '[HyperRender](https://brewkits.dev';
+      expect(StreamSyntaxNormalizer.normalizeMarkdown(incomplete2),
+          equals('[HyperRender](https://brewkits.dev)'));
     });
 
     test('auto-closes incomplete markdown table rows', () {

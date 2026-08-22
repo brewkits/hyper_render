@@ -69,6 +69,13 @@ class HyperStreamingState {
     return end.difference(startedAt!);
   }
 
+  /// Average streaming speed in tokens per second (TPS).
+  double get tokensPerSecond {
+    final sec = duration.inMilliseconds / 1000.0;
+    if (sec <= 0.001 || tokenCount == 0) return 0.0;
+    return tokenCount / sec;
+  }
+
   /// Copies this state with updated values.
   HyperStreamingState copyWith({
     String? text,
@@ -112,7 +119,7 @@ class HyperStreamingState {
 
   @override
   String toString() =>
-      'HyperStreamingState(text.len: ${text.length}, status: $status, tokens: $tokenCount)';
+      'HyperStreamingState(text.len: ${text.length}, status: $status, tokens: $tokenCount, speed: ${tokensPerSecond.toStringAsFixed(1)} tps)';
 }
 
 /// High-performance controller for AI and LLM token streaming in HyperRender.
@@ -131,13 +138,16 @@ class HyperStreamingState {
 ///
 /// // Option 2: Bind directly to a Dart Stream
 /// controller.bindStream(geminiApiClient.generateContentStream('...'));
+///
+/// // Option 3: Bind custom SDK streams
+/// controller.bindCustomStream(chatCompletionStream, (chunk) => chunk.choices.first.delta.content ?? '');
 /// ```
 class HyperStreamingController extends ValueNotifier<HyperStreamingState> {
   /// Minimum time window between UI state notifications to prevent frame drops.
   final Duration throttleDuration;
 
   final StringBuffer _buffer = StringBuffer();
-  StreamSubscription<String>? _streamSubscription;
+  StreamSubscription<dynamic>? _streamSubscription;
   Timer? _throttleTimer;
   bool _hasPendingNotify = false;
   int _tokenCount = 0;
@@ -171,6 +181,9 @@ class HyperStreamingController extends ValueNotifier<HyperStreamingState> {
   /// Whether the stream has completed.
   bool get isCompleted => value.isCompleted;
 
+  /// Current average throughput in tokens per second.
+  double get tokensPerSecond => value.tokensPerSecond;
+
   /// Appends a new string chunk or token to the stream.
   void append(String chunk) {
     if (value.isCompleted) {
@@ -196,14 +209,59 @@ class HyperStreamingController extends ValueNotifier<HyperStreamingState> {
     _streamSubscription?.cancel();
     _startedAt ??= DateTime.now();
 
-    _streamSubscription = stream.listen(
+    final sub = stream.listen(
       (chunk) => append(chunk),
       onError: (err) => error(err),
       onDone: () => complete(),
       cancelOnError: true,
     );
+    _streamSubscription = sub;
 
-    return _streamSubscription!;
+    return sub;
+  }
+
+  /// Binds this controller to any arbitrary typed `Stream<T>` by providing a [mapper] function.
+  ///
+  /// Useful for OpenAI, Gemini, or Claude Dart SDK stream responses.
+  StreamSubscription<T> bindCustomStream<T>(
+    Stream<T> stream,
+    String Function(T item) mapper,
+  ) {
+    _streamSubscription?.cancel();
+    _startedAt ??= DateTime.now();
+
+    final sub = stream.listen(
+      (item) {
+        final chunk = mapper(item);
+        if (chunk.isNotEmpty) {
+          append(chunk);
+        }
+      },
+      onError: (err) => error(err),
+      onDone: () => complete(),
+      cancelOnError: true,
+    );
+    _streamSubscription = sub;
+
+    return sub;
+  }
+
+  /// Pauses listening to the underlying bound stream.
+  void pause() {
+    _streamSubscription?.pause();
+  }
+
+  /// Resumes listening to the underlying bound stream.
+  void resume() {
+    _streamSubscription?.resume();
+  }
+
+  /// Cancels the underlying bound stream subscription without clearing received tokens.
+  void cancel() {
+    _streamSubscription?.cancel();
+    _streamSubscription = null;
+    _throttleTimer?.cancel();
+    _throttleTimer = null;
   }
 
   /// Marks the stream as completed.

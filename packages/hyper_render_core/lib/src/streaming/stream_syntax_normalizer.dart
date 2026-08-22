@@ -50,7 +50,34 @@ class StreamSyntaxNormalizer {
       }
     }
 
-    // 5. Incomplete Table Row Repair
+    // 5. LaTeX Math Block Repair ($$...$$)
+    final mathBlockCount = _countOccurrences(text, r'$$');
+    if (mathBlockCount % 2 != 0) {
+      text = '$text\n\$\$\n';
+    } else {
+      // 6. Inline Math Repair ($...$)
+      final inlineMathCount = _countUnescaped(text, r'$');
+      if (inlineMathCount % 2 != 0) {
+        text = '$text\$';
+      }
+    }
+
+    // 7. Incomplete Link Repair ([text](url...)
+    final lastOpenBracket = text.lastIndexOf('[');
+    final lastCloseBracket = text.lastIndexOf(']');
+    final lastOpenParen = text.lastIndexOf('(');
+    final lastCloseParen = text.lastIndexOf(')');
+
+    if (lastOpenBracket > lastCloseBracket) {
+      // Unclosed bracket link text: [text...
+      text = '$text]';
+    } else if (lastOpenParen > lastCloseParen &&
+        lastOpenParen > lastOpenBracket) {
+      // Unclosed url parenthesis: [text](https://...
+      text = '$text)';
+    }
+
+    // 8. Incomplete Table Row Repair
     final lines = text.split('\n');
     if (lines.isNotEmpty) {
       final lastLine = lines.last.trim();
