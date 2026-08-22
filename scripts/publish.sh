@@ -22,7 +22,7 @@
 
 set -euo pipefail
 
-VERSION="1.7.0"
+VERSION="1.7.1"
 MODE="${1:-dry-run}"   # dry-run | publish
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
