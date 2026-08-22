@@ -24,36 +24,29 @@ for demo_id, output_name in DEMOS:
     gif_path = os.path.join(ASSETS, f"{output_name}.gif")
     palette_path = os.path.join(TMP, f"palette_{output_name}.png")
 
-    # Start flutter run in background
-    cmd = [
-        "fvm", "flutter", "run",
-        "-d", UDID,
-        "-t", "lib/demo_auto_player.dart",
-        f"--dart-define=DEMO={demo_id}",
-    ]
-    proc = subprocess.Popen(cmd, cwd=os.path.join(ROOT, "example"), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Set active demo
+    with open('/tmp/active_demo.txt', 'w') as f:
+        f.write(demo_id)
 
-    # Wait for app to launch and begin scrolling
-    print("⏳ Waiting for app startup and scroll...")
-    time.sleep(14)
+    # Terminate and launch installed app directly
+    subprocess.run(["xcrun", "simctl", "terminate", UDID, "io.brewkits.hyper-render.example"], check=False)
+    time.sleep(0.5)
+    subprocess.run(["xcrun", "simctl", "launch", UDID, "io.brewkits.hyper-render.example"], check=True)
 
-    # Record 6 seconds of active continuous scrolling
+    # Wait for UI to render and animation/scroll to run
+    print("⏳ Waiting for UI render...")
+    time.sleep(1.5)
+
+    # Record 4 seconds of active animation
     print(f"🎥 Recording video to {mp4_path}...")
     rec_proc = subprocess.Popen(["xcrun", "simctl", "io", UDID, "recordVideo", "-f", "--codec=h264", mp4_path])
-    time.sleep(6)
+    time.sleep(4.5)
     rec_proc.send_signal(subprocess.signal.SIGINT)
     rec_proc.wait()
 
-    # Terminate flutter app
-    proc.terminate()
-    try:
-        proc.wait(timeout=3)
-    except Exception:
-        proc.kill()
-
-    # Stop simulator app process
+    # Terminate simulator app process
     subprocess.run(["xcrun", "simctl", "terminate", UDID, "io.brewkits.hyper-render.example"], check=False)
-    time.sleep(1)
+    time.sleep(0.5)
 
     # Convert to high quality GIF
     print("🎨 Converting with ffmpeg...")
