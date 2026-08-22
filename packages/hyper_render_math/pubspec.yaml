@@ -26,7 +26,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  hyper_render_core: ">=1.6.0 <2.0.0"
+  hyper_render_core: ^1.7.0
   flutter_math_fork: ^0.7.2
 
 dependency_overrides:

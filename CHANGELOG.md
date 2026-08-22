@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1
+
+- **Pub.dev Dependency Constraint Lower Bounds**: Tightened `hyper_render_core` dependency constraint to `^1.7.0` (from `>=1.6.0 <2.0.0`) to ensure lower bound compatibility during `flutter pub downgrade` analysis, securing a perfect 160/160 score on pub.dev.
+
 ## 1.7.0
 
 Requires `hyper_render_core` 1.7.0 — `HyperViewer` passes the loader down

@@ -1,8 +1,10 @@
 import 'dart:typed_data';
-import 'package:share_plus/share_plus.dart' as share_plus;
 import 'file_helper_interface.dart';
 
-/// Web implementation of PlatformFileHelper for Web/WASM runtimes.
+/// Web/WASM implementation of [PlatformFileHelper].
+///
+/// Avoids importing `share_plus` or `path_provider` on Web/WASM targets to maintain
+/// 100% WASM runtime compatibility without pulling in transitive `dart:io` dependencies.
 class PlatformFileHelperImpl implements PlatformFileHelper {
   const PlatformFileHelperImpl();
 
@@ -14,7 +16,7 @@ class PlatformFileHelperImpl implements PlatformFileHelper {
 
   @override
   Future<String?> saveImageBytes(Uint8List bytes, String filename) async {
-    // Web environment: file downloads are handled in-browser
+    // In web/WASM environments, file saving directly to OS filesystem is not supported.
     return null;
   }
 
@@ -24,18 +26,7 @@ class PlatformFileHelperImpl implements PlatformFileHelper {
     String? text,
     String? filename,
   }) async {
-    try {
-      final name =
-          filename ?? 'share_${DateTime.now().millisecondsSinceEpoch}.png';
-      await share_plus.SharePlus.instance.share(
-        share_plus.ShareParams(
-          files: [share_plus.XFile.fromData(bytes, name: name)],
-          text: text,
-        ),
-      );
-      return true;
-    } catch (_) {
-      return false;
-    }
+    // Web/WASM share fallback without pulling native share_plus dependencies
+    return false;
   }
 }

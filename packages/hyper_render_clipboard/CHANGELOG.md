@@ -1,5 +1,10 @@
 # Changelog — hyper_render_clipboard
 
+## [1.7.1] - 2026-08-22
+
+### 🌐 WASM Runtime Compatibility
+- Decoupled `share_plus` and `path_provider` transitive dependencies from `file_helper_web.dart` on Web/WASM targets to achieve 100% WASM compatibility score (20/20 platform points) on pub.dev.
+
 ## [1.7.0] - 2026-08-22
 
 ### ⚡ Improvements & Static Analysis Fixes

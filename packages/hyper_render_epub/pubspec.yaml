@@ -32,8 +32,8 @@ dependencies:
 
   # Version deps so pana/pub.dev can resolve without local paths; the
   # dependency_overrides below point at the monorepo copies during dev.
-  hyper_render_core: ">=1.6.0 <2.0.0"
-  hyper_render: ">=1.6.0 <2.0.0"
+  hyper_render_core: ^1.7.0
+  hyper_render: ^1.7.0
 
 dependency_overrides:
   hyper_render_core:
