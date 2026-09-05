@@ -13,7 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.10+-54C5F8.svg?logo=flutter)](https://flutter.dev)
 
-**CSS float · crash-free selection · AI/LLM streaming · CJK/Furigana · `@keyframes` · 1 980+ tests · XSS-safe · Zero Gradle config**
+**CSS float · crash-free selection · AI/LLM streaming · CJK/Furigana · `@keyframes` · 2 460+ tests · XSS-safe · Zero Gradle config**
 
 <br/>
 
@@ -475,7 +475,7 @@ These packages bring specialized dependencies and are **not bundled** by default
 
 ```yaml
 dependencies:
-  hyper_render_epub: ^0.1.0
+  hyper_render_epub: ^0.1.2
 ```
 
 ```dart
