@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
@@ -135,6 +136,89 @@ void main() {
       controller.cancel();
       await streamController.close();
     });
+
+    test('append() after error() throws and leaves state unchanged', () {
+      final controller =
+          HyperStreamingController(throttleDuration: Duration.zero);
+      controller.append('Partial');
+      controller.error('Network timeout');
+
+      expect(() => controller.append('more'), throwsStateError);
+      // The guard must reject before mutating anything.
+      expect(controller.text, equals('Partial'));
+      expect(controller.status, HyperStreamingStatus.error);
+    });
+
+    test('bindCustomStream funnels a throwing mapper into error()', () async {
+      final controller =
+          HyperStreamingController(throttleDuration: Duration.zero);
+      final streamController = StreamController<int>();
+
+      controller.bindCustomStream(streamController.stream, (n) {
+        if (n == 2) throw const FormatException('bad item');
+        return 'n$n ';
+      });
+
+      streamController.add(1);
+      streamController.add(2);
+      await streamController.close();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      // Must not escape as an uncaught zone exception; must be routed to
+      // error() instead, matching bindCustomStream's documented contract.
+      expect(controller.status, HyperStreamingStatus.error);
+      expect(controller.value.error, isA<FormatException>());
+    });
+
+    test(
+        'a mapper failure after the controller already reached a terminal '
+        'state does not overwrite that state', () async {
+      final controller =
+          HyperStreamingController(throttleDuration: Duration.zero);
+      final streamController = StreamController<String>();
+      var callCount = 0;
+
+      controller.bindCustomStream(streamController.stream, (chunk) {
+        callCount++;
+        if (callCount == 1) {
+          // Simulate some other code path completing the controller while
+          // this bound stream is still emitting.
+          controller.complete();
+        }
+        return chunk;
+      });
+
+      streamController.add('late');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      // append() throws inside onData because the controller is already
+      // completed; that must be swallowed, not funneled into error().
+      expect(controller.status, HyperStreamingStatus.completed);
+      expect(controller.value.error, isNull);
+    });
+
+    test('adaptive throttle backs off notification frequency for large buffers',
+        () {
+      fakeAsync((async) {
+        var smallNotifications = 0;
+        final small = HyperStreamingController();
+        small.addListener(() => smallNotifications++);
+        for (var i = 0; i < 50; i++) {
+          small.append('x' * 20); // buffer stays well under 10,000 chars
+          async.elapse(const Duration(milliseconds: 16));
+        }
+
+        var largeNotifications = 0;
+        final large = HyperStreamingController(initialText: 'y' * 60000);
+        large.addListener(() => largeNotifications++);
+        for (var i = 0; i < 50; i++) {
+          large.append('x' * 20); // buffer already past the 50,000 tier
+          async.elapse(const Duration(milliseconds: 16));
+        }
+
+        expect(largeNotifications, lessThan(smallNotifications ~/ 2));
+      });
+    });
   });
 
   group('StreamSyntaxNormalizer Tests', () {
@@ -214,6 +298,67 @@ void main() {
       const mathExpr = '<p>Formula: 5 < 10 and processing...</p>';
       final normalized = StreamSyntaxNormalizer.normalizeHtml(mathExpr);
       expect(normalized, equals(mathExpr));
+    });
+
+    test(
+        'an odd asterisk inside an already-closed code fence does not '
+        'corrupt later prose', () {
+      const input = '```c\n'
+          'int *ptr = &x;\n'
+          '```\n'
+          'Now the ordinary prose continues without any *asterisks* needed here.';
+      expect(StreamSyntaxNormalizer.normalizeMarkdown(input), equals(input));
+    });
+
+    test(
+        'an unmatched bracket inside an already-closed code fence does not '
+        'append a stray link-repair character', () {
+      const input = '```\n'
+          'arr[0\n'
+          '```\n'
+          'Just normal prose without any links here.';
+      expect(StreamSyntaxNormalizer.normalizeMarkdown(input), equals(input));
+    });
+
+    test(
+        'closed-fence protection holds across successive growing-buffer '
+        'ticks, while a genuine unclosed marker in the new tail is still '
+        'repaired', () {
+      // The fence body itself has one (odd) asterisk — must not combine
+      // with the tail's own count.
+      const fenced = '```c\nint *ptr = &x;\n```\n';
+      const tick1 = '${fenced}The story continues with *incomplete';
+      const tick2 = '${fenced}The story continues with *complete* text now.';
+
+      expect(
+          StreamSyntaxNormalizer.normalizeMarkdown(tick1), equals('$tick1*'));
+      expect(StreamSyntaxNormalizer.normalizeMarkdown(tick2), equals(tick2));
+    });
+
+    test(
+        'normalizeHtml is not fooled by a literal > inside a quoted '
+        'attribute of a still-unterminated tag', () {
+      const incomplete = '<p>Hello</p><div title="a>b';
+      final normalized = StreamSyntaxNormalizer.normalizeHtml(incomplete);
+      expect(normalized, equals('<p>Hello</p>'));
+    });
+
+    test(
+        'normalizeHtml does not strip a complete tag with a quoted '
+        'attribute', () {
+      const complete = '<div class="foo bar" title="hello">Text';
+      final normalized = StreamSyntaxNormalizer.normalizeHtml(complete);
+      expect(normalized, equals(complete));
+    });
+
+    test('normalizeHtml quote-handling works with single quotes too', () {
+      const incompleteSingle = "<p>Hello</p><div title='a>b";
+      expect(StreamSyntaxNormalizer.normalizeHtml(incompleteSingle),
+          equals('<p>Hello</p>'));
+
+      const completeSingle = "<div class='foo bar' title='hello'>Text";
+      expect(StreamSyntaxNormalizer.normalizeHtml(completeSingle),
+          equals(completeSingle));
     });
   });
 

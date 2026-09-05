@@ -146,6 +146,11 @@ class HyperStreamingController extends ValueNotifier<HyperStreamingState> {
   /// Minimum time window between UI state notifications to prevent frame drops.
   final Duration throttleDuration;
 
+  /// Upper bound the notification interval backs off to once the buffer
+  /// grows large, bounding the total cost of full-document reparsing on
+  /// every tick over the life of a long stream.
+  final Duration maxThrottleDuration;
+
   final StringBuffer _buffer = StringBuffer();
   StreamSubscription<dynamic>? _streamSubscription;
   Timer? _throttleTimer;
@@ -157,6 +162,7 @@ class HyperStreamingController extends ValueNotifier<HyperStreamingState> {
   /// Creates a streaming controller.
   HyperStreamingController({
     this.throttleDuration = const Duration(milliseconds: 16),
+    this.maxThrottleDuration = const Duration(milliseconds: 200),
     String initialText = '',
   }) : super(initialText.isEmpty
             ? HyperStreamingState.initial
@@ -186,9 +192,9 @@ class HyperStreamingController extends ValueNotifier<HyperStreamingState> {
 
   /// Appends a new string chunk or token to the stream.
   void append(String chunk) {
-    if (value.isCompleted) {
+    if (value.isCompleted || value.hasError) {
       throw StateError(
-          'Cannot append tokens to a completed streaming controller. Call reset() first.');
+          'Cannot append tokens to a completed or errored streaming controller. Call reset() first.');
     }
 
     _startedAt ??= DateTime.now();
@@ -210,7 +216,17 @@ class HyperStreamingController extends ValueNotifier<HyperStreamingState> {
     _startedAt ??= DateTime.now();
 
     final sub = stream.listen(
-      (chunk) => append(chunk),
+      (chunk) {
+        try {
+          append(chunk);
+        } catch (e) {
+          // A late/duplicate chunk arriving after this controller already
+          // reached a terminal state throws from append()'s own guard — that
+          // is not a real data failure, so it must not clobber an already
+          // legitimate completed/error state.
+          if (!value.isCompleted && !value.hasError) error(e);
+        }
+      },
       onError: (err) => error(err),
       onDone: () => complete(),
       cancelOnError: true,
@@ -232,9 +248,16 @@ class HyperStreamingController extends ValueNotifier<HyperStreamingState> {
 
     final sub = stream.listen(
       (item) {
-        final chunk = mapper(item);
-        if (chunk.isNotEmpty) {
-          append(chunk);
+        try {
+          final chunk = mapper(item);
+          if (chunk.isNotEmpty) {
+            append(chunk);
+          }
+        } catch (e) {
+          // Covers both a malformed item throwing inside mapper() and a
+          // late/duplicate item hitting append()'s terminal-state guard;
+          // never overwrite an already legitimate completed/error state.
+          if (!value.isCompleted && !value.hasError) error(e);
         }
       },
       onError: (err) => error(err),
@@ -333,7 +356,8 @@ class HyperStreamingController extends ValueNotifier<HyperStreamingState> {
 
     if (_throttleTimer == null || !_throttleTimer!.isActive) {
       _flushNotify(targetStatus);
-      _throttleTimer = Timer(throttleDuration, () {
+      final interval = _effectiveThrottleDuration();
+      _throttleTimer = Timer(interval, () {
         if (_hasPendingNotify) {
           _hasPendingNotify = false;
           _flushNotify(targetStatus);
@@ -342,6 +366,25 @@ class HyperStreamingController extends ValueNotifier<HyperStreamingState> {
     } else {
       _hasPendingNotify = true;
     }
+  }
+
+  /// Backs off the notification interval as the buffer grows, bounding the
+  /// total cost of full-document reparsing on every tick over a long stream.
+  /// Short/typical chat-length streams (<= 10,000 chars) keep the default,
+  /// snappy [throttleDuration] unchanged.
+  Duration _effectiveThrottleDuration() {
+    final length = _buffer.length;
+    Duration target;
+    if (length <= 10000) {
+      target = throttleDuration;
+    } else if (length <= 50000) {
+      target = throttleDuration * 4;
+    } else {
+      target = maxThrottleDuration;
+    }
+    if (target < throttleDuration) target = throttleDuration;
+    if (target > maxThrottleDuration) target = maxThrottleDuration;
+    return target;
   }
 
   void _flushNotify(HyperStreamingStatus targetStatus) {
