@@ -19,6 +19,7 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
   HyperTypingCaretStyle _caretStyle = HyperTypingCaretStyle.bar;
   bool _autoRepair = true;
   bool _autoScroll = true;
+  HyperRenderMode _mode = HyperRenderMode.sync;
   Timer? _streamTimer;
   int _chunkIndex = 0;
 
@@ -34,7 +35,7 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
     '# 🧠 HyperRender AI Assistant\n\n',
     'Hello! I am your **HyperRender AI** assistant streaming responses directly into Flutter.\n\n',
     '### Key Capabilities of v1.8.0 Streaming Engine:\n\n',
-    '- **60 FPS Frame-Aligned Throttling**: Eliminates UI stutter during high-speed SSE bursts.\n',
+    '- **Frame-Aligned Adaptive Throttling**: Batches high-speed SSE bursts at a 16ms cadence, backing off automatically for very long responses.\n',
     '- **Transient Syntax Normalization**: Auto-repairs unclosed markdown fences and formatting.\n',
     '- **Stick-to-Bottom Auto Scroll**: Smoothly follows output tail in real-time.\n',
     '- **Native Blinking Carets**: Customizable bar, block, underscore, and dot styles.\n\n',
@@ -50,13 +51,13 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
     '  showTypingCaret: true,\n',
     ')\n',
     '```\n\n',
-    '### Engine Benchmark Performance:\n\n',
-    '| Metric | HyperRender 1.8 | Standard Flutter |\n',
-    '|---|---|---|\n',
-    '| Memory Footprint | **2.1 MB** | 18.4 MB |\n',
-    '| Re-parse Overhead | **Incremental Tail** | Full Re-layout |\n',
-    '| FPS during Burst | **60.0 FPS** | 24-32 FPS |\n\n',
-    '✨ *Streaming generation finished successfully with zero frame drops.*',
+    '### How the throttling works:\n\n',
+    'Each token is buffered and the view is notified at a 16ms cadence by '
+        'default; once the accumulated response grows past 10,000 or '
+        '50,000 characters, the notification interval widens automatically '
+        '(up to `maxThrottleDuration`) so re-parsing a very long response '
+        "doesn't get proportionally more expensive on every tick.\n\n",
+    '✨ *Streaming generation finished.*',
   ];
 
   @override
@@ -91,6 +92,14 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
     _streamTimer?.cancel();
     _controller.reset();
     _chunkIndex = 0;
+  }
+
+  /// Demonstrates the error → reset() lifecycle: once a controller reaches
+  /// [HyperStreamingStatus.error], it must be reset() before it can stream
+  /// again — appending directly would throw.
+  void _simulateError() {
+    _streamTimer?.cancel();
+    _controller.error('Simulated network timeout');
   }
 
   @override
@@ -148,6 +157,17 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                           icon: const Icon(Icons.stop, size: 18),
                           label: const Text('Stop'),
                           style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: _simulateError,
+                          icon: const Icon(Icons.warning_amber, size: 18),
+                          label: const Text('Simulate Error'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
                           ),
@@ -239,6 +259,29 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                         },
                       ),
                       const SizedBox(width: 16),
+                      const Text('Mode: ',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13)),
+                      DropdownButton<HyperRenderMode>(
+                        value: _mode,
+                        underline: const SizedBox.shrink(),
+                        isDense: true,
+                        items: const [
+                          DropdownMenuItem(
+                            value: HyperRenderMode.sync,
+                            child: Text('Sync', style: TextStyle(fontSize: 13)),
+                          ),
+                          DropdownMenuItem(
+                            value: HyperRenderMode.virtualized,
+                            child: Text('Virtualized',
+                                style: TextStyle(fontSize: 13)),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _mode = val);
+                        },
+                      ),
+                      const SizedBox(width: 16),
                       const Text('Auto Scroll: ',
                           style: TextStyle(fontSize: 13)),
                       Switch(
@@ -272,6 +315,7 @@ class _AiStreamingDemoState extends State<AiStreamingDemo> {
                 caretStyle: _caretStyle,
                 autoRepairSyntax: _autoRepair,
                 autoScrollToBottom: _autoScroll,
+                mode: _mode,
                 showTypingCaret: true,
                 caretColor: theme.colorScheme.primary,
               ),
