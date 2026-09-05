@@ -40,7 +40,8 @@ Already using `flutter_html`? You don't need to rewrite your widget tree or lear
 // ❌ import 'package:flutter_html/flutter_html.dart';
 import 'package:hyper_render/compat/flutter_html.dart';
 
-// 3. Your existing code works out of the box with 5x faster RenderObject speed!
+// 3. Your existing code works out of the box — rendered by one RenderObject
+//    instead of hundreds of nested widgets (see "Why Switch?" below).
 Html(
   data: '<h1>Hello</h1><p>Text wraps seamlessly around floats!</p>',
   onLinkTap: (url, attributes, element) => launchUrl(Uri.parse(url!)),
@@ -120,7 +121,7 @@ HyperRender renders the whole document inside **one custom `RenderObject`**. CSS
 | Feature | `flutter_html` | `flutter_widget_from_html` | **HyperRender** |
 |---|:---:|:---:|:---:|
 | `float: left / right` | ❌ | ❌ | ✅ |
-| AI / LLM Streaming (60 FPS) | ❌ | ❌ | ✅ Frame-aligned |
+| AI / LLM Streaming | ❌ | ❌ | ✅ Frame-aligned, adaptive throttle |
 | Text selection — large docs | ❌ Crashes | ❌ Crashes | ✅ Crash-free |
 | Ruby / Furigana + Kinsoku | ❌ Raw text | ❌ Raw text | ✅ |
 | RTL / BiDi (Arabic, Hebrew) | ⚠️ | ⚠️ | ✅ |

@@ -1,5 +1,5 @@
 name: hyper_render
-description: "Render HTML/Markdown/Delta at 60 FPS. The only Flutter renderer with CSS float layout, crash-free text selection, CJK Ruby typography, and AI/LLM token streaming."
+description: "The only Flutter HTML/Markdown renderer with CSS float layout, crash-free text selection at any document size, CJK Ruby typography, and AI/LLM token streaming."
 version: 1.8.0
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render
