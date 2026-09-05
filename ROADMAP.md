@@ -9,35 +9,26 @@ This document outlines the architectural roadmap for **HyperRender** to become t
 | Version | Target Date | Strategic Focus | Key Differentiators |
 | :--- | :--- | :--- | :--- |
 | **v1.7.0** | Current | **Production Hardening & Drop-in Migration** | Single RenderObject, 100% WASM support, 160/160 pub score, 30s `flutter_html` drop-in layer. |
-| **v1.8.0** | Q3 2026 | **AI & LLM Token-Streaming Engine** | Incremental Delta-Streaming, Zero-Jank token updates, auto-scroll locking, tail-only layout invalidation. |
+| **v1.8.0** | Q3 2026 | **AI & LLM Token-Streaming Engine** | Frame-throttled token updates with adaptive backoff, transient syntax auto-repair, auto-scroll locking. Tail-only layout invalidation remains a separate, unscheduled epic — see below. |
 | **v1.9.0** | Q4 2026 | **Native Vector Diagramming & Headless Export** | Pure Canvas/Vector Mermaid.js & GraphViz (Zero-WebView), Headless Image & PDF byte stream generator. |
 | **v2.0.0** | Q1 2027 | **Interactive Editorial & Magazine Typography** | Medium-style Text Annotation/Highlighting layer, Multi-column layout (`column-count`), Z-Index Stacking Context, Vertical Text (`writing-mode: vertical-rl`). |
 
 ---
 
-## 🚀 v1.8.0: AI / LLM Streaming Engine (Token-by-Token Zero-Jank)
+## 🚀 v1.8.0: AI / LLM Streaming Engine
 
-### 1. Incremental Delta-Append Engine
-- **Problem**: Modern LLM chat apps (ChatGPT, Claude, Notion AI) stream Markdown/HTML token-by-token. Re-parsing the full document string every 50ms causes 100% CPU spikes, severe frame drops (jank), memory thrashing, and scroll jump.
-- **Solution**: 
-  - Token-level append directly to the active UDT leaf node.
-  - Partial layout invalidation: only measure and lay out the trailing line fragment (`tailLineLayout`), preserving 100% of cached layout geometry for preceding paragraphs, tables, and code blocks.
-  - Smooth Auto-Scroll Anchor: lock viewport to stream tail without jittering scroll physics.
-- **API Surface**:
-  ```dart
-  final streamController = HyperDocumentStreamController();
-  
-  HyperViewer.stream(
-    controller: streamController,
-    mode: HyperRenderMode.sync,
-  );
-  
-  // As chunks arrive from LLM:
-  streamController.appendToken(" **instant** rendering");
-  ```
+**Shipped** (`HyperStreamingController`, `HyperViewer.streaming(...)`, `StreamSyntaxNormalizer`, `HyperTypingCaret` — see CHANGELOG 1.8.0): frame-throttled token append with **adaptive backoff** (the notification interval widens as the accumulated buffer grows past 10,000 / 50,000 chars, up to `maxThrottleDuration`), transient syntax auto-repair for Markdown/HTML, stick-to-bottom auto-scroll, typing caret. This bounds the total cost of re-parsing over the life of a long stream and is what "Zero-Jank" in this doc's earlier drafts actually refers to.
 
-### 2. Live KaTeX & Syntax Highlighting in Streaming Mode
-- Incremental tokenizer state tracking: maintain code-fence (` ``` `) and math-delimiter (`$$`) states across partial chunks to prevent flashing unstyled syntax during streaming.
+**Not shipped — the paragraph below was aspirational and did not match what got built; corrected after a production-readiness review found the mismatch:**
+
+### 1. Incremental Delta-Append Engine (tail-only layout) — still unimplemented, own epic
+- **Problem**: re-parsing and re-laying-out the *entire* accumulated document on every streaming tick, rather than only the appended tail, means total work over a stream's lifetime scales with the square of its final length. The adaptive-backoff mitigation above bounds *how often* this happens as the buffer grows, but each tick still does a full document reparse + full `RenderHyperBox` layout pass — it does not make any single tick cheaper.
+- **Why it's not a small patch**: a feasibility review of `packages/hyper_render_core/lib/src/core/render_hyper_box*.dart` found this needs four largely independent subsystems, most of them outside the renderer: (a) a parser able to resume from a character offset instead of re-tokenizing from scratch, (b) a UDT model change — `TextNode.text` is currently immutable and nodes have no identity that survives across two parses, so there is no way to "find and extend the last text node" today, (c) a fragment list that supports appending instead of the current full-rebuild-every-layout design, (d) a persisted line-layout checkpoint (cursor position, in-progress float lists) that `_performLineLayout` can resume from instead of always resetting to empty. `RenderHyperBox`'s 7-file `part` architecture (shared private state across files, no interface boundary — see the Architecture section above) makes this riskier than in a normally-composed class, since nothing stops a part file from silently assuming layout is always complete and freshly computed. Some CSS behavior (`text-align: justify`, float carryover, `text-overflow: ellipsis`) is also not strictly tail-local, so "only touch the appended tail" needs a correctness argument per feature, not just an engine change.
+- **Status**: deliberately deferred as a separate, scoped effort (own design + plan, own risk review) rather than folded into a bug-fix/hardening pass on a renderer every consumer of this library depends on — not just streaming users.
+
+### 2. Live KaTeX & Syntax Highlighting in Streaming Mode — verified non-issue, not scheduled
+- **Original concern**: incomplete code fences / math delimiters mid-stream could flash unstyled or broken content, or crash the highlighter/KaTeX renderer.
+- **Investigated and closed**: `HyperViewer.streaming()` already exposes both `codeHighlighter` and `pluginRegistry`, so both are reachable during live streaming. `flutter_highlight`'s lexer is best-effort (not a strict parser) and doesn't throw on incomplete/malformed code — covered by `code_highlighter_edge_cases_test.dart`. `flutter_math_fork`'s `Math.tex(..., onErrorFallback: ...)` wraps both its parse and build stages in a catch-all, so a delimiter-balanced-but-internally-malformed LaTeX fragment (which `StreamSyntaxNormalizer` intentionally does not try to brace-balance) safely falls through to the red-text fallback instead of crashing. No incremental tokenizer state is needed; regression tests were added to lock this behavior in (see CHANGELOG).
 
 ---
 

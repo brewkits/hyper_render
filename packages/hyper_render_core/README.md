@@ -23,8 +23,12 @@ HyperRender Core provides low-level streaming controllers and syntax auto-repair
 import 'package:hyper_render_core/hyper_render_core.dart';
 
 final controller = HyperStreamingController(
-  throttleDuration: Duration(milliseconds: 16), // 60 FPS aligned
+  throttleDuration: Duration(milliseconds: 16), // 60 FPS aligned for typical chat-length streams
+  maxThrottleDuration: Duration(milliseconds: 200), // ceiling the interval backs off to
 );
+// The notification interval widens automatically once the buffer passes
+// 10,000 / 50,000 characters, bounding total reparse cost over a long
+// stream's lifetime — most chat-length responses never leave the 16ms tier.
 
 // Append tokens or bind to streams:
 controller.bindStream(myTokenStream);

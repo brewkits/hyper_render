@@ -85,7 +85,7 @@ Zero configuration. XSS sanitization is **on by default**. No Gradle setup requi
 
 ## 🤖 AI / LLM Real-Time Streaming
 
-Render live streaming token feeds from **Google Gemini, OpenAI ChatGPT, Anthropic Claude**, or WebSocket backends with zero UI jank and automatic transient syntax repair.
+Render live streaming token feeds from **Google Gemini, OpenAI ChatGPT, Anthropic Claude**, or WebSocket backends with frame-aligned, adaptively-throttled updates and automatic transient syntax repair.
 
 ```dart
 final controller = HyperStreamingController();
