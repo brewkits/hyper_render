@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:example/accessibility_demo.dart';
+import 'package:example/ai_streaming_demo.dart';
 import 'package:example/animation_demo.dart';
 import 'package:example/base_url_demo.dart';
 import 'package:example/cjk_languages_demo.dart';
@@ -43,6 +44,7 @@ import 'package:example/v2_1_showcase.dart';
 /// Each entry: a label and a builder for the demo's screen widget.
 final _demos = <String, Widget Function()>{
   'AccessibilityDemo': () => const AccessibilityDemo(),
+  'AiStreamingDemo': () => const AiStreamingDemo(),
   'AnimationDemo': () => const AnimationDemo(),
   'BaseUrlDemo': () => const BaseUrlDemo(),
   'CjkLanguagesDemo': () => const CjkLanguagesDemo(),
