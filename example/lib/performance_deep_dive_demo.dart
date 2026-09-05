@@ -482,7 +482,7 @@ class _IsolateParsingTabState extends State<_IsolateParsingTab> {
 
   void _measureSync() {
     final sw = Stopwatch()..start();
-    // MED-06: addPostFrameCallback measures time to the NEXT FRAME COMPLETION,
+    // addPostFrameCallback measures time to the NEXT FRAME COMPLETION,
     // not true parse time. It includes frame scheduling latency (~4–16 ms) on
     // top of the actual parse duration. This is intentional for this demo —
     // it shows total "time to first pixel" which is what users perceive —
@@ -496,7 +496,7 @@ class _IsolateParsingTabState extends State<_IsolateParsingTab> {
 
   void _measureAsync() {
     final sw = Stopwatch()..start();
-    // MED-06: Same note — measures time to next frame, not isolate parse time.
+    // Same note — measures time to next frame, not isolate parse time.
     // For async mode the callback fires after the UI thread resumes, which can
     // be significantly later than when the isolate finished.
     WidgetsBinding.instance.addPostFrameCallback((_) {

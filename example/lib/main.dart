@@ -904,7 +904,7 @@ class FloatLayoutDemo extends StatelessWidget {
 // RUBY DEMO
 // =============================================================================
 
-// MED-04: RubyDemo removed — it was dead code (never navigated to from any
+// RubyDemo removed — it was dead code (never navigated to from any
 // screen). Ruby annotation content is covered by MangaDemo and CjkLanguagesDemo.
 
 // =============================================================================

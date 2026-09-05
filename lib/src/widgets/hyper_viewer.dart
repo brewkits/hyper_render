@@ -844,7 +844,7 @@ class _HyperViewerState extends State<HyperViewer>
   // `widget.streamingController != null`.
   bool _streamingFadeStarted = false;
 
-  // ── CRIT-03: Global text-cache-size ref-counting ─────────────────────────
+  // ── Global text-cache-size ref-counting ─────────────────────────
   //
   // RenderHyperBox._globalTextPainters is a process-wide static LRU cache.
   // Each HyperViewer registers its desired textPainterCacheSize here; when it
@@ -1008,11 +1008,11 @@ class _HyperViewerState extends State<HyperViewer>
   @override
   void initState() {
     super.initState();
-    // CRIT-03: Use ref-counted helper so multiple HyperViewers with different
+    // Use ref-counted helper so multiple HyperViewers with different
     // cache sizes don't clobber each other.
     _ownedTextCacheSize = widget.renderConfig.textPainterCacheSize;
     _acquireTextCacheSize(_ownedTextCacheSize);
-    // CRIT-01: Wire imageConcurrency config to the singleton image queue.
+    // Wire imageConcurrency config to the singleton image queue.
     LazyImageQueue.instance.maxConcurrent =
         widget.renderConfig.imageConcurrency;
     WidgetsBinding.instance.addObserver(this);
@@ -1093,7 +1093,7 @@ class _HyperViewerState extends State<HyperViewer>
       _streamingFadeStarted = false;
     }
 
-    // BUG-02: Handle selectable toggle — create/dispose controller as needed.
+    // Handle selectable toggle — create/dispose controller as needed.
     if (oldWidget.selectable != widget.selectable) {
       if (widget.selectable) {
         _virtualizedSelectionController = VirtualizedSelectionController(
@@ -1106,7 +1106,7 @@ class _HyperViewerState extends State<HyperViewer>
       }
     }
 
-    // BUG-05: When customCss changes the section hashes are stale (they only
+    // When customCss changes the section hashes are stale (they only
     // cover text, not styles). Reset them so every section re-layouts.
     if (oldWidget.customCss != widget.customCss) {
       _sectionHashes = const [];
@@ -1114,13 +1114,13 @@ class _HyperViewerState extends State<HyperViewer>
 
     if (oldWidget.renderConfig.textPainterCacheSize !=
         widget.renderConfig.textPainterCacheSize) {
-      // CRIT-03: Use ref-counted helper to avoid clobbering peer HyperViewers.
+      // Use ref-counted helper to avoid clobbering peer HyperViewers.
       _releaseTextCacheSize(_ownedTextCacheSize);
       _ownedTextCacheSize = widget.renderConfig.textPainterCacheSize;
       _acquireTextCacheSize(_ownedTextCacheSize);
     }
 
-    // CRIT-01: Keep imageConcurrency in sync with config.
+    // Keep imageConcurrency in sync with config.
     if (oldWidget.renderConfig.imageConcurrency !=
         widget.renderConfig.imageConcurrency) {
       LazyImageQueue.instance.maxConcurrent =
@@ -1142,7 +1142,7 @@ class _HyperViewerState extends State<HyperViewer>
         !listEquals(oldWidget.allowedTags, widget.allowedTags) ||
         oldWidget.allowDataAttributes != widget.allowDataAttributes ||
         oldWidget.fallbackBuilder != widget.fallbackBuilder ||
-        // BUG-08: Compare full renderConfig (value equality now available).
+        // Compare full renderConfig (value equality now available).
         oldWidget.renderConfig != widget.renderConfig ||
         oldWidget.pluginRegistry != widget.pluginRegistry ||
         oldWidget.streamingController != widget.streamingController ||
@@ -1154,7 +1154,7 @@ class _HyperViewerState extends State<HyperViewer>
   @override
   void dispose() {
     widget.streamingController?.removeListener(_onStreamingStateChanged);
-    // CRIT-03: Release our size from the global ref-count so peer HyperViewers
+    // Release our size from the global ref-count so peer HyperViewers
     // see the correct maximum cache size after we're gone.
     _releaseTextCacheSize(_ownedTextCacheSize);
     WidgetsBinding.instance.removeObserver(this);
@@ -1488,7 +1488,7 @@ class _HyperViewerState extends State<HyperViewer>
       // Relative URLs (scheme == '') are always forwarded — the app's handler
       // is responsible for resolving them against a base URL.
       final isRelative = scheme.isEmpty;
-      // BUG-03/09: Check BOTH allowedCustomSchemes (legacy widget param) AND
+      // Check BOTH allowedCustomSchemes (legacy widget param) AND
       // renderConfig.extraLinkSchemes so neither registration path silently
       // drops deep-link taps.
       final customSchemes = widget.allowedCustomSchemes;
@@ -1734,7 +1734,7 @@ class _HyperViewerState extends State<HyperViewer>
           if (cssToApply.isNotEmpty) resolver.parseCss(cssToApply);
           resolver.resolveStyles(doc);
 
-          // BUG-06: Markdown/Delta in virtualized/paged mode was wrapped as a
+          // Markdown/Delta in virtualized/paged mode was wrapped as a
           // single section, defeating the virtualization entirely for large docs.
           // Split the document into chunkSize-bounded sections so the correct
           // ListView/PageView builder gets multiple sections to work with.
@@ -2078,7 +2078,7 @@ class _HyperViewerState extends State<HyperViewer>
           pageContent = HyperSelectionOverlay(
             document: sections[index],
             selectable: true,
-            // MED-06: Pass textDirection so RTL documents (Arabic, Hebrew) have
+            // Pass textDirection so RTL documents (Arabic, Hebrew) have
             // correct selection handle placement and hit-test direction in paged mode.
             textDirection: dir,
             onLinkTap: _safeOnLinkTap,
@@ -2094,7 +2094,7 @@ class _HyperViewerState extends State<HyperViewer>
             showHandles: true,
             autoShowMenu: true,
             debugShowBounds: widget.debugShowHyperRenderBounds,
-            // MED-02: Forward anchor layout callback so HyperViewerController
+            // Forward anchor layout callback so HyperViewerController
             // .scrollToId() and TOC generation work in paged mode.
             onAnchorLayout: widget.controller?._onAnchorLayout,
             config: _effectiveConfig,
@@ -2114,7 +2114,7 @@ class _HyperViewerState extends State<HyperViewer>
             enableComplexFilters: widget.enableComplexFilters,
             config: _effectiveConfig,
             suppressFirstBlockMarginTop: index > 0,
-            // MED-02: Forward anchor layout callback for HyperViewerController
+            // Forward anchor layout callback for HyperViewerController
             // in paged mode (previously missing, scrollToId always returned null).
             onAnchorLayout: widget.controller?._onAnchorLayout,
             pluginRegistry: widget.pluginRegistry,

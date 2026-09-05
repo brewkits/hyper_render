@@ -89,7 +89,7 @@ class HtmlPreviewHelper {
         final uri = Uri.file(file.path);
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri);
-          // MED-02: Clean up temp file after a short delay so the browser has
+          // Clean up temp file after a short delay so the browser has
           // time to read it. The OS temp dir is eventually purged regardless,
           // but explicit deletion avoids accumulation during demo sessions.
           Future.delayed(const Duration(seconds: 5), () {
