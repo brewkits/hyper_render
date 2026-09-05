@@ -26,47 +26,54 @@ class StreamSyntaxNormalizer {
       return text; // Inside code block, inline markdown formatting is ignored.
     }
 
+    // Everything before the last closed fence is syntactically settled — a
+    // stray unmatched backtick/asterisk/bracket *inside* an already-rendered
+    // fence must not corrupt unrelated trailing prose, so parity/link scans
+    // below are scoped to the text after that point.
+    final safeStart = fenceMatches.isEmpty ? 0 : fenceMatches.last.end;
+    final scanned = text.substring(safeStart);
+
     // 2. Inline Code Repair (`...`)
-    final backtickCount = _countUnescaped(text, '`');
+    final backtickCount = _countUnescaped(scanned, '`');
     if (backtickCount % 2 != 0) {
       text = '$text`';
     }
 
     // 3. Strikethrough Repair (~~...~~)
-    final tildePairCount = _countOccurrences(text, '~~');
+    final tildePairCount = _countOccurrences(scanned, '~~');
     if (tildePairCount % 2 != 0) {
       text = '$text~~';
     }
 
     // 4. Bold / Italic Asterisk Repair (***, **, *)
-    final boldAsteriskCount = _countOccurrences(text, '**');
+    final boldAsteriskCount = _countOccurrences(scanned, '**');
     if (boldAsteriskCount % 2 != 0) {
       text = '$text**';
     } else {
       // Check single asterisk if not inside bold
-      final singleAsteriskCount = _countUnescaped(text, '*');
+      final singleAsteriskCount = _countUnescaped(scanned, '*');
       if (singleAsteriskCount % 2 != 0) {
         text = '$text*';
       }
     }
 
     // 5. LaTeX Math Block Repair ($$...$$)
-    final mathBlockCount = _countOccurrences(text, r'$$');
+    final mathBlockCount = _countOccurrences(scanned, r'$$');
     if (mathBlockCount % 2 != 0) {
       text = '$text\n\$\$\n';
     } else {
       // 6. Inline Math Repair ($...$)
-      final inlineMathCount = _countUnescaped(text, r'$');
+      final inlineMathCount = _countUnescaped(scanned, r'$');
       if (inlineMathCount % 2 != 0) {
         text = '$text\$';
       }
     }
 
     // 7. Incomplete Link Repair ([text](url...)
-    final lastOpenBracket = text.lastIndexOf('[');
-    final lastCloseBracket = text.lastIndexOf(']');
-    final lastOpenParen = text.lastIndexOf('(');
-    final lastCloseParen = text.lastIndexOf(')');
+    final lastOpenBracket = scanned.lastIndexOf('[');
+    final lastCloseBracket = scanned.lastIndexOf(']');
+    final lastOpenParen = scanned.lastIndexOf('(');
+    final lastCloseParen = scanned.lastIndexOf(')');
 
     if (lastOpenBracket > lastCloseBracket) {
       // Unclosed bracket link text: [text...
@@ -100,7 +107,7 @@ class StreamSyntaxNormalizer {
     final tagMatches = RegExp(r'<[a-zA-Z/!]').allMatches(text);
     if (tagMatches.isNotEmpty) {
       final lastOpenBracket = tagMatches.last.start;
-      final lastCloseBracket = text.lastIndexOf('>');
+      final lastCloseBracket = _findTagClose(text, lastOpenBracket);
       if (lastOpenBracket > lastCloseBracket) {
         // Tag is cut midway, remove the partial tag for this frame
         text = text.substring(0, lastOpenBracket);
@@ -108,6 +115,24 @@ class StreamSyntaxNormalizer {
     }
 
     return text;
+  }
+
+  /// Finds the index of the `>` that actually closes the tag starting at
+  /// [tagStart], ignoring a `>` that appears inside a quoted attribute value
+  /// (e.g. `<div title="a>b">`). Returns -1 if the tag is never closed.
+  static int _findTagClose(String text, int tagStart) {
+    String? quote;
+    for (var i = tagStart; i < text.length; i++) {
+      final ch = text[i];
+      if (quote != null) {
+        if (ch == quote) quote = null;
+      } else if (ch == '"' || ch == "'") {
+        quote = ch;
+      } else if (ch == '>') {
+        return i;
+      }
+    }
+    return -1;
   }
 
   static int _countUnescaped(String text, String char) {
