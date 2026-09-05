@@ -308,6 +308,46 @@ void main() {
       expect(listView.controller, isNotNull);
       expect(listView.controller!.hasClients, isTrue);
     });
+
+    testWidgets(
+        'a code fence highlighted mid-stream never throws, including while '
+        'the fence is still open and once StreamSyntaxNormalizer auto-closes '
+        'it', (tester) async {
+      final controller =
+          HyperStreamingController(throttleDuration: Duration.zero);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HyperViewer.streaming(
+              streamingController: controller,
+              contentType: HyperContentType.markdown,
+              codeHighlighter: const DefaultCodeHighlighter(),
+            ),
+          ),
+        ),
+      );
+
+      // Each chunk leaves the ``` fence open (normalizeMarkdown auto-closes
+      // it synthetically for that frame) until the final chunk actually
+      // closes it — the highlighter must tolerate every intermediate state.
+      const chunks = [
+        '```dart\n',
+        'void main() {\n',
+        '  print("unterminated string',
+        '");\n}\n',
+        '```\n',
+      ];
+      for (final chunk in chunks) {
+        controller.append(chunk);
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+      }
+
+      controller.complete();
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
   });
 }
 

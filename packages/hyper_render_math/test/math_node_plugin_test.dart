@@ -54,5 +54,26 @@ void main() {
       final widget = plugin.buildWidget(node, ctx);
       expect(widget, isNull);
     });
+
+    testWidgets(
+        'structurally malformed LaTeX (unbalanced braces) falls back to '
+        'the red-text error widget instead of throwing', (tester) async {
+      const plugin = MathNodePlugin();
+      // Missing the closing brace on \frac{a}{b — delimiter-balancing (the
+      // streaming StreamSyntaxNormalizer's job) would not catch this: it's
+      // an internal LaTeX structure error, not an unclosed $/$$ delimiter.
+      final node = BlockNode(
+        tagName: 'math',
+        attributes: {'src': r'\frac{a}{b'},
+      );
+      const ctx = HyperPluginBuildContext(baseStyle: TextStyle());
+
+      final widget = plugin.buildWidget(node, ctx);
+      expect(widget, isNotNull);
+
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: widget)));
+
+      expect(tester.takeException(), isNull);
+    });
   });
 }
