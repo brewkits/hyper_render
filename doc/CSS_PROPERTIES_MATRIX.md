@@ -1,7 +1,7 @@
 # CSS Properties Support Matrix
 
-Last Updated: June 24, 2026
-Version: 1.4.0
+Last Updated: September 6, 2026
+Version: 1.8.0
 
 This document lists CSS property support in HyperRender.
 
@@ -250,4 +250,4 @@ This document lists CSS property support in HyperRender.
 
 ---
 
-*Last updated: July 5, 2026 — HyperRender v1.5.0*
+*Last updated: September 6, 2026 — HyperRender v1.8.0*
