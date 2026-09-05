@@ -2,7 +2,7 @@
 # Prepare HyperRender for pub.dev publication.
 # Usage: ./scripts/prepare_publish.sh
 #
-# Publish order (sub-packages FIRST, then root):
+# Publish order (sub-packages FIRST, then root, then epub LAST):
 #   1. hyper_render_core
 #   2. hyper_render_html
 #   3. hyper_render_markdown
@@ -11,6 +11,7 @@
 #   6. hyper_render_devtools
 #   7. hyper_render_math
 #   8. hyper_render (root)
+#   9. hyper_render_epub (depends on root — must publish AFTER it)
 
 set -e
 
@@ -40,6 +41,9 @@ flutter test test/ packages/hyper_render_core/test/ --exclude-tags golden || fai
 # package, so its tests must run against its own pubspec — the root's package
 # config cannot resolve `package:hyper_render_html`.
 (cd packages/hyper_render_html && flutter test --exclude-tags golden) || fail "hyper_render_html tests failed. Fix before publishing."
+# Same reasoning applies to hyper_render_epub — it is not a dependency of the
+# root package either, so its tests must run against its own pubspec.
+(cd packages/hyper_render_epub && flutter test) || fail "hyper_render_epub tests failed. Fix before publishing."
 ok "All tests passed"
 
 # ── 2. Static analysis ───────────────────────────────────────────────────────
@@ -105,7 +109,8 @@ for f in pubspec.yaml \
           packages/hyper_render_highlight/pubspec.yaml \
           packages/hyper_render_clipboard/pubspec.yaml \
           packages/hyper_render_devtools/pubspec.yaml \
-          packages/hyper_render_math/pubspec.yaml; do
+          packages/hyper_render_math/pubspec.yaml \
+          packages/hyper_render_epub/pubspec.yaml; do
   _remove_overrides "$f"
 done
 
@@ -117,7 +122,8 @@ for f in pubspec.yaml \
           packages/hyper_render_highlight/pubspec.yaml \
           packages/hyper_render_clipboard/pubspec.yaml \
           packages/hyper_render_devtools/pubspec.yaml \
-          packages/hyper_render_math/pubspec.yaml; do
+          packages/hyper_render_math/pubspec.yaml \
+          packages/hyper_render_epub/pubspec.yaml; do
   if [ -f "$f" ] && grep -q "^publish_to: none" "$f"; then
     _sed '/^publish_to: none/d' "$f"
     ok "Removed 'publish_to: none' from $f"
@@ -165,6 +171,8 @@ echo "    5. cd packages/hyper_render_clipboard && dart pub publish"
 echo "    6. cd packages/hyper_render_devtools  && dart pub publish"
 echo "    7. cd packages/hyper_render_math      && dart pub publish"
 echo "    8. dart pub publish    (from repo root)"
+echo "    9. cd packages/hyper_render_epub      && dart pub publish"
+echo "       (LAST — depends on hyper_render itself being live on pub.dev first)"
 echo ""
 echo -e "${YELLOW}  After publishing, restore dev pubspecs:${NC}"
 # Restore from git, NOT from a pubspec.yaml.backup copy: this script never
