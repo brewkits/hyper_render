@@ -161,6 +161,27 @@ HyperViewer(html: html, mode: HyperRenderMode.sync)
 Prefer explicit `pump(duration)` calls over `pumpAndSettle()` for any test that
 exercises virtualised or paged mode.
 
+### AI/LLM streaming (`HyperViewer.streaming`) is full-reparse, not tail-only
+
+`HyperStreamingController`/`HyperViewer.streaming(...)` (v1.8.0) re-runs syntax
+normalization, sanitization, parsing, and layout over the **entire**
+accumulated buffer on every throttled notification — it does not append to an
+existing document tree or only re-lay-out the trailing line. This is
+mitigated, not eliminated, by adaptive throttle backoff: the notification
+interval automatically widens once the buffer passes 10,000 / 50,000
+characters (up to `maxThrottleDuration`, default 200ms), bounding total work
+over a long stream's lifetime, but each individual tick's cost still scales
+with the full document length, not just the newly-appended text.
+
+A genuine tail-only incremental engine (append to the last text node in
+place, resume line-layout from the last committed line) was evaluated and
+deliberately deferred — it requires a parser that can resume from a character
+offset, a UDT model change (`TextNode.text` is currently immutable and nodes
+have no identity across two parses), and a persisted line-layout checkpoint
+inside `RenderHyperBox`'s `part`-file architecture, which has no
+encapsulation boundary between layout/paint/selection/accessibility. See
+`ROADMAP.md`'s v1.8.0 section for the full feasibility writeup.
+
 ---
 
 ## Interactive Elements
@@ -217,4 +238,4 @@ the full suite plus goldens as the safety net.
 
 ---
 
-*Last updated: July 22, 2026 — HyperRender v1.5.x (unreleased branch)*
+*Last updated: September 6, 2026 — HyperRender v1.8.0*

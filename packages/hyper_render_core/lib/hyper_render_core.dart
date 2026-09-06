@@ -81,6 +81,11 @@ export 'src/core/animation_controller.dart';
 export 'src/core/performance_monitor.dart';
 export 'src/core/memory_metrics.dart';
 
+// Streaming
+export 'src/streaming/hyper_streaming_controller.dart';
+export 'src/streaming/stream_syntax_normalizer.dart';
+export 'src/streaming/typing_caret.dart';
+
 // Widgets
 export 'src/widgets/hyper_render_widget.dart';
 export 'src/widgets/hyper_selection_overlay.dart';

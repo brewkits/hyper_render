@@ -10,7 +10,6 @@
 
 ### 🚀 Update
 - Bump `hyper_render_core` dependency to `^1.6.0` to support multi-platform constraints.
-## [Unreleased]
 
 ### 🐛 Bug Fixes
 - **`<p>&nbsp;</p>`-style text nodes could be silently replaced with a plain space**: the whitespace-only text-node check used `text.trim().isEmpty`, which also matches U+00A0 (`&nbsp;`). Now uses `hyper_render_core`'s `isCssWhitespaceOnly`, matching CSS's actual whitespace definition (space/tab/LF/CR/FF only).

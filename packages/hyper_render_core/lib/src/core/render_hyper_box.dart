@@ -356,7 +356,7 @@ class RenderHyperBox extends RenderBox
   List<FloatCarryover> _initialFloats = const [];
   List<FloatCarryover> get initialFloats => _initialFloats;
   set initialFloats(List<FloatCarryover> value) {
-    // CRIT-02: Compare by content (not identity) so that a new list object
+    // Compare by content (not identity) so that a new list object
     // with the same FloatCarryover values does NOT trigger a full layout
     // invalidation. The old code used `identical` which is always false for
     // freshly constructed lists, causing _invalidateLayout() on every frame

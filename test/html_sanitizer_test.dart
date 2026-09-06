@@ -389,5 +389,62 @@ void main() {
         expect(result, contains('<a'));
       });
     });
+
+    group('ReDoS / pathological-input timing', () {
+      // The sanitizer's only regex (whitespace-splitting a URL) and
+      // UrlSafety's control-character strip are both simple character-class
+      // patterns with no nested quantifiers, so there's no known catastrophic
+      // backtracking case today — these are regression guards against one
+      // being introduced later, not a fix for an active vulnerability.
+      test('very long single attribute value stays well under a second', () {
+        final html = '<div title="${'a' * 200000}">text</div>';
+        final stopwatch = Stopwatch()..start();
+        HtmlSanitizer.sanitize(html);
+        stopwatch.stop();
+        expect(stopwatch.elapsedMilliseconds, lessThan(1000));
+      });
+
+      test('long href with many whitespace-separated tokens stays bounded', () {
+        final url = List.generate(20000, (i) => 'tok$i').join(' ');
+        final html = '<a href="$url">link</a>';
+        final stopwatch = Stopwatch()..start();
+        HtmlSanitizer.sanitize(html);
+        stopwatch.stop();
+        expect(stopwatch.elapsedMilliseconds, lessThan(1000));
+      });
+
+      test('many repeated nested-quote-like attribute patterns stays bounded',
+          () {
+        // Alternating quote/backslash patterns are the classic trigger shape
+        // for catastrophic backtracking in naive quote-matching regexes.
+        final pathological = ('"\\' * 50000);
+        final html = '<div title="$pathological">text</div>';
+        final stopwatch = Stopwatch()..start();
+        HtmlSanitizer.sanitize(html);
+        stopwatch.stop();
+        expect(stopwatch.elapsedMilliseconds, lessThan(1000));
+      });
+
+      test(
+          'sanitizing scales roughly linearly, not exponentially, with '
+          'input size', () {
+        String buildHtml(int n) =>
+            '<div title="${'x' * n}">${'<span>y</span>' * (n ~/ 100)}</div>';
+
+        final small = Stopwatch()..start();
+        HtmlSanitizer.sanitize(buildHtml(5000));
+        small.stop();
+
+        final large = Stopwatch()..start();
+        HtmlSanitizer.sanitize(buildHtml(50000)); // 10x the input size
+        large.stop();
+
+        // Exponential blowup would make this ratio explode; linear/near-linear
+        // work keeps it in the same order of magnitude. Generous margin (50x)
+        // to avoid CI-noise flakiness while still catching a real regression.
+        expect(large.elapsedMilliseconds,
+            lessThan((small.elapsedMilliseconds + 5) * 50));
+      });
+    });
   });
 }

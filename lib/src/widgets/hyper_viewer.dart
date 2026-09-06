@@ -469,6 +469,36 @@ class HyperViewer extends StatefulWidget {
   /// ```
   final HyperImageLoader? imageLoader;
 
+  /// Optional streaming controller for real-time AI and LLM token feeds.
+  ///
+  /// When non-null, [HyperViewer] listens to tokens from [streamingController],
+  /// batch-renders them with frame throttling, auto-repairs in-flight markdown/HTML,
+  /// displays the typing caret, and maintains stick-to-bottom scroll.
+  final HyperStreamingController? streamingController;
+
+  /// Whether to auto-repair transient incomplete syntax tokens (e.g. unclosed
+  /// code blocks or bold asterisks) during in-flight streaming.
+  ///
+  /// Default: true.
+  final bool autoRepairSyntax;
+
+  /// Whether to automatically follow the stream tail and scroll down as new tokens
+  /// arrive.
+  ///
+  /// Default: true.
+  final bool autoScrollToBottom;
+
+  /// Whether to display an animated typing cursor at the tail while streaming is active.
+  ///
+  /// Default: true.
+  final bool showTypingCaret;
+
+  /// Visual style of the typing caret.
+  final HyperTypingCaretStyle caretStyle;
+
+  /// Color of the typing caret (defaults to theme primary color).
+  final Color? caretColor;
+
   /// Creates a HyperViewer for HTML content (default)
   ///
   /// ```dart
@@ -523,6 +553,12 @@ class HyperViewer extends StatefulWidget {
     this.imageLoader,
   })  : content = html,
         contentType = HyperContentType.html,
+        streamingController = null,
+        autoRepairSyntax = false,
+        autoScrollToBottom = false,
+        showTypingCaret = false,
+        caretStyle = HyperTypingCaretStyle.bar,
+        caretColor = null,
         _prebuiltDocument = null;
 
   /// Creates a HyperViewer for Quill Delta JSON content
@@ -575,6 +611,12 @@ class HyperViewer extends StatefulWidget {
     this.imageLoader,
   })  : content = delta,
         contentType = HyperContentType.delta,
+        streamingController = null,
+        autoRepairSyntax = false,
+        autoScrollToBottom = false,
+        showTypingCaret = false,
+        caretStyle = HyperTypingCaretStyle.bar,
+        caretColor = null,
         _prebuiltDocument = null;
 
   /// Creates a HyperViewer for Markdown content
@@ -627,6 +669,76 @@ class HyperViewer extends StatefulWidget {
     this.imageLoader,
   })  : content = markdown,
         contentType = HyperContentType.markdown,
+        streamingController = null,
+        autoRepairSyntax = false,
+        autoScrollToBottom = false,
+        showTypingCaret = false,
+        caretStyle = HyperTypingCaretStyle.bar,
+        caretColor = null,
+        _prebuiltDocument = null;
+
+  /// Creates a [HyperViewer] for real-time AI and LLM streaming token feeds.
+  ///
+  /// Listens to [streamingController], automatically repairs incomplete syntactic tokens
+  /// on-the-fly, displays an animated [HyperTypingCaret], and smoothly auto-scrolls down.
+  ///
+  /// ```dart
+  /// final controller = HyperStreamingController();
+  /// controller.bindStream(geminiResponseStream);
+  ///
+  /// HyperViewer.streaming(
+  ///   streamingController: controller,
+  ///   contentType: HyperContentType.markdown,
+  /// )
+  /// ```
+  const HyperViewer.streaming({
+    super.key,
+    required this.streamingController,
+    this.contentType = HyperContentType.markdown,
+    this.autoRepairSyntax = true,
+    this.autoScrollToBottom = true,
+    this.showTypingCaret = true,
+    this.caretStyle = HyperTypingCaretStyle.bar,
+    this.caretColor,
+    this.mode = HyperRenderMode.sync,
+    this.selectable = true,
+    this.onLinkTap,
+    this.allowedCustomSchemes,
+    this.widgetBuilder,
+    this.placeholderBuilder,
+    this.fallbackBuilder,
+    this.enableZoom = false,
+    this.minScale = 0.5,
+    this.maxScale = 4.0,
+    this.contentParser,
+    this.codeHighlighter,
+    this.showSelectionMenu = true,
+    this.selectionHandleColor,
+    this.selectionColor,
+    this.selectionMenuActionsBuilder,
+    this.selectionContextMenuBuilder,
+    this.sanitize = true,
+    this.textDirection,
+    this.textScaler,
+    this.allowedTags,
+    this.allowDataAttributes = false,
+    this.semanticLabel,
+    this.excludeSemantics = false,
+    this.baseUrl,
+    this.customCss,
+    this.debugShowHyperRenderBounds = false,
+    this.enableComplexFilters = true,
+    this.captureKey,
+    this.shrinkWrap = false,
+    this.physics,
+    this.onError,
+    this.controller,
+    this.pageController,
+    this.pluginRegistry,
+    this.onMemoryPressure,
+    this.renderConfig = HyperRenderConfig.defaults,
+    this.imageLoader,
+  })  : content = '',
         _prebuiltDocument = null;
 
   /// Creates a [HyperViewer] from a pre-parsed [DocumentNode], skipping
@@ -671,6 +783,12 @@ class HyperViewer extends StatefulWidget {
     this.imageLoader,
   })  : content = '',
         contentType = HyperContentType.html,
+        streamingController = null,
+        autoRepairSyntax = false,
+        autoScrollToBottom = false,
+        showTypingCaret = false,
+        caretStyle = HyperTypingCaretStyle.bar,
+        caretColor = null,
         mode = HyperRenderMode.sync,
         placeholderBuilder = null,
         fallbackBuilder = null,
@@ -719,7 +837,14 @@ class _HyperViewerState extends State<HyperViewer>
   late final AnimationController _contentFadeController;
   late final Animation<double> _contentFadeAnimation;
 
-  // ── CRIT-03: Global text-cache-size ref-counting ─────────────────────────
+  // Whether the content fade has already played once for the current
+  // streaming session, so a throttled mid-stream tick (as often as every
+  // ~16ms) doesn't perpetually restart a 300ms fade and make content
+  // flicker/never settle to full opacity. Only consulted when
+  // `widget.streamingController != null`.
+  bool _streamingFadeStarted = false;
+
+  // ── Global text-cache-size ref-counting ─────────────────────────
   //
   // RenderHyperBox._globalTextPainters is a process-wide static LRU cache.
   // Each HyperViewer registers its desired textPainterCacheSize here; when it
@@ -867,14 +992,27 @@ class _HyperViewerState extends State<HyperViewer>
     );
   }
 
+  /// Internal [ScrollController] used when [widget.autoScrollToBottom] is true
+  /// and no external [widget.controller] is provided.
+  ScrollController? _internalScrollController;
+
+  /// Effective scroll controller for sync / streaming view.
+  ScrollController? get _effectiveScrollController =>
+      widget.controller?.scrollController ?? _internalScrollController;
+
+  /// The raw, unparsed content to render: the live streaming buffer when a
+  /// [HyperStreamingController] is attached (`.streaming()` hardcodes
+  /// `widget.content` to `''`), otherwise the static [widget.content].
+  String get _rawContent => widget.streamingController?.text ?? widget.content;
+
   @override
   void initState() {
     super.initState();
-    // CRIT-03: Use ref-counted helper so multiple HyperViewers with different
+    // Use ref-counted helper so multiple HyperViewers with different
     // cache sizes don't clobber each other.
     _ownedTextCacheSize = widget.renderConfig.textPainterCacheSize;
     _acquireTextCacheSize(_ownedTextCacheSize);
-    // CRIT-01: Wire imageConcurrency config to the singleton image queue.
+    // Wire imageConcurrency config to the singleton image queue.
     LazyImageQueue.instance.maxConcurrent =
         widget.renderConfig.imageConcurrency;
     WidgetsBinding.instance.addObserver(this);
@@ -895,14 +1033,67 @@ class _HyperViewerState extends State<HyperViewer>
     if (widget.mode == HyperRenderMode.paged && widget.pageController == null) {
       _ownedPageController = PageController();
     }
+    if (widget.controller == null && widget.autoScrollToBottom) {
+      _internalScrollController = ScrollController();
+    }
+    widget.streamingController?.addListener(_onStreamingStateChanged);
     _parseContent();
+  }
+
+  void _onStreamingStateChanged() {
+    if (!mounted) return;
+    // A reset() controller goes back to `idle` before streaming again — that
+    // is semantically a new message, so the fade should replay for it.
+    if (widget.streamingController?.status == HyperStreamingStatus.idle) {
+      _streamingFadeStarted = false;
+    }
+    _parseContent();
+    _scrollToBottomIfApplicable();
+  }
+
+  void _scrollToBottomIfApplicable() {
+    if (!widget.autoScrollToBottom) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final scrollCtrl = _effectiveScrollController;
+      if (scrollCtrl != null && scrollCtrl.hasClients) {
+        final position = scrollCtrl.position;
+        if (position.maxScrollExtent > 0) {
+          final distanceToBottom = position.maxScrollExtent - position.pixels;
+          if (distanceToBottom < 350) {
+            scrollCtrl.animateTo(
+              position.maxScrollExtent,
+              duration: const Duration(milliseconds: 100),
+              curve: Curves.easeOut,
+            );
+          }
+        }
+      }
+    });
   }
 
   @override
   void didUpdateWidget(covariant HyperViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // BUG-02: Handle selectable toggle — create/dispose controller as needed.
+    if (widget.controller == null &&
+        widget.autoScrollToBottom &&
+        _internalScrollController == null) {
+      _internalScrollController = ScrollController();
+    } else if (widget.controller != null && _internalScrollController != null) {
+      _internalScrollController?.dispose();
+      _internalScrollController = null;
+    }
+
+    if (oldWidget.streamingController != widget.streamingController) {
+      oldWidget.streamingController?.removeListener(_onStreamingStateChanged);
+      widget.streamingController?.addListener(_onStreamingStateChanged);
+      // A new controller instance starts a new streaming session for fade
+      // purposes, even if it already has accumulated text.
+      _streamingFadeStarted = false;
+    }
+
+    // Handle selectable toggle — create/dispose controller as needed.
     if (oldWidget.selectable != widget.selectable) {
       if (widget.selectable) {
         _virtualizedSelectionController = VirtualizedSelectionController(
@@ -915,7 +1106,7 @@ class _HyperViewerState extends State<HyperViewer>
       }
     }
 
-    // BUG-05: When customCss changes the section hashes are stale (they only
+    // When customCss changes the section hashes are stale (they only
     // cover text, not styles). Reset them so every section re-layouts.
     if (oldWidget.customCss != widget.customCss) {
       _sectionHashes = const [];
@@ -923,13 +1114,13 @@ class _HyperViewerState extends State<HyperViewer>
 
     if (oldWidget.renderConfig.textPainterCacheSize !=
         widget.renderConfig.textPainterCacheSize) {
-      // CRIT-03: Use ref-counted helper to avoid clobbering peer HyperViewers.
+      // Use ref-counted helper to avoid clobbering peer HyperViewers.
       _releaseTextCacheSize(_ownedTextCacheSize);
       _ownedTextCacheSize = widget.renderConfig.textPainterCacheSize;
       _acquireTextCacheSize(_ownedTextCacheSize);
     }
 
-    // CRIT-01: Keep imageConcurrency in sync with config.
+    // Keep imageConcurrency in sync with config.
     if (oldWidget.renderConfig.imageConcurrency !=
         widget.renderConfig.imageConcurrency) {
       LazyImageQueue.instance.maxConcurrent =
@@ -951,16 +1142,19 @@ class _HyperViewerState extends State<HyperViewer>
         !listEquals(oldWidget.allowedTags, widget.allowedTags) ||
         oldWidget.allowDataAttributes != widget.allowDataAttributes ||
         oldWidget.fallbackBuilder != widget.fallbackBuilder ||
-        // BUG-08: Compare full renderConfig (value equality now available).
+        // Compare full renderConfig (value equality now available).
         oldWidget.renderConfig != widget.renderConfig ||
-        oldWidget.pluginRegistry != widget.pluginRegistry) {
+        oldWidget.pluginRegistry != widget.pluginRegistry ||
+        oldWidget.streamingController != widget.streamingController ||
+        oldWidget.autoRepairSyntax != widget.autoRepairSyntax) {
       _parseContent();
     }
   }
 
   @override
   void dispose() {
-    // CRIT-03: Release our size from the global ref-count so peer HyperViewers
+    widget.streamingController?.removeListener(_onStreamingStateChanged);
+    // Release our size from the global ref-count so peer HyperViewers
     // see the correct maximum cache size after we're gone.
     _releaseTextCacheSize(_ownedTextCacheSize);
     WidgetsBinding.instance.removeObserver(this);
@@ -968,6 +1162,7 @@ class _HyperViewerState extends State<HyperViewer>
     _contentFadeController.dispose();
     _virtualizedSelectionController?.dispose();
     _ownedPageController?.dispose();
+    _internalScrollController?.dispose();
     super.dispose();
   }
 
@@ -1293,7 +1488,7 @@ class _HyperViewerState extends State<HyperViewer>
       // Relative URLs (scheme == '') are always forwarded — the app's handler
       // is responsible for resolving them against a base URL.
       final isRelative = scheme.isEmpty;
-      // BUG-03/09: Check BOTH allowedCustomSchemes (legacy widget param) AND
+      // Check BOTH allowedCustomSchemes (legacy widget param) AND
       // renderConfig.extraLinkSchemes so neither registration path silently
       // drops deep-link taps.
       final customSchemes = widget.allowedCustomSchemes;
@@ -1349,6 +1544,22 @@ class _HyperViewerState extends State<HyperViewer>
     return <String>{...base, ...registry.registeredTags}.toList();
   }
 
+  // Gate the fade so a throttled mid-stream tick (as often as every ~16ms)
+  // doesn't restart the 300ms fade before it can settle to full opacity —
+  // it should only play once per streaming session. Non-streaming content
+  // swaps are unaffected and keep fading on every parse as before.
+  void _beginContentFade() {
+    if (widget.streamingController != null && _streamingFadeStarted) return;
+    _contentFadeController.reset();
+  }
+
+  void _completeContentFade() {
+    _contentFadeController.forward();
+    if (widget.streamingController != null) {
+      _streamingFadeStarted = true;
+    }
+  }
+
   void _parseContent() {
     // Fast path: pre-parsed AST — skip all parsing.
     if (widget._prebuiltDocument != null) {
@@ -1377,7 +1588,17 @@ class _HyperViewerState extends State<HyperViewer>
     // RenderObject belonging to the previous document.
     _sectionBoxes.clear();
 
-    String contentToRender = widget.content;
+    String contentToRender = _rawContent;
+
+    if (widget.streamingController != null && widget.autoRepairSyntax) {
+      if (widget.contentType == HyperContentType.markdown) {
+        contentToRender =
+            StreamSyntaxNormalizer.normalizeMarkdown(contentToRender);
+      } else if (widget.contentType == HyperContentType.html) {
+        contentToRender = StreamSyntaxNormalizer.normalizeHtml(contentToRender);
+      }
+    }
+
     // CSS collected from <style> tags + customCss (applied to resolver directly,
     // not injected as a <style> tag so the sanitizer cannot strip it).
     // customCss applies to all content types (HTML, Markdown, Delta).
@@ -1441,7 +1662,7 @@ class _HyperViewerState extends State<HyperViewer>
 
     if (!useVirtualization) {
       // Sync parsing (fast path for small content)
-      _contentFadeController.reset();
+      _beginContentFade();
       try {
         final doc = parser is ExtendedContentParser
             ? parser.parseWithOptions(contentToRender,
@@ -1456,7 +1677,7 @@ class _HyperViewerState extends State<HyperViewer>
           _sections = null;
           _isLoading = false;
         });
-        _contentFadeController.forward();
+        _completeContentFade();
       } catch (e, st) {
         _reportError(e, st);
         setState(() => _isLoading = false);
@@ -1464,7 +1685,7 @@ class _HyperViewerState extends State<HyperViewer>
     } else {
       // Async parsing (isolate path for large HTML content)
       if (widget.contentType == HyperContentType.html) {
-        _contentFadeController.reset();
+        _beginContentFade();
         setState(() => _isLoading = true);
 
         // Capture parse ID before async gap to detect stale results.
@@ -1493,7 +1714,7 @@ class _HyperViewerState extends State<HyperViewer>
             _isLoading = false;
             _floatCarryovers.clear(); // reset carryovers for new content
           });
-          _contentFadeController.forward();
+          _completeContentFade();
         }).catchError((Object e, StackTrace st) {
           if (mounted && _parseId == currentParseId) {
             _reportError(e, st);
@@ -1502,7 +1723,7 @@ class _HyperViewerState extends State<HyperViewer>
         });
       } else {
         // Fallback to sync parsing for Delta/Markdown in virtualized/paged mode.
-        _contentFadeController.reset();
+        _beginContentFade();
         try {
           final doc = parser is ExtendedContentParser
               ? parser.parseWithOptions(contentToRender,
@@ -1513,7 +1734,7 @@ class _HyperViewerState extends State<HyperViewer>
           if (cssToApply.isNotEmpty) resolver.parseCss(cssToApply);
           resolver.resolveStyles(doc);
 
-          // BUG-06: Markdown/Delta in virtualized/paged mode was wrapped as a
+          // Markdown/Delta in virtualized/paged mode was wrapped as a
           // single section, defeating the virtualization entirely for large docs.
           // Split the document into chunkSize-bounded sections so the correct
           // ListView/PageView builder gets multiple sections to work with.
@@ -1526,7 +1747,7 @@ class _HyperViewerState extends State<HyperViewer>
             _isLoading = false;
             _floatCarryovers.clear();
           });
-          _contentFadeController.forward();
+          _completeContentFade();
         } catch (e, st) {
           _reportError(e, st);
           setState(() => _isLoading = false);
@@ -1562,7 +1783,7 @@ class _HyperViewerState extends State<HyperViewer>
     // supported subset (only checked for HTML; Delta/Markdown are always safe).
     if (widget.fallbackBuilder != null &&
         widget.contentType == HyperContentType.html &&
-        HtmlHeuristics.isComplex(widget.content)) {
+        HtmlHeuristics.isComplex(_rawContent)) {
       return widget.fallbackBuilder!(context);
     }
 
@@ -1622,7 +1843,7 @@ class _HyperViewerState extends State<HyperViewer>
       final listView = ListView.builder(
         // ignore: deprecated_member_use
         cacheExtent: 800,
-        controller: widget.controller?.scrollController,
+        controller: _effectiveScrollController,
         shrinkWrap: widget.shrinkWrap,
         physics: widget.physics ?? const AlwaysScrollableScrollPhysics(),
         itemCount: _sections!.length,
@@ -1766,6 +1987,22 @@ class _HyperViewerState extends State<HyperViewer>
         );
       }
 
+      // Attach typing caret when actively streaming
+      if (widget.showTypingCaret &&
+          widget.streamingController?.isStreaming == true) {
+        content = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            content,
+            HyperTypingCaret(
+              style: widget.caretStyle,
+              color: widget.caretColor,
+            ),
+          ],
+        );
+      }
+
       // Wrap with zoom if enabled (only for sync mode)
       if (widget.enableZoom) {
         return KeyedSubtree(
@@ -1777,7 +2014,7 @@ class _HyperViewerState extends State<HyperViewer>
             child: widget.shrinkWrap
                 ? content
                 : SingleChildScrollView(
-                    controller: widget.controller?.scrollController,
+                    controller: _effectiveScrollController,
                     physics:
                         widget.physics ?? const AlwaysScrollableScrollPhysics(),
                     child: content,
@@ -1797,7 +2034,7 @@ class _HyperViewerState extends State<HyperViewer>
       return KeyedSubtree(
         key: const ValueKey('sync'),
         child: SingleChildScrollView(
-          controller: widget.controller?.scrollController,
+          controller: _effectiveScrollController,
           physics: widget.physics ?? const AlwaysScrollableScrollPhysics(),
           child: content,
         ),
@@ -1841,7 +2078,7 @@ class _HyperViewerState extends State<HyperViewer>
           pageContent = HyperSelectionOverlay(
             document: sections[index],
             selectable: true,
-            // MED-06: Pass textDirection so RTL documents (Arabic, Hebrew) have
+            // Pass textDirection so RTL documents (Arabic, Hebrew) have
             // correct selection handle placement and hit-test direction in paged mode.
             textDirection: dir,
             onLinkTap: _safeOnLinkTap,
@@ -1857,7 +2094,7 @@ class _HyperViewerState extends State<HyperViewer>
             showHandles: true,
             autoShowMenu: true,
             debugShowBounds: widget.debugShowHyperRenderBounds,
-            // MED-02: Forward anchor layout callback so HyperViewerController
+            // Forward anchor layout callback so HyperViewerController
             // .scrollToId() and TOC generation work in paged mode.
             onAnchorLayout: widget.controller?._onAnchorLayout,
             config: _effectiveConfig,
@@ -1877,7 +2114,7 @@ class _HyperViewerState extends State<HyperViewer>
             enableComplexFilters: widget.enableComplexFilters,
             config: _effectiveConfig,
             suppressFirstBlockMarginTop: index > 0,
-            // MED-02: Forward anchor layout callback for HyperViewerController
+            // Forward anchor layout callback for HyperViewerController
             // in paged mode (previously missing, scrollToId always returned null).
             onAnchorLayout: widget.controller?._onAnchorLayout,
             pluginRegistry: widget.pluginRegistry,

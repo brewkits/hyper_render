@@ -75,12 +75,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
     super.initState();
     _currentBook = widget.book;
     _pageController = HyperPageController(initialPage: _currentBook.lastPage);
-    // CRIT-01: listener removed in dispose(); mounted guard inside callback.
+    // listener removed in dispose(); mounted guard inside callback.
     _pageController.currentPage.addListener(_onPageChanged);
   }
 
   void _onPageChanged() {
-    // CRIT-01: ValueNotifier callbacks can fire during Flutter teardown.
+    // ValueNotifier callbacks can fire during Flutter teardown.
     if (!mounted) return;
     final newPage = _pageController.currentPage.value;
     if (_currentBook.lastPage != newPage) {

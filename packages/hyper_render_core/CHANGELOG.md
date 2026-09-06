@@ -1,5 +1,12 @@
 # Changelog — hyper_render_core
 
+## 1.8.0
+
+- **AI & LLM Streaming Architecture Primitives**:
+  - `HyperStreamingController`: High-performance streaming controller for real-time token batching with frame-aligned throttling and lifecycle management (`idle`, `streaming`, `completed`, `error`).
+  - `StreamSyntaxNormalizer`: Transient auto-repair engine for unclosed code fences (```), inline code (`), asterisks (**, *), strikethroughs (~~), tables (|), and HTML tags (<tag).
+  - `HyperTypingCaret`: Pulsing typing cursor widget supporting `bar`, `block`, `underscore`, `dot`, and `custom` builders.
+
 ## 1.7.0
 
 ### ✨ New

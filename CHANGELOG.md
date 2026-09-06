@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.8.0
+
+- **AI & LLM Real-Time Token Streaming Engine**:
+  - `HyperStreamingController`: High-performance streaming controller for batching rapid SSE / WebSocket token bursts with 16ms frame-aligned throttling by default, backing off adaptively (up to `maxThrottleDuration`, default 200ms) once the accumulated buffer passes 10,000 / 50,000 characters — bounding total reparse cost over a long stream's lifetime.
+  - `StreamSyntaxNormalizer`: Transient auto-repair utility for incomplete in-flight tokens (auto-closes unclosed code block fences, inline code, bold/italic asterisks, incomplete table rows, incomplete links, and truncated HTML tags).
+  - `HyperTypingCaret`: Animated typing caret widget with customizable blinking styles (`bar`, `block`, `underscore`, `dot`, `custom`).
+  - `HyperViewer.streaming(...)`: Dedicated streaming constructor with stick-to-bottom auto-scroller, syntax auto-repair, and typing caret integration.
+  - Interactive AI streaming demo added to showcase app (`example/lib/ai_streaming_demo.dart`), including a virtualized-mode toggle and an error-simulation control.
+
+### 🐛 Fixes
+
+- **`didUpdateWidget` missed `streamingController` swaps and `autoRepairSyntax` toggles**: replacing the streaming controller with a fresh instance (e.g. a new AI turn) or flipping `autoRepairSyntax` at runtime had no visible effect until the next stream notification happened to arrive. Both are now in the reparse-trigger list.
+- **Content fade restarted on every streaming tick**: the 300ms fade-in was reset on every throttled notification (as often as every 16ms), so it perpetually restarted instead of settling — content flickered/stayed dim for the whole stream. The fade now plays once per streaming session and correctly replays after `reset()`.
+- **`fallbackBuilder`'s complexity gate never fired during streaming**: it checked `widget.content`, which `.streaming()` hardcodes to `''`, so `HtmlHeuristics.isComplex(...)` was always evaluated against an empty string regardless of how complex the streamed HTML became. It now reads the live streaming buffer.
+- **`autoScrollToBottom` silently did nothing in virtualized/`auto` mode** without an externally supplied `HyperViewerController`: the virtualized `ListView.builder` was bound to `widget.controller?.scrollController` instead of the existing `_effectiveScrollController` fallback, so the internally-created scroll controller was never attached to anything.
+- **`append()` after `error()` silently resumed streaming**, erasing the error state without requiring `reset()` first (the guard only checked for `completed`, not `error`). It now rejects appends in both terminal states.
+- **A synchronous exception from `append()` inside `bindStream`/`bindCustomStream`'s `onData` callback bypassed `onError` entirely** and surfaced as an unhandled zone exception, contradicting the documented "catches errors" behavior. Both now wrap `onData` (and, for `bindCustomStream`, the `mapper` call) and route genuine failures into `error()` — without overwriting an already-legitimate `completed`/`error` state if a late/duplicate event races it.
+- **`StreamSyntaxNormalizer.normalizeMarkdown` scanned the entire accumulated buffer** for unmatched backticks/asterisks/`$`/brackets, so an odd character count *inside an already-closed, fully-rendered code fence* earlier in the document was miscounted as unclosed — corrupting unrelated trailing prose with a spurious appended character on every subsequent tick. Parity and link-repair scans are now scoped to the text after the last closed fence.
+- **`StreamSyntaxNormalizer.normalizeHtml`'s truncated-tag detection could be fooled by a literal `>` inside a still-open tag's quoted attribute value** (e.g. `<div title="a>b`), leaving a genuinely truncated tag unstripped. Replaced the global `>` search with a quote-aware scan.
+
 ## 1.7.1
 
 - **Pub.dev Dependency Constraint Lower Bounds**: Tightened `hyper_render_core` dependency constraint to `^1.7.0` (from `>=1.6.0 <2.0.0`) to ensure lower bound compatibility during `flutter pub downgrade` analysis, securing a perfect 160/160 score on pub.dev.

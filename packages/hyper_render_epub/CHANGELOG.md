@@ -1,5 +1,9 @@
 # Changelog — hyper_render_epub
 
+## 0.1.2
+
+- Updated dependencies on `hyper_render` and `hyper_render_core` to `^1.8.0` for v1.8.0 monorepo alignment and AI streaming architecture compatibility.
+
 ## 0.1.1
 
 - Added standalone `example/example.dart` demonstrating `EpubBook.open` and `EpubReader`.
