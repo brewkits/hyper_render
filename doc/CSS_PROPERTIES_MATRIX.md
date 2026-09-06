@@ -72,11 +72,11 @@ This document lists CSS property support in HyperRender.
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
 | `flex-direction` | ✅ | row, column, row-reverse, column-reverse | |
-| `flex-wrap` | ✅ | nowrap, wrap, wrap-reverse | |
+| `flex-wrap` | ✅ | nowrap, wrap, wrap-reverse | `wrap` on a `row` container packs items into lines and distributes free space by `flex-grow`; `wrap-reverse` and `flex-direction: column` fall back to Flutter `Wrap` (items keep their base size, no growth) |
 | `flex` | ✅ | \<grow\> \<shrink\> \<basis\> | Shorthand |
 | `flex-grow` | ✅ | number | |
 | `flex-shrink` | ✅ | number | |
-| `flex-basis` | ✅ | px, %, auto | |
+| `flex-basis` | ⚠️ | px | Applied on `flex-wrap: wrap` containers only — the `nowrap` Row/Column path sizes from content. `%` and `auto` are not parsed and resolve to 0 (a growable item then splits the line evenly, matching a browser's `flex: 1`) |
 | `justify-content` | ✅ | flex-start, center, flex-end, space-between, space-around | |
 | `align-items` | ✅ | flex-start, center, flex-end, stretch, baseline | |
 | `align-content` | ✅ | flex-start, center, flex-end, space-between, space-around | |

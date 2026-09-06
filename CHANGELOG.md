@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### 🐛 Fixes
+
+- **`display:flex; flex-wrap:wrap` with flex children crashed the frame** ([#15](https://github.com/brewkits/hyper_render/issues/15)): a wrapping flex container was mapped to Flutter's `Wrap`, but its items were still wrapped in `FlexItemWidget`, which emits `Expanded`/`Flexible`. `Wrap` provides `WrapParentData`, so Flutter threw *"Incorrect use of ParentDataWidget … wants to apply ParentData of type FlexParentData"* and cascaded into `RenderBox was not laid out` / `child.hasSize is not true` for the rest of the document. Wrapping flex is now laid out arithmetically — items are packed into lines by their base size and each line's free space is distributed in proportion to `flex-grow` — and emitted as a `Column` of `Row`s, so no flex parent data ever reaches a `Wrap`. Shapes that cannot be sized at build time (`flex-direction: column`, `row-reverse`/`wrap-reverse`, unbounded width, items with no knowable base) still fall back to `Wrap`, but with every `Expanded`/`Flexible` stripped and replaced by `flex-basis`/`min-width`/`max-width` sizing.
+- **CSS `align-items: baseline` asserted on every flex container**: `CrossAxisAlignment.baseline` was handed to `Row`/`Column` without a `textBaseline`, tripping *"textBaseline is required if you specify the crossAxisAlignment with CrossAxisAlignment.baseline"*. Both paths now pass `TextBaseline.alphabetic`.
+- **`flex-basis`, `min-width` and `max-width` were parsed but never applied to flex items**: `flex: 1 1 220px; min-width: 220px` sized from content instead of the declared basis. All three now participate in wrapping-flex sizing.
+
 ## 1.8.0
 
 - **AI & LLM Real-Time Token Streaming Engine**:
