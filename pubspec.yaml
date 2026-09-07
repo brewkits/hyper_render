@@ -1,6 +1,6 @@
 name: hyper_render
 description: "The only Flutter HTML/Markdown renderer with CSS float layout, crash-free text selection at any document size, CJK Ruby typography, and AI/LLM token streaming."
-version: 1.9.0
+version: 1.9.1
 homepage: https://github.com/brewkits/hyper_render
 repository: https://github.com/brewkits/hyper_render
 issue_tracker: https://github.com/brewkits/hyper_render/issues
