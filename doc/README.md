@@ -45,11 +45,11 @@ Design decisions that shaped the engine, useful for contributors:
 
 ### Package-Specific Documentation
 
-- **[hyper_render_clipboard](../packages/hyper_render_clipboard/docs/)** — Clipboard & image copy
-  - [API Reference](../packages/hyper_render_clipboard/docs/api_reference.md)
-  - [Usage Guide](../packages/hyper_render_clipboard/docs/usage_guide.md)
-  - [Platform Setup](../packages/hyper_render_clipboard/docs/platform_setup.md)
-  - [Troubleshooting](../packages/hyper_render_clipboard/docs/troubleshooting.md)
+- **[hyper_render_clipboard](../packages/hyper_render_clipboard/doc/)** — Clipboard & image copy
+  - [API Reference](../packages/hyper_render_clipboard/doc/api_reference.md)
+  - [Usage Guide](../packages/hyper_render_clipboard/doc/usage_guide.md)
+  - [Platform Setup](../packages/hyper_render_clipboard/doc/platform_setup.md)
+  - [Troubleshooting](../packages/hyper_render_clipboard/doc/troubleshooting.md)
 
 ---
 

@@ -80,7 +80,7 @@ or the `fallbackBuilder` parameter to delegate to a WebView or other renderer.
 | `word-spacing` | px, em |
 | `text-align` | left, right, center, justify |
 | `text-decoration` | underline, line-through, overline, none |
-| `text-transform` | uppercase, lowercase, capitalize |
+| `text-transform` | ❌ Parsed but not applied — text is painted verbatim |
 | `white-space` | normal, pre, pre-wrap, nowrap |
 | `text-overflow` | clip, ellipsis |
 | `text-shadow` | Full support for multiple shadows (v1.2.0) |
@@ -108,15 +108,15 @@ or the `fallbackBuilder` parameter to delegate to a WebView or other renderer.
 | `float` | left, right, none (Full wrapping support) |
 | `clear` | left, right, both, none |
 | `position` | **relative only** |
-| Flexbox | Full support for flex containers and items |
-| CSS Grid | Full support including fr-units and gap (v1.2.0) |
+| Flexbox | Containers and items, incl. wrapping flex on a dedicated `RenderFlexWrap` (v1.9.0). Not applied: `align-content`; `flex-basis` drives wrapping containers only |
+| CSS Grid | `grid-template-columns/rows` (px, fr, auto, repeat), `grid-column/row` span, gap (v1.2.0). Not applied: `grid-auto-flow`, `align-content` |
 
 ### Background
 
 | Property | Support |
 |----------|---------|
 | `background-color` | Full color support |
-| `background-image` | `url()`, `linear-gradient()` (v1.2.0) |
+| `background-image` | `linear-gradient()` only (v1.2.0) — `url()` is parsed but no image is painted |
 | `background-size` | cover, contain, fill |
 
 ### Effects

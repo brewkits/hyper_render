@@ -58,6 +58,14 @@ const _mustNotBeFull = <String>[
   // only ComputedStyle + resolver. Was marked ✅ for both flex and grid until
   // 2026-09-07.
   'align-content',
+  // Same class, all found 2026-09-07 by diffing every ComputedStyle field
+  // against its readers. Each is written by the resolver and referenced by no
+  // code in the render path — note that a reader inside ComputedStyle's own
+  // methods (e.g. `toTextStyle()`) DOES count, which is why `text-shadow` and
+  // `text-decoration-color` are correctly ✅ and absent from this list.
+  'text-transform',
+  'list-style-position',
+  'grid-auto-flow',
 ];
 
 /// Returns the status symbol (first char of the Status cell) for the first

@@ -1,11 +1,11 @@
 # HyperRender — Product Roadmap
 
 **Last Updated**: 2026-07-05
-**Current Stable**: v1.7.0
+**Current Stable**: v1.9.1
 **Repository**: [github.com/brewkits/hyper_render](https://github.com/brewkits/hyper_render)
 
 This document tracks the long-term direction of the HyperRender ecosystem.
-For detailed CSS property tracking, see [`internal/CSS_SUPPORT_ROADMAP.md`](internal/CSS_SUPPORT_ROADMAP.md).
+For detailed CSS property tracking, see [`CSS_PROPERTIES_MATRIX.md`](CSS_PROPERTIES_MATRIX.md).
 
 ---
 
@@ -106,7 +106,7 @@ Scope:
 
 ### CSS Phase 3 — Visual Polish
 
-Properties deferred from Phase 3 in [`internal/CSS_SUPPORT_ROADMAP.md`](internal/CSS_SUPPORT_ROADMAP.md):
+Properties deferred from Phase 3 in [`CSS_PROPERTIES_MATRIX.md`](CSS_PROPERTIES_MATRIX.md):
 
 - [x] `text-shadow` — parsed + applied to `TextStyle.shadows` in `ComputedStyle`
 - [x] `text-overflow: ellipsis` — parsed + executed in `render_hyper_box_fragments.dart`
@@ -244,7 +244,7 @@ Items under consideration, not yet scheduled:
 
 ## Related Documents
 
-- [CSS Support Roadmap](internal/CSS_SUPPORT_ROADMAP.md) *(internal)*
+- [CSS Support Roadmap](CSS_PROPERTIES_MATRIX.md) *(internal)*
 - [Architecture Decision Records](adr/)
 - [Plugin Development Guide](PLUGIN_DEVELOPMENT.md)
 - [Contributing Guide](CONTRIBUTING.md)

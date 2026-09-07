@@ -33,7 +33,7 @@ are silently ignored.
 | `background-size` | ✅ cover, contain, fill supported |
 | `background-position` | ✅ Supported since v1.3.1 |
 | `background-repeat` | ✅ repeat/repeat-x/repeat-y/no-repeat/space/round supported since v1.3.1 |
-| `display: grid` | ✅ full auto-placement, fr-units, and gap support |
+| `display: grid` | ✅ fr-units, `repeat()`, explicit `grid-column`/`grid-row` span, and gap. `grid-auto-flow` and `align-content` are parsed but not applied |
 | `object-fit` | ✅ cover, contain, fill, none, scale-down supported |
 | `list-style-type` / `list-style-position` / `list-style` | ✅ All 11 marker types, shorthand, supported since v1.3.1 |
 | `aspect-ratio` | ✅ `W/H` and bare-number syntax, applied to `<img>`/`<video>` sizing (v1.4.0) |

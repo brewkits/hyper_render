@@ -1,7 +1,7 @@
 # CSS Properties Support Matrix
 
 Last Updated: September 6, 2026
-Version: 1.8.0
+Version: 1.9.1
 
 This document lists CSS property support in HyperRender.
 
@@ -98,7 +98,7 @@ This document lists CSS property support in HyperRender.
 | `grid-column` | ✅ | span N, start / end | Auto-placement with span support |
 | `grid-row` | ✅ | span N, start / end | |
 | `gap` / `row-gap` / `column-gap` | ✅ | px | Full support |
-| `grid-auto-flow` | ⚠️ | row | Column/dense not yet implemented |
+| `grid-auto-flow` | ❌ | — | Parsed into `ComputedStyle.gridAutoFlow` and read by nothing; placement is always row-wise because that is the default, not because the property is honoured |
 | `justify-items` | ✅ | flex-start, center, flex-end, stretch | |
 | `align-content` | ❌ | — | Parsed into `ComputedStyle.alignContent` and read by nothing in the render path (grid included) — rows always stack from the cross-axis start |
 
@@ -122,7 +122,7 @@ This document lists CSS property support in HyperRender.
 | `text-decoration` | ✅ | none, underline, overline, line-through | |
 | `text-decoration-color` | ✅ | All CSS colors | |
 | `text-decoration-style` | ✅ | solid, dashed, dotted, double | |
-| `text-transform` | ✅ | none, uppercase, lowercase, capitalize | |
+| `text-transform` | ❌ | — | Parsed into `ComputedStyle.textTransform` and read by nothing in the render path — text is painted verbatim |
 | `text-indent` | ✅ | px, em, rem, pt, % | First line of a block (LTR); inherits. `%` resolves against the containing block width |
 | `text-overflow` | ✅ | clip, ellipsis | |
 | `white-space` | ✅ | normal, nowrap, pre, pre-wrap | |
@@ -146,7 +146,7 @@ This document lists CSS property support in HyperRender.
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
 | `background-color` | ✅ | All CSS colors | |
-| `background-image` | ✅ | url(), linear-gradient() | Network/asset images + linear gradients |
+| `background-image` | ⚠️ | linear-gradient() | Gradients execute (`ComputedStyle.backgroundGradient`). `url()` is parsed into `backgroundImage` and read by nothing — no background image is painted |
 | `background-size` | ✅ | cover, contain, fill | |
 | `background-position` | ✅ | top/center/bottom/left/right, px | Supported in v1.3.1 |
 | `background-repeat` | ✅ | repeat, repeat-x/y, no-repeat, space, round | Supported in v1.3.1 |
@@ -162,7 +162,7 @@ This document lists CSS property support in HyperRender.
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
 | `list-style-type` | ✅ | disc, circle, square, decimal, lower-alpha, upper-alpha, lower-roman, upper-roman, none | 9 types supported |
-| `list-style-position` | ✅ | inside, outside | |
+| `list-style-position` | ❌ | — | Parsed into `ComputedStyle.listStylePosition` and read by nothing — markers always render outside |
 | `list-style` | ✅ | Shorthand | |
 
 ---

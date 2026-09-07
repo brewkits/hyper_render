@@ -317,7 +317,7 @@ Found a typo or want to improve the docs?
 2. Edit the documentation files
 3. Submit a pull request
 
-See [Contributing Guidelines](../../CONTRIBUTING.md) for details.
+See [Contributing Guidelines](../../../doc/CONTRIBUTING.md) for details.
 
 ---
 
@@ -333,9 +333,9 @@ See [Contributing Guidelines](../../CONTRIBUTING.md) for details.
 
 ## 🔗 Related Documentation
 
-- [HyperRender Documentation](../../docs/)
-- [HyperRender Core](../hyper_render_core/README.md)
-- [Plugin Development Guide](../../docs/PLUGIN_DEVELOPMENT.md)
+- [HyperRender Documentation](../../../doc/)
+- [HyperRender Core](../../hyper_render_core/README.md)
+- [Plugin Development Guide](../../../doc/PLUGIN_DEVELOPMENT.md)
 
 ---
 

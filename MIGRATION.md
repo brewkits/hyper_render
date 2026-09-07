@@ -15,7 +15,7 @@ This guide helps you migrate from `flutter_html` (v3.x) and `flutter_widget_from
 | `<ruby>/<rt>` Furigana | ❌ Raw text | ❌ Not supported | ✅ |
 | `<details>/<summary>` | ❌ | ❌ | ✅ Interactive |
 | CSS Variables + `calc()` | ❌ | ❌ | ✅ |
-| CSS Grid / Flexbox | ⚠️ Partial | ⚠️ Partial | ✅ Full |
+| CSS Grid / Flexbox | ⚠️ Partial | ⚠️ Partial | ✅ Wrapping flex on a custom RenderObject; see [CSS matrix](doc/CSS_PROPERTIES_MATRIX.md) |
 
 If you need `float`, CJK typography, or crash-free selection — this migration
 pays for itself immediately. If you need maximum CSS decoration coverage
