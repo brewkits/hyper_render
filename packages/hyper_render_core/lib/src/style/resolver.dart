@@ -1730,7 +1730,12 @@ class StyleResolver {
             style.flexShrink = double.tryParse(parts[1]) ?? 1;
           }
           if (parts.length > 2) {
-            style.flexBasis = _parseLength(parts[2]);
+            _applyFlexBasis(style, parts[2]);
+          } else {
+            // CSS: the one- and two-value forms set flex-basis to 0%, NOT auto.
+            // `flex: 1` therefore sizes purely from distributed free space.
+            style.flexBasis = null;
+            style.flexBasisPercent = 0;
           }
           style.markExplicitlySet('flex');
         }
@@ -1753,9 +1758,7 @@ class StyleResolver {
         break;
 
       case 'flex-basis':
-        final flexBasis = _parseLength(value);
-        if (flexBasis != null) {
-          style.flexBasis = flexBasis;
+        if (_applyFlexBasis(style, value)) {
           style.markExplicitlySet('flex-basis');
         }
         break;
@@ -2076,10 +2079,16 @@ class StyleResolver {
         break;
 
       case 'min-width':
-        final length = _parseLength(value);
-        if (length != null) {
-          style.minWidth = length;
+        final minPct = _parsePercent(value.trim().toLowerCase());
+        if (minPct != null) {
+          style.minWidthPercent = minPct; // fraction 0–1, resolved at layout
           style.markExplicitlySet('min-width');
+        } else {
+          final length = _parseLength(value);
+          if (length != null) {
+            style.minWidth = length;
+            style.markExplicitlySet('min-width');
+          }
         }
         break;
 
@@ -3473,6 +3482,32 @@ class StyleResolver {
   }
 
   /// Parse CSS length value (px, pt, em, etc.)
+  /// Applies a `flex-basis` value (`auto`, a percentage, or a length).
+  ///
+  /// Returns false for values that resolve to nothing usable. `auto` clears
+  /// both fields so the layout falls back to the item's max-content width.
+  bool _applyFlexBasis(ComputedStyle style, String value) {
+    final v = value.trim().toLowerCase();
+    if (v == 'auto' || v == 'content') {
+      style.flexBasis = null;
+      style.flexBasisPercent = null;
+      return true;
+    }
+    final pct = _parsePercent(v);
+    if (pct != null) {
+      style.flexBasis = null;
+      style.flexBasisPercent = pct;
+      return true;
+    }
+    final len = _parseLength(v);
+    if (len != null) {
+      style.flexBasis = len;
+      style.flexBasisPercent = null;
+      return true;
+    }
+    return false;
+  }
+
   double? _parseLength(String value) {
     value = value.trim().toLowerCase();
 

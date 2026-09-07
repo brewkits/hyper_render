@@ -54,6 +54,10 @@ const _mustNotBeFull = <String>[
   // Marked ✅ here until 2026-08-16; this row stops that recurring.
   'min-height',
   'max-height',
+  // Written by the resolver, read by nothing: `grep -rn alignContent` finds
+  // only ComputedStyle + resolver. Was marked ✅ for both flex and grid until
+  // 2026-09-07.
+  'align-content',
 ];
 
 /// Returns the status symbol (first char of the Status cell) for the first

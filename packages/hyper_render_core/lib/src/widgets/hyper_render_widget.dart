@@ -12,6 +12,7 @@ import '../interfaces/code_highlighter.dart';
 import '../interfaces/image_clipboard.dart';
 import '../interfaces/node_plugin.dart';
 import '../model/computed_style.dart';
+import '../util/html_whitespace.dart';
 import '../model/node.dart';
 import 'code_block_widget.dart';
 import 'css_border.dart';
@@ -603,18 +604,16 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     for (final child in node.children) {
       final childWidget = _buildFlexChild(child, widgetBuilder);
       if (childWidget != null) {
-        // Wrap child with FlexItemWidget if it has flex properties
-        if (child.style.flexGrow != null ||
-            child.style.flexShrink != null ||
-            child.style.flexBasis != null ||
-            child.style.alignSelf != null) {
-          flexChildren.add(FlexItemWidget(
-            style: child.style,
-            child: childWidget,
-          ));
-        } else {
-          flexChildren.add(childWidget);
-        }
+        // Always carry the item's ComputedStyle: the wrapping-flex renderer
+        // needs `min-width`/`max-width`/`width` even on items that declare no
+        // `flex-*` at all. For the nowrap Row/Column path this is behaviour-
+        // preserving — FlexItemWidget with no flex properties builds exactly
+        // the `Flexible(fit: loose)` (or bare child, in a Column) that the
+        // untagged branch used to build.
+        flexChildren.add(FlexItemWidget(
+          style: child.style,
+          child: childWidget,
+        ));
       }
     }
 
@@ -624,6 +623,10 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
       children: flexChildren,
     );
   }
+
+  /// Leading/trailing CSS whitespace (U+00A0 deliberately excluded).
+  static final RegExp _cssEdgeWhitespace =
+      RegExp(r'^[ \t\n\r\f]+|[ \t\n\r\f]+$');
 
   /// Build a single flex child
   static TextAlign _toTextAlign(HyperTextAlign align) {
@@ -655,8 +658,12 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     // If it's text content, convert to Text widget
     if (node.type == NodeType.text) {
       final textNode = node as TextNode;
-      final text = textNode.text.trim();
-      if (text.isEmpty) return null;
+      // CSS Text Level 3 excludes U+00A0 from the whitespace that collapses,
+      // but Dart's String.trim() (and `\s`) follow Unicode and strip it — so
+      // `.trim().isEmpty` silently deletes an `&nbsp;`-only flex item.
+      if (isCssWhitespaceOnly(textNode.text)) return null;
+      // Trim only CSS whitespace, so a leading/trailing `&nbsp;` survives.
+      final text = textNode.text.replaceAll(_cssEdgeWhitespace, '');
 
       return Text(
         text,

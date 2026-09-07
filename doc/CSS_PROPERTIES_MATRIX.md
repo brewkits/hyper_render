@@ -26,7 +26,7 @@ This document lists CSS property support in HyperRender.
 |----------|--------|------------------|-------|
 | `width` | ✅ | px, %, auto | Constrains a block's content width (text wraps inside it), on replaced elements too. `%` resolves against the containing block |
 | `height` | ✅ | px, auto | Absolute px on replaced elements. `%` height not supported (needs a deferred-height model) |
-| `min-width` | ✅ | px, % | Applied to block content width; wins over `max-width` per CSS |
+| `min-width` | ✅ | px, % | Applied to block content width and to wrapping-flex item sizing; wins over `max-width` per CSS |
 | `max-width` | ✅ | px, % | Constrains a block's content width (text wraps inside it) |
 | `min-height` | ❌ | — | Parsed into `ComputedStyle.minHeight`, then read by nothing in the render path. Found by `test/flagship_execution_audit_test.dart` |
 | `max-height` | ❌ | — | Parsed into `ComputedStyle.maxHeight`, then read by nothing in the render path. Found by `test/flagship_execution_audit_test.dart` |
@@ -72,14 +72,14 @@ This document lists CSS property support in HyperRender.
 | Property | Status | Supported Values | Notes |
 |----------|--------|------------------|-------|
 | `flex-direction` | ✅ | row, column, row-reverse, column-reverse | |
-| `flex-wrap` | ✅ | nowrap, wrap, wrap-reverse | |
+| `flex-wrap` | ✅ | nowrap, wrap, wrap-reverse | `wrap`/`wrap-reverse` on a `row` container run on `RenderFlexWrap`: real line packing plus free-space distribution by `flex-grow`. `flex-direction: column` + wrap falls back to Flutter `Wrap` (items keep their base size, no growth) — the main axis there is height, which is unbounded |
 | `flex` | ✅ | \<grow\> \<shrink\> \<basis\> | Shorthand |
 | `flex-grow` | ✅ | number | |
 | `flex-shrink` | ✅ | number | |
-| `flex-basis` | ✅ | px, %, auto | |
+| `flex-basis` | ⚠️ | px, %, auto | Applied on `flex-wrap: wrap` (row) containers only — the `nowrap` Row/Column path still sizes from content. The `flex: 1` / `flex: 1 1` shorthands correctly imply a `0%` basis |
 | `justify-content` | ✅ | flex-start, center, flex-end, space-between, space-around | |
 | `align-items` | ✅ | flex-start, center, flex-end, stretch, baseline | |
-| `align-content` | ✅ | flex-start, center, flex-end, space-between, space-around | |
+| `align-content` | ❌ | — | Parsed but not applied: lines always stack from the cross-axis start. Verified by execution — `align-content:center` on a fixed-height wrapping container leaves the first line at offset 0 |
 | `align-self` | ✅ | auto, flex-start, center, flex-end, stretch | |
 | `gap` | ✅ | px | Row and column gap |
 | `row-gap` | ✅ | px | |
@@ -100,7 +100,7 @@ This document lists CSS property support in HyperRender.
 | `gap` / `row-gap` / `column-gap` | ✅ | px | Full support |
 | `grid-auto-flow` | ⚠️ | row | Column/dense not yet implemented |
 | `justify-items` | ✅ | flex-start, center, flex-end, stretch | |
-| `align-content` | ✅ | flex-start, center, flex-end, stretch | |
+| `align-content` | ❌ | — | Parsed into `ComputedStyle.alignContent` and read by nothing in the render path (grid included) — rows always stack from the cross-axis start |
 
 ---
 

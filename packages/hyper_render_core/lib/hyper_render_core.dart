@@ -94,5 +94,6 @@ export 'src/widgets/error_boundary_widget.dart';
 export 'src/widgets/hyper_error_widget.dart';
 export 'src/widgets/loading_skeleton.dart';
 export 'src/widgets/flex_container_widget.dart';
+export 'src/widgets/render_flex_wrap.dart';
 export 'src/widgets/grid_container_widget.dart';
 export 'src/widgets/hyper_details_widget.dart';

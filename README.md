@@ -13,7 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.10+-54C5F8.svg?logo=flutter)](https://flutter.dev)
 
-**CSS float · crash-free selection · AI/LLM streaming · CJK/Furigana · `@keyframes` · 2 460+ tests · XSS-safe · Zero Gradle config**
+**CSS float · crash-free selection · AI/LLM streaming · CJK/Furigana · `@keyframes` · 2 490+ tests · XSS-safe · Zero Gradle config**
 
 <br/>
 
@@ -34,7 +34,7 @@ Already using `flutter_html`? You don't need to rewrite your widget tree or lear
 ```dart
 // 1. In your pubspec.yaml:
 // dependencies:
-//   hyper_render: ^1.8.0
+//   hyper_render: ^1.9.0
 
 // 2. In your Dart file — replace this single line:
 // ❌ import 'package:flutter_html/flutter_html.dart';
@@ -68,7 +68,7 @@ Html(
 
 ```yaml
 dependencies:
-  hyper_render: ^1.8.0
+  hyper_render: ^1.9.0
 ```
 
 ```dart
@@ -127,7 +127,7 @@ HyperRender renders the whole document inside **one custom `RenderObject`**. CSS
 | RTL / BiDi (Arabic, Hebrew) | ⚠️ | ⚠️ | ✅ |
 | CSS Variables `var()` | ❌ | ❌ | ✅ |
 | CSS `@keyframes` animation | ❌ | ❌ | ✅ |
-| Flexbox / Grid | ⚠️ Partial | ⚠️ Partial | ✅ Full |
+| Flexbox / Grid | ⚠️ Partial | ⚠️ Partial | ✅ Wrapping flex on a custom RenderObject¹ |
 | `box-shadow` · `filter` | ❌ | ❌ | ✅ |
 | `list-style-type` (all 11 values) | ⚠️ disc only | ⚠️ disc only | ✅ |
 | `<details>` / `<summary>` | ❌ | ❌ | ✅ Interactive |
@@ -135,6 +135,8 @@ HyperRender renders the whole document inside **one custom `RenderObject`**. CSS
 | Markdown input | ❌ | ❌ | ✅ GFM |
 | Modular packages | ❌ monolith | ❌ monolith | ✅ opt-in add-ons |
 | Zero Gradle config | ✅ | ✅ | ✅ |
+
+¹ `flex-wrap: wrap` on a row container performs real CSS line packing and distributes free space by `flex-grow`, honouring `flex-basis` / `min-width` / `max-width` including their `%` forms. Known gaps: `align-content` is not applied, `flex-basis` does not drive the `nowrap` path, and `flex-direction: column` + wrap packs lines without growth. Per-property status: [CSS_PROPERTIES_MATRIX.md](doc/CSS_PROPERTIES_MATRIX.md).
 
 ### Benchmarks
 
@@ -193,6 +195,22 @@ Furigana centered above base characters. Kinsoku shori applied across the full l
 Ruby copied to clipboard as `東京(とうきょう)`.
 
 ### CSS Variables · Flexbox · Grid
+
+Responsive wrapping cards — `flex-wrap: wrap` packs items into lines and shares
+each line's free space by `flex-grow`, so the same markup a browser gets works
+here:
+
+```dart
+HyperViewer(html: '''
+  <div style="display:flex; flex-wrap:wrap; gap:14px;">
+    <div style="flex:1 1 220px; min-width:220px;">Card 1</div>
+    <div style="flex:1 1 220px; min-width:220px;">Card 2</div>
+    <div style="flex:1 1 220px; min-width:220px;">Card 3</div>
+  </div>
+''')
+```
+
+CSS custom properties and grid:
 
 ```dart
 HyperViewer(html: '''
@@ -422,7 +440,7 @@ HTML / Markdown / Quill Delta
 - **O(1) CSS rule lookup** — rules indexed by tag / class / ID; constant time regardless of stylesheet size
 - **O(log N) hit-testing** — `_lineStartOffsets[]` precomputed at layout time; each touch is a binary search, not a linear scan
 - **RepaintBoundary per chunk** — unmodified chunks are composited, not repainted; incremental layout caches unchanged sections by content hash
-- **1 646 passing tests** — unit, widget, integration, fuzz (43 cases), and golden pixel tests across 3 OS platforms
+- **2 495 passing tests** — unit, widget, integration, fuzz (339 seeded-mutation cases), plus 28 golden pixel tests across 3 OS platforms
 
 ---
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../model/computed_style.dart';
 import '../model/node.dart';
+import 'render_flex_wrap.dart';
 import 'css_border.dart';
 
 /// Widget that renders a flex container (display: flex)
@@ -95,6 +96,11 @@ class FlexContainerWidget extends StatelessWidget {
           mainAxisAlignment: mainAxisAlignment,
           crossAxisAlignment: effectiveCrossAxis,
           mainAxisSize: MainAxisSize.max,
+          // Row asserts when crossAxisAlignment is baseline and textBaseline is
+          // null. CSS `align-items: baseline` maps to the alphabetic baseline.
+          textBaseline: effectiveCrossAxis == CrossAxisAlignment.baseline
+              ? TextBaseline.alphabetic
+              : null,
           textDirection: isReverse ? TextDirection.rtl : TextDirection.ltr,
           children: processedChildren,
         );
@@ -117,6 +123,9 @@ class FlexContainerWidget extends StatelessWidget {
           mainAxisAlignment: mainAxisAlignment,
           crossAxisAlignment: crossAxisAlignment,
           mainAxisSize: hasExplicitHeight ? MainAxisSize.max : MainAxisSize.min,
+          textBaseline: crossAxisAlignment == CrossAxisAlignment.baseline
+              ? TextBaseline.alphabetic
+              : null,
           verticalDirection:
               isReverse ? VerticalDirection.up : VerticalDirection.down,
           children: axisAwareChildren.map((child) {
@@ -138,18 +147,41 @@ class FlexContainerWidget extends StatelessWidget {
         );
       }
     } else {
-      // Use Wrap for wrapping flex
-      final bool reverseWrap = style.flexWrap == FlexWrap.wrapReverse;
-      flexWidget = Wrap(
-        direction: axis,
-        alignment: wrapAlignment,
-        crossAxisAlignment: wrapCrossAlignment,
-        spacing: mainAxisSpacing,
-        runSpacing: crossAxisSpacing,
-        verticalDirection:
-            reverseWrap ? VerticalDirection.up : VerticalDirection.down,
-        children: children,
-      );
+      // Wrapping flex (`flex-wrap: wrap` / `wrap-reverse`).
+      //
+      // Horizontal wrap goes to [FlexWrapLayout], a real render object. Neither
+      // Flutter built-in can express CSS here: `Wrap` has no `flex-grow` and
+      // rejects `Expanded`/`Flexible` children (`WrapParentData` vs
+      // `FlexParentData`, issue #15), while a `LayoutBuilder`-driven Column of
+      // Rows cannot answer intrinsic or dry-layout queries — and CSS's default
+      // `align-items: stretch` puts an `IntrinsicHeight` above every nested
+      // flex container, so that shape crashed on contact.
+      //
+      // Vertical wrap keeps `Wrap`: packing lines along an unbounded cross axis
+      // (width) is well defined, but the main axis (height) is not.
+      if (axis == Axis.horizontal) {
+        flexWidget = FlexWrapLayout(
+          spacing: mainAxisSpacing,
+          runSpacing: crossAxisSpacing,
+          justifyContent: style.justifyContent,
+          alignItems: style.alignItems,
+          reverseItems: isReverse,
+          reverseRuns: style.flexWrap == FlexWrap.wrapReverse,
+          children: _asFlexWrapItems(),
+        );
+      } else {
+        final bool reverseWrap = style.flexWrap == FlexWrap.wrapReverse;
+        flexWidget = Wrap(
+          direction: axis,
+          alignment: wrapAlignment,
+          crossAxisAlignment: wrapCrossAlignment,
+          spacing: mainAxisSpacing,
+          runSpacing: crossAxisSpacing,
+          verticalDirection:
+              reverseWrap ? VerticalDirection.up : VerticalDirection.down,
+          children: _buildVerticalWrapChildren(),
+        );
+      }
     }
 
     // Apply container styling (padding, margin, background, border)
@@ -251,6 +283,49 @@ class FlexContainerWidget extends StatelessWidget {
     }
   }
 
+  /// Wraps each child in a [FlexWrapItem] so [RenderFlexWrap] can read its CSS.
+  ///
+  /// A child that never went through [FlexItemWidget] (no `flex-*` and no
+  /// `align-self`) still carries `min-width` / `max-width` / `width` that CSS
+  /// says must be honoured, so it is given its own style rather than dropped
+  /// through as an opaque box.
+  List<Widget> _asFlexWrapItems() {
+    final nodeChildren = node.children;
+    final items = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      final child = children[i];
+      if (child is FlexItemWidget) {
+        // Unflexed: RenderFlexWrap owns sizing, and `align-self` is applied by
+        // the render object's cross-axis placement rather than by an Align box.
+        items.add(FlexWrapItem(
+          style: child.style,
+          child: child.child,
+        ));
+        continue;
+      }
+      // Fall back to the source node's style when the widget carries none.
+      final style =
+          i < nodeChildren.length ? nodeChildren[i].style : ComputedStyle();
+      items.add(FlexWrapItem(style: style, child: child));
+    }
+    return items;
+  }
+
+  /// Children a vertical `Wrap` may legally receive.
+  ///
+  /// Strips the `Expanded`/`Flexible` that [FlexItemWidget] would emit — `Wrap`
+  /// provides `WrapParentData` and asserts on flex parent data (issue #15) —
+  /// and replaces it with explicit `flex-basis` sizing on the main (vertical)
+  /// axis.
+  List<Widget> _buildVerticalWrapChildren() {
+    return children.map<Widget>((child) {
+      if (child is! FlexItemWidget) return child;
+      final inner = child.buildUnflexed(parentAxis: Axis.vertical);
+      final basis = child.style.flexBasis;
+      return basis != null ? SizedBox(height: basis, child: inner) : inner;
+    }).toList();
+  }
+
   List<Widget> _buildChildrenWithGap(
       List<Widget> children, double gap, Axis axis) {
     if (gap <= 0 || children.isEmpty) return children;
@@ -314,7 +389,30 @@ class FlexItemWidget extends StatelessWidget {
     );
   }
 
-  Widget _wrapWithAlignSelf(Widget child, AlignItems? alignSelf) {
+  /// Builds this item's child with `align-self` applied but **without** any
+  /// `Expanded`/`Flexible` wrapper.
+  ///
+  /// Used by containers that cannot accept flex parent data — notably `Wrap`,
+  /// which provides `WrapParentData` and asserts when handed `FlexParentData`
+  /// (issue #15) — and by the arithmetic wrapping-flex layout, which sizes
+  /// items itself.
+  ///
+  /// Set [allowStretch] to false when the cross axis is unbounded, so that
+  /// `align-self: stretch` does not emit an infinite-height box.
+  Widget buildUnflexed({
+    required Axis parentAxis,
+    bool allowStretch = true,
+  }) {
+    var effective = style.alignSelf;
+    if (!allowStretch && effective == AlignItems.stretch) effective = null;
+    return _alignSelf(child, effective, parentAxis);
+  }
+
+  Widget _wrapWithAlignSelf(Widget child, AlignItems? alignSelf) =>
+      _alignSelf(child, alignSelf, parentAxis);
+
+  static Widget _alignSelf(
+      Widget child, AlignItems? alignSelf, Axis parentAxis) {
     // align-self overrides the container's align-items for a specific item.
     // CrossAxisAlignment is per-container in Flutter, so we use Align/SizedBox
     // per-child as an approximation.

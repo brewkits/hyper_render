@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.9.0
+
+### 🐛 Fixes
+
+- **`display:flex; flex-wrap:wrap` with flex children crashed the frame** ([#15](https://github.com/brewkits/hyper_render/issues/15)): a wrapping flex container was mapped to Flutter's `Wrap`, but its items were still wrapped in `FlexItemWidget`, which emits `Expanded`/`Flexible`. `Wrap` provides `WrapParentData`, so Flutter threw *"Incorrect use of ParentDataWidget … wants to apply ParentData of type FlexParentData"* and cascaded into `RenderBox was not laid out` / `child.hasSize is not true`.
+- **Horizontal wrapping flex is now a real render object, `RenderFlexWrap`.** Neither Flutter built-in can express CSS here: `Wrap` has no `flex-grow` and rejects flex parent data, while a `LayoutBuilder`-driven `Column` of `Row`s cannot answer intrinsic or dry-layout queries — and CSS's default `align-items: stretch` puts an `IntrinsicHeight` above every nested flex container, so *nested* wrapping flex crashed with `LayoutBuilder does not support returning intrinsic dimensions` plus ~34 cascading layout errors. `RenderFlexWrap` packs lines, distributes free space by `flex-grow`, implements intrinsics, dry layout, painting and hit-testing, and adds no `IntrinsicHeight` at all. `flex-direction: column` + wrap still uses `Wrap` (its main axis is height, which is unbounded), with all flex parent data stripped.
+- **`flex-basis`, `min-width` and `max-width` were parsed but never applied to flex items.** `flex: 0 0 50%` and a bare `min-width: 300px` both collapsed the item to its content width (~32px in a 500px container) instead of 250px / 300px. All three now drive wrapping-flex sizing, including their percentage forms — `min-width` accepts `%` for the first time, and the `flex: 1` / `flex: 1 1` shorthands now correctly imply CSS's `0%` basis rather than `auto`.
+- **CSS `align-items: baseline` asserted on every flex container**: `CrossAxisAlignment.baseline` was handed to `Row`/`Column` without a `textBaseline`. Both now pass `TextBaseline.alphabetic`.
+- **An `&nbsp;`-only flex item disappeared entirely**: `_buildFlexChild` used `String.trim().isEmpty` to detect insignificant whitespace, but Dart follows Unicode (U+00A0 is whitespace) while CSS Text Level 3 does not. It now uses `isCssWhitespaceOnly`, and trims only CSS whitespace so a leading/trailing `&nbsp;` survives.
+
+### 📝 Documentation
+
+- `CSS_PROPERTIES_MATRIX.md`: `align-content` corrected from ✅ to ❌ for **both** flex and grid — it is parsed into `ComputedStyle` and read by nothing in the render path. `test/docs_matrix_sync_test.dart` now guards it against regressing.
+- `flex-basis` documented as ⚠️: it drives wrapping (row) containers only; the `nowrap` path still sizes from content.
+
 ## 1.8.0
 
 - **AI & LLM Real-Time Token Streaming Engine**:
