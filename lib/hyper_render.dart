@@ -128,6 +128,7 @@ export 'package:hyper_render_core/hyper_render_core.dart'
         FlexItemWidget,
         FlexWrapItem,
         FlexWrapLayout,
+        FlexWrapParentData,
         RenderFlexWrap,
         GridItem,
         HyperDetailsWidget,

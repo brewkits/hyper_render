@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **`FlexWrapParentData` was missing from the root barrel's `show` list.** `FlexWrapItem`, `FlexWrapLayout` and `RenderFlexWrap` shipped in 1.9.0, but the parent-data type — part of their public signatures — did not, so it was unreachable via `package:hyper_render/hyper_render.dart`. Found by compile-checking the published 1.9.0 artifacts from a throwaway consumer project. Workaround on 1.9.0: import it from `package:hyper_render_core/hyper_render_core.dart`, which does export it.
+
 ## 1.9.0
 
 ### 🐛 Fixes
