@@ -15,7 +15,7 @@ For detailed CSS property tracking, see [`internal/CSS_SUPPORT_ROADMAP.md`](inte
 - Float layout algorithm (`float: left/right`, `clear`) — unique advantage over FWFH
 - Async microtask-based HTML parsing (non-blocking UI thread; uses `Future.microtask` instead of a real isolate so `FakeAsync` works in widget tests)
 - `ListView.builder` virtualization (low RAM on large documents)
-- Full Flexbox support (90% coverage: direction, wrap, gap, align, grow/shrink/basis)
+- Flexbox — direction, gap, `justify-content`, `align-items`/`align-self`, `flex-grow`/`shrink`/`basis`. Wrapping flex (`flex-wrap: wrap`) runs on a dedicated `RenderFlexWrap` **as of v1.9.0**; before that it emitted `Expanded` under a Flutter `Wrap` and threw (#15). Still not applied: `align-content`; `flex-basis` drives wrapping containers only. Per-property status: [CSS_PROPERTIES_MATRIX.md](CSS_PROPERTIES_MATRIX.md)
 - CSS Variables `var()`, `transition`, `animation-*` parsing
 - Ruby / Furigana, Kinsoku line-breaking (CJK typography)
 - Crash-free text selection across the entire document
