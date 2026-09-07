@@ -34,7 +34,7 @@ Already using `flutter_html`? You don't need to rewrite your widget tree or lear
 ```dart
 // 1. In your pubspec.yaml:
 // dependencies:
-//   hyper_render: ^1.8.0
+//   hyper_render: ^1.9.0
 
 // 2. In your Dart file — replace this single line:
 // ❌ import 'package:flutter_html/flutter_html.dart';
@@ -68,7 +68,7 @@ Html(
 
 ```yaml
 dependencies:
-  hyper_render: ^1.8.0
+  hyper_render: ^1.9.0
 ```
 
 ```dart
