@@ -350,7 +350,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.9.0"
+    version: "1.9.1"
   hyper_render_core:
     dependency: "direct main"
     description:
