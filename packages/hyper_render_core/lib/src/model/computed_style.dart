@@ -410,6 +410,16 @@ class ComputedStyle {
   double? widthPercent;
   double? maxWidthPercent;
 
+  /// CSS `min-width` expressed as a percentage of the containing block's
+  /// content width — `50%` is stored as `0.5`. Resolved at layout, like
+  /// [widthPercent].
+  double? minWidthPercent;
+
+  /// CSS `flex-basis` expressed as a percentage of the flex container's
+  /// content width — `50%` is stored as `0.5`, and the `flex: 1` shorthand's
+  /// implied `0%` as `0`. Resolved at layout by `RenderFlexWrap`.
+  double? flexBasisPercent;
+
   /// CSS margin (collapsed margins handled in layout)
   EdgeInsets margin;
 
@@ -740,6 +750,8 @@ class ComputedStyle {
     this.maxHeight,
     this.widthPercent,
     this.maxWidthPercent,
+    this.minWidthPercent,
+    this.flexBasisPercent,
     this.margin = EdgeInsets.zero,
     this.padding = EdgeInsets.zero,
     this.borderWidth = EdgeInsets.zero,
@@ -918,6 +930,8 @@ class ComputedStyle {
     double? maxHeight,
     double? widthPercent,
     double? maxWidthPercent,
+    double? minWidthPercent,
+    double? flexBasisPercent,
     EdgeInsets? margin,
     EdgeInsets? padding,
     EdgeInsets? borderWidth,
@@ -1027,6 +1041,8 @@ class ComputedStyle {
       maxHeight: maxHeight ?? this.maxHeight,
       widthPercent: widthPercent ?? this.widthPercent,
       maxWidthPercent: maxWidthPercent ?? this.maxWidthPercent,
+      minWidthPercent: minWidthPercent ?? this.minWidthPercent,
+      flexBasisPercent: flexBasisPercent ?? this.flexBasisPercent,
       margin: margin ?? this.margin,
       padding: padding ?? this.padding,
       borderWidth: borderWidth ?? this.borderWidth,

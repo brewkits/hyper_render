@@ -126,6 +126,9 @@ export 'package:hyper_render_core/hyper_render_core.dart'
         // Container widgets
         FlexContainerWidget,
         FlexItemWidget,
+        FlexWrapItem,
+        FlexWrapLayout,
+        RenderFlexWrap,
         GridItem,
         HyperDetailsWidget,
         ErrorBoundaryWidget,

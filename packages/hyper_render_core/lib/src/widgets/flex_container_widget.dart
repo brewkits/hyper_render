@@ -1,9 +1,8 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../model/computed_style.dart';
 import '../model/node.dart';
+import 'render_flex_wrap.dart';
 import 'css_border.dart';
 
 /// Widget that renders a flex container (display: flex)
@@ -150,47 +149,39 @@ class FlexContainerWidget extends StatelessWidget {
     } else {
       // Wrapping flex (`flex-wrap: wrap` / `wrap-reverse`).
       //
-      // Flutter's `Wrap` provides `WrapParentData`, so an `Expanded`/`Flexible`
-      // emitted by [FlexItemWidget] underneath it trips
-      // "Incorrect use of ParentDataWidget" and cascades into a broken frame
-      // (issue #15).  Two strategies, both of which guarantee that no flex
-      // parent data is ever attached to a `Wrap` child:
+      // Horizontal wrap goes to [FlexWrapLayout], a real render object. Neither
+      // Flutter built-in can express CSS here: `Wrap` has no `flex-grow` and
+      // rejects `Expanded`/`Flexible` children (`WrapParentData` vs
+      // `FlexParentData`, issue #15), while a `LayoutBuilder`-driven Column of
+      // Rows cannot answer intrinsic or dry-layout queries — and CSS's default
+      // `align-items: stretch` puts an `IntrinsicHeight` above every nested
+      // flex container, so that shape crashed on contact.
       //
-      //  1. `_buildFlexLines` — a real CSS wrapping-flex layout (line packing +
-      //     free-space distribution) emitted as a Column of Rows.  Rows are
-      //     `Flex`es, and widths are resolved arithmetically, so no
-      //     `Expanded`/`Flexible` is needed at all.
-      //  2. `_buildStrippedWrap` — fallback for shapes strategy 1 cannot size at
-      //     build time (column wrap, unknown-size items, unbounded width): a
-      //     plain `Wrap` whose `FlexItemWidget` children are replaced by
-      //     `flex-basis`/`min-width`/`max-width` sizing widgets.
-      flexWidget = LayoutBuilder(
-        builder: (context, constraints) {
-          final lines = _buildFlexLines(
-            constraints: constraints,
-            axis: axis,
-            isReverse: isReverse,
-            mainAxisSpacing: mainAxisSpacing,
-            crossAxisSpacing: crossAxisSpacing,
-            mainAxisAlignment: mainAxisAlignment,
-            crossAxisAlignment: crossAxisAlignment,
-            containerStyle: style,
-          );
-          if (lines != null) return lines;
-
-          final bool reverseWrap = style.flexWrap == FlexWrap.wrapReverse;
-          return Wrap(
-            direction: axis,
-            alignment: wrapAlignment,
-            crossAxisAlignment: wrapCrossAlignment,
-            spacing: mainAxisSpacing,
-            runSpacing: crossAxisSpacing,
-            verticalDirection:
-                reverseWrap ? VerticalDirection.up : VerticalDirection.down,
-            children: _buildStrippedWrapChildren(axis, constraints),
-          );
-        },
-      );
+      // Vertical wrap keeps `Wrap`: packing lines along an unbounded cross axis
+      // (width) is well defined, but the main axis (height) is not.
+      if (axis == Axis.horizontal) {
+        flexWidget = FlexWrapLayout(
+          spacing: mainAxisSpacing,
+          runSpacing: crossAxisSpacing,
+          justifyContent: style.justifyContent,
+          alignItems: style.alignItems,
+          reverseItems: isReverse,
+          reverseRuns: style.flexWrap == FlexWrap.wrapReverse,
+          children: _asFlexWrapItems(),
+        );
+      } else {
+        final bool reverseWrap = style.flexWrap == FlexWrap.wrapReverse;
+        flexWidget = Wrap(
+          direction: axis,
+          alignment: wrapAlignment,
+          crossAxisAlignment: wrapCrossAlignment,
+          spacing: mainAxisSpacing,
+          runSpacing: crossAxisSpacing,
+          verticalDirection:
+              reverseWrap ? VerticalDirection.up : VerticalDirection.down,
+          children: _buildVerticalWrapChildren(),
+        );
+      }
     }
 
     // Apply container styling (padding, margin, background, border)
@@ -292,236 +283,46 @@ class FlexContainerWidget extends StatelessWidget {
     }
   }
 
-  /// Builds a wrapping flex container as a `Column` of `Row`s, resolving CSS
-  /// `flex-basis` / `flex-grow` / `flex-shrink` / `min-width` / `max-width`
-  /// arithmetically.
+  /// Wraps each child in a [FlexWrapItem] so [RenderFlexWrap] can read its CSS.
   ///
-  /// Returns `null` when the container's shape cannot be resolved at build
-  /// time, in which case the caller falls back to a plain (flex-parent-data
-  /// free) `Wrap`.  Bailing out covers:
-  ///   * `flex-direction: column*` — the cross axis is height, which is
-  ///     unbounded here, so lines cannot be packed;
-  ///   * `row-reverse` / `wrap-reverse` — ordering is left to `Wrap`;
-  ///   * an unbounded/degenerate main-axis extent;
-  ///   * a child that is not a [FlexItemWidget], or one whose base size is not
-  ///     knowable at build time (no `flex-basis`/`width`/`min-width` and no
-  ///     `flex-grow` to size it from free space).
-  Widget? _buildFlexLines({
-    required BoxConstraints constraints,
-    required Axis axis,
-    required bool isReverse,
-    required double mainAxisSpacing,
-    required double crossAxisSpacing,
-    required MainAxisAlignment mainAxisAlignment,
-    required CrossAxisAlignment crossAxisAlignment,
-    required ComputedStyle containerStyle,
-  }) {
-    if (axis != Axis.horizontal || isReverse) return null;
-    if (containerStyle.flexWrap == FlexWrap.wrapReverse) return null;
-    if (children.isEmpty) return null;
-
-    final double available = constraints.maxWidth;
-    if (!available.isFinite || available <= 0) return null;
-
-    final items = <_ResolvedFlexItem>[];
-    for (final child in children) {
-      if (child is! FlexItemWidget) return null;
-      final ComputedStyle s = child.style;
-      final double grow = s.flexGrow ?? 0;
-      final double shrink = s.flexShrink ?? 1;
-      // CSS `flex-basis: auto` falls back to `width`; an unparsed basis
-      // (`0%`, `auto`) resolves to null and is treated as 0 for growable items.
-      final double? explicitBase = s.flexBasis ?? s.width ?? s.minWidth;
-      if (explicitBase == null && grow <= 0) return null;
-
-      final double minWidth = s.minWidth ?? 0;
-      final double maxWidth = s.maxWidth ?? double.infinity;
-      double base = explicitBase ?? 0;
-      base = base.clamp(minWidth, math.max(minWidth, maxWidth));
-      base = base.clamp(0.0, available);
-
-      items.add(_ResolvedFlexItem(
-        item: child,
-        base: base,
-        grow: grow,
-        shrink: shrink,
-        minWidth: math.min(minWidth, available),
-        maxWidth: maxWidth,
-      ));
-    }
-
-    // Pack items into lines: an item starts a new line when it no longer fits
-    // in the remaining main-axis extent (gaps included).
-    final lines = <List<_ResolvedFlexItem>>[];
-    var current = <_ResolvedFlexItem>[];
-    double currentExtent = 0;
-    for (final item in items) {
-      final double candidate = current.isEmpty
-          ? item.base
-          : currentExtent + mainAxisSpacing + item.base;
-      if (current.isNotEmpty && candidate > available + _epsilon) {
-        lines.add(current);
-        current = <_ResolvedFlexItem>[];
-        currentExtent = 0;
+  /// A child that never went through [FlexItemWidget] (no `flex-*` and no
+  /// `align-self`) still carries `min-width` / `max-width` / `width` that CSS
+  /// says must be honoured, so it is given its own style rather than dropped
+  /// through as an opaque box.
+  List<Widget> _asFlexWrapItems() {
+    final nodeChildren = node.children;
+    final items = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      final child = children[i];
+      if (child is FlexItemWidget) {
+        // Unflexed: RenderFlexWrap owns sizing, and `align-self` is applied by
+        // the render object's cross-axis placement rather than by an Align box.
+        items.add(FlexWrapItem(
+          style: child.style,
+          child: child.child,
+        ));
+        continue;
       }
-      currentExtent = current.isEmpty
-          ? item.base
-          : currentExtent + mainAxisSpacing + item.base;
-      current.add(item);
+      // Fall back to the source node's style when the widget carries none.
+      final style =
+          i < nodeChildren.length ? nodeChildren[i].style : ComputedStyle();
+      items.add(FlexWrapItem(style: style, child: child));
     }
-    if (current.isNotEmpty) lines.add(current);
-
-    final hasStretch = crossAxisAlignment == CrossAxisAlignment.stretch ||
-        items.any((i) => i.item.style.alignSelf == AlignItems.stretch);
-
-    final rows = <Widget>[];
-    for (var l = 0; l < lines.length; l++) {
-      if (l > 0 && crossAxisSpacing > 0) {
-        rows.add(SizedBox(height: crossAxisSpacing));
-      }
-      rows.add(_buildFlexLine(
-        line: lines[l],
-        available: available,
-        mainAxisSpacing: mainAxisSpacing,
-        mainAxisAlignment: mainAxisAlignment,
-        crossAxisAlignment: crossAxisAlignment,
-        useIntrinsicHeight: hasStretch,
-      ));
-    }
-
-    if (rows.length == 1) return rows.first;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: rows,
-    );
+    return items;
   }
 
-  /// Resolves one flex line's item widths and emits it as a [Row].
+  /// Children a vertical `Wrap` may legally receive.
   ///
-  /// Widths are computed here rather than delegated to `Expanded`/`Flexible`,
-  /// because CSS distributes *free space* in proportion to `flex-grow` on top
-  /// of each item's base size, whereas `Expanded` divides the whole line.
-  Widget _buildFlexLine({
-    required List<_ResolvedFlexItem> line,
-    required double available,
-    required double mainAxisSpacing,
-    required MainAxisAlignment mainAxisAlignment,
-    required CrossAxisAlignment crossAxisAlignment,
-    required bool useIntrinsicHeight,
-  }) {
-    final double gaps = mainAxisSpacing * (line.length - 1);
-    double totalBase = 0;
-    for (final i in line) {
-      totalBase += i.base;
-    }
-    final double free = available - gaps - totalBase;
-
-    final widths = <double>[];
-    if (free > _epsilon) {
-      double totalGrow = 0;
-      for (final i in line) {
-        totalGrow += i.grow;
-      }
-      for (final i in line) {
-        widths
-            .add(totalGrow > 0 ? i.base + free * (i.grow / totalGrow) : i.base);
-      }
-    } else if (free < -_epsilon) {
-      // Defensive only: line packing never emits a line wider than `available`
-      // (each base is clamped to it, and an item that would overflow starts a
-      // new line), so this branch is currently unreachable. It is kept so a
-      // future packing change degrades into CSS shrink rather than overflow.
-      double totalScaled = 0;
-      for (final i in line) {
-        totalScaled += i.shrink * i.base;
-      }
-      for (final i in line) {
-        widths.add(totalScaled > 0
-            ? i.base + free * ((i.shrink * i.base) / totalScaled)
-            : i.base);
-      }
-    } else {
-      for (final i in line) {
-        widths.add(i.base);
-      }
-    }
-
-    final rowChildren = <Widget>[];
-    for (var i = 0; i < line.length; i++) {
-      if (i > 0 && mainAxisSpacing > 0) {
-        rowChildren.add(SizedBox(width: mainAxisSpacing));
-      }
-      final resolved = line[i];
-      final double width = widths[i]
-          .clamp(
-              resolved.minWidth, math.max(resolved.minWidth, resolved.maxWidth))
-          .clamp(0.0, available)
-          .toDouble();
-      rowChildren.add(SizedBox(
-        width: width,
-        child: resolved.item.buildUnflexed(parentAxis: Axis.horizontal),
-      ));
-    }
-
-    Widget row = Row(
-      mainAxisAlignment: mainAxisAlignment,
-      crossAxisAlignment: crossAxisAlignment,
-      mainAxisSize: MainAxisSize.max,
-      textBaseline: crossAxisAlignment == CrossAxisAlignment.baseline
-          ? TextBaseline.alphabetic
-          : null,
-      children: rowChildren,
-    );
-    // No Expanded/Flexible is emitted above, so IntrinsicHeight is safe and is
-    // what bounds `align-self: stretch`'s SizedBox(height: infinity).
-    if (useIntrinsicHeight) row = IntrinsicHeight(child: row);
-    return row;
-  }
-
-  /// Fallback path: the children a plain `Wrap` may legally receive.
-  ///
-  /// Every [FlexItemWidget] is replaced by its unflexed child plus explicit
-  /// sizing from `flex-basis` / `min-width` / `max-width`, so no `Expanded` or
-  /// `Flexible` is ever attached to `WrapParentData` (issue #15).
-  List<Widget> _buildStrippedWrapChildren(
-      Axis axis, BoxConstraints constraints) {
+  /// Strips the `Expanded`/`Flexible` that [FlexItemWidget] would emit — `Wrap`
+  /// provides `WrapParentData` and asserts on flex parent data (issue #15) —
+  /// and replaces it with explicit `flex-basis` sizing on the main (vertical)
+  /// axis.
+  List<Widget> _buildVerticalWrapChildren() {
     return children.map<Widget>((child) {
       if (child is! FlexItemWidget) return child;
-      final ComputedStyle s = child.style;
-      // `align-self: stretch` builds SizedBox(height: infinity), which needs a
-      // bounded cross axis; a Wrap row does not provide one, so drop it here.
-      final Widget inner = child.buildUnflexed(
-        parentAxis: axis,
-        allowStretch: axis != Axis.horizontal,
-      );
-
-      if (axis != Axis.horizontal) {
-        final basis = s.flexBasis;
-        return basis != null ? SizedBox(height: basis, child: inner) : inner;
-      }
-
-      final double bound = constraints.maxWidth;
-      final double limit =
-          bound.isFinite && bound > 0 ? bound : double.infinity;
-      final double minWidth = math.min(s.minWidth ?? 0, limit);
-      final double maxWidth =
-          math.max(minWidth, math.min(s.maxWidth ?? double.infinity, limit));
-
-      final basis = s.flexBasis;
-      if (basis != null) {
-        return SizedBox(
-          width: basis.clamp(minWidth, maxWidth),
-          child: inner,
-        );
-      }
-      if (minWidth > 0 || maxWidth.isFinite) {
-        return ConstrainedBox(
-          constraints: BoxConstraints(minWidth: minWidth, maxWidth: maxWidth),
-          child: inner,
-        );
-      }
-      return inner;
+      final inner = child.buildUnflexed(parentAxis: Axis.vertical);
+      final basis = child.style.flexBasis;
+      return basis != null ? SizedBox(height: basis, child: inner) : inner;
     }).toList();
   }
 
@@ -663,30 +464,4 @@ class FlexItemWidget extends StatelessWidget {
         return Align(alignment: alignment, child: child);
     }
   }
-}
-
-/// Tolerance for main-axis extent comparisons, so that a line whose items sum
-/// to exactly the available width does not wrap because of float error.
-const double _epsilon = 0.01;
-
-/// One flex item with its CSS sizing inputs resolved to pixels.
-class _ResolvedFlexItem {
-  final FlexItemWidget item;
-
-  /// Base (pre-growth) main-axis size: `flex-basis`, else `width`, else
-  /// `min-width`, else 0 for growable items.
-  final double base;
-  final double grow;
-  final double shrink;
-  final double minWidth;
-  final double maxWidth;
-
-  const _ResolvedFlexItem({
-    required this.item,
-    required this.base,
-    required this.grow,
-    required this.shrink,
-    required this.minWidth,
-    required this.maxWidth,
-  });
 }
