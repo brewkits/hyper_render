@@ -301,6 +301,127 @@ extension RenderHyperBoxSelection on RenderHyperBox {
     return rects;
   }
 
+  /// Returns bounding boxes for characters in `[charStart, charEnd)` within
+  /// this RenderHyperBox's local coordinate space.
+  ///
+  /// Glyph x-boundaries come from [TextPainter.getBoxesForSelection] with
+  /// [ui.BoxHeightStyle.tight]; vertical bounds use `line.top` and
+  /// `line.height` to align highlights with the rendered line grid. Adjacent
+  /// text boxes merge unless an atomic fragment separates them.
+  List<Rect> getBoxesForCharRange(int charStart, int charEnd) {
+    if (charEnd <= charStart || _lines.isEmpty) return const [];
+    final rects = <Rect>[];
+
+    for (final line in _lines) {
+      final currentLineRects = <({Rect rect, int mergeGroup})>[];
+      var mergeGroup = 0;
+
+      for (final fragment in line.fragments) {
+        if (fragment.type == FragmentType.atomic) {
+          mergeGroup++;
+          continue;
+        }
+
+        if ((fragment.type == FragmentType.text ||
+                fragment.type == FragmentType.ruby) &&
+            fragment.text != null) {
+          final fragmentLength = fragment.text!.length;
+          final fragmentStart = fragment.globalOffset;
+          final fragmentEnd = fragmentStart + fragmentLength;
+
+          if (fragmentEnd > charStart && fragmentStart < charEnd) {
+            final selectStart = math.max(0, charStart - fragmentStart);
+            final selectEnd = math.min(fragmentLength, charEnd - fragmentStart);
+
+            final text = fragment.text!;
+            int visualStart = selectStart;
+            int visualEnd = selectEnd;
+            final ws = fragment.style.whiteSpace;
+            final isPreformatted =
+                ws == 'pre' || ws == 'pre-wrap' || ws == 'break-spaces';
+            if (!isPreformatted) {
+              if (fragmentStart <= charStart) {
+                while (visualStart < visualEnd && text[visualStart] == ' ') {
+                  visualStart++;
+                }
+              }
+              if (fragmentEnd >= charEnd) {
+                while (visualEnd > visualStart && text[visualEnd - 1] == ' ') {
+                  visualEnd--;
+                }
+              }
+            }
+
+            if (visualStart < visualEnd) {
+              if (fragment.type == FragmentType.ruby) {
+                final fragmentOffset = fragment.offset ?? Offset.zero;
+                currentLineRects.add((
+                  rect: Rect.fromLTWH(
+                    fragmentOffset.dx,
+                    line.top,
+                    fragment.width,
+                    line.height,
+                  ),
+                  mergeGroup: mergeGroup,
+                ));
+              } else {
+                final painter =
+                    _getTextPainter(text, _effectiveFragmentStyle(fragment));
+                final boxes = painter.getBoxesForSelection(
+                  TextSelection(
+                    baseOffset: visualStart,
+                    extentOffset: visualEnd,
+                  ),
+                  boxHeightStyle: ui.BoxHeightStyle.tight,
+                );
+
+                final fragmentOffset = fragment.offset ?? Offset.zero;
+                for (final box in boxes) {
+                  if (box.right <= box.left) continue;
+                  currentLineRects.add((
+                    rect: Rect.fromLTRB(
+                      fragmentOffset.dx + box.left,
+                      line.top,
+                      fragmentOffset.dx + box.right,
+                      line.top + line.height,
+                    ),
+                    mergeGroup: mergeGroup,
+                  ));
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (currentLineRects.isEmpty) continue;
+
+      currentLineRects.sort((a, b) => a.rect.left.compareTo(b.rect.left));
+      var current = currentLineRects.first.rect;
+      var currentGroup = currentLineRects.first.mergeGroup;
+      final maxGap = math.max(16.0, line.height);
+      for (var i = 1; i < currentLineRects.length; i++) {
+        final next = currentLineRects[i];
+        if (next.mergeGroup == currentGroup &&
+            next.rect.left <= current.right + maxGap) {
+          current = Rect.fromLTRB(
+            current.left,
+            math.min(current.top, next.rect.top),
+            math.max(current.right, next.rect.right),
+            math.max(current.bottom, next.rect.bottom),
+          );
+        } else {
+          rects.add(current);
+          current = next.rect;
+          currentGroup = next.mergeGroup;
+        }
+      }
+      rects.add(current);
+    }
+
+    return rects;
+  }
+
   /// Get the rect for start handle
   Rect? getStartHandleRect() {
     final rects = getSelectionRects();
