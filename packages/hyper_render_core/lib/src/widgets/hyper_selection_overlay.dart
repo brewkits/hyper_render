@@ -12,6 +12,74 @@ import 'hyper_render_widget.dart';
 /// Selection handle position
 enum _HandlePosition { start, end }
 
+/// Represents which end of a text selection an anchor is positioned at.
+enum HyperSelectionAnchorType {
+  /// The anchor marking the start of the text selection.
+  start,
+
+  /// The anchor marking the end of the text selection.
+  end,
+}
+
+/// Contextual details passed to [HyperSelectionAnchorBuilder] to render and
+/// position a custom selection start or end anchor.
+class HyperSelectionAnchorDetails {
+  /// Whether this is the start or end anchor.
+  final HyperSelectionAnchorType type;
+
+  /// The bounding box (in overlay Stack coordinates) of the selection glyph or line edge.
+  final Rect rect;
+
+  /// The exact reference point on the text where the anchor connects.
+  ///
+  /// - For [HyperSelectionAnchorType.start]: leading edge (e.g. `Offset(rect.left, rect.top)`).
+  /// - For [HyperSelectionAnchorType.end]: trailing edge (e.g. `Offset(rect.right, rect.bottom)`).
+  final Offset anchorPoint;
+
+  /// Whether this anchor is currently being actively dragged by the user.
+  final bool isDragging;
+
+  /// The configured handle color.
+  final Color handleColor;
+
+  /// Reading direction of the text / document (`TextDirection.ltr` or `TextDirection.rtl`).
+  final TextDirection textDirection;
+
+  /// The currently selected text substring, or null if empty.
+  final String? selectedText;
+
+  /// The built-in default handle widget, enabling builders to easily wrap,
+  /// animate, or decorate the default handle without rebuilding it from scratch.
+  final Widget defaultHandle;
+
+  /// Default computed top-left position in the Stack for backward-compatible teardrop handles.
+  final Offset defaultOffset;
+
+  /// Convenience getter for `type == HyperSelectionAnchorType.start`.
+  bool get isStart => type == HyperSelectionAnchorType.start;
+
+  /// Convenience getter for `type == HyperSelectionAnchorType.end`.
+  bool get isEnd => type == HyperSelectionAnchorType.end;
+
+  const HyperSelectionAnchorDetails({
+    required this.type,
+    required this.rect,
+    required this.anchorPoint,
+    required this.isDragging,
+    required this.handleColor,
+    required this.textDirection,
+    required this.selectedText,
+    required this.defaultHandle,
+    required this.defaultOffset,
+  });
+}
+
+/// Signature for building a custom selection start or end anchor widget.
+typedef HyperSelectionAnchorBuilder = Widget Function(
+  BuildContext context,
+  HyperSelectionAnchorDetails details,
+);
+
 /// Selection menu action
 class SelectionMenuAction {
   final IconData icon;
@@ -51,6 +119,10 @@ class HyperSelectionOverlay extends StatefulWidget {
 
   /// Selection handle color
   final Color handleColor;
+
+  /// Custom anchor builder for building custom start and end selection handles.
+  /// If null, default native teardrop handles are used.
+  final HyperSelectionAnchorBuilder? selectionAnchorBuilder;
 
   /// Menu background color (defaults to surface color)
   final Color? menuBackgroundColor;
@@ -111,6 +183,7 @@ class HyperSelectionOverlay extends StatefulWidget {
     this.widgetBuilder,
     this.selectable = true,
     this.handleColor = const Color(0xFF2196F3),
+    this.selectionAnchorBuilder,
     this.selectionColor,
     this.textDirection,
     this.menuBackgroundColor,
@@ -140,6 +213,10 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
 
   /// Whether context menu is showing
   bool _showContextMenu = false;
+
+  /// Whether start or end handle is currently being dragged
+  bool _draggingStart = false;
+  bool _draggingEnd = false;
 
   /// Selection handles positions and rects (cached to avoid redundant passes)
   Rect? _startHandleRect;
@@ -258,6 +335,8 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
     setState(() {
       _startHandleRect = null;
       _endHandleRect = null;
+      _draggingStart = false;
+      _draggingEnd = false;
     });
     _hideMenu();
   }
@@ -517,53 +596,118 @@ class HyperSelectionOverlayState extends State<HyperSelectionOverlay>
 
   Widget _buildHandle(_HandlePosition position, Rect rect) {
     final isStart = position == _HandlePosition.start;
+    final isDragging = isStart ? _draggingStart : _draggingEnd;
 
     // Native-style teardrop handle positioning
-    final left = isStart ? rect.left - 11 : rect.right - 11;
-    final top = isStart ? rect.top - 22 : rect.bottom;
+    final defaultLeft = isStart ? rect.left - 11 : rect.right - 11;
+    final defaultTop = isStart ? rect.top - 22 : rect.bottom;
+    final anchorPoint =
+        isStart ? Offset(rect.left, rect.top) : Offset(rect.right, rect.bottom);
+
+    final defaultHandle = CustomPaint(
+      size: const Size(22, 22),
+      painter: HyperTeardropHandlePainter(
+        color: widget.handleColor,
+        isStart: isStart,
+      ),
+    );
+
+    final Widget gestureChild = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onPanStart: (_) {
+        if (mounted) {
+          setState(() {
+            if (isStart) {
+              _draggingStart = true;
+            } else {
+              _draggingEnd = true;
+            }
+          });
+        }
+        _focusNode.requestFocus();
+        _hideMenu(); // Hide menu while dragging
+        // Freeze the ancestor scroll view so the handle drag wins the arena.
+        _releaseScrollHold();
+        _scrollHold =
+            Scrollable.maybeOf(context)?.position.hold(_releaseScrollHold);
+      },
+      onPanUpdate: (details) {
+        final renderBox = _renderBox;
+        if (renderBox == null) return;
+
+        final RenderBox? box =
+            _renderKey.currentContext?.findRenderObject() as RenderBox?;
+        if (box == null) return;
+
+        final localPosition = box.globalToLocal(details.globalPosition);
+        renderBox.updateSelectionFromHandle(isStart, localPosition);
+        _updateHandlePositions();
+        _autoScrollIfNearEdge(details.globalPosition);
+      },
+      onPanEnd: (_) {
+        if (mounted) {
+          setState(() {
+            if (isStart) {
+              _draggingStart = false;
+            } else {
+              _draggingEnd = false;
+            }
+          });
+        }
+        _releaseScrollHold(); // Restore scroll after handle drag completes.
+        if (hasSelection && widget.autoShowMenu) {
+          _showMenu();
+        }
+      },
+      onPanCancel: () {
+        if (mounted) {
+          setState(() {
+            if (isStart) {
+              _draggingStart = false;
+            } else {
+              _draggingEnd = false;
+            }
+          });
+        }
+        _releaseScrollHold();
+      },
+      child: widget.selectionAnchorBuilder != null
+          ? widget.selectionAnchorBuilder!(
+              context,
+              HyperSelectionAnchorDetails(
+                type: isStart
+                    ? HyperSelectionAnchorType.start
+                    : HyperSelectionAnchorType.end,
+                rect: rect,
+                anchorPoint: anchorPoint,
+                isDragging: isDragging,
+                handleColor: widget.handleColor,
+                textDirection:
+                    widget.textDirection ?? Directionality.of(context),
+                selectedText: selectedText,
+                defaultHandle: defaultHandle,
+                defaultOffset: Offset(defaultLeft, defaultTop),
+              ),
+            )
+          : defaultHandle,
+    );
+
+    if (widget.selectionAnchorBuilder != null) {
+      return Positioned(
+        left: anchorPoint.dx,
+        top: anchorPoint.dy,
+        child: FractionalTranslation(
+          translation:
+              isStart ? const Offset(-0.5, -1.0) : const Offset(-0.5, 0.0),
+          child: gestureChild,
+        ),
+      );
+    }
 
     return Positioned(
-      left: left,
-      top: top,
-      child: GestureDetector(
-        onPanStart: (_) {
-          _focusNode.requestFocus();
-          _hideMenu(); // Hide menu while dragging
-          // Freeze the ancestor scroll view so the handle drag wins the arena.
-          _releaseScrollHold();
-          _scrollHold =
-              Scrollable.maybeOf(context)?.position.hold(_releaseScrollHold);
-        },
-        onPanUpdate: (details) {
-          final renderBox = _renderBox;
-          if (renderBox == null) return;
-
-          final RenderBox? box =
-              _renderKey.currentContext?.findRenderObject() as RenderBox?;
-          if (box == null) return;
-
-          final localPosition = box.globalToLocal(details.globalPosition);
-          renderBox.updateSelectionFromHandle(isStart, localPosition);
-          _updateHandlePositions();
-          _autoScrollIfNearEdge(details.globalPosition);
-        },
-        onPanEnd: (_) {
-          _releaseScrollHold(); // Restore scroll after handle drag completes.
-          if (hasSelection && widget.autoShowMenu) {
-            _showMenu();
-          }
-        },
-        onPanCancel: () {
-          _releaseScrollHold();
-        },
-        child: CustomPaint(
-          size: const Size(22, 22),
-          painter: HyperTeardropHandlePainter(
-            color: widget.handleColor,
-            isStart: isStart,
-          ),
-        ),
-      ),
+      left: defaultLeft,
+      top: defaultTop,
+      child: gestureChild,
     );
   }
 
@@ -720,6 +864,7 @@ extension HyperRenderWidgetSelectionExtension on HyperRenderWidget {
     Color handleColor = const Color(0xFF2196F3),
     Widget Function(BuildContext, HyperSelectionOverlayState)?
         contextMenuBuilder,
+    HyperSelectionAnchorBuilder? selectionAnchorBuilder,
   }) {
     return HyperSelectionOverlay(
       document: document,
@@ -729,6 +874,7 @@ extension HyperRenderWidgetSelectionExtension on HyperRenderWidget {
       selectable: selectable,
       handleColor: handleColor,
       contextMenuBuilder: contextMenuBuilder,
+      selectionAnchorBuilder: selectionAnchorBuilder,
     );
   }
 }

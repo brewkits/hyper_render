@@ -204,6 +204,7 @@ class VirtualizedSelectionOverlay extends StatefulWidget {
     required this.handleColor,
     this.menuBackgroundColor,
     this.selectionMenuActionsBuilder,
+    this.selectionAnchorBuilder,
   });
 
   final VirtualizedSelectionController controller;
@@ -215,6 +216,10 @@ class VirtualizedSelectionOverlay extends StatefulWidget {
   /// so custom actions can call [controller.getSelectedText()].
   final List<SelectionMenuAction> Function(VirtualizedSelectionController)?
       selectionMenuActionsBuilder;
+
+  /// Custom anchor builder for building custom start and end selection handles.
+  /// If null, default native teardrop handles are used.
+  final HyperSelectionAnchorBuilder? selectionAnchorBuilder;
 
   @override
   State<VirtualizedSelectionOverlay> createState() =>
@@ -387,51 +392,104 @@ class _VirtualizedSelectionOverlayState
   }
 
   Widget _buildHandle({required bool isStart, required Rect rect}) {
-    final left = isStart ? rect.left - 11 : rect.right - 11;
-    final top = isStart ? rect.top - 22 : rect.bottom;
+    final isDragging = isStart ? _draggingStart : _draggingEnd;
+
+    final defaultLeft = isStart ? rect.left - 11 : rect.right - 11;
+    final defaultTop = isStart ? rect.top - 22 : rect.bottom;
+    final anchorPoint =
+        isStart ? Offset(rect.left, rect.top) : Offset(rect.right, rect.bottom);
+
+    final defaultHandle = CustomPaint(
+      size: const Size(22, 22),
+      painter: HyperTeardropHandlePainter(
+        color: widget.handleColor,
+        isStart: isStart,
+      ),
+    );
+
+    final Widget gestureChild = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onPanStart: (_) {
+        if (mounted) {
+          setState(() {
+            if (isStart) {
+              _draggingStart = true;
+            } else {
+              _draggingEnd = true;
+            }
+          });
+        }
+        _dismissMenu();
+        _releaseScrollHold();
+        _scrollHold =
+            Scrollable.maybeOf(context)?.position.hold(_releaseScrollHold);
+      },
+      onPanUpdate: (details) {
+        widget.controller
+            .updateSelectionFromHandle(isStart, details.globalPosition);
+        _autoScrollIfNearEdge(details.globalPosition);
+      },
+      onPanEnd: (_) {
+        if (mounted) {
+          setState(() {
+            if (isStart) {
+              _draggingStart = false;
+            } else {
+              _draggingEnd = false;
+            }
+          });
+        }
+        _releaseScrollHold();
+        if (widget.controller.hasSelection) _revealMenu();
+      },
+      onPanCancel: () {
+        if (mounted) {
+          setState(() {
+            if (isStart) {
+              _draggingStart = false;
+            } else {
+              _draggingEnd = false;
+            }
+          });
+        }
+        _releaseScrollHold();
+      },
+      child: widget.selectionAnchorBuilder != null
+          ? widget.selectionAnchorBuilder!(
+              context,
+              HyperSelectionAnchorDetails(
+                type: isStart
+                    ? HyperSelectionAnchorType.start
+                    : HyperSelectionAnchorType.end,
+                rect: rect,
+                anchorPoint: anchorPoint,
+                isDragging: isDragging,
+                handleColor: widget.handleColor,
+                textDirection: Directionality.of(context),
+                selectedText: widget.controller.getSelectedText(),
+                defaultHandle: defaultHandle,
+                defaultOffset: Offset(defaultLeft, defaultTop),
+              ),
+            )
+          : defaultHandle,
+    );
+
+    if (widget.selectionAnchorBuilder != null) {
+      return Positioned(
+        left: anchorPoint.dx,
+        top: anchorPoint.dy,
+        child: FractionalTranslation(
+          translation:
+              isStart ? const Offset(-0.5, -1.0) : const Offset(-0.5, 0.0),
+          child: gestureChild,
+        ),
+      );
+    }
 
     return Positioned(
-      left: left,
-      top: top,
-      child: GestureDetector(
-        onPanStart: (_) {
-          if (isStart) {
-            _draggingStart = true;
-          } else {
-            _draggingEnd = true;
-          }
-          _dismissMenu();
-          _releaseScrollHold();
-          _scrollHold =
-              Scrollable.maybeOf(context)?.position.hold(_releaseScrollHold);
-        },
-        onPanUpdate: (details) {
-          widget.controller
-              .updateSelectionFromHandle(isStart, details.globalPosition);
-          _autoScrollIfNearEdge(details.globalPosition);
-        },
-        onPanEnd: (_) {
-          if (isStart) {
-            _draggingStart = false;
-          } else {
-            _draggingEnd = false;
-          }
-          _releaseScrollHold();
-          if (widget.controller.hasSelection) _revealMenu();
-        },
-        onPanCancel: () {
-          _draggingStart = false;
-          _draggingEnd = false;
-          _releaseScrollHold();
-        },
-        child: CustomPaint(
-          size: const Size(22, 22),
-          painter: HyperTeardropHandlePainter(
-            color: widget.handleColor,
-            isStart: isStart,
-          ),
-        ),
-      ),
+      left: defaultLeft,
+      top: defaultTop,
+      child: gestureChild,
     );
   }
 

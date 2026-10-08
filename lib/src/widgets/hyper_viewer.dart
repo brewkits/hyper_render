@@ -260,6 +260,13 @@ class HyperViewer extends StatefulWidget {
   final Widget Function(BuildContext, HyperSelectionOverlayState)?
       selectionContextMenuBuilder;
 
+  /// Custom anchor builder for building custom start and end selection handles.
+  ///
+  /// If provided, replaces the default teardrop handles in both standard
+  /// and virtualized modes. Receives [HyperSelectionAnchorDetails] with
+  /// anchor coordinates, dragging status, text direction, and the default handle widget.
+  final HyperSelectionAnchorBuilder? selectionAnchorBuilder;
+
   /// **SECURITY**: Sanitize HTML to prevent XSS attacks.
   ///
   /// When enabled, removes dangerous tags (<script>, <iframe>) and
@@ -554,6 +561,7 @@ class HyperViewer extends StatefulWidget {
     this.selectionColor,
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
+    this.selectionAnchorBuilder,
     this.sanitize = true,
     this.textDirection,
     this.textScaler,
@@ -613,6 +621,7 @@ class HyperViewer extends StatefulWidget {
     this.selectionColor,
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
+    this.selectionAnchorBuilder,
     this.sanitize = true,
     this.textDirection,
     this.textScaler,
@@ -672,6 +681,7 @@ class HyperViewer extends StatefulWidget {
     this.selectionColor,
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
+    this.selectionAnchorBuilder,
     this.sanitize = true,
     this.textDirection,
     this.textScaler,
@@ -744,6 +754,7 @@ class HyperViewer extends StatefulWidget {
     this.selectionColor,
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
+    this.selectionAnchorBuilder,
     this.sanitize = true,
     this.textDirection,
     this.textScaler,
@@ -794,6 +805,7 @@ class HyperViewer extends StatefulWidget {
     this.selectionColor,
     this.selectionMenuActionsBuilder,
     this.selectionContextMenuBuilder,
+    this.selectionAnchorBuilder,
     this.textDirection,
     this.textScaler,
     this.semanticLabel,
@@ -2068,6 +2080,7 @@ class _HyperViewerState extends State<HyperViewer>
                       ? (ctrl) => widget.selectionMenuActionsBuilder!(
                           _VirtualizedSelectionAdapter(ctrl))
                       : null,
+              selectionAnchorBuilder: widget.selectionAnchorBuilder,
               child: listView,
             )
           : KeyedSubtree(key: _virtualizedStackKey, child: listView);
@@ -2107,6 +2120,7 @@ class _HyperViewerState extends State<HyperViewer>
                   .selectionMenuActionsBuilder!(_SyncSelectionAdapter(state))
               : null,
           contextMenuBuilder: widget.selectionContextMenuBuilder,
+          selectionAnchorBuilder: widget.selectionAnchorBuilder,
           showHandles: true,
           autoShowMenu: true,
           debugShowBounds: widget.debugShowHyperRenderBounds,
