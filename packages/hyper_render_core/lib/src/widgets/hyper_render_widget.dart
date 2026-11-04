@@ -653,7 +653,17 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     }
   }
 
+  /// Builds a flex or grid child, moved by its `position: relative` offset.
+  /// `Transform` shifts paint and hit-testing without affecting layout.
   static Widget? _buildFlexChild(
+      UDTNode node, HyperWidgetBuilder? widgetBuilder) {
+    final child = _buildFlexChildContent(node, widgetBuilder);
+    final shift = node.style.relativeOffset();
+    if (child == null || shift == Offset.zero) return child;
+    return Transform.translate(offset: shift, child: child);
+  }
+
+  static Widget? _buildFlexChildContent(
       UDTNode node, HyperWidgetBuilder? widgetBuilder) {
     // If it's text content, convert to Text widget
     if (node.type == NodeType.text) {

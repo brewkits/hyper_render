@@ -1761,6 +1761,49 @@ class StyleResolver {
         }
         break;
 
+      case 'position':
+        final position = value.trim().toLowerCase();
+        if (const {'static', 'relative', 'absolute', 'fixed', 'sticky'}
+            .contains(position)) {
+          style.position = position;
+          style.markExplicitlySet('position');
+        }
+        break;
+
+      // Offsets for `position: relative`. `auto` clears an earlier value; `%`
+      // and anything else unparseable leaves it alone.
+      case 'top':
+        if (_isAutoKeyword(value)) {
+          style.insetTop = null;
+        } else {
+          style.insetTop = _parseLength(value) ?? style.insetTop;
+        }
+        break;
+
+      case 'right':
+        if (_isAutoKeyword(value)) {
+          style.insetRight = null;
+        } else {
+          style.insetRight = _parseLength(value) ?? style.insetRight;
+        }
+        break;
+
+      case 'bottom':
+        if (_isAutoKeyword(value)) {
+          style.insetBottom = null;
+        } else {
+          style.insetBottom = _parseLength(value) ?? style.insetBottom;
+        }
+        break;
+
+      case 'left':
+        if (_isAutoKeyword(value)) {
+          style.insetLeft = null;
+        } else {
+          style.insetLeft = _parseLength(value) ?? style.insetLeft;
+        }
+        break;
+
       case 'box-sizing':
         final sizing = value.trim().toLowerCase();
         if (sizing == 'border-box' || sizing == 'content-box') {
@@ -3843,6 +3886,8 @@ class StyleResolver {
     }
     return false;
   }
+
+  bool _isAutoKeyword(String value) => value.trim().toLowerCase() == 'auto';
 
   double? _parseLength(String value) {
     value = value.trim().toLowerCase();

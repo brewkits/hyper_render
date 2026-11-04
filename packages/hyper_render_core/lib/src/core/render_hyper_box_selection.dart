@@ -41,7 +41,22 @@ extension RenderHyperBoxSelection on RenderHyperBox {
 
   // ── Hit testing ───────────────────────────────────────────────────────────
 
+  /// The topmost `position: relative` fragment painted at [position].
+  ///
+  /// Line lookups can't find these: a moved fragment stays listed on its
+  /// original line, which may be nowhere near where it is painted.
+  Fragment? _findDisplacedFragmentAt(Offset position) {
+    if (_displaced.isEmpty) return null;
+    for (final fragment in _displaced.keys.toList().reversed) {
+      final rect = fragment.rect;
+      if (rect != null && rect.contains(position)) return fragment;
+    }
+    return null;
+  }
+
   Fragment? _findFragmentAtPosition(Offset position) {
+    final displaced = _findDisplacedFragmentAt(position);
+    if (displaced != null) return displaced;
     final lineIdx = _lineIndexAt(position.dy);
     if (lineIdx < 0) return null;
     for (final fragment in _lines[lineIdx].fragments) {
@@ -52,6 +67,18 @@ extension RenderHyperBoxSelection on RenderHyperBox {
   }
 
   int _getCharacterPositionAtOffset(Offset position) {
+    final displaced = _findDisplacedFragmentAt(position);
+    if (displaced != null &&
+        displaced.text != null &&
+        (displaced.type == FragmentType.text ||
+            displaced.type == FragmentType.ruby)) {
+      final painter =
+          _getTextPainter(displaced.text!, _effectiveFragmentStyle(displaced));
+      final localX = position.dx - displaced.offset!.dx;
+      return displaced.globalOffset +
+          painter.getPositionForOffset(Offset(localX, 0)).offset;
+    }
+
     // Selection drag is lenient — a finger that drifts above the first
     // line or into the margin below the last line should still extend
     // the selection to the nearest edge, not freeze.
@@ -68,6 +95,12 @@ extension RenderHyperBoxSelection on RenderHyperBox {
       if ((fragment.type == FragmentType.text && fragment.text != null) ||
           fragment.type == FragmentType.ruby) {
         final text = fragment.text!;
+        // Painted elsewhere, so its rect says nothing about this line. Keep
+        // counting its characters for the end-of-line fallback.
+        if (_displaced.containsKey(fragment)) {
+          lastOffset = fragment.globalOffset + text.length;
+          continue;
+        }
         final fragmentOffset = fragment.offset ?? Offset.zero;
         // On a justify line the glyphs are widened by word-spacing, so both
         // the hit rect and the painter must use the justified width/style.
@@ -351,11 +384,16 @@ extension RenderHyperBoxSelection on RenderHyperBox {
           continue;
         }
 
+        // A moved fragment no longer sits on the line grid, so it must not
+        // merge with its neighbours on either side.
+        final shift = _displaced[fragment];
+        if (shift != null) mergeGroup++;
+
         final fragmentBoxes = _getFragmentBoxesForRange(
           fragment: fragment,
           rangeStart: charStart,
           rangeEnd: charEnd,
-          lineTop: line.top,
+          lineTop: line.top + (shift?.dy ?? 0),
           lineHeight: line.height,
           trimBoundarySpacesOnly: true,
         );
@@ -363,6 +401,8 @@ extension RenderHyperBoxSelection on RenderHyperBox {
         for (final box in fragmentBoxes) {
           currentLineRects.add((rect: box, mergeGroup: mergeGroup));
         }
+
+        if (shift != null) mergeGroup++;
       }
 
       if (currentLineRects.isEmpty) continue;

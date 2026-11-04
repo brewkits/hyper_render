@@ -595,8 +595,35 @@ class ComputedStyle {
   /// CSS overflow-y
   HyperOverflow overflowY;
 
-  /// CSS position (simplified)
+  /// CSS position (simplified). Only `relative` changes rendering; every other
+  /// value lays out as `static`. Not inherited.
   String position;
+
+  /// CSS `top`. Null means `auto`. Lengths only; not inherited.
+  double? insetTop;
+
+  /// CSS `right`. Null means `auto`. Lengths only; not inherited.
+  double? insetRight;
+
+  /// CSS `bottom`. Null means `auto`. Lengths only; not inherited.
+  double? insetBottom;
+
+  /// CSS `left`. Null means `auto`. Lengths only; not inherited.
+  double? insetLeft;
+
+  /// How far `position: relative` moves this element from its in-flow place.
+  ///
+  /// [Offset.zero] unless the element is `relative`. `top` wins over `bottom`.
+  /// `left` wins over `right`, except that in a right-to-left context ([rtl])
+  /// `right` wins, per CSS 2.1 §9.4.3.
+  Offset relativeOffset({bool rtl = false}) {
+    if (position != 'relative') return Offset.zero;
+    final dy = insetTop ?? (insetBottom == null ? 0.0 : -insetBottom!);
+    final fromLeft = insetLeft;
+    final fromRight = insetRight == null ? null : -insetRight!;
+    final dx = (rtl ? (fromRight ?? fromLeft) : (fromLeft ?? fromRight)) ?? 0.0;
+    return Offset(dx, dy);
+  }
 
   /// CSS float (left, right, none)
   HyperFloat float;
@@ -814,6 +841,10 @@ class ComputedStyle {
     this.overflowX = HyperOverflow.visible,
     this.overflowY = HyperOverflow.visible,
     this.position = 'static',
+    this.insetTop,
+    this.insetRight,
+    this.insetBottom,
+    this.insetLeft,
     this.boxSizing = HyperBoxSizing.contentBox,
     this.float = HyperFloat.none,
     this.clear = HyperClear.none,
@@ -998,6 +1029,10 @@ class ComputedStyle {
     HyperOverflow? overflowX,
     HyperOverflow? overflowY,
     String? position,
+    double? insetTop,
+    double? insetRight,
+    double? insetBottom,
+    double? insetLeft,
     HyperBoxSizing? boxSizing,
     HyperFloat? float,
     HyperClear? clear,
@@ -1107,6 +1142,10 @@ class ComputedStyle {
       overflowX: overflowX ?? this.overflowX,
       overflowY: overflowY ?? this.overflowY,
       position: position ?? this.position,
+      insetTop: insetTop ?? this.insetTop,
+      insetRight: insetRight ?? this.insetRight,
+      insetBottom: insetBottom ?? this.insetBottom,
+      insetLeft: insetLeft ?? this.insetLeft,
       boxSizing: boxSizing ?? this.boxSizing,
       float: float ?? this.float,
       clear: clear ?? this.clear,

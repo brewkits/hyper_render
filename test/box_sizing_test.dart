@@ -4,7 +4,6 @@
 // Covers in-flow canvas blocks, which is the scope documented in
 // doc/CSS_PROPERTIES_MATRIX.md and doc/LIMITATIONS.md.
 
-import 'package:flutter/material.dart' hide isBlue;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_render/hyper_render.dart';
 

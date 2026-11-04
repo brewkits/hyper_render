@@ -27,6 +27,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     if (_document == null) return;
 
     _fragments = [];
+    _hasRelative = false;
     _lastBlockMarginBottom = 0;
     _fragmentsVersion++; // signal that line layout must be redone
     // Reset list item counters so ordered-list numbering restarts from 1
@@ -58,6 +59,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // email pre-headers, conditional CMS blocks and tracking wrappers use
     // `display: none`, so the text became visible and selectable.
     if (node.style.display == DisplayType.none) return;
+    if (node.style.position == 'relative') _hasRelative = true;
 
     switch (node.type) {
       case NodeType.document:
@@ -769,6 +771,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // Built by this pass, so a re-run (width change, details toggle, intrinsic
     // query) must start empty or the previous pass's rects keep painting.
     _blockDecorations.clear();
+    // Line layout rewrites every offset, so earlier shifts no longer apply.
+    _displaced.clear();
 
     // Reset layout caches
     _cachedAvailableWidth = null;
@@ -2548,6 +2552,47 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
   /// Step 4: Position fragments within lines (baseline alignment)
   /// Handles both LTR (left-to-right) and RTL (right-to-left) text directions
+  /// Applies `position: relative`: moves each element's fragments and block
+  /// decoration by its offset plus its relative ancestors' offsets.
+  ///
+  /// Runs after line layout and positioning, so sibling layout never sees the
+  /// shift. Lines, floats' wrap areas and anchors keep their in-flow values.
+  /// Child widgets follow, since [_layoutChildren] reads `fragment.offset`.
+  void _applyRelativeOffsets() {
+    _displaced.clear();
+    if (!_hasRelative) return;
+
+    final shifts = <UDTNode, Offset>{};
+    Offset shiftOf(UDTNode node) {
+      final cached = shifts[node];
+      if (cached != null) return cached;
+      final parent = node.parent;
+      final shift = node.style.relativeOffset(rtl: isRTL) +
+          (parent == null ? Offset.zero : shiftOf(parent));
+      shifts[node] = shift;
+      return shift;
+    }
+
+    void move(Fragment fragment) {
+      final offset = fragment.offset;
+      if (offset == null || _displaced.containsKey(fragment)) return;
+      final shift = shiftOf(fragment.sourceNode);
+      if (shift == Offset.zero) return;
+      fragment.offset = offset + shift;
+      _displaced[fragment] = shift;
+    }
+
+    // Both lists: a fragment split across lines exists only in `line.fragments`,
+    // and block-level ones such as list markers only in `_fragments`.
+    _fragments.forEach(move);
+    for (final line in _lines) {
+      line.fragments.forEach(move);
+    }
+    for (final decoration in _blockDecorations) {
+      decoration.rect = decoration.rect.shift(shiftOf(decoration.node));
+    }
+  }
+
   void _positionFragments() {
     // Tracks blocks whose first line has already consumed their `text-indent`,
     // so only the FIRST line of each block is indented (CSS semantics). Lines

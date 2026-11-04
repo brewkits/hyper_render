@@ -62,6 +62,7 @@ Future<void> pumpHtml(
   String html, {
   double width = 400,
   String? customCss,
+  bool settle = true,
 }) async {
   await tester.binding.setSurfaceSize(const Size(400, 600));
   tester.view.devicePixelRatio = 1;
@@ -91,7 +92,12 @@ Future<void> pumpHtml(
       ),
     ),
   ));
-  await tester.pumpAndSettle();
+  // A canvas animation keeps scheduling frames, so pumpAndSettle can't return.
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump();
+  }
 }
 
 /// Every RenderHyperBox under [root] (default: the probe boundary).

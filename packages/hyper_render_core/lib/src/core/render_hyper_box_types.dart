@@ -165,7 +165,9 @@ class _InlineDecoration {
 /// Block decoration info for painting border-left, background on block elements
 class _BlockDecoration {
   final UDTNode node;
-  final Rect rect;
+
+  /// Mutable only so `position: relative` can shift it after line layout.
+  Rect rect;
   final Color? backgroundColor;
   final Gradient? backgroundGradient;
   final Color? borderLeftColor;

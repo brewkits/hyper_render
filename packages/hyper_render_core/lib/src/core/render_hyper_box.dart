@@ -200,6 +200,23 @@ class RenderHyperBox extends RenderBox
   /// Block decorations for painting border-left, backgrounds
   final List<_BlockDecoration> _blockDecorations = [];
 
+  /// Whether the document has any `position: relative` element. Set during
+  /// tokenization so documents without one skip [_applyRelativeOffsets].
+  bool _hasRelative = false;
+
+  /// Fragments moved away from their line by `position: relative`, with how far
+  /// they moved. They stay listed on that line (document order, selection), so
+  /// anything that finds a fragment by line must check this map as well.
+  final Map<Fragment, Offset> _displaced = Map.identity();
+
+  /// Clips painting to this box while [_displaced] is non-empty. See [_paint].
+  final LayerHandle<ClipRectLayer> _relativeClipLayer =
+      LayerHandle<ClipRectLayer>();
+
+  /// Whether `position: relative` moved any content in the last layout.
+  @visibleForTesting
+  bool get debugHasDisplacedContent => _displaced.isNotEmpty;
+
   /// Runtime animation state for every node currently carrying a resolvable
   /// `animation-name` (canvas-painted block animation — see
   /// render_hyper_box_animation.dart). Rebuilt on every [performLayout].
@@ -726,6 +743,7 @@ class RenderHyperBox extends RenderBox
 
   @override
   void dispose() {
+    _relativeClipLayer.layer = null;
     // Cancel pending shimmer frame callback to prevent callbacks on a disposed
     // RenderObject. SchedulerBinding.cancelFrameCallbackWithId is safe to call
     // with an id that has already fired (it's a no-op in that case).
@@ -1281,6 +1299,9 @@ class RenderHyperBox extends RenderBox
         // Step 4: Position fragments within lines (baseline alignment)
         _positionFragments();
 
+        // Step 4.5: Apply position: relative, once line positions are final.
+        _applyRelativeOffsets();
+
         // Step 5: Build inline decorations
         _buildInlineDecorations();
 
@@ -1296,6 +1317,7 @@ class RenderHyperBox extends RenderBox
         // text content and constraint width are both unchanged.
         _performLineLayout();
         _positionFragments();
+        _applyRelativeOffsets();
         _buildInlineDecorations();
         _buildCharacterMapping();
       }
@@ -1326,7 +1348,9 @@ class RenderHyperBox extends RenderBox
           final offset = fragment.offset;
           final measured = fragment.measuredSize;
           if (offset != null && measured != null) {
-            final bottom = offset.dy + measured.height + 4; // +4 = block margin
+            // In-flow position: `position: relative` must not change the height.
+            final flowY = offset.dy - (_displaced[fragment]?.dy ?? 0);
+            final bottom = flowY + measured.height + 4; // +4 = block margin
             if (bottom > height) height = bottom;
           }
         }
@@ -1428,6 +1452,25 @@ class RenderHyperBox extends RenderBox
   }
 
   void _paint(PaintingContext context, Offset offset) {
+    if (_displaced.isEmpty) {
+      _relativeClipLayer.layer = null;
+      _paintContents(context, offset);
+      return;
+    }
+    // `position: relative` can move content anywhere, and the sanitizer doesn't
+    // filter CSS properties, so untrusted HTML must not be able to draw over
+    // the host app. Content outside this box isn't hit-testable either, so
+    // what's visible stays what's tappable.
+    _relativeClipLayer.layer = context.pushClipRect(
+      needsCompositing,
+      offset,
+      Offset.zero & size,
+      _paintContents,
+      oldLayer: _relativeClipLayer.layer,
+    );
+  }
+
+  void _paintContents(PaintingContext context, Offset offset) {
     try {
       final canvas = context.canvas;
 

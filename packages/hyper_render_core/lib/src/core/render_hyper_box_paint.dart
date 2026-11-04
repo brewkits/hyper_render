@@ -711,22 +711,36 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       }
 
       for (final fragment in line.fragments) {
-        // Animated blocks are painted (with interpolated color/opacity/
-        // transform) by _paintAnimatedBlocks instead — skip here so they're
-        // not drawn twice at their static style. List markers are
-        // deliberately NOT skipped: block-level canvas animation covers text
-        // content only for now, so a marker stays static even inside an
-        // animating block (documented v1 scope limit).
-        final owner = _nearestAnimatedAncestor(fragment.sourceNode);
-        if (owner != null && _paintedThisFrameByAnimation.contains(owner)) {
-          continue;
-        }
-        if (fragment.type == FragmentType.text && fragment.text != null) {
-          _paintTextFragment(canvas, offset, fragment);
-        } else if (fragment.type == FragmentType.ruby) {
-          _paintRubyFragment(canvas, offset, fragment);
-        }
+        // Painted below: its line says nothing about where it is on screen.
+        if (_displaced.containsKey(fragment)) continue;
+        _paintLineFragment(canvas, offset, fragment);
       }
+    }
+
+    // `position: relative` text, culled by its own rect. Painting it last also
+    // puts it above normal text, as CSS stacks positioned content.
+    for (final fragment in _displaced.keys) {
+      final rect = fragment.rect;
+      if (rect == null || !rect.overlaps(visibleRect)) continue;
+      _paintLineFragment(canvas, offset, fragment);
+    }
+  }
+
+  void _paintLineFragment(Canvas canvas, Offset offset, Fragment fragment) {
+    // Animated blocks are painted (with interpolated color/opacity/
+    // transform) by _paintAnimatedBlocks instead — skip here so they're
+    // not drawn twice at their static style. List markers are
+    // deliberately NOT skipped: block-level canvas animation covers text
+    // content only for now, so a marker stays static even inside an
+    // animating block (documented v1 scope limit).
+    final owner = _nearestAnimatedAncestor(fragment.sourceNode);
+    if (owner != null && _paintedThisFrameByAnimation.contains(owner)) {
+      return;
+    }
+    if (fragment.type == FragmentType.text && fragment.text != null) {
+      _paintTextFragment(canvas, offset, fragment);
+    } else if (fragment.type == FragmentType.ruby) {
+      _paintRubyFragment(canvas, offset, fragment);
     }
   }
 
