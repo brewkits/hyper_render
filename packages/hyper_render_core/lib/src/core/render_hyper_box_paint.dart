@@ -218,8 +218,9 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           backgroundColorOverride == null) {
         _fillPaint.shader =
             decoration.backgroundGradient!.createShader(adjustedRect);
-        _fillPaint.color =
-            const Color(0x00000000); // reset color (unused when shader set)
+        // Opaque: a shader is multiplied by the paint's alpha, so a transparent
+        // colour here paints nothing at all.
+        _fillPaint.color = const Color(0xFF000000);
       } else {
         _fillPaint.shader = null;
         _fillPaint.color = backgroundColor!;
@@ -331,7 +332,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           if (decoration.style.backgroundGradient != null) {
             _fillPaint.shader =
                 decoration.style.backgroundGradient!.createShader(adjustedRect);
-            _fillPaint.color = const Color(0x00000000);
+            _fillPaint.color = const Color(0xFF000000); // see block path above
           } else {
             _fillPaint.shader = null;
             _fillPaint.color = decoration.style.backgroundColor!;

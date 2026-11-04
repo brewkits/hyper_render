@@ -221,10 +221,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         style.maxWidthPercent != null ||
         style.minWidth != null;
     final hasPadding = style.padding != EdgeInsets.zero;
+    // The block-start fragment also carries the decoration, so a first block
+    // styled only with a background or border must keep it too. Mirrors the
+    // `hasBackground || hasBorderLeft` test in _performLineLayout.
+    final hasDecoration = style.backgroundColor != null ||
+        style.backgroundGradient != null ||
+        (style.borderColor != null && style.borderWidth.left > 0);
     if (effectiveMarginTop > 0 ||
         _fragments.isNotEmpty ||
         hasWidthConstraint ||
         hasPadding ||
+        hasDecoration ||
         style.textOverflow == TextOverflow.ellipsis) {
       _fragments.add(_BlockStartFragment(
         sourceNode: node,
@@ -758,6 +765,9 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     _lines.clear();
     _leftFloats.clear();
     _rightFloats.clear();
+    // Built by this pass, so a re-run (width change, details toggle, intrinsic
+    // query) must start empty or the previous pass's rects keep painting.
+    _blockDecorations.clear();
 
     // Reset layout caches
     _cachedAvailableWidth = null;
