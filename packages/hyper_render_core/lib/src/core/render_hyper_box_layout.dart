@@ -219,7 +219,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         style.widthPercent != null ||
         style.maxWidth != null ||
         style.maxWidthPercent != null ||
-        style.minWidth != null;
+        style.minWidth != null ||
+        style.minWidthPercent != null;
     final hasPadding = style.padding != EdgeInsets.zero;
     // The block-start fragment also carries the decoration, so a first block
     // styled only with a background or border must keep it too. Mirrors the
@@ -1012,34 +1013,58 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         // CSS — is `_maxWidth − parentLeftInset − parentRightInset`, i.e. the
         // stack tops BEFORE this block's own padding was added.
         final st = fragment.style;
+        // Right edge of this block's painted box, when `width` & co. narrow it.
+        // Null keeps the default: the full width of the containing block.
+        double? constrainedBoxRight;
         if (st.width != null ||
             st.widthPercent != null ||
             st.maxWidth != null ||
             st.maxWidthPercent != null ||
-            st.minWidth != null) {
+            st.minWidth != null ||
+            st.minWidthPercent != null) {
           // Floored at 0: cumulative padding can exceed the viewport width
           // (e.g. `padding:300px` inside a 200px container), which would make
           // this negative and turn a `%` width into a negative target.
           final containerContent = math.max(
               0.0, _maxWidth - leftPaddingStack.last - rightPaddingStack.last);
+          // Flex and grid containers draw their own padding and border in a
+          // child widget, so neither applies to this canvas-side box.
+          final isWidgetBox =
+              st.display == DisplayType.flex || st.display == DisplayType.grid;
+          final borderSum =
+              isWidgetBox ? 0.0 : st.borderWidth.left + st.borderWidth.right;
+          // `border-box` widths include padding and border; the line breaker
+          // needs the content width that leaves.
+          final boxExtras = st.boxSizing == HyperBoxSizing.borderBox
+              ? fragment.paddingLeft + fragment.paddingRight + borderSum
+              : 0.0;
+          double toContent(double specified) =>
+              math.max(0.0, specified - boxExtras);
+
           // Default target: this block's own content width (full available).
           var target = _maxWidth - newLeftPadding - newRightPadding;
 
           // Explicit width (absolute or %) sets the target outright.
           if (st.width != null) {
-            target = st.width!;
+            target = toContent(st.width!);
           } else if (st.widthPercent != null) {
-            target = containerContent * st.widthPercent!;
+            target = toContent(containerContent * st.widthPercent!);
           }
           // max-width caps it (absolute wins over % if both somehow set).
           final maxW = st.maxWidth ??
               (st.maxWidthPercent != null
                   ? containerContent * st.maxWidthPercent!
                   : null);
-          if (maxW != null && target > maxW) target = maxW;
+          if (maxW != null && target > toContent(maxW)) {
+            target = toContent(maxW);
+          }
           // min-width raises it — and wins over max-width per CSS.
-          if (st.minWidth != null && target < st.minWidth!) {
-            target = st.minWidth!;
+          final minW = st.minWidth ??
+              (st.minWidthPercent != null
+                  ? containerContent * st.minWidthPercent!
+                  : null);
+          if (minW != null && target < toContent(minW)) {
+            target = toContent(minW);
           }
           // Clamp into the available content box: this single-column flow model
           // has no per-block horizontal overflow, so a target wider than the
@@ -1053,6 +1078,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           final avail =
               math.max(0.0, _maxWidth - newLeftPadding - newRightPadding);
           target = target.clamp(0.0, avail);
+
+          // Borders don't reserve line-breaker space yet, so they are added
+          // here only for the painted box. Capped so a box never paints past
+          // its containing block.
+          if (!isWidgetBox) {
+            constrainedBoxRight = math.min(
+              _maxWidth - rightPaddingStack.last,
+              newLeftPadding + target + fragment.paddingRight + borderSum,
+            );
+          }
           newRightPadding = _maxWidth - newLeftPadding - target;
         }
 
@@ -1077,9 +1112,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           final blockLeftX = leftPaddingStack.length > 1
               ? leftPaddingStack[leftPaddingStack.length - 2]
               : 0.0;
-          final blockRightX = rightPaddingStack.length > 1
-              ? _maxWidth - rightPaddingStack[rightPaddingStack.length - 2]
-              : _maxWidth;
+          final blockRightX = constrainedBoxRight ??
+              (rightPaddingStack.length > 1
+                  ? _maxWidth - rightPaddingStack[rightPaddingStack.length - 2]
+                  : _maxWidth);
           // startY is BEFORE padding (current position includes padding, so subtract it)
           final blockStartY = currentY - fragment.paddingTop;
           activeBlocks.add((fragment, blockStartY, blockLeftX, blockRightX));

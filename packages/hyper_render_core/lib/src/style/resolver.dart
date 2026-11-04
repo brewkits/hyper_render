@@ -1761,6 +1761,16 @@ class StyleResolver {
         }
         break;
 
+      case 'box-sizing':
+        final sizing = value.trim().toLowerCase();
+        if (sizing == 'border-box' || sizing == 'content-box') {
+          style.boxSizing = sizing == 'border-box'
+              ? HyperBoxSizing.borderBox
+              : HyperBoxSizing.contentBox;
+          style.markExplicitlySet('box-sizing');
+        }
+        break;
+
       case 'text-indent':
         // `%` is relative to the containing block's content width and is
         // resolved at layout time (stored on textIndentPercent); absolute

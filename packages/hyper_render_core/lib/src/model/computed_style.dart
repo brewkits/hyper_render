@@ -115,6 +115,16 @@ enum HyperBorderStyle {
   outset,
 }
 
+/// CSS `box-sizing`: whether `width` / `min-width` / `max-width` size the
+/// content box or also include padding and border.
+enum HyperBoxSizing {
+  /// `content-box` (default): the width is the content width.
+  contentBox,
+
+  /// `border-box`: the width includes horizontal padding and border.
+  borderBox,
+}
+
 /// Border model for CSS `border-collapse` property.
 enum HyperBorderCollapse {
   /// Adjacent cell borders merge into a single line. This is HyperRender's
@@ -392,6 +402,9 @@ class ComputedStyle {
 
   /// CSS max-width
   double? maxWidth;
+
+  /// CSS box-sizing. Not inherited.
+  HyperBoxSizing boxSizing;
 
   /// CSS min-height
   double? minHeight;
@@ -801,6 +814,7 @@ class ComputedStyle {
     this.overflowX = HyperOverflow.visible,
     this.overflowY = HyperOverflow.visible,
     this.position = 'static',
+    this.boxSizing = HyperBoxSizing.contentBox,
     this.float = HyperFloat.none,
     this.clear = HyperClear.none,
     this.zIndex,
@@ -984,6 +998,7 @@ class ComputedStyle {
     HyperOverflow? overflowX,
     HyperOverflow? overflowY,
     String? position,
+    HyperBoxSizing? boxSizing,
     HyperFloat? float,
     HyperClear? clear,
     int? zIndex,
@@ -1092,6 +1107,7 @@ class ComputedStyle {
       overflowX: overflowX ?? this.overflowX,
       overflowY: overflowY ?? this.overflowY,
       position: position ?? this.position,
+      boxSizing: boxSizing ?? this.boxSizing,
       float: float ?? this.float,
       clear: clear ?? this.clear,
       zIndex: zIndex ?? this.zIndex,
