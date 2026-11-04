@@ -513,7 +513,7 @@ void main() {
           '<div>AAAA</div>'
           '<div style="${_rel}top:-16px;left:100px">BBBB</div><div>CCCC</div>');
       final box = hyperBoxes(tester).first;
-      box.selection = HyperTextSelection(start: 0, end: 12 + 2);
+      box.selection = const HyperTextSelection(start: 0, end: 12 + 2);
       final text = box.getSelectedText()!;
       expect(text.replaceAll('\n', ''), 'AAAABBBBCCCC');
     });
@@ -550,6 +550,49 @@ void main() {
   });
 
   group('combinations', () {
+    testWidgets('virtualized mode moves content inside its chunk',
+        (tester) async {
+      Future<Offset> position(String style) async {
+        // Virtualized builds a ListView, so no scroll view around it.
+        await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              key: probeBoundaryKey,
+              width: 400,
+              height: 600,
+              child: HyperViewer(
+                html: '<p>Z</p><div style="$style">AAA</div>'
+                    '<p>Z</p><p>Z</p><p>Z</p>',
+                mode: HyperRenderMode.virtualized,
+              ),
+            ),
+          ),
+        ));
+        // The loading skeleton shimmers until parsing ends, so it never settles.
+        await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
+        final box = hyperBoxes(tester).firstWhere(
+            (b) => b.debugLineFragments().any((f) => f['text'] == 'AAA'));
+        final f =
+            box.debugLineFragments().firstWhere((f) => f['text'] == 'AAA');
+        return Offset(f['offsetX'] as double, f['offsetY'] as double);
+      }
+
+      final plain = await position('');
+      final moved = await position('${_rel}left:20px;top:10px');
+      expect(moved - plain, const Offset(20, 10));
+    });
+
+    testWidgets('a table cell ignores position, as documented', (tester) async {
+      const html = '<table><tr><td style="%S">cell</td></tr></table>';
+      await pumpHtml(tester, html.replaceFirst('%S', ''));
+      final before = tester.getTopLeft(find.textContaining('cell'));
+      await pumpHtml(tester, html.replaceFirst('%S', '${_rel}left:20px'));
+      expect(tester.getTopLeft(find.textContaining('cell')), before);
+    });
+
     testWidgets('an animated relative block paints and stays in place',
         (tester) async {
       await pumpHtml(

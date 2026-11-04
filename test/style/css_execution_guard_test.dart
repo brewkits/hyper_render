@@ -104,6 +104,24 @@ void main() {
       expect(half, greaterThan(base));
     });
 
+    testWidgets('box-sizing:border-box narrows the content', (tester) async {
+      final word = 'W' * 60;
+      final content = await _height(
+          tester, '<div style="width:200px;padding:20px">$word</div>');
+      final border = await _height(
+          tester,
+          '<div style="width:200px;padding:20px;box-sizing:border-box">$word'
+          '</div>');
+      expect(border, greaterThan(content));
+    });
+
+    testWidgets('position:relative shifts the fragment', (tester) async {
+      final plain = await _firstTextX(tester, '<div>AAA</div>');
+      final moved = await _firstTextX(
+          tester, '<div style="position:relative;left:30px">AAA</div>');
+      expect(moved, plain + 30);
+    });
+
     testWidgets('text-align:center shifts first fragment right',
         (tester) async {
       final left = await _firstTextX(tester, '<p>short</p>');

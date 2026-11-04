@@ -97,7 +97,7 @@ or the `fallbackBuilder` parameter to delegate to a WebView or other renderer.
 | `border` | width, style, color |
 | `border-style` | solid, dashed, dotted, double, none |
 | `border-radius` | px, % |
-| `box-sizing` | **Not applied** — `width` always sizes the content box |
+| `box-sizing` | content-box, border-box on in-flow blocks ([limits](LIMITATIONS.md)) |
 | `overflow` | visible, hidden |
 
 ### Layout
@@ -107,7 +107,7 @@ or the `fallbackBuilder` parameter to delegate to a WebView or other renderer.
 | `display` | block, inline, inline-block, none, flex, grid, table |
 | `float` | left, right, none (Full wrapping support) |
 | `clear` | left, right, both, none |
-| `position` | **Not applied** — `static` flow only (no `relative` offsets, `absolute`, `fixed`) |
+| `position` | `static`, `relative` with length offsets ([limits](LIMITATIONS.md)). `absolute` and `fixed` lay out as `static` |
 | Flexbox | Containers and items, incl. wrapping flex on a dedicated `RenderFlexWrap` (v1.9.0). Not applied: `align-content`; `flex-basis` drives wrapping containers only |
 | CSS Grid | `grid-template-columns/rows` (px, fr, auto, repeat), `grid-column/row` span, gap (v1.2.0). Not applied: `grid-auto-flow`, `align-content` |
 
