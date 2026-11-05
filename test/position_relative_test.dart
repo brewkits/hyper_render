@@ -585,6 +585,30 @@ void main() {
       expect(moved - plain, const Offset(20, 10));
     });
 
+    testWidgets('a details body does not pick up the shift a second time',
+        (tester) async {
+      // The body is its own RenderHyperBox, moved once as a child widget of the
+      // outer box. Its own pass must count only offsets from inside it.
+      Future<(double, double)> measure(String outer) async {
+        await pumpHtml(
+          tester,
+          '<div style="$outer"><details open><summary>S</summary>'
+          '<p style="${_rel}left:5px">INNER</p></details></div>',
+        );
+        final box = hyperBoxes(tester).firstWhere(
+            (b) => b.debugLineFragments().any((f) => f['text'] == 'INNER'));
+        final inner = box
+            .debugLineFragments()
+            .firstWhere((f) => f['text'] == 'INNER')['offsetX'] as double;
+        return (inner, box.localToGlobal(Offset.zero).dx);
+      }
+
+      final (plainInner, plainBox) = await measure('');
+      final (movedInner, movedBox) = await measure('${_rel}left:30px');
+      expect(movedInner, plainInner);
+      expect(movedBox - plainBox, 30);
+    });
+
     testWidgets('a table cell ignores position, as documented', (tester) async {
       const html = '<table><tr><td style="%S">cell</td></tr></table>';
       await pumpHtml(tester, html.replaceFirst('%S', ''));
