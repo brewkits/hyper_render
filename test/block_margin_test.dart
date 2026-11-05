@@ -1,7 +1,9 @@
 // Horizontal margins on in-flow canvas blocks, measured through fragment
 // geometry and painted pixels.
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hyper_render/hyper_render.dart';
 
 import 'support/geometry_probe.dart';
 
@@ -226,6 +228,215 @@ void main() {
           tester, 'width:100px;margin-left:30px;box-sizing:border-box');
       expect(red.left, 30);
       expect(red.right, 129);
+    });
+  });
+
+  group('code blocks', () {
+    Finder preChild() => find.byType(CodeBlockWidget);
+
+    testWidgets('a margin narrows the block instead of pushing it out',
+        (tester) async {
+      await pumpHtml(tester, '<pre style="margin:0 40px">x</pre><p>Z</p>');
+      final rect = tester.getRect(preChild());
+      expect(rect.left, 40);
+      expect(rect.right, lessThanOrEqualTo(360));
+    });
+
+    testWidgets('a huge margin stays inside the box', (tester) async {
+      await pumpHtml(tester, '<pre style="margin-left:900px">x</pre><p>Z</p>');
+      expect(tester.takeException(), isNull);
+      expect(tester.getRect(preChild()).right, lessThanOrEqualTo(400));
+    });
+  });
+
+  group('floats inside a block with margins', () {
+    const image = 'float:%S;width:50px;height:50px';
+
+    // An empty float paints nothing of its own, so read its laid-out position.
+    double floatX(WidgetTester tester) => hyperBoxes(tester)
+        .first
+        .debugFragments()
+        .firstWhere((f) => f['type'] == 'atomic')['offsetX'] as double;
+
+    testWidgets('a left float sits at the container edge, with text beside it',
+        (tester) async {
+      await pumpHtml(
+        tester,
+        '<div style="width:200px;margin:0 auto">'
+        '<div style="${image.replaceFirst('%S', 'left')};background:$probeRed">'
+        '</div><span>AAA</span></div>',
+      );
+      expect(floatX(tester), 100);
+      // Beside the float: container edge + 50 + the default 8px float margin.
+      expect(fragmentTopLeft(tester, 'AAA').dx, 158);
+    });
+
+    testWidgets('a right float sits at the container edge', (tester) async {
+      await pumpHtml(
+        tester,
+        '<div style="width:200px;margin:0 auto">'
+        '<div style="${image.replaceFirst('%S', 'right')};'
+        'background:$probeRed"></div><span>AAA</span></div>',
+      );
+      // Right edge 300, minus 50 wide.
+      expect(floatX(tester), 250);
+      expect(fragmentTopLeft(tester, 'AAA').dx, 100);
+    });
+
+    testWidgets('text wraps beside the float inside the container',
+        (tester) async {
+      await pumpHtml(
+        tester,
+        '<div style="margin-left:100px">'
+        '<div style="${image.replaceFirst('%S', 'left')}"></div>'
+        '<span>AAA</span></div>',
+      );
+      expect(fragmentTopLeft(tester, 'AAA').dx, 158);
+    });
+
+    testWidgets('a float clears the parent padding, not its own',
+        (tester) async {
+      await pumpHtml(
+        tester,
+        '<div style="padding:0 30px"><div style="float:left;width:50px;'
+        'height:50px;padding:0 10px;background:$probeRed"></div>'
+        '<span>AAA</span></div><p>Z</p>',
+      );
+      expect(floatX(tester), 30);
+    });
+  });
+
+  group('inline !important', () {
+    for (final style in [
+      'width:200px;margin:auto !important',
+      'width:200px;margin:0 auto!important',
+      'width:200px;margin:0 auto !important',
+      'width:200px;margin-left:auto !important;margin-right:auto !important',
+    ]) {
+      testWidgets(style, (tester) async {
+        final red = await _box(tester, style);
+        expect(red.left, 96);
+      });
+    }
+
+    testWidgets('other properties accept it too', (tester) async {
+      final red = await _box(tester, 'margin-left:30px !important');
+      expect(red.left, 30);
+    });
+  });
+
+  group('em margins', () {
+    testWidgets('use the element font size, in any order', (tester) async {
+      for (final style in [
+        'font-size:32px;margin-left:2em',
+        'margin-left:2em;font-size:32px',
+        'font-size:32px;margin:0 0 0 2em',
+      ]) {
+        await pumpHtml(tester, '<div style="$style">AAA</div>');
+        expect(fragmentTopLeft(tester, 'AAA').dx, 64, reason: style);
+      }
+    });
+
+    testWidgets('a vertical em margin does too', (tester) async {
+      await pumpHtml(tester, '<p>Z</p><div>AAA</div>');
+      final plain = fragmentTopLeft(tester, 'AAA').dy;
+      await pumpHtml(tester,
+          '<p>Z</p><div style="font-size:32px;margin-top:1em">AAA</div>');
+      expect(
+          fragmentTopLeft(tester, 'AAA').dy, greaterThanOrEqualTo(plain + 16));
+    });
+  });
+
+  group('right-to-left', () {
+    Future<PixelExtent> rtlBox(WidgetTester tester, String style) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: RepaintBoundary(
+              key: probeBoundaryKey,
+              child: SizedBox(
+                width: 400,
+                height: 200,
+                child: HyperViewer(
+                  html: '<div style="$_bg$style;padding:4px">A</div>',
+                  mode: HyperRenderMode.sync,
+                  textDirection: TextDirection.rtl,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      return (await capture(tester)).extent(isRed)!;
+    }
+
+    setUp(() {});
+
+    testWidgets('a box with a width anchors to the right edge', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final red = await rtlBox(tester, 'width:100px;margin-right:30px');
+      expect(red.right, 369);
+      expect(red.left, 262);
+    });
+
+    testWidgets('margin-right:auto pushes it left', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final red = await rtlBox(tester, 'width:100px;margin-right:auto');
+      expect(red.left, 0);
+    });
+
+    testWidgets('margin:0 auto still centres', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final red = await rtlBox(tester, 'width:192px;margin:0 auto');
+      expect(red.left, 100);
+    });
+  });
+
+  group('flex container background', () {
+    testWidgets('stays inside the margins', (tester) async {
+      await pumpHtml(
+        tester,
+        '<p>Z</p><div style="display:flex;margin:0 30px;background:$probeRed;'
+        'padding:4px"><div>A</div></div>',
+      );
+      final red = (await capture(tester)).extent(isRed)!;
+      expect(red.left, 30);
+      expect(red.right, 369);
+    });
+  });
+
+  group('intrinsic width', () {
+    testWidgets('leaves room for margins and padding', (tester) async {
+      Future<int> lines(String style) async {
+        await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: RepaintBoundary(
+                key: probeBoundaryKey,
+                child: IntrinsicWidth(
+                  child: HyperViewer(
+                    html: '<div style="$style">Hello world</div>',
+                    mode: HyperRenderMode.sync,
+                    selectable: false,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+        return lineFragments(tester).length;
+      }
+
+      final plain = await lines('');
+      expect(await lines('margin-left:40px'), plain);
+      expect(await lines('padding:0 25px'), plain);
     });
   });
 }

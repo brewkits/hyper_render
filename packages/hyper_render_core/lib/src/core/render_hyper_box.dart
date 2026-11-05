@@ -1170,15 +1170,35 @@ class RenderHyperBox extends RenderBox
     // magnitude too large for documents with many paragraphs.
     double maxWidth = 0;
     double lineWidth = 0;
+    // Horizontal padding and margins of the open blocks. Layout takes these off
+    // the line, so a host sizing to this width must leave room for them.
+    final insets = <(UDTNode, double)>[];
 
     void flushLine() {
-      if (lineWidth > maxWidth) maxWidth = lineWidth;
+      final total = lineWidth > 0
+          ? lineWidth + (insets.isEmpty ? 0 : insets.last.$2)
+          : 0.0;
+      if (total > maxWidth) maxWidth = total;
       lineWidth = 0;
     }
 
     for (final fragment in _fragments) {
-      if (fragment is _BlockStartFragment || fragment is _BlockEndFragment) {
+      if (fragment is _BlockStartFragment) {
         flushLine();
+        final margin = fragment.appliesHorizontalMargins
+            ? fragment.style.margin.left + fragment.style.margin.right
+            : 0.0;
+        final own = fragment.paddingLeft + fragment.paddingRight + margin;
+        insets.add((
+          fragment.sourceNode,
+          math.max(0.0, (insets.isEmpty ? 0.0 : insets.last.$2) + own),
+        ));
+      } else if (fragment is _BlockEndFragment) {
+        flushLine();
+        // A first block may have skipped its start fragment, so check the owner.
+        if (insets.isNotEmpty && insets.last.$1 == fragment.sourceNode) {
+          insets.removeLast();
+        }
       } else if (fragment.type == FragmentType.lineBreak) {
         flushLine();
       } else if (fragment.type == FragmentType.text ||

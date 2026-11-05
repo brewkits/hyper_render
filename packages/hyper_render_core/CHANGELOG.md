@@ -5,7 +5,7 @@
 - **`box-sizing`:** new `ComputedStyle.boxSizing` / `HyperBoxSizing`. `border-box` applies to `width` / `min-width` / `max-width`, including `%`, on in-flow blocks.
 - **`position: relative`:** `top` / `right` / `bottom` / `left` (lengths) move blocks, inline spans and flex/grid items without affecting layout. New `ComputedStyle.insetTop` / `insetRight` / `insetBottom` / `insetLeft` and `relativeOffset()`. Hit-testing and selection follow; moved content paints above normal content, clipped to the render box.
 - **Horizontal block margins:** `margin-left`, `margin-right` and `margin: 0 auto` now apply to in-flow blocks. New `ComputedStyle.marginLeftAuto` / `marginRightAuto`.
-- **Behavior changes:** a block's background and border follow its `width`; `min-width: %` applies on blocks; a first block styled only with a background or border paints it; canvas gradients paint; a `<details>` toggle no longer leaves an old background behind.
+- **Behavior changes:** a block's background and border follow its `width`; `min-width: %` applies on blocks; a first block styled only with a background or border paints it; canvas gradients paint; a `<details>` toggle no longer leaves an old background behind. Floats sit inside their containing block, `<pre>` fits its parent's padding, RTL blocks with a `width` anchor right, `margin` `em` uses the element's font size, and inline `!important` no longer invalidates a value.
 
 ## 1.13.0
 

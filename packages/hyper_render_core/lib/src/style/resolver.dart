@@ -78,6 +78,10 @@ abstract final class _Re {
   static final combinatorSplit = RegExp(r'\s*[>+~]\s*|\s+');
   static final combinatorCapture = RegExp(r'\s*([>+~])\s*');
 
+  // Trailing `!important` on an inline declaration.
+  static final importantSuffix =
+      RegExp(r'\s*!\s*important\s*$', caseSensitive: false);
+
   // ── Pseudo-classes / pseudo-elements ─────────────────────────────────────
   static final pseudoExtract = RegExp(r'::?[a-zA-Z-]+(?:\([^()]*\))?');
   static final nthChild = RegExp(r'^:nth-child\(([^)]+)\)$');
@@ -1776,8 +1780,8 @@ class StyleResolver {
         if (_isAutoKeyword(value)) {
           style.insetTop = null;
         } else {
-          style.insetTop = _parseOffsetLength(value, style, parentFontSize) ??
-              style.insetTop;
+          style.insetTop =
+              _parseEmLength(value, style, parentFontSize) ?? style.insetTop;
         }
         break;
 
@@ -1785,8 +1789,8 @@ class StyleResolver {
         if (_isAutoKeyword(value)) {
           style.insetRight = null;
         } else {
-          style.insetRight = _parseOffsetLength(value, style, parentFontSize) ??
-              style.insetRight;
+          style.insetRight =
+              _parseEmLength(value, style, parentFontSize) ?? style.insetRight;
         }
         break;
 
@@ -1795,8 +1799,7 @@ class StyleResolver {
           style.insetBottom = null;
         } else {
           style.insetBottom =
-              _parseOffsetLength(value, style, parentFontSize) ??
-                  style.insetBottom;
+              _parseEmLength(value, style, parentFontSize) ?? style.insetBottom;
         }
         break;
 
@@ -1804,8 +1807,8 @@ class StyleResolver {
         if (_isAutoKeyword(value)) {
           style.insetLeft = null;
         } else {
-          style.insetLeft = _parseOffsetLength(value, style, parentFontSize) ??
-              style.insetLeft;
+          style.insetLeft =
+              _parseEmLength(value, style, parentFontSize) ?? style.insetLeft;
         }
         break;
 
@@ -1845,7 +1848,8 @@ class StyleResolver {
         break;
 
       case 'margin':
-        final margin = _parseEdgeInsets(value);
+        final margin =
+            _parseEdgeInsets(value, emBase: _emBase(style, parentFontSize));
         if (margin != null) {
           style.margin = margin;
           // `auto` parses to 0 above; layout needs to know which sides it was.
@@ -1859,7 +1863,7 @@ class StyleResolver {
         break;
 
       case 'margin-top':
-        final val = _parseLength(value);
+        final val = _parseEmLength(value, style, parentFontSize);
         if (val != null) {
           style.margin = style.margin.copyWith(top: val);
           style.markExplicitlySet('margin');
@@ -1867,7 +1871,7 @@ class StyleResolver {
         break;
 
       case 'margin-bottom':
-        final val = _parseLength(value);
+        final val = _parseEmLength(value, style, parentFontSize);
         if (val != null) {
           style.margin = style.margin.copyWith(bottom: val);
           style.markExplicitlySet('margin');
@@ -1876,7 +1880,7 @@ class StyleResolver {
 
       case 'margin-left':
         final isAuto = _isAutoKeyword(value);
-        final val = isAuto ? 0.0 : _parseLength(value);
+        final val = isAuto ? 0.0 : _parseEmLength(value, style, parentFontSize);
         if (val != null) {
           style.margin = style.margin.copyWith(left: val);
           style.marginLeftAuto = isAuto;
@@ -1886,7 +1890,7 @@ class StyleResolver {
 
       case 'margin-right':
         final isAuto = _isAutoKeyword(value);
-        final val = isAuto ? 0.0 : _parseLength(value);
+        final val = isAuto ? 0.0 : _parseEmLength(value, style, parentFontSize);
         if (val != null) {
           style.margin = style.margin.copyWith(right: val);
           style.marginRightAuto = isAuto;
@@ -3436,7 +3440,12 @@ class StyleResolver {
       final colonIdx = decl.indexOf(':');
       if (colonIdx <= 0) continue;
       final property = decl.substring(0, colonIdx).trim();
-      final value = decl.substring(colonIdx + 1).trim();
+      // An inline declaration already beats normal rules, so `!important` only
+      // needs removing here: left in, value parsers reject the whole value.
+      final value = decl
+          .substring(colonIdx + 1)
+          .replaceFirst(_Re.importantSuffix, '')
+          .trim();
       if (property.isNotEmpty && value.isNotEmpty) {
         pairs.add(MapEntry(property, value));
       }
@@ -3824,9 +3833,15 @@ class StyleResolver {
   }
 
   /// Parse CSS edge insets (margin, padding)
-  EdgeInsets? _parseEdgeInsets(String value) {
+  EdgeInsets? _parseEdgeInsets(String value, {double? emBase}) {
     final parts = value.trim().split(_Re.whitespace);
-    final values = parts.map((p) => _parseLength(p) ?? 0.0).toList();
+    final values = parts
+        .map((p) =>
+            (emBase == null
+                ? _parseLength(p)
+                : _parseLengthWithContext(p, parentFontSize: emBase)) ??
+            0.0)
+        .toList();
 
     switch (values.length) {
       case 1:
@@ -3904,19 +3919,21 @@ class StyleResolver {
 
   bool _isAutoKeyword(String value) => value.trim().toLowerCase() == 'auto';
 
-  /// A `top`/`right`/`bottom`/`left` length. `em` is this element's own font
-  /// size: font-size is hoisted ahead of other declarations, so it is already
-  /// final here if the element sets it, and otherwise equals the parent's.
-  double? _parseOffsetLength(
+  /// What `em` means on this element: its own font size. font-size is hoisted
+  /// ahead of other declarations, so it is already final here if the element
+  /// sets it, and otherwise equals the parent's.
+  double? _emBase(ComputedStyle style, double? parentFontSize) =>
+      style.isExplicitlySet('font-size') ? style.fontSize : parentFontSize;
+
+  /// A length whose `em` is this element's font size, unlike [_parseLength].
+  double? _parseEmLength(
     String value,
     ComputedStyle style,
     double? parentFontSize,
   ) =>
       _parseLengthWithContext(
         value,
-        parentFontSize: style.isExplicitlySet('font-size')
-            ? style.fontSize
-            : parentFontSize,
+        parentFontSize: _emBase(style, parentFontSize),
       );
 
   double? _parseLength(String value) {

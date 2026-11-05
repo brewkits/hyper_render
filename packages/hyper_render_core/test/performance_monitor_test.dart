@@ -362,22 +362,19 @@ void main() {
 
       for (final phase in ['parse', 'style', 'layout', 'paint']) {
         monitor.startPhase(phase);
-        // Simulate work
-        for (var i = 0; i < 100; i++) {
-          // ignore: unused_local_variable
-          final x = i * 2;
-        }
+        // Spin past a clock tick: a fixed loop could finish within one, which
+        // failed CI on fast runners with a recorded time of 0.
+        final work = Stopwatch()..start();
+        while (work.elapsedMicroseconds < 5) {}
         monitor.endPhase(phase);
       }
 
       final report = monitor.buildReport();
 
-      // At least 0, not above it: this loop can finish within one clock tick,
-      // which failed CI on fast runners.
-      expect(report.parseTime.inMicroseconds, greaterThanOrEqualTo(0));
-      expect(report.styleTime.inMicroseconds, greaterThanOrEqualTo(0));
-      expect(report.layoutTime.inMicroseconds, greaterThanOrEqualTo(0));
-      expect(report.paintTime.inMicroseconds, greaterThanOrEqualTo(0));
+      expect(report.parseTime.inMicroseconds, greaterThan(0));
+      expect(report.styleTime.inMicroseconds, greaterThan(0));
+      expect(report.layoutTime.inMicroseconds, greaterThan(0));
+      expect(report.paintTime.inMicroseconds, greaterThan(0));
     });
 
     test('handles ending phase that was never started', () {

@@ -11,6 +11,11 @@
   - A first block styled only with a background or border now paints it.
   - Gradients on canvas blocks and inline spans now paint. They painted nothing.
   - A `<details>` toggle no longer leaves a block's old background behind.
+  - A float now sits inside its containing block. It used to sit at the render box edge, ignoring a parent's padding.
+  - A `<pre>` now fits inside its parent's padding instead of overflowing.
+  - In RTL, a block with a `width` anchors to the right edge.
+  - `margin` in `em` now uses the element's font size, not the root's.
+  - Inline `!important` no longer makes a value invalid: `style="margin-left:10px !important"` used to be dropped.
   - `HyperViewer(textDirection:)` and an ambient RTL `Directionality` now apply to short documents in sync mode. Virtualized and paged modes already honoured them.
 - **Requires `hyper_render_core` `^1.14.0`.**
 
