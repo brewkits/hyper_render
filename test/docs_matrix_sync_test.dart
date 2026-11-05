@@ -48,8 +48,8 @@ const _executionVerified = <String>[
 const _mustNotBeFull = <String>[
   'position: absolute',
   'position: fixed',
-  // Parsed into ComputedStyle and read by nothing in the render path; checked
-  // by laying out `width:200px;padding:20px` with and without border-box.
+  // Applied, but only in part: ⚠️ until the limits in LIMITATIONS.md go.
+  // Measured by test/box_sizing_test.dart and test/position_relative_test.dart.
   'position: relative',
   'box-sizing',
   'z-index',

@@ -1761,6 +1761,64 @@ class StyleResolver {
         }
         break;
 
+      case 'position':
+        final position = value.trim().toLowerCase();
+        if (const {'static', 'relative', 'absolute', 'fixed', 'sticky'}
+            .contains(position)) {
+          style.position = position;
+          style.markExplicitlySet('position');
+        }
+        break;
+
+      // Offsets for `position: relative`. `auto` clears an earlier value; `%`
+      // and anything else unparseable leaves it alone.
+      case 'top':
+        if (_isAutoKeyword(value)) {
+          style.insetTop = null;
+        } else {
+          style.insetTop = _parseOffsetLength(value, style, parentFontSize) ??
+              style.insetTop;
+        }
+        break;
+
+      case 'right':
+        if (_isAutoKeyword(value)) {
+          style.insetRight = null;
+        } else {
+          style.insetRight = _parseOffsetLength(value, style, parentFontSize) ??
+              style.insetRight;
+        }
+        break;
+
+      case 'bottom':
+        if (_isAutoKeyword(value)) {
+          style.insetBottom = null;
+        } else {
+          style.insetBottom =
+              _parseOffsetLength(value, style, parentFontSize) ??
+                  style.insetBottom;
+        }
+        break;
+
+      case 'left':
+        if (_isAutoKeyword(value)) {
+          style.insetLeft = null;
+        } else {
+          style.insetLeft = _parseOffsetLength(value, style, parentFontSize) ??
+              style.insetLeft;
+        }
+        break;
+
+      case 'box-sizing':
+        final sizing = value.trim().toLowerCase();
+        if (sizing == 'border-box' || sizing == 'content-box') {
+          style.boxSizing = sizing == 'border-box'
+              ? HyperBoxSizing.borderBox
+              : HyperBoxSizing.contentBox;
+          style.markExplicitlySet('box-sizing');
+        }
+        break;
+
       case 'text-indent':
         // `%` is relative to the containing block's content width and is
         // resolved at layout time (stored on textIndentPercent); absolute
@@ -3833,6 +3891,23 @@ class StyleResolver {
     }
     return false;
   }
+
+  bool _isAutoKeyword(String value) => value.trim().toLowerCase() == 'auto';
+
+  /// A `top`/`right`/`bottom`/`left` length. `em` is this element's own font
+  /// size: font-size is hoisted ahead of other declarations, so it is already
+  /// final here if the element sets it, and otherwise equals the parent's.
+  double? _parseOffsetLength(
+    String value,
+    ComputedStyle style,
+    double? parentFontSize,
+  ) =>
+      _parseLengthWithContext(
+        value,
+        parentFontSize: style.isExplicitlySet('font-size')
+            ? style.fontSize
+            : parentFontSize,
+      );
 
   double? _parseLength(String value) {
     value = value.trim().toLowerCase();

@@ -29,8 +29,11 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
   /// covering it. Avoid combining `animation-name` on a block with inline
   /// decorations on its descendants until a future pass folds inline
   /// decorations into this same composited layer.
-  void _paintAnimatedBlocks(Canvas canvas, Offset offset) {
-    _paintedThisFrameByAnimation.clear();
+  void _paintAnimatedBlocks(
+    Canvas canvas,
+    Offset offset, {
+    required bool moved,
+  }) {
     if (_blockAnimations.isEmpty) return;
 
     final now = SchedulerBinding.instance.currentFrameTimeStamp;
@@ -47,6 +50,9 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       if (rect == null) continue;
 
       _paintedThisFrameByAnimation.add(node);
+
+      // One pass per block: the moved pass paints it if anything in it moved.
+      if (_animatedBlockHasMoved(node) != moved) continue;
 
       final paintRect = rect.shift(offset);
       final opacity = (keyframe.opacity ?? 1.0).clamp(0.0, 1.0);
@@ -130,8 +136,88 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     return bounds.inflate(2.0);
   }
 
-  void _paintBlockDecorations(Canvas canvas, Offset offset) {
+  /// Paints everything that `position: relative` moved ([moved] true), or
+  /// everything it didn't, in CSS stacking order. See [_paint].
+  void _paintPass(
+    PaintingContext context,
+    Offset offset, {
+    required bool moved,
+  }) {
+    final canvas = context.canvas;
+
+    // -1. Animated blocks (CSS animation-name): each block's own decoration
+    // + text painted as one composited, transformed/faded unit. Populates
+    // _paintedThisFrameByAnimation so steps 0 and 4 below skip repainting
+    // the same content at its static style.
+    _paintAnimatedBlocks(canvas, offset, moved: moved);
+
+    // CSS Stacking Order:
+    // 0. Block decorations (border-left for blockquote, etc.)
+    _paintBlockDecorations(canvas, offset, moved: moved);
+
+    // 1. Background and borders (inline decorations)
+    _paintInlineDecorations(canvas, offset, moved: moved);
+
+    // 2. Float elements (painted before inline content)
+    _paintFloatImages(canvas, offset, moved: moved);
+
+    // 3. Selection highlight (behind text)
+    if (_selection != null && _selection!.isValid && !_selection!.isCollapsed) {
+      _paintSelection(canvas, offset, moved: moved);
+    }
+
+    // 4. Inline content (text fragments)
+    _paintTextFragments(canvas, offset, moved: moved);
+
+    // 5. Inline images (non-float)
+    _paintInlineImages(canvas, offset, moved: moved);
+
+    // 6. Child render boxes (tables, positioned elements)
+    _paintChildren(context, offset, moved: moved);
+  }
+
+  /// Whether an animated block belongs to the moved pass.
+  bool _animatedBlockHasMoved(UDTNode node) {
+    if (!_hasMovedContent) return false;
+    if (_animatedBlockDecorations[node]?.moved ?? false) return true;
+    final fragments = _animatedBlockFragments[node];
+    return fragments != null && fragments.any(_displaced.containsKey);
+  }
+
+  void _paintChildren(
+    PaintingContext context,
+    Offset offset, {
+    required bool moved,
+  }) {
+    if (!_hasMovedContent) {
+      defaultPaint(context, offset);
+      return;
+    }
+    RenderBox? child = firstChild;
+    while (child != null) {
+      final parentData = child.parentData as HyperBoxParentData;
+      if (_childHasMoved(parentData) == moved) {
+        context.paintChild(child, parentData.offset + offset);
+      }
+      child = parentData.nextSibling;
+    }
+  }
+
+  bool _childHasMoved(HyperBoxParentData parentData) {
+    final node = parentData.sourceNode;
+    if (node != null && _relativeWidgetBoxes.contains(node)) return true;
+    final fragment = parentData.fragment ??
+        (parentData.isFloat ? _findFloatFragmentForNode(node) : null);
+    return fragment != null && _displaced.containsKey(fragment);
+  }
+
+  void _paintBlockDecorations(
+    Canvas canvas,
+    Offset offset, {
+    required bool moved,
+  }) {
     for (final decoration in _blockDecorations) {
+      if (decoration.moved != moved) continue;
       // Animated blocks are painted (with their interpolated keyframe
       // overrides) by _paintAnimatedBlocks instead — skip here so they're
       // not drawn twice at their static style.
@@ -218,8 +304,9 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           backgroundColorOverride == null) {
         _fillPaint.shader =
             decoration.backgroundGradient!.createShader(adjustedRect);
-        _fillPaint.color =
-            const Color(0x00000000); // reset color (unused when shader set)
+        // Opaque: a shader is multiplied by the paint's alpha, so a transparent
+        // colour here paints nothing at all.
+        _fillPaint.color = const Color(0xFF000000);
       } else {
         _fillPaint.shader = null;
         _fillPaint.color = backgroundColor!;
@@ -274,8 +361,13 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     }
   }
 
-  void _paintInlineDecorations(Canvas canvas, Offset offset) {
+  void _paintInlineDecorations(
+    Canvas canvas,
+    Offset offset, {
+    required bool moved,
+  }) {
     for (final decoration in _inlineDecorations) {
+      if (decoration.moved != moved) continue;
       for (final rect in decoration.rects) {
         final rawRect = rect.shift(offset);
         final adjustedRect = Rect.fromLTRB(
@@ -331,7 +423,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           if (decoration.style.backgroundGradient != null) {
             _fillPaint.shader =
                 decoration.style.backgroundGradient!.createShader(adjustedRect);
-            _fillPaint.color = const Color(0x00000000);
+            _fillPaint.color = const Color(0xFF000000); // see block path above
           } else {
             _fillPaint.shader = null;
             _fillPaint.color = decoration.style.backgroundColor!;
@@ -555,7 +647,11 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     }
   }
 
-  void _paintSelection(Canvas canvas, Offset offset) {
+  void _paintSelection(
+    Canvas canvas,
+    Offset offset, {
+    required bool moved,
+  }) {
     // Determine selection color:
     // 1. Explicit color passed from HyperViewer
     // 2. Adaptive default based on platform
@@ -581,6 +677,7 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       Path? linePath;
 
       for (final fragment in line.fragments) {
+        if (_displaced.containsKey(fragment) != moved) continue;
         if (fragment.type == FragmentType.text && fragment.text != null) {
           final fragmentStart = fragment.globalOffset;
           final fragmentEnd = fragmentStart + fragment.text!.length;
@@ -681,7 +778,11 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     }
   }
 
-  void _paintTextFragments(Canvas canvas, Offset offset) {
+  void _paintTextFragments(
+    Canvas canvas,
+    Offset offset, {
+    required bool moved,
+  }) {
     // Get visible area in local coordinates to perform line-level culling.
     // shift(-offset) converts the global clip bounds to the RenderBox's local
     // coordinate space so we can compare directly against line.bounds.
@@ -689,7 +790,9 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
 
     // First paint list markers
     for (final fragment in _fragments) {
-      if (fragment is _ListMarkerFragment && fragment.offset != null) {
+      if (fragment is _ListMarkerFragment &&
+          fragment.offset != null &&
+          _displaced.containsKey(fragment) == moved) {
         // Simple culling for markers: only paint if the line Y is visible.
         final markerY = fragment.offset!.dy;
         if (markerY + fragment.height >= visibleRect.top &&
@@ -697,6 +800,17 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
           _paintListMarker(canvas, offset, fragment);
         }
       }
+    }
+
+    // Moved text: its line says nothing about where it is on screen, so it is
+    // culled by its own rect.
+    if (moved) {
+      for (final fragment in _displacedOnLines) {
+        final rect = fragment.rect;
+        if (rect == null || !rect.overlaps(visibleRect)) continue;
+        _paintLineFragment(canvas, offset, fragment);
+      }
+      return;
     }
 
     // Then paint line content
@@ -710,22 +824,27 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
       }
 
       for (final fragment in line.fragments) {
-        // Animated blocks are painted (with interpolated color/opacity/
-        // transform) by _paintAnimatedBlocks instead — skip here so they're
-        // not drawn twice at their static style. List markers are
-        // deliberately NOT skipped: block-level canvas animation covers text
-        // content only for now, so a marker stays static even inside an
-        // animating block (documented v1 scope limit).
-        final owner = _nearestAnimatedAncestor(fragment.sourceNode);
-        if (owner != null && _paintedThisFrameByAnimation.contains(owner)) {
-          continue;
-        }
-        if (fragment.type == FragmentType.text && fragment.text != null) {
-          _paintTextFragment(canvas, offset, fragment);
-        } else if (fragment.type == FragmentType.ruby) {
-          _paintRubyFragment(canvas, offset, fragment);
-        }
+        if (_displaced.containsKey(fragment)) continue;
+        _paintLineFragment(canvas, offset, fragment);
       }
+    }
+  }
+
+  void _paintLineFragment(Canvas canvas, Offset offset, Fragment fragment) {
+    // Animated blocks are painted (with interpolated color/opacity/
+    // transform) by _paintAnimatedBlocks instead — skip here so they're
+    // not drawn twice at their static style. List markers are
+    // deliberately NOT skipped: block-level canvas animation covers text
+    // content only for now, so a marker stays static even inside an
+    // animating block (documented v1 scope limit).
+    final owner = _nearestAnimatedAncestor(fragment.sourceNode);
+    if (owner != null && _paintedThisFrameByAnimation.contains(owner)) {
+      return;
+    }
+    if (fragment.type == FragmentType.text && fragment.text != null) {
+      _paintTextFragment(canvas, offset, fragment);
+    } else if (fragment.type == FragmentType.ruby) {
+      _paintRubyFragment(canvas, offset, fragment);
     }
   }
 
@@ -779,10 +898,15 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     );
   }
 
-  void _paintFloatImages(Canvas canvas, Offset offset) {
+  void _paintFloatImages(
+    Canvas canvas,
+    Offset offset, {
+    required bool moved,
+  }) {
     // Paint images from float fragments ONLY if they don't have child widgets
     for (final fragment in _fragments) {
-      if (fragment is _FloatFragment) {
+      if (fragment is _FloatFragment &&
+          _displaced.containsKey(fragment) == moved) {
         if (_hasChildWidgetForFragment(fragment)) continue;
 
         final node = fragment.sourceNode;
@@ -791,6 +915,8 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
         }
       }
     }
+
+    if (moved) return; // Carried-over floats are never moved.
 
     // Paint carried-over float images from the previous virtualized section.
     // These are float images that extend past the chunk boundary — the previous
@@ -822,10 +948,16 @@ extension _RenderHyperBoxPaint on RenderHyperBox {
     }
   }
 
-  void _paintInlineImages(Canvas canvas, Offset offset) {
+  void _paintInlineImages(
+    Canvas canvas,
+    Offset offset, {
+    required bool moved,
+  }) {
     // Paint non-float atomic images ONLY if they don't have child widgets
     for (final fragment in _fragments) {
-      if (fragment.type == FragmentType.atomic && fragment is! _FloatFragment) {
+      if (fragment.type == FragmentType.atomic &&
+          fragment is! _FloatFragment &&
+          _displaced.containsKey(fragment) == moved) {
         // Check if this fragment has a linked child widget - if so, skip canvas painting
         // The child widget (HyperImage) will handle rendering
         if (_hasChildWidgetForFragment(fragment)) continue;

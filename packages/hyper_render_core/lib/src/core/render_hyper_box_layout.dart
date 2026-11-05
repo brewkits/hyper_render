@@ -27,6 +27,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     if (_document == null) return;
 
     _fragments = [];
+    _relativeWidgetBoxes.clear();
+    _hasRelative = _scanForRelative(_document!);
     _lastBlockMarginBottom = 0;
     _fragmentsVersion++; // signal that line layout must be redone
     // Reset list item counters so ordered-list numbering restarts from 1
@@ -219,12 +221,20 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         style.widthPercent != null ||
         style.maxWidth != null ||
         style.maxWidthPercent != null ||
-        style.minWidth != null;
+        style.minWidth != null ||
+        style.minWidthPercent != null;
     final hasPadding = style.padding != EdgeInsets.zero;
+    // The block-start fragment also carries the decoration, so a first block
+    // styled only with a background or border must keep it too. Mirrors the
+    // `hasBackground || hasBorderLeft` test in _performLineLayout.
+    final hasDecoration = style.backgroundColor != null ||
+        style.backgroundGradient != null ||
+        (style.borderColor != null && style.borderWidth.left > 0);
     if (effectiveMarginTop > 0 ||
         _fragments.isNotEmpty ||
         hasWidthConstraint ||
         hasPadding ||
+        hasDecoration ||
         style.textOverflow == TextOverflow.ellipsis) {
       _fragments.add(_BlockStartFragment(
         sourceNode: node,
@@ -758,6 +768,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     _lines.clear();
     _leftFloats.clear();
     _rightFloats.clear();
+    // Built by this pass, so a re-run (width change, details toggle, intrinsic
+    // query) must start empty or the previous pass's rects keep painting.
+    _blockDecorations.clear();
+    // Undo earlier shifts first: a fragment line layout doesn't re-place, such
+    // as one it splits or replaces, would otherwise keep gaining the shift.
+    _displaced.forEach((fragment, shift) {
+      final offset = fragment.offset;
+      if (offset != null) fragment.offset = offset - shift;
+    });
+    _displaced.clear();
+    _displacedOnLines.clear();
 
     // Reset layout caches
     _cachedAvailableWidth = null;
@@ -1002,34 +1023,58 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         // CSS — is `_maxWidth − parentLeftInset − parentRightInset`, i.e. the
         // stack tops BEFORE this block's own padding was added.
         final st = fragment.style;
+        // Right edge of this block's painted box, when `width` & co. narrow it.
+        // Null keeps the default: the full width of the containing block.
+        double? constrainedBoxRight;
         if (st.width != null ||
             st.widthPercent != null ||
             st.maxWidth != null ||
             st.maxWidthPercent != null ||
-            st.minWidth != null) {
+            st.minWidth != null ||
+            st.minWidthPercent != null) {
           // Floored at 0: cumulative padding can exceed the viewport width
           // (e.g. `padding:300px` inside a 200px container), which would make
           // this negative and turn a `%` width into a negative target.
           final containerContent = math.max(
               0.0, _maxWidth - leftPaddingStack.last - rightPaddingStack.last);
+          // Flex and grid containers draw their own padding and border in a
+          // child widget, so neither applies to this canvas-side box.
+          final isWidgetBox =
+              st.display == DisplayType.flex || st.display == DisplayType.grid;
+          final borderSum =
+              isWidgetBox ? 0.0 : st.borderWidth.left + st.borderWidth.right;
+          // `border-box` widths include padding and border; the line breaker
+          // needs the content width that leaves.
+          final boxExtras = st.boxSizing == HyperBoxSizing.borderBox
+              ? fragment.paddingLeft + fragment.paddingRight + borderSum
+              : 0.0;
+          double toContent(double specified) =>
+              math.max(0.0, specified - boxExtras);
+
           // Default target: this block's own content width (full available).
           var target = _maxWidth - newLeftPadding - newRightPadding;
 
           // Explicit width (absolute or %) sets the target outright.
           if (st.width != null) {
-            target = st.width!;
+            target = toContent(st.width!);
           } else if (st.widthPercent != null) {
-            target = containerContent * st.widthPercent!;
+            target = toContent(containerContent * st.widthPercent!);
           }
           // max-width caps it (absolute wins over % if both somehow set).
           final maxW = st.maxWidth ??
               (st.maxWidthPercent != null
                   ? containerContent * st.maxWidthPercent!
                   : null);
-          if (maxW != null && target > maxW) target = maxW;
+          if (maxW != null && target > toContent(maxW)) {
+            target = toContent(maxW);
+          }
           // min-width raises it — and wins over max-width per CSS.
-          if (st.minWidth != null && target < st.minWidth!) {
-            target = st.minWidth!;
+          final minW = st.minWidth ??
+              (st.minWidthPercent != null
+                  ? containerContent * st.minWidthPercent!
+                  : null);
+          if (minW != null && target < toContent(minW)) {
+            target = toContent(minW);
           }
           // Clamp into the available content box: this single-column flow model
           // has no per-block horizontal overflow, so a target wider than the
@@ -1043,6 +1088,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           final avail =
               math.max(0.0, _maxWidth - newLeftPadding - newRightPadding);
           target = target.clamp(0.0, avail);
+
+          // Borders don't reserve line-breaker space yet, so they are added
+          // here only for the painted box. Capped so a box never paints past
+          // its containing block.
+          if (!isWidgetBox) {
+            constrainedBoxRight = math.min(
+              _maxWidth - rightPaddingStack.last,
+              newLeftPadding + target + fragment.paddingRight + borderSum,
+            );
+          }
           newRightPadding = _maxWidth - newLeftPadding - target;
         }
 
@@ -1067,9 +1122,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           final blockLeftX = leftPaddingStack.length > 1
               ? leftPaddingStack[leftPaddingStack.length - 2]
               : 0.0;
-          final blockRightX = rightPaddingStack.length > 1
-              ? _maxWidth - rightPaddingStack[rightPaddingStack.length - 2]
-              : _maxWidth;
+          final blockRightX = constrainedBoxRight ??
+              (rightPaddingStack.length > 1
+                  ? _maxWidth - rightPaddingStack[rightPaddingStack.length - 2]
+                  : _maxWidth);
           // startY is BEFORE padding (current position includes padding, so subtract it)
           final blockStartY = currentY - fragment.paddingTop;
           activeBlocks.add((fragment, blockStartY, blockLeftX, blockRightX));
@@ -2502,6 +2558,73 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
   /// Step 4: Position fragments within lines (baseline alignment)
   /// Handles both LTR (left-to-right) and RTL (right-to-left) text directions
+  /// Whether [node]'s subtree has a `position: relative` element, recording
+  /// which flex and grid containers hold one.
+  bool _scanForRelative(UDTNode node) {
+    if (node.style.display == DisplayType.none) return false;
+    var found = node.style.position == 'relative';
+    final isWidgetBox = node.style.display == DisplayType.flex ||
+        node.style.display == DisplayType.grid;
+    for (final child in node.children) {
+      if (_scanForRelative(child)) found = true;
+    }
+    if (found && isWidgetBox) _relativeWidgetBoxes.add(node);
+    return found;
+  }
+
+  /// Records each node's shift: its own offset plus its relative ancestors'.
+  ///
+  /// Walks down from this box's document rather than up `node.parent`: building
+  /// a nested box's document re-parents the shared nodes, so a walk up can stop
+  /// short of a relative ancestor.
+  void _collectRelativeShifts(UDTNode node, Offset inherited) {
+    final shift = inherited + node.style.relativeOffset(rtl: isRTL);
+    _relativeShifts[node] = shift;
+    for (final child in node.children) {
+      _collectRelativeShifts(child, shift);
+    }
+  }
+
+  /// Applies `position: relative`: moves each element's fragments and block
+  /// decoration by its shift.
+  ///
+  /// Runs after line layout and positioning, so sibling layout never sees the
+  /// shift. Lines, floats' wrap areas and anchors keep their in-flow values.
+  /// Child widgets follow, since [_layoutChildren] reads `fragment.offset`.
+  void _applyRelativeOffsets() {
+    _relativeShifts.clear();
+    _hasMovedContent = _relativeWidgetBoxes.isNotEmpty;
+    if (!_hasRelative || _document == null) return;
+    _collectRelativeShifts(_document!, Offset.zero);
+
+    bool move(Fragment fragment) {
+      final offset = fragment.offset;
+      if (offset == null || _displaced.containsKey(fragment)) return false;
+      final shift = _relativeShifts[fragment.sourceNode] ?? Offset.zero;
+      if (shift == Offset.zero) return false;
+      fragment.offset = offset + shift;
+      _displaced[fragment] = shift;
+      return true;
+    }
+
+    // Lines hold exactly the text that gets drawn.
+    for (final line in _lines) {
+      for (final fragment in line.fragments) {
+        if (move(fragment)) _displacedOnLines.add(fragment);
+      }
+    }
+    // `_fragments` adds what isn't on a line, such as list markers and floats.
+    _fragments.forEach(move);
+    for (final decoration in _blockDecorations) {
+      final shift = _relativeShifts[decoration.node] ?? Offset.zero;
+      if (shift == Offset.zero) continue;
+      decoration.rect = decoration.rect.shift(shift);
+      decoration.moved = true;
+      _hasMovedContent = true;
+    }
+    if (_displaced.isNotEmpty) _hasMovedContent = true;
+  }
+
   void _positionFragments() {
     // Tracks blocks whose first line has already consumed their `text-indent`,
     // so only the FIRST line of each block is indented (CSS semantics). Lines
@@ -2826,16 +2949,26 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
         if (visualRect == null) continue;
 
+        // Back to in-flow coordinates. A decoration moves by its own node's
+        // shift, not its content's: an outer span's background stays on the
+        // line when a relative child inside it moves away.
+        final fragmentShift = _displaced[fragment];
+        final flowRect = fragmentShift == null
+            ? visualRect
+            : visualRect.shift(-fragmentShift);
+
         for (final decoratedNode in decoratedNodes) {
           final rangeEntry = decoratedRanges[decoratedNode];
           if (rangeEntry == null) continue;
           final (style, _, _) = rangeEntry;
           final padding = style.padding;
+          final nodeRect =
+              flowRect.shift(_relativeShifts[decoratedNode] ?? Offset.zero);
           final expandedRect = Rect.fromLTWH(
-            visualRect.left - padding.left,
-            visualRect.top - padding.top,
-            visualRect.width + padding.left + padding.right,
-            visualRect.height + padding.top + padding.bottom,
+            nodeRect.left - padding.left,
+            nodeRect.top - padding.top,
+            nodeRect.width + padding.left + padding.right,
+            nodeRect.height + padding.top + padding.bottom,
           );
 
           final list = rectsMap[decoratedNode]!;
@@ -2861,9 +2994,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       final (style, _, _) = entry.value;
       final rects = rectsMap[node] ?? [];
       if (rects.isNotEmpty) {
+        final moved = (_relativeShifts[node] ?? Offset.zero) != Offset.zero;
+        if (moved) _hasMovedContent = true;
         _inlineDecorations.add(_InlineDecoration(
           node: node,
           rects: rects,
+          moved: moved,
           style: _InlineDecorationStyle(
             backgroundColor: style.backgroundColor,
             backgroundGradient: style.backgroundGradient,

@@ -1,5 +1,11 @@
 # Changelog — hyper_render_core
 
+## 1.14.0
+
+- **`box-sizing`:** new `ComputedStyle.boxSizing` / `HyperBoxSizing`. `border-box` applies to `width` / `min-width` / `max-width`, including `%`, on in-flow blocks.
+- **`position: relative`:** `top` / `right` / `bottom` / `left` (lengths) move blocks, inline spans and flex/grid items without affecting layout. New `ComputedStyle.insetTop` / `insetRight` / `insetBottom` / `insetLeft` and `relativeOffset()`. Hit-testing and selection follow; moved content paints above normal content, clipped to the render box.
+- **Behavior changes:** a block's background and border follow its `width`; `min-width: %` applies on blocks; a first block styled only with a background or border paints it; canvas gradients paint; a `<details>` toggle no longer leaves an old background behind.
+
 ## 1.13.0
 
 - **`RenderHyperBox.getBoxesForCharRange(charStart, charEnd)`** — bounding boxes for a character range, for app-drawn highlights (search hits, annotations, read-aloud). Offsets are the selection/IME character space, local to this `RenderHyperBox`: in virtualized / `auto` mode (>10k chars) each chunk has its own box and offsets restart at 0. Glyph x-bounds come from `TextPainter` (so they follow `textScaler` and justified spacing); y-bounds span the full line. Rects of adjacent words on a line merge, except across an inline atom such as an image. Spaces inside `white-space: pre` / `pre-wrap` / `break-spaces` are kept. By [@DrkXo](https://github.com/DrkXo) ([#26](https://github.com/brewkits/hyper_render/pull/26), follow-up to [#17](https://github.com/brewkits/hyper_render/pull/17)).

@@ -50,6 +50,7 @@ export 'package:hyper_render_core/hyper_render_core.dart'
         HyperBorderCollapse,
         HyperOverflow,
         HyperFloat,
+        HyperBoxSizing,
         HyperClear,
         HyperTimingFunction,
         HyperTimingParams,
