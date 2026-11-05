@@ -403,6 +403,12 @@ class ComputedStyle {
   /// CSS max-width
   double? maxWidth;
 
+  /// CSS `margin-left: auto`. Takes free space on an in-flow block with a width.
+  bool marginLeftAuto;
+
+  /// CSS `margin-right: auto`. Takes free space on an in-flow block with a width.
+  bool marginRightAuto;
+
   /// CSS box-sizing. Not inherited.
   HyperBoxSizing boxSizing;
 
@@ -846,6 +852,8 @@ class ComputedStyle {
     this.insetBottom,
     this.insetLeft,
     this.boxSizing = HyperBoxSizing.contentBox,
+    this.marginLeftAuto = false,
+    this.marginRightAuto = false,
     this.float = HyperFloat.none,
     this.clear = HyperClear.none,
     this.zIndex,
@@ -1034,6 +1042,8 @@ class ComputedStyle {
     double? insetBottom,
     double? insetLeft,
     HyperBoxSizing? boxSizing,
+    bool? marginLeftAuto,
+    bool? marginRightAuto,
     HyperFloat? float,
     HyperClear? clear,
     int? zIndex,
@@ -1147,6 +1157,8 @@ class ComputedStyle {
       insetBottom: insetBottom ?? this.insetBottom,
       insetLeft: insetLeft ?? this.insetLeft,
       boxSizing: boxSizing ?? this.boxSizing,
+      marginLeftAuto: marginLeftAuto ?? this.marginLeftAuto,
+      marginRightAuto: marginRightAuto ?? this.marginRightAuto,
       float: float ?? this.float,
       clear: clear ?? this.clear,
       zIndex: zIndex ?? this.zIndex,

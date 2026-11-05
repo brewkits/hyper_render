@@ -4,6 +4,7 @@
 
 - **`box-sizing`** now applies ([#33](https://github.com/brewkits/hyper_render/issues/33)): `border-box` includes padding and border in `width` / `min-width` / `max-width`, including `%`, on in-flow blocks. Limits are in `doc/LIMITATIONS.md`.
 - **`position: relative`** now applies ([#34](https://github.com/brewkits/hyper_render/issues/34)): `top` / `right` / `bottom` / `left` (lengths) move blocks, inline spans and flex/grid items without affecting layout, and hit-testing and selection follow. Moved content paints above normal content and is clipped to the render box, so untrusted HTML can't paint over the host app. Other content stays unclipped.
+- **Horizontal block margins** now apply: `margin-left`, `margin-right` and `margin: 0 auto` inset or centre in-flow blocks. They used to have no effect, so a `max-width` layout sat at the left edge.
 - **Rendering changes:**
   - A block's background and border now follow its `width`. They used to span the whole container.
   - `min-width: %` now applies on blocks.

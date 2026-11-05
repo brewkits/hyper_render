@@ -30,11 +30,11 @@ This document lists CSS property support in HyperRender.
 | `max-width` | ✅ | px, % | Constrains a block's content width (text wraps inside it) |
 | `min-height` | ❌ | — | Parsed into `ComputedStyle.minHeight`, then read by nothing in the render path. Found by `test/flagship_execution_audit_test.dart` |
 | `max-height` | ❌ | — | Parsed into `ComputedStyle.maxHeight`, then read by nothing in the render path. Found by `test/flagship_execution_audit_test.dart` |
-| `margin` | ✅ | px, %, auto | All 4 directions + shorthand |
-| `margin-top` | ✅ | px, %, auto | |
-| `margin-right` | ✅ | px, %, auto | |
-| `margin-bottom` | ✅ | px, %, auto | |
-| `margin-left` | ✅ | px, %, auto | |
+| `margin` | ✅ | px, em, rem, auto | All 4 directions + shorthand. `%` not supported. `auto` centres in-flow blocks with a width; see [LIMITATIONS.md](LIMITATIONS.md) |
+| `margin-top` | ✅ | px, em, rem | |
+| `margin-right` | ✅ | px, em, rem, auto | |
+| `margin-bottom` | ✅ | px, em, rem | |
+| `margin-left` | ✅ | px, em, rem, auto | |
 | `padding` | ✅ | px, % | All 4 directions + shorthand |
 | `padding-top` | ✅ | px, % | |
 | `padding-right` | ✅ | px, % | |

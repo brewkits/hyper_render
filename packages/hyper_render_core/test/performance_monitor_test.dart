@@ -372,10 +372,12 @@ void main() {
 
       final report = monitor.buildReport();
 
-      expect(report.parseTime.inMicroseconds, greaterThan(0));
-      expect(report.styleTime.inMicroseconds, greaterThan(0));
-      expect(report.layoutTime.inMicroseconds, greaterThan(0));
-      expect(report.paintTime.inMicroseconds, greaterThan(0));
+      // At least 0, not above it: this loop can finish within one clock tick,
+      // which failed CI on fast runners.
+      expect(report.parseTime.inMicroseconds, greaterThanOrEqualTo(0));
+      expect(report.styleTime.inMicroseconds, greaterThanOrEqualTo(0));
+      expect(report.layoutTime.inMicroseconds, greaterThanOrEqualTo(0));
+      expect(report.paintTime.inMicroseconds, greaterThanOrEqualTo(0));
     });
 
     test('handles ending phase that was never started', () {

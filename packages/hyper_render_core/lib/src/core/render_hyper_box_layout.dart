@@ -235,6 +235,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         hasWidthConstraint ||
         hasPadding ||
         hasDecoration ||
+        style.margin.left != 0 ||
+        style.margin.right != 0 ||
         style.textOverflow == TextOverflow.ellipsis) {
       _fragments.add(_BlockStartFragment(
         sourceNode: node,
@@ -244,6 +246,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         paddingLeft: style.padding.left,
         paddingRight: style.padding.right,
         truncateWithEllipsis: style.textOverflow == TextOverflow.ellipsis,
+        appliesHorizontalMargins: style.float == HyperFloat.none,
       ));
     }
 
@@ -1010,9 +1013,22 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
         currentY += fragment.marginTop + fragment.paddingTop;
 
+        // The box edges: the containing block's content edges, moved in by this
+        // block's margins. Clamped to this render box, so a negative margin can
+        // reach into a parent's padding but no margin can place a background
+        // outside the box, over the host app.
+        final margin =
+            fragment.appliesHorizontalMargins ? fragment.style.margin : null;
+        final boxLeftInset =
+            (leftPaddingStack.last + (margin?.left ?? 0)).clamp(0.0, _maxWidth);
+        final boxRightInset = (rightPaddingStack.last + (margin?.right ?? 0))
+            .clamp(0.0, _maxWidth);
+
         // ACCUMULATE padding for nested blocks
-        final newLeftPadding = leftPaddingStack.last + fragment.paddingLeft;
-        var newRightPadding = rightPaddingStack.last + fragment.paddingRight;
+        var newLeftPadding = boxLeftInset + fragment.paddingLeft;
+        var newRightPadding = boxRightInset + fragment.paddingRight;
+        // Left edge of this block's painted box. Moves if `auto` margins do.
+        var boxLeftX = boxLeftInset;
 
         // CSS width constraints on a block, resolved via the existing per-block
         // padding stack (no separate per-block width machinery needed). We pick
@@ -1089,14 +1105,27 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
               math.max(0.0, _maxWidth - newLeftPadding - newRightPadding);
           target = target.clamp(0.0, avail);
 
-          // Borders don't reserve line-breaker space yet, so they are added
-          // here only for the painted box. Capped so a box never paints past
-          // its containing block.
+          // Painted width. Borders don't reserve line-breaker space yet, so
+          // they count here only.
+          final boxWidth =
+              fragment.paddingLeft + target + fragment.paddingRight + borderSum;
+
+          // `auto` margins share the free space: centred when both are auto.
+          if (fragment.appliesHorizontalMargins &&
+              (st.marginLeftAuto || st.marginRightAuto)) {
+            final free = math.max(
+                0.0, _maxWidth - boxLeftInset - boxRightInset - boxWidth);
+            if (st.marginLeftAuto) {
+              final shift = st.marginRightAuto ? free / 2 : free;
+              boxLeftX += shift;
+              newLeftPadding += shift;
+            }
+          }
+
+          // Capped so a box never paints past its containing block.
           if (!isWidgetBox) {
-            constrainedBoxRight = math.min(
-              _maxWidth - rightPaddingStack.last,
-              newLeftPadding + target + fragment.paddingRight + borderSum,
-            );
+            constrainedBoxRight =
+                math.min(_maxWidth - boxRightInset, boxLeftX + boxWidth);
           }
           newRightPadding = _maxWidth - newLeftPadding - target;
         }
@@ -1118,14 +1147,10 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final hasBorderLeft =
             style.borderColor != null && style.borderWidth.left > 0;
         if (hasBackground || hasBorderLeft) {
-          // Calculate the edge positions (account for parent padding but not this block's)
-          final blockLeftX = leftPaddingStack.length > 1
-              ? leftPaddingStack[leftPaddingStack.length - 2]
-              : 0.0;
-          final blockRightX = constrainedBoxRight ??
-              (rightPaddingStack.length > 1
-                  ? _maxWidth - rightPaddingStack[rightPaddingStack.length - 2]
-                  : _maxWidth);
+          // The painted box: inside the margins, outside this block's padding.
+          final blockLeftX = boxLeftX;
+          final blockRightX = math.max(
+              blockLeftX, constrainedBoxRight ?? (_maxWidth - boxRightInset));
           // startY is BEFORE padding (current position includes padding, so subtract it)
           final blockStartY = currentY - fragment.paddingTop;
           activeBlocks.add((fragment, blockStartY, blockLeftX, blockRightX));

@@ -14,6 +14,11 @@ class _BlockStartFragment extends Fragment {
   /// and the last fitting fragment gets "…" appended (CSS text-overflow: ellipsis).
   final bool truncateWithEllipsis;
 
+  /// Whether the line breaker applies this block's left and right margins.
+  /// False where something else owns them: flex and grid containers draw them
+  /// in a child widget, and floats handle them in float layout.
+  final bool appliesHorizontalMargins;
+
   _BlockStartFragment({
     required super.sourceNode,
     required super.style,
@@ -22,6 +27,7 @@ class _BlockStartFragment extends Fragment {
     this.paddingLeft = 0,
     this.paddingRight = 0,
     this.truncateWithEllipsis = false,
+    this.appliesHorizontalMargins = false,
   }) : super(type: FragmentType.text, text: '');
 }
 

@@ -1848,6 +1848,12 @@ class StyleResolver {
         final margin = _parseEdgeInsets(value);
         if (margin != null) {
           style.margin = margin;
+          // `auto` parses to 0 above; layout needs to know which sides it was.
+          final sides = value.trim().toLowerCase().split(_Re.whitespace);
+          style.marginRightAuto = sides.length >= 2 && sides[1] == 'auto' ||
+              sides.length == 1 && sides[0] == 'auto';
+          style.marginLeftAuto =
+              sides.length == 4 ? sides[3] == 'auto' : style.marginRightAuto;
           style.markExplicitlySet('margin');
         }
         break;
@@ -1869,17 +1875,21 @@ class StyleResolver {
         break;
 
       case 'margin-left':
-        final val = _parseLength(value);
+        final isAuto = _isAutoKeyword(value);
+        final val = isAuto ? 0.0 : _parseLength(value);
         if (val != null) {
           style.margin = style.margin.copyWith(left: val);
+          style.marginLeftAuto = isAuto;
           style.markExplicitlySet('margin');
         }
         break;
 
       case 'margin-right':
-        final val = _parseLength(value);
+        final isAuto = _isAutoKeyword(value);
+        final val = isAuto ? 0.0 : _parseLength(value);
         if (val != null) {
           style.margin = style.margin.copyWith(right: val);
+          style.marginRightAuto = isAuto;
           style.markExplicitlySet('margin');
         }
         break;
