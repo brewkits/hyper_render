@@ -2096,6 +2096,7 @@ class _HyperViewerState extends State<HyperViewer>
       if (widget.selectable && widget.showSelectionMenu) {
         content = HyperSelectionOverlay(
           document: _syncDocument!,
+          textDirection: widget.textDirection,
           selectable: true,
           onLinkTap: _safeOnLinkTap,
           widgetBuilder: _effectiveWidgetBuilder,
@@ -2120,6 +2121,7 @@ class _HyperViewerState extends State<HyperViewer>
         // Use HyperRenderWidget directly (no popup menu)
         content = HyperRenderWidget(
           document: _syncDocument!,
+          textDirection: widget.textDirection ?? Directionality.of(context),
           selectable: widget.selectable,
           onLinkTap: _safeOnLinkTap,
           widgetBuilder: _effectiveWidgetBuilder,

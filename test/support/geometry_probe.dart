@@ -145,3 +145,21 @@ Future<ProbePixels> capture(WidgetTester tester) async {
   });
   return result!;
 }
+
+/// Where [box] draws each paragraph, in paint order. Fragment geometry can't
+/// show a fragment drawn twice or a stale one drawn at all; this can.
+List<Offset> paragraphOrigins(RenderHyperBox box) {
+  final canvas = _UnboundedRecordingCanvas();
+  box.paint(TestRecordingPaintingContext(canvas), Offset.zero);
+  return [
+    for (final call in canvas.invocations)
+      if (call.invocation.memberName == #drawParagraph)
+        call.invocation.positionalArguments[1] as Offset,
+  ];
+}
+
+class _UnboundedRecordingCanvas extends TestRecordingCanvas {
+  @override
+  Rect getLocalClipBounds() =>
+      const Rect.fromLTWH(-100000, -100000, 200000, 200000);
+}

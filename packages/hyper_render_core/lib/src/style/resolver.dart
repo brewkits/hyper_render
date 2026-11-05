@@ -1776,7 +1776,8 @@ class StyleResolver {
         if (_isAutoKeyword(value)) {
           style.insetTop = null;
         } else {
-          style.insetTop = _parseLength(value) ?? style.insetTop;
+          style.insetTop = _parseOffsetLength(value, style, parentFontSize) ??
+              style.insetTop;
         }
         break;
 
@@ -1784,7 +1785,8 @@ class StyleResolver {
         if (_isAutoKeyword(value)) {
           style.insetRight = null;
         } else {
-          style.insetRight = _parseLength(value) ?? style.insetRight;
+          style.insetRight = _parseOffsetLength(value, style, parentFontSize) ??
+              style.insetRight;
         }
         break;
 
@@ -1792,7 +1794,9 @@ class StyleResolver {
         if (_isAutoKeyword(value)) {
           style.insetBottom = null;
         } else {
-          style.insetBottom = _parseLength(value) ?? style.insetBottom;
+          style.insetBottom =
+              _parseOffsetLength(value, style, parentFontSize) ??
+                  style.insetBottom;
         }
         break;
 
@@ -1800,7 +1804,8 @@ class StyleResolver {
         if (_isAutoKeyword(value)) {
           style.insetLeft = null;
         } else {
-          style.insetLeft = _parseLength(value) ?? style.insetLeft;
+          style.insetLeft = _parseOffsetLength(value, style, parentFontSize) ??
+              style.insetLeft;
         }
         break;
 
@@ -3888,6 +3893,21 @@ class StyleResolver {
   }
 
   bool _isAutoKeyword(String value) => value.trim().toLowerCase() == 'auto';
+
+  /// A `top`/`right`/`bottom`/`left` length. `em` is this element's own font
+  /// size: font-size is hoisted ahead of other declarations, so it is already
+  /// final here if the element sets it, and otherwise equals the parent's.
+  double? _parseOffsetLength(
+    String value,
+    ComputedStyle style,
+    double? parentFontSize,
+  ) =>
+      _parseLengthWithContext(
+        value,
+        parentFontSize: style.isExplicitlySet('font-size')
+            ? style.fontSize
+            : parentFontSize,
+      );
 
   double? _parseLength(String value) {
     value = value.trim().toLowerCase();

@@ -197,7 +197,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
                 onLinkTap: onLinkTap,
                 codeHighlighter: config.codeHighlighter,
                 keyframeRegistry: config.keyframeRegistry,
-                pluginRegistry: pluginRegistry));
+                pluginRegistry: pluginRegistry,
+                rtl: textDirection == TextDirection.rtl));
 
   /// Build child widgets for atomic elements (images, tables, etc.)
   static List<Widget> _buildChildren(
@@ -208,6 +209,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     CodeHighlighter? codeHighlighter,
     Map<String, HyperKeyframes> keyframeRegistry = const {},
     HyperPluginRegistry? pluginRegistry,
+    bool rtl = false,
   }) {
     final children = <Widget>[];
     _collectAtomicChildren(document, children, widgetBuilder,
@@ -215,7 +217,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
         onLinkTap: onLinkTap,
         codeHighlighter: codeHighlighter,
         keyframeRegistry: keyframeRegistry,
-        pluginRegistry: pluginRegistry);
+        pluginRegistry: pluginRegistry,
+        rtl: rtl);
     return children;
   }
 
@@ -228,6 +231,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     CodeHighlighter? codeHighlighter,
     Map<String, HyperKeyframes> keyframeRegistry = const {},
     HyperPluginRegistry? pluginRegistry,
+    bool rtl = false,
   }) {
     Widget? childWidget;
 
@@ -251,7 +255,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (node.style.display == DisplayType.flex) {
       childWidget = widgetBuilder?.call(node);
       childWidget ??= _buildFlexContainerWidget(node, widgetBuilder,
-          selectable: selectable);
+          selectable: selectable, rtl: rtl);
       if (childWidget != null) {
         children.add(_HyperChildWidget(
             node: node,
@@ -264,7 +268,7 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     if (node.style.display == DisplayType.grid) {
       childWidget = widgetBuilder?.call(node);
       childWidget ??= _buildGridContainerWidget(node, widgetBuilder,
-          selectable: selectable);
+          selectable: selectable, rtl: rtl);
       if (childWidget != null) {
         children.add(_HyperChildWidget(
             node: node,
@@ -364,7 +368,8 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
             onLinkTap: onLinkTap,
             codeHighlighter: codeHighlighter,
             keyframeRegistry: keyframeRegistry,
-            pluginRegistry: pluginRegistry);
+            pluginRegistry: pluginRegistry,
+            rtl: rtl);
       }
     }
   }
@@ -464,10 +469,11 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     UDTNode node,
     HyperWidgetBuilder? widgetBuilder, {
     bool selectable = false,
+    bool rtl = false,
   }) {
     final items = <GridItem>[];
     for (final child in node.children) {
-      final childWidget = _buildFlexChild(child, widgetBuilder);
+      final childWidget = _buildFlexChild(child, widgetBuilder, rtl: rtl);
       if (childWidget != null) {
         items.add(GridItem(
           child: childWidget,
@@ -598,11 +604,12 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
     UDTNode node,
     HyperWidgetBuilder? widgetBuilder, {
     bool selectable = false,
+    bool rtl = false,
   }) {
     // Recursively build children of flex container
     final flexChildren = <Widget>[];
     for (final child in node.children) {
-      final childWidget = _buildFlexChild(child, widgetBuilder);
+      final childWidget = _buildFlexChild(child, widgetBuilder, rtl: rtl);
       if (childWidget != null) {
         // Always carry the item's ComputedStyle: the wrapping-flex renderer
         // needs `min-width`/`max-width`/`width` even on items that declare no
@@ -656,15 +663,21 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
   /// Builds a flex or grid child, moved by its `position: relative` offset.
   /// `Transform` shifts paint and hit-testing without affecting layout.
   static Widget? _buildFlexChild(
-      UDTNode node, HyperWidgetBuilder? widgetBuilder) {
-    final child = _buildFlexChildContent(node, widgetBuilder);
-    final shift = node.style.relativeOffset();
+    UDTNode node,
+    HyperWidgetBuilder? widgetBuilder, {
+    bool rtl = false,
+  }) {
+    final child = _buildFlexChildContent(node, widgetBuilder, rtl: rtl);
+    final shift = node.style.relativeOffset(rtl: rtl);
     if (child == null || shift == Offset.zero) return child;
     return Transform.translate(offset: shift, child: child);
   }
 
   static Widget? _buildFlexChildContent(
-      UDTNode node, HyperWidgetBuilder? widgetBuilder) {
+    UDTNode node,
+    HyperWidgetBuilder? widgetBuilder, {
+    bool rtl = false,
+  }) {
     // If it's text content, convert to Text widget
     if (node.type == NodeType.text) {
       final textNode = node as TextNode;
@@ -695,14 +708,14 @@ class HyperRenderWidget extends MultiChildRenderObjectWidget {
 
     // If it's a nested flex container, recursively build it
     if (node.type == NodeType.block && node.style.display == DisplayType.flex) {
-      return _buildFlexContainerWidget(node, widgetBuilder);
+      return _buildFlexContainerWidget(node, widgetBuilder, rtl: rtl);
     }
 
     // If it's a block, create a container
     if (node.type == NodeType.block) {
       final blockChildren = <Widget>[];
       for (final child in node.children) {
-        final childWidget = _buildFlexChild(child, widgetBuilder);
+        final childWidget = _buildFlexChild(child, widgetBuilder, rtl: rtl);
         if (childWidget != null) {
           blockChildren.add(childWidget);
         }

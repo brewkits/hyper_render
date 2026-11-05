@@ -155,10 +155,14 @@ class _InlineDecoration {
   final List<Rect> rects;
   final _InlineDecorationStyle style;
 
+  /// Whether `position: relative` moved this decoration.
+  final bool moved;
+
   _InlineDecoration({
     required this.node,
     required this.rects,
     required this.style,
+    this.moved = false,
   });
 }
 
@@ -168,6 +172,9 @@ class _BlockDecoration {
 
   /// Mutable only so `position: relative` can shift it after line layout.
   Rect rect;
+
+  /// Whether `position: relative` moved this decoration.
+  bool moved = false;
   final Color? backgroundColor;
   final Gradient? backgroundGradient;
   final Color? borderLeftColor;

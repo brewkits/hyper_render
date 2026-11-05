@@ -27,7 +27,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     if (_document == null) return;
 
     _fragments = [];
-    _hasRelative = false;
+    _relativeWidgetBoxes.clear();
+    _hasRelative = _scanForRelative(_document!);
     _lastBlockMarginBottom = 0;
     _fragmentsVersion++; // signal that line layout must be redone
     // Reset list item counters so ordered-list numbering restarts from 1
@@ -59,7 +60,6 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // email pre-headers, conditional CMS blocks and tracking wrappers use
     // `display: none`, so the text became visible and selectable.
     if (node.style.display == DisplayType.none) return;
-    if (node.style.position == 'relative') _hasRelative = true;
 
     switch (node.type) {
       case NodeType.document:
@@ -771,8 +771,14 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // Built by this pass, so a re-run (width change, details toggle, intrinsic
     // query) must start empty or the previous pass's rects keep painting.
     _blockDecorations.clear();
-    // Line layout rewrites every offset, so earlier shifts no longer apply.
+    // Undo earlier shifts first: a fragment line layout doesn't re-place, such
+    // as one it splits or replaces, would otherwise keep gaining the shift.
+    _displaced.forEach((fragment, shift) {
+      final offset = fragment.offset;
+      if (offset != null) fragment.offset = offset - shift;
+    });
     _displaced.clear();
+    _displacedOnLines.clear();
 
     // Reset layout caches
     _cachedAvailableWidth = null;
@@ -2552,45 +2558,71 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
   /// Step 4: Position fragments within lines (baseline alignment)
   /// Handles both LTR (left-to-right) and RTL (right-to-left) text directions
+  /// Whether [node]'s subtree has a `position: relative` element, recording
+  /// which flex and grid containers hold one.
+  bool _scanForRelative(UDTNode node) {
+    if (node.style.display == DisplayType.none) return false;
+    var found = node.style.position == 'relative';
+    final isWidgetBox = node.style.display == DisplayType.flex ||
+        node.style.display == DisplayType.grid;
+    for (final child in node.children) {
+      if (_scanForRelative(child)) found = true;
+    }
+    if (found && isWidgetBox) _relativeWidgetBoxes.add(node);
+    return found;
+  }
+
+  /// Records each node's shift: its own offset plus its relative ancestors'.
+  ///
+  /// Walks down from this box's document rather than up `node.parent`: building
+  /// a nested box's document re-parents the shared nodes, so a walk up can stop
+  /// short of a relative ancestor.
+  void _collectRelativeShifts(UDTNode node, Offset inherited) {
+    final shift = inherited + node.style.relativeOffset(rtl: isRTL);
+    _relativeShifts[node] = shift;
+    for (final child in node.children) {
+      _collectRelativeShifts(child, shift);
+    }
+  }
+
   /// Applies `position: relative`: moves each element's fragments and block
-  /// decoration by its offset plus its relative ancestors' offsets.
+  /// decoration by its shift.
   ///
   /// Runs after line layout and positioning, so sibling layout never sees the
   /// shift. Lines, floats' wrap areas and anchors keep their in-flow values.
   /// Child widgets follow, since [_layoutChildren] reads `fragment.offset`.
   void _applyRelativeOffsets() {
-    _displaced.clear();
-    if (!_hasRelative) return;
+    _relativeShifts.clear();
+    _hasMovedContent = _relativeWidgetBoxes.isNotEmpty;
+    if (!_hasRelative || _document == null) return;
+    _collectRelativeShifts(_document!, Offset.zero);
 
-    final shifts = <UDTNode, Offset>{};
-    Offset shiftOf(UDTNode node) {
-      final cached = shifts[node];
-      if (cached != null) return cached;
-      final parent = node.parent;
-      final shift = node.style.relativeOffset(rtl: isRTL) +
-          (parent == null ? Offset.zero : shiftOf(parent));
-      shifts[node] = shift;
-      return shift;
-    }
-
-    void move(Fragment fragment) {
+    bool move(Fragment fragment) {
       final offset = fragment.offset;
-      if (offset == null || _displaced.containsKey(fragment)) return;
-      final shift = shiftOf(fragment.sourceNode);
-      if (shift == Offset.zero) return;
+      if (offset == null || _displaced.containsKey(fragment)) return false;
+      final shift = _relativeShifts[fragment.sourceNode] ?? Offset.zero;
+      if (shift == Offset.zero) return false;
       fragment.offset = offset + shift;
       _displaced[fragment] = shift;
+      return true;
     }
 
-    // Both lists: a fragment split across lines exists only in `line.fragments`,
-    // and block-level ones such as list markers only in `_fragments`.
-    _fragments.forEach(move);
+    // Lines hold exactly the text that gets drawn.
     for (final line in _lines) {
-      line.fragments.forEach(move);
+      for (final fragment in line.fragments) {
+        if (move(fragment)) _displacedOnLines.add(fragment);
+      }
     }
+    // `_fragments` adds what isn't on a line, such as list markers and floats.
+    _fragments.forEach(move);
     for (final decoration in _blockDecorations) {
-      decoration.rect = decoration.rect.shift(shiftOf(decoration.node));
+      final shift = _relativeShifts[decoration.node] ?? Offset.zero;
+      if (shift == Offset.zero) continue;
+      decoration.rect = decoration.rect.shift(shift);
+      decoration.moved = true;
+      _hasMovedContent = true;
     }
+    if (_displaced.isNotEmpty) _hasMovedContent = true;
   }
 
   void _positionFragments() {
@@ -2917,16 +2949,26 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
         if (visualRect == null) continue;
 
+        // Back to in-flow coordinates. A decoration moves by its own node's
+        // shift, not its content's: an outer span's background stays on the
+        // line when a relative child inside it moves away.
+        final fragmentShift = _displaced[fragment];
+        final flowRect = fragmentShift == null
+            ? visualRect
+            : visualRect.shift(-fragmentShift);
+
         for (final decoratedNode in decoratedNodes) {
           final rangeEntry = decoratedRanges[decoratedNode];
           if (rangeEntry == null) continue;
           final (style, _, _) = rangeEntry;
           final padding = style.padding;
+          final nodeRect =
+              flowRect.shift(_relativeShifts[decoratedNode] ?? Offset.zero);
           final expandedRect = Rect.fromLTWH(
-            visualRect.left - padding.left,
-            visualRect.top - padding.top,
-            visualRect.width + padding.left + padding.right,
-            visualRect.height + padding.top + padding.bottom,
+            nodeRect.left - padding.left,
+            nodeRect.top - padding.top,
+            nodeRect.width + padding.left + padding.right,
+            nodeRect.height + padding.top + padding.bottom,
           );
 
           final list = rectsMap[decoratedNode]!;
@@ -2952,9 +2994,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       final (style, _, _) = entry.value;
       final rects = rectsMap[node] ?? [];
       if (rects.isNotEmpty) {
+        final moved = (_relativeShifts[node] ?? Offset.zero) != Offset.zero;
+        if (moved) _hasMovedContent = true;
         _inlineDecorations.add(_InlineDecoration(
           node: node,
           rects: rects,
+          moved: moved,
           style: _InlineDecorationStyle(
             backgroundColor: style.backgroundColor,
             backgroundGradient: style.backgroundGradient,

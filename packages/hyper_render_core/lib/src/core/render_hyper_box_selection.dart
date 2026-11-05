@@ -46,8 +46,7 @@ extension RenderHyperBoxSelection on RenderHyperBox {
   /// Line lookups can't find these: a moved fragment stays listed on its
   /// original line, which may be nowhere near where it is painted.
   Fragment? _findDisplacedFragmentAt(Offset position) {
-    if (_displaced.isEmpty) return null;
-    for (final fragment in _displaced.keys.toList().reversed) {
+    for (final fragment in _displacedOnLines.reversed) {
       final rect = fragment.rect;
       if (rect != null && rect.contains(position)) return fragment;
     }

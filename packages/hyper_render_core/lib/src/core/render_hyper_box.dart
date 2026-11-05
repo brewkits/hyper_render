@@ -200,22 +200,38 @@ class RenderHyperBox extends RenderBox
   /// Block decorations for painting border-left, backgrounds
   final List<_BlockDecoration> _blockDecorations = [];
 
-  /// Whether the document has any `position: relative` element. Set during
-  /// tokenization so documents without one skip [_applyRelativeOffsets].
+  /// Whether the document has any `position: relative` element, including
+  /// inside flex and grid containers. Documents without one skip all of the
+  /// relative handling.
   bool _hasRelative = false;
 
-  /// Fragments moved away from their line by `position: relative`, with how far
-  /// they moved. They stay listed on that line (document order, selection), so
-  /// anything that finds a fragment by line must check this map as well.
+  /// Flex and grid containers holding a `position: relative` item. Their items
+  /// move inside a child widget, invisible to the fragment pass, so the whole
+  /// container paints with the moved content.
+  final Set<UDTNode> _relativeWidgetBoxes = Set.identity();
+
+  /// Cumulative `position: relative` shift of each node in this box's document.
+  final Map<UDTNode, Offset> _relativeShifts = Map.identity();
+
+  /// Every fragment `position: relative` moved, with how far. Used to undo the
+  /// shift before the next line layout, since not every fragment gets re-placed.
   final Map<Fragment, Offset> _displaced = Map.identity();
 
-  /// Clips painting to this box while [_displaced] is non-empty. See [_paint].
+  /// The moved fragments that sit on a line. They stay listed on that line for
+  /// document order and selection, so anything that finds a fragment by line
+  /// must check this list as well.
+  final List<Fragment> _displacedOnLines = [];
+
+  /// Whether any painted thing moved, which turns on the clipped paint pass.
+  bool _hasMovedContent = false;
+
+  /// Clips the moved-content paint pass to this box. See [_paint].
   final LayerHandle<ClipRectLayer> _relativeClipLayer =
       LayerHandle<ClipRectLayer>();
 
   /// Whether `position: relative` moved any content in the last layout.
   @visibleForTesting
-  bool get debugHasDisplacedContent => _displaced.isNotEmpty;
+  bool get debugHasDisplacedContent => _hasMovedContent;
 
   /// Runtime animation state for every node currently carrying a resolvable
   /// `animation-name` (canvas-painted block animation — see
@@ -1452,63 +1468,32 @@ class RenderHyperBox extends RenderBox
   }
 
   void _paint(PaintingContext context, Offset offset) {
-    if (_displaced.isEmpty) {
-      _relativeClipLayer.layer = null;
-      _paintContents(context, offset);
-      return;
-    }
-    // `position: relative` can move content anywhere, and the sanitizer doesn't
-    // filter CSS properties, so untrusted HTML must not be able to draw over
-    // the host app. Content outside this box isn't hit-testable either, so
-    // what's visible stays what's tappable.
-    _relativeClipLayer.layer = context.pushClipRect(
-      needsCompositing,
-      offset,
-      Offset.zero & size,
-      _paintContents,
-      oldLayer: _relativeClipLayer.layer,
-    );
-  }
-
-  void _paintContents(PaintingContext context, Offset offset) {
     try {
-      final canvas = context.canvas;
+      _paintedThisFrameByAnimation.clear();
+      _paintPass(context, offset, moved: false);
 
-      // -1. Animated blocks (CSS animation-name): each block's own decoration
-      // + text painted as one composited, transformed/faded unit. Populates
-      // _paintedThisFrameByAnimation so steps 0 and 4 below skip repainting
-      // the same content at its static style.
-      _paintAnimatedBlocks(canvas, offset);
-
-      // CSS Stacking Order:
-      // 0. Block decorations (border-left for blockquote, etc.)
-      _paintBlockDecorations(canvas, offset);
-
-      // 1. Background and borders (inline decorations)
-      _paintInlineDecorations(canvas, offset);
-
-      // 2. Float elements (painted before inline content)
-      _paintFloatImages(canvas, offset);
-
-      // 3. Selection highlight (behind text)
-      if (_selection != null &&
-          _selection!.isValid &&
-          !_selection!.isCollapsed) {
-        _paintSelection(canvas, offset);
+      // `position: relative` content goes last, which stacks it above normal
+      // content as in CSS, and in its own clip. It can be moved anywhere and the
+      // sanitizer doesn't filter CSS properties, so untrusted HTML must not be
+      // able to draw over the host app. Content outside this box isn't
+      // hit-testable either, so what's visible stays what's tappable. Normal
+      // content stays unclipped: one moved span mustn't crop a box-shadow
+      // elsewhere in the document.
+      if (_hasMovedContent) {
+        _relativeClipLayer.layer = context.pushClipRect(
+          needsCompositing,
+          offset,
+          Offset.zero & size,
+          (context, offset) => _paintPass(context, offset, moved: true),
+          oldLayer: _relativeClipLayer.layer,
+        );
+      } else {
+        _relativeClipLayer.layer = null;
       }
 
-      // 4. Inline content (text fragments)
-      _paintTextFragments(canvas, offset);
-
-      // 5. Inline images (non-float)
-      _paintInlineImages(canvas, offset);
-
-      // 6. Child render boxes (tables, positioned elements)
-      defaultPaint(context, offset);
-
-      // 7. Debug bounds overlay (only when debugShowBounds is true)
+      // Debug bounds overlay (only when debugShowBounds is true)
       if (debugShowBounds) {
-        _paintDebugBounds(canvas, offset);
+        _paintDebugBounds(context.canvas, offset);
       }
     } catch (e, stack) {
       // Error boundary: prevent full app crash, but report to Flutter framework

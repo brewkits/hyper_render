@@ -326,7 +326,11 @@ void main() {
       expect(red!.top, 160);
     });
 
-    Future<ProbePixels> sandwich(WidgetTester tester, String html) async {
+    Future<ProbePixels> sandwich(
+      WidgetTester tester,
+      String html, {
+      bool settle = true,
+    }) async {
       await tester.binding.setSurfaceSize(const Size(400, 600));
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -353,7 +357,13 @@ void main() {
           ),
         ),
       ));
-      await tester.pumpAndSettle();
+      if (settle) {
+        await tester.pumpAndSettle();
+      } else {
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 1));
+        await tester.pump(const Duration(milliseconds: 100));
+      }
       return capture(tester);
     }
 
@@ -391,6 +401,93 @@ void main() {
       final red = pixels.extent(isRed)!;
       expect(red.left, 40);
       expect(red.top, 140);
+    });
+
+    for (final (name, html) in [
+      (
+        'a flex item',
+        '<div style="display:flex"><div style="background:$probeRed;'
+            '${_rel}top:-80px;padding:8px">A</div></div>'
+      ),
+      (
+        'a grid item',
+        '<div style="display:grid;grid-template-columns:1fr">'
+            '<div style="background:$probeRed;${_rel}top:-80px;padding:8px">A'
+            '</div></div>'
+      ),
+      (
+        'an empty block',
+        '<div style="background:$probeRed;${_rel}top:-80px;padding:20px"></div>'
+            '<p>x</p>'
+      ),
+      (
+        'a parent whose child cancels its offset',
+        '<div style="background:$probeRed;${_rel}top:-80px;padding:20px">'
+            '<div style="${_rel}top:80px">A</div></div>'
+      ),
+      (
+        'an animated block',
+        '<style>@keyframes f{from{opacity:1}to{opacity:1}}</style>'
+            '<div style="animation:f 9s;background:$probeRed;${_rel}top:-80px;'
+            'padding:20px">A</div><p>x</p>'
+      ),
+    ]) {
+      testWidgets('$name cannot paint over the host app', (tester) async {
+        // A running canvas animation never settles.
+        final pixels =
+            await sandwich(tester, html, settle: !html.contains('@keyframes'));
+        final red = pixels.extent(isRed);
+        if (red != null) expect(red.top, greaterThanOrEqualTo(100));
+      });
+    }
+
+    testWidgets('a nearby relative span does not crop unrelated overflow',
+        (tester) async {
+      const shadowed = '<div style="background:rgb(255,255,255);padding:4px;'
+          'box-shadow:0 30px 0 #ff0000">x</div>';
+      final plain = await sandwich(tester, '<p>ab</p>$shadowed');
+      final withSpan = await sandwich(
+        tester,
+        '<p>a<span style="${_rel}left:1px">b</span></p>$shadowed',
+      );
+      expect(withSpan.extent(isRed)?.bottom, plain.extent(isRed)!.bottom);
+      expect(hyperBoxes(tester).first.debugHasDisplacedContent, isTrue);
+    });
+
+    testWidgets('a moved background paints above normal text', (tester) async {
+      await pumpHtml(
+        tester,
+        '<div style="background:$probeRed;${_rel}top:16px">AAA</div>'
+        '<div>BBBBBBBB</div><p>Z</p>',
+      );
+      final pixels = await capture(tester);
+      // Column 100 is inside "BBBBBBBB" and clear of the moved "AAA".
+      final (r, g, b) = pixels.at(100, 24);
+      expect(isRed(r, g, b), isTrue);
+    });
+
+    testWidgets('an outer inline background stays on its line', (tester) async {
+      await pumpHtml(
+        tester,
+        '<p><span style="background:$probeRed;padding:0 9px">A '
+        '<span style="${_rel}top:60px">B</span> C</span></p>'
+        '<p>Z</p><p>Z</p><p>Z</p><p>Z</p>',
+      );
+      final red = (await capture(tester)).extent(isRed)!;
+      final top = fragmentOf(tester, 'A')['offsetY'] as double;
+      expect(red.bottom, lessThan(top + 30));
+    });
+
+    testWidgets('a relative span with its own background moves it alone',
+        (tester) async {
+      await pumpHtml(
+        tester,
+        '<p>A <span style="background:$probeRed;padding:0 9px;${_rel}top:60px">'
+        'B</span> C</p><p>Z</p><p>Z</p><p>Z</p><p>Z</p>',
+      );
+      final red = (await capture(tester)).extent(isRed)!;
+      final a = fragmentOf(tester, 'A')['offsetY'] as double;
+      expect(red.top, greaterThanOrEqualTo(a + 60));
     });
 
     testWidgets('no relative content: no clip layer is pushed', (tester) async {
@@ -519,6 +616,138 @@ void main() {
     });
   });
 
+  group('each fragment is drawn exactly once', () {
+    List<Offset> draws(WidgetTester tester) =>
+        paragraphOrigins(hyperBoxes(tester).first);
+
+    testWidgets('a trimmed trailing space leaves no left-aligned copy',
+        (tester) async {
+      await pumpHtml(
+        tester,
+        '<div style="text-align:center;${_rel}top:10px">Hello <b> </b></div>',
+      );
+      expect(draws(tester), hasLength(lineFragments(tester).length));
+      expect(draws(tester).every((o) => o.dx > 0), isTrue);
+    });
+
+    testWidgets('text before a wrapped word is not drawn twice',
+        (tester) async {
+      await pumpHtml(
+        tester,
+        '<p style="${_rel}left:4px">Hello <b>${'w' * 60}</b></p>',
+      );
+      final origins = draws(tester);
+      expect(origins, hasLength(lineFragments(tester).length));
+      expect(origins.toSet(), hasLength(origins.length));
+    });
+
+    testWidgets('a list marker is drawn once', (tester) async {
+      await pumpHtml(tester, '<ul><li>AAA</li></ul>');
+      final plain = draws(tester).length;
+      await pumpHtml(tester, '<ul><li style="${_rel}top:5px">AAA</li></ul>');
+      expect(draws(tester), hasLength(plain));
+    });
+
+    testWidgets('narrowing the box leaves no drifting copy', (tester) async {
+      const html = '<p>Z</p><div style="${_rel}top:10px;left:7px">'
+          '<b>short text here</b></div>';
+      // Replaced first, so this render object starts fresh at 150px.
+      await pumpHtml(tester, '<p>other</p>', width: 150);
+      await pumpHtml(tester, html, width: 150);
+      final fresh = draws(tester).toSet();
+
+      await pumpHtml(tester, '<p>other</p>', width: 400);
+      await pumpHtml(tester, html, width: 400);
+      await pumpHtml(tester, html, width: 150);
+      expect(draws(tester).toSet(), fresh);
+      await pumpHtml(tester, html, width: 149);
+      await pumpHtml(tester, html, width: 150);
+      expect(draws(tester).toSet(), fresh);
+    });
+
+    testWidgets('no fragment gains the shift again on relayout',
+        (tester) async {
+      // Includes fragments replaced by their split pieces, which line layout
+      // doesn't re-place and which aren't drawn, so only their offset shows it.
+      const html = '<div style="${_rel}left:7px"><b>short text here</b></div>';
+      // Wide first: the whole text gets placed, then is split when narrowed.
+      await pumpHtml(tester, html, width: 400);
+      await pumpHtml(tester, html, width: 150);
+      List<double?> offsets() => [
+            for (final f in hyperBoxes(tester).first.debugFragments())
+              f['offsetX'] as double?,
+          ];
+      final first = offsets();
+      await pumpHtml(tester, html, width: 149);
+      await pumpHtml(tester, html, width: 150);
+      expect(offsets(), first);
+    });
+
+    testWidgets('a details toggle leaves no drifting copy', (tester) async {
+      const html = '<details><summary>S</summary><p>body</p></details>'
+          '<div style="${_rel}left:7px"><b>${'short text here '}'
+          '${'short text here '}${'short text here '}</b></div>';
+      await pumpHtml(tester, html);
+      final closed = draws(tester).length;
+      final details = find.byType(HyperDetailsWidget);
+      final tapAt = tester.getTopLeft(details) + const Offset(30, 10);
+      await tester.tapAt(tapAt);
+      await tester.pumpAndSettle();
+      await tester.tapAt(tapAt);
+      await tester.pumpAndSettle();
+      expect(draws(tester), hasLength(closed));
+    });
+  });
+
+  group('font-relative offsets', () {
+    testWidgets('em uses the element font size, in either order',
+        (tester) async {
+      await pumpHtml(tester, '<p>Z</p><div>AAA</div>');
+      final plainX = fragmentTopLeft(tester, 'AAA').dx;
+      for (final style in [
+        'font-size:40px;${_rel}left:1em',
+        '${_rel}left:1em;font-size:40px',
+      ]) {
+        await pumpHtml(tester, '<p>Z</p><div style="$style">AAA</div>');
+        expect(fragmentTopLeft(tester, 'AAA').dx - plainX, 40, reason: style);
+      }
+    });
+
+    testWidgets('em uses an inherited font size', (tester) async {
+      await pumpHtml(
+        tester,
+        '<div style="font-size:40px">'
+        '<span style="${_rel}left:1em">AAA</span></div>',
+      );
+      expect(fragmentTopLeft(tester, 'AAA').dx, 40);
+    });
+
+    testWidgets('rem stays on the root font size', (tester) async {
+      await pumpHtml(
+        tester,
+        '<div style="font-size:40px;${_rel}left:1rem">AAA</div>',
+      );
+      expect(fragmentTopLeft(tester, 'AAA').dx, 16);
+    });
+  });
+
+  group('floats', () {
+    testWidgets('text in a floated block moves with its relative parent',
+        (tester) async {
+      const float = '<div style="float:left;width:100px;height:40px">inside'
+          '</div><span>sibling</span>';
+      await pumpHtml(tester, '<div>$float</div>');
+      final inside = fragmentTopLeft(tester, 'inside');
+      final sibling = fragmentTopLeft(tester, 'sibling');
+
+      await pumpHtml(
+          tester, '<div style="${_rel}top:30px;left:20px">$float</div>');
+      expect(fragmentTopLeft(tester, 'inside') - inside, const Offset(20, 30));
+      expect(
+          fragmentTopLeft(tester, 'sibling') - sibling, const Offset(20, 30));
+    });
+  });
+
   group('widget path', () {
     testWidgets('a flex item moves and its sibling stays', (tester) async {
       const html = '<div style="display:flex">'
@@ -533,6 +762,34 @@ void main() {
       expect(tester.getTopLeft(find.text('AAA')) - a, const Offset(20, 30));
       expect(tester.getTopLeft(find.text('BBB')), b);
       expect(viewerHeight(tester), height);
+    });
+
+    testWidgets('a flex item follows the writing direction', (tester) async {
+      Future<Offset> position(String style, TextDirection direction) async {
+        await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: HyperViewer(
+                html: '<div style="display:flex">'
+                    '<div style="$style">AAA</div><div>BBB</div></div>',
+                mode: HyperRenderMode.sync,
+                textDirection: direction,
+              ),
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+        return tester.getTopLeft(find.text('AAA'));
+      }
+
+      const both = '${_rel}left:5px;right:7px';
+      for (final (direction, dx) in [
+        (TextDirection.ltr, 5.0),
+        (TextDirection.rtl, -7.0),
+      ]) {
+        final plain = await position('', direction);
+        expect((await position(both, direction)).dx - plain.dx, dx);
+      }
     });
 
     testWidgets('a grid item moves and its sibling stays', (tester) async {
