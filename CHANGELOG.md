@@ -4,12 +4,18 @@
 
 - **`box-sizing`** now applies ([#33](https://github.com/brewkits/hyper_render/issues/33)): `border-box` includes padding and border in `width` / `min-width` / `max-width`, including `%`, on in-flow blocks. Limits are in `doc/LIMITATIONS.md`.
 - **`position: relative`** now applies ([#34](https://github.com/brewkits/hyper_render/issues/34)): `top` / `right` / `bottom` / `left` (lengths) move blocks, inline spans and flex/grid items without affecting layout, and hit-testing and selection follow. Moved content paints above normal content and is clipped to the render box, so untrusted HTML can't paint over the host app. Other content stays unclipped.
+- **Horizontal block margins** now apply: `margin-left`, `margin-right` and `margin: 0 auto` inset or centre in-flow blocks. They used to have no effect, so a `max-width` layout sat at the left edge.
 - **Rendering changes:**
   - A block's background and border now follow its `width`. They used to span the whole container.
   - `min-width: %` now applies on blocks.
   - A first block styled only with a background or border now paints it.
   - Gradients on canvas blocks and inline spans now paint. They painted nothing.
   - A `<details>` toggle no longer leaves a block's old background behind.
+  - A float now sits inside its containing block. It used to sit at the render box edge, ignoring a parent's padding.
+  - A `<pre>` now fits inside its parent's padding instead of overflowing.
+  - In RTL, a block with a `width` anchors to the right edge.
+  - `margin` in `em` now uses the element's font size, not the root's.
+  - Inline `!important` no longer makes a value invalid: `style="margin-left:10px !important"` used to be dropped.
   - `HyperViewer(textDirection:)` and an ambient RTL `Directionality` now apply to short documents in sync mode. Virtualized and paged modes already honoured them.
 - **Requires `hyper_render_core` `^1.14.0`.**
 

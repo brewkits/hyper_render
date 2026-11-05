@@ -235,6 +235,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         hasWidthConstraint ||
         hasPadding ||
         hasDecoration ||
+        style.margin.left != 0 ||
+        style.margin.right != 0 ||
         style.textOverflow == TextOverflow.ellipsis) {
       _fragments.add(_BlockStartFragment(
         sourceNode: node,
@@ -244,6 +246,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         paddingLeft: style.padding.left,
         paddingRight: style.padding.right,
         truncateWithEllipsis: style.textOverflow == TextOverflow.ellipsis,
+        appliesHorizontalMargins: style.float == HyperFloat.none,
       ));
     }
 
@@ -825,6 +828,8 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     // Stack to track nested block indentation
     final List<double> leftPaddingStack = [0];
     final List<double> rightPaddingStack = [0];
+    // The block that pushed each stack level; null for the root level.
+    final List<UDTNode?> paddingStackOwners = [null];
 
     // Track active blocks for decoration (border-left, background)
     // Tuple: (fragment, startY, leftX, rightX)
@@ -1010,9 +1015,22 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
 
         currentY += fragment.marginTop + fragment.paddingTop;
 
+        // The box edges: the containing block's content edges, moved in by this
+        // block's margins. Clamped to this render box, so a negative margin can
+        // reach into a parent's padding but no margin can place a background
+        // outside the box, over the host app.
+        final margin =
+            fragment.appliesHorizontalMargins ? fragment.style.margin : null;
+        final boxLeftInset =
+            (leftPaddingStack.last + (margin?.left ?? 0)).clamp(0.0, _maxWidth);
+        final boxRightInset = (rightPaddingStack.last + (margin?.right ?? 0))
+            .clamp(0.0, _maxWidth);
+
         // ACCUMULATE padding for nested blocks
-        final newLeftPadding = leftPaddingStack.last + fragment.paddingLeft;
-        var newRightPadding = rightPaddingStack.last + fragment.paddingRight;
+        var newLeftPadding = boxLeftInset + fragment.paddingLeft;
+        var newRightPadding = boxRightInset + fragment.paddingRight;
+        // Left edge of this block's painted box. Moves if `auto` margins do.
+        var boxLeftX = boxLeftInset;
 
         // CSS width constraints on a block, resolved via the existing per-block
         // padding stack (no separate per-block width machinery needed). We pick
@@ -1089,20 +1107,34 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
               math.max(0.0, _maxWidth - newLeftPadding - newRightPadding);
           target = target.clamp(0.0, avail);
 
-          // Borders don't reserve line-breaker space yet, so they are added
-          // here only for the painted box. Capped so a box never paints past
-          // its containing block.
+          // Painted width. Borders don't reserve line-breaker space yet, so
+          // they count here only.
+          final boxWidth =
+              fragment.paddingLeft + target + fragment.paddingRight + borderSum;
+
+          // `auto` margins share the free space: centred when both are auto.
+          // Right-to-left, a box with no `auto` margin anchors to the right edge.
+          if (fragment.appliesHorizontalMargins &&
+              (st.marginLeftAuto || (isRTL && !st.marginRightAuto))) {
+            final free = math.max(
+                0.0, _maxWidth - boxLeftInset - boxRightInset - boxWidth);
+            final shift =
+                st.marginLeftAuto && st.marginRightAuto ? free / 2 : free;
+            boxLeftX += shift;
+            newLeftPadding += shift;
+          }
+
+          // Capped so a box never paints past its containing block.
           if (!isWidgetBox) {
-            constrainedBoxRight = math.min(
-              _maxWidth - rightPaddingStack.last,
-              newLeftPadding + target + fragment.paddingRight + borderSum,
-            );
+            constrainedBoxRight =
+                math.min(_maxWidth - boxRightInset, boxLeftX + boxWidth);
           }
           newRightPadding = _maxWidth - newLeftPadding - target;
         }
 
         leftPaddingStack.add(newLeftPadding);
         rightPaddingStack.add(newRightPadding);
+        paddingStackOwners.add(fragment.sourceNode);
 
         leftInset = newLeftPadding;
         rightInset = newRightPadding;
@@ -1118,14 +1150,20 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         final hasBorderLeft =
             style.borderColor != null && style.borderWidth.left > 0;
         if (hasBackground || hasBorderLeft) {
-          // Calculate the edge positions (account for parent padding but not this block's)
-          final blockLeftX = leftPaddingStack.length > 1
-              ? leftPaddingStack[leftPaddingStack.length - 2]
-              : 0.0;
-          final blockRightX = constrainedBoxRight ??
-              (rightPaddingStack.length > 1
-                  ? _maxWidth - rightPaddingStack[rightPaddingStack.length - 2]
-                  : _maxWidth);
+          // The painted box: inside the margins, outside this block's padding.
+          // Flex and grid containers apply their margins in the child widget, so
+          // their canvas decoration has to match it here.
+          final widgetMargin = style.display == DisplayType.flex ||
+                  style.display == DisplayType.grid
+              ? style.margin
+              : EdgeInsets.zero;
+          final blockLeftX =
+              (boxLeftX + widgetMargin.left).clamp(0.0, _maxWidth);
+          final blockRightX = math.max(
+            blockLeftX,
+            (constrainedBoxRight ?? (_maxWidth - boxRightInset)) -
+                widgetMargin.right,
+          );
           // startY is BEFORE padding (current position includes padding, so subtract it)
           final blockStartY = currentY - fragment.paddingTop;
           activeBlocks.add((fragment, blockStartY, blockLeftX, blockRightX));
@@ -1225,6 +1263,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         // Pop the padding stack
         if (leftPaddingStack.length > 1) leftPaddingStack.removeLast();
         if (rightPaddingStack.length > 1) rightPaddingStack.removeLast();
+        if (paddingStackOwners.length > 1) paddingStackOwners.removeLast();
 
         leftInset = leftPaddingStack.last;
         rightInset = rightPaddingStack.last;
@@ -1233,7 +1272,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       }
 
       if (fragment is _FloatFragment) {
-        _layoutFloat(fragment, currentY);
+        // A float sits inside its containing block. A floated block has usually
+        // pushed its own level, which holds its own padding: use the one below.
+        final level = paddingStackOwners.last == fragment.sourceNode
+            ? leftPaddingStack.length - 2
+            : leftPaddingStack.length - 1;
+        _layoutFloat(
+          fragment,
+          currentY,
+          containerLeft: leftPaddingStack[level],
+          containerRight: _maxWidth - rightPaddingStack[level],
+        );
         return;
       }
 
@@ -1303,14 +1352,17 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         // Find the child RenderBox for this code block
         RenderBox? codeBlockChild = _findChildForFragment(fragment);
         double blockHeight = 0.0;
-        double blockWidth = _maxWidth;
+        // Inside the block's insets: it is placed at leftInset below.
+        final availableWidth =
+            math.max(0.0, _maxWidth - leftInset - rightInset);
+        double blockWidth = availableWidth;
 
         if (codeBlockChild != null) {
           if (intrinsicMode) {
-            blockHeight = codeBlockChild.getMaxIntrinsicHeight(_maxWidth);
+            blockHeight = codeBlockChild.getMaxIntrinsicHeight(availableWidth);
           } else {
             codeBlockChild.layout(
-              BoxConstraints(maxWidth: _maxWidth),
+              BoxConstraints(maxWidth: availableWidth),
               parentUsesSize: true,
             );
             blockHeight = codeBlockChild.size.height;
@@ -2267,7 +2319,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     return buf.toString().trim();
   }
 
-  void _layoutFloat(Fragment fragment, double currentY) {
+  void _layoutFloat(
+    Fragment fragment,
+    double currentY, {
+    required double containerLeft,
+    required double containerRight,
+  }) {
     if (fragment is! _FloatFragment) return;
     // Can't position floats without a finite container width.
     if (_maxWidth.isInfinite || _maxWidth <= 0) return;
@@ -2371,15 +2428,16 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
     double floatY = currentY;
 
     if (fragment.floatDirection == HyperFloat.left) {
-      double left = 0;
+      double left = containerLeft;
 
       // Early exit: if the float is wider than the container it can never fit
       // horizontally regardless of Y position. Clamp to container width so the
       // loop below always terminates in O(1) for this degenerate case instead
       // of spending all 100 iterations advancing 1px at a time on an empty
       // float list (lowestBottom = floatY + 1 fallback).
-      if (width + rightMargin > _maxWidth) {
-        width = math.max(0.0, _maxWidth - rightMargin);
+      final containerWidth = math.max(0.0, containerRight - containerLeft);
+      if (width + rightMargin > containerWidth) {
+        width = math.max(0.0, containerWidth - rightMargin);
       }
 
       // Find available position - may need to move down if float doesn't fit
@@ -2392,7 +2450,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       const maxIterations = 100;
 
       while (!foundPosition && iterations < maxIterations) {
-        left = 0;
+        left = containerLeft;
 
         // Check existing left floats at current Y position
         for (final existing in _leftFloats) {
@@ -2402,7 +2460,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         }
 
         // Check right floats to ensure there's enough space
-        double rightEdge = _maxWidth;
+        double rightEdge = containerRight;
         for (final existing in _rightFloats) {
           if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
             rightEdge = math.min(rightEdge, existing.rect.left);
@@ -2463,11 +2521,12 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
           rect: floatRect, direction: HyperFloat.left, imageSrc: imgSrc));
       _cachedAvailableWidth = null;
     } else {
-      double right = _maxWidth;
+      double right = containerRight;
 
       // Early exit: clamp oversized right float to container width.
-      if (width + leftMargin > _maxWidth) {
-        width = math.max(0.0, _maxWidth - leftMargin);
+      final containerWidth = math.max(0.0, containerRight - containerLeft);
+      if (width + leftMargin > containerWidth) {
+        width = math.max(0.0, containerWidth - leftMargin);
       }
 
       // Find available position - may need to move down if float doesn't fit
@@ -2476,7 +2535,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
       const maxIterations = 100;
 
       while (!foundPosition && iterations < maxIterations) {
-        right = _maxWidth;
+        right = containerRight;
 
         // Check existing right floats at current Y position
         for (final existing in _rightFloats) {
@@ -2486,7 +2545,7 @@ extension _RenderHyperBoxLayout on RenderHyperBox {
         }
 
         // Check left floats to ensure there's enough space
-        double leftEdge = 0;
+        double leftEdge = containerLeft;
         for (final existing in _leftFloats) {
           if (floatY >= existing.rect.top && floatY < existing.rect.bottom) {
             leftEdge = math.max(leftEdge, existing.rect.right);

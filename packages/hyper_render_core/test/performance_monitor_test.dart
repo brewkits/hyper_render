@@ -362,11 +362,10 @@ void main() {
 
       for (final phase in ['parse', 'style', 'layout', 'paint']) {
         monitor.startPhase(phase);
-        // Simulate work
-        for (var i = 0; i < 100; i++) {
-          // ignore: unused_local_variable
-          final x = i * 2;
-        }
+        // Spin past a clock tick: a fixed loop could finish within one, which
+        // failed CI on fast runners with a recorded time of 0.
+        final work = Stopwatch()..start();
+        while (work.elapsedMicroseconds < 5) {}
         monitor.endPhase(phase);
       }
 
