@@ -1,5 +1,9 @@
 # Changelog — hyper_render_core
 
+## Unreleased
+
+- Give `main`, `article`, `section`, `header`, `footer` and `aside` block defaults during CSS resolution, preserving their box layout without explicit `display:block`.
+
 ## 1.14.0
 
 - **`box-sizing`:** new `ComputedStyle.boxSizing` / `HyperBoxSizing`. `border-box` applies to `width` / `min-width` / `max-width`, including `%`, on in-flow blocks.

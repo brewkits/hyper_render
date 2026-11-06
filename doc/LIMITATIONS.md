@@ -47,8 +47,8 @@ are silently ignored.
 |----------|------------|
 | `opacity` | Applied per-element; stacking context opacity not propagated |
 | `box-sizing: border-box` | Applied on in-flow blocks only. Borders don't reserve layout space, so text can overlap a border. A flex item's `width` already includes its padding whatever `box-sizing` says. `width` has no effect on a flex or grid container, `<table>` or `<td>`, and floated images ignore padding, so `box-sizing` changes nothing there |
-| Horizontal `margin` | Applies to in-flow blocks and flex/grid containers. `%` is not supported. `auto` works on in-flow blocks with a `width`, `max-width` or `min-width`, but not on flex/grid containers or items, tables or images. Negative margins can reach into a parent's padding but stay inside the render box. A large container flattened for virtualization loses its margins and width, so a long `max-width; margin: 0 auto` article renders full-width: set them on its children, or use `mode: HyperRenderMode.sync` |
-| `position: relative` | Lengths only: `%` offsets are ignored. Moved content paints above normal content but in no finer order (no `z-index` or stacking contexts), and is clipped to the render box so it can't paint over the host app (the sanitizer doesn't filter CSS properties). In virtualized mode that box is one chunk. A flex or grid item moved past its container is still visible inside the box. Not applied to `<td>`. A large container flattened for virtualization loses its offset |
+| Horizontal `margin` | Applies to in-flow blocks and flex/grid containers. `%` is not supported. `auto` works on in-flow blocks with a `width`, `max-width` or `min-width`, but not on flex/grid containers or items, tables or images. Negative margins can reach into a parent's padding but stay inside the render box. Large wrappers retain their width, horizontal margins and padding in each virtualized chunk |
+| `position: relative` | Lengths only: `%` offsets are ignored. Moved content paints above normal content but in no finer order (no `z-index` or stacking contexts), and is clipped to the render box so it can't paint over the host app (the sanitizer doesn't filter CSS properties). In virtualized mode that box is one chunk. A flex or grid item moved past its container is still visible inside the box. Not applied to `<td>`. A large wrapper repeats its offset in each virtualized chunk |
 | `calc()` | Arithmetic on px/em/rem only; `%` in calc not resolved |
 | `text-align` | Center/right/justify on canvas paragraphs, LTR and box-level RTL (`textDirection: rtl`). An explicit `text-align` overrides RTL's default right edge; `justify` in RTL is not yet distributed (keeps the start edge) |
 | `float` scope | A float reserves a box from the element's own `width`/`height`; it does **not** lay the floated element's content out inside that box. So float works for replaced elements (`<img style="float:left">`) and for empty, explicitly sized boxes (`<div style="float:left;width:150px;height:120px">`) — text wraps beside both. It does **not** work for an element sized by its own text: a floated `<div>` with content renders that content in normal flow while still reserving a phantom float box, which can make the block *taller* than not floating it; a floated inline `<span>` (the drop-cap idiom) has no effect at all. Pinned by `test/flagship_execution_audit_test.dart` |
@@ -137,7 +137,7 @@ HyperViewer(
 | Content > 10 KB | Async parse via `Future.microtask` + `ListView.builder` virtualisation |
 | Very large tables (100+ rows) | Linear layout time; prefer server-side pagination |
 | `display: none` subtrees | Skipped during layout but still parsed |
-| Large document wrapped in one styled container | On the virtualized path a large wrapping container (`<div class="…">` / `<div style="…">`) is **unwrapped** so its children can be split into independently-virtualized sections. The wrapper's own **box styling** (background / border / padding) is therefore **not preserved** around the group — one box cannot wrap chunks rendered separately without visible seams. Inline/text styling on the children is unaffected. Sync (< 10 KB) rendering keeps the wrapper intact. |
+| Large document wrapped in one styled container | Large wrappers are reconstructed in each virtualized section, preserving nested width constraints, auto margins, padding and ancestor CSS selectors. They are separate boxes: vertical margin/padding, borders, backgrounds and relative offsets repeat at chunk boundaries. Sibling/structural selectors see only the siblings in that chunk. For a continuous decorated box, use `mode: HyperRenderMode.sync`. |
 
 ### Writing widget tests against large content
 
@@ -226,9 +226,9 @@ Consequences you need to know when fixing a parser-level bug:
   to be applied twice, and Bootstrap's `float-start`/`float-end` was recognised
   in the package copy but missing from the root one.
 - The copies have drifted: ~19 differing hunks in `HtmlAdapter` and ~8 in
-  `DefaultCssParser`. Not all differences are accidental — the large-document
-  flatten behaviour differs **by design** (see the "Performance" note above),
-  so these cannot be merged mechanically.
+  `DefaultCssParser`. Both adapters now preserve wrapper ancestry when
+  chunking large documents, but other differences still require review before
+  consolidation.
 - Since the root package does not import them, `hyper_render_html` and friends
   are **not** dependencies of `hyper_render`. Use them standalone by depending
   on them explicitly. Their tests must also be run from inside their own

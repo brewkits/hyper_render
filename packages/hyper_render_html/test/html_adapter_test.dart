@@ -4,6 +4,23 @@ import 'package:hyper_render_html/hyper_render_html.dart';
 import 'package:hyper_render_core/hyper_render_core.dart';
 
 void main() {
+  test('large styled wrappers split and retain nested ancestry', () {
+    final content = List.generate(40, (i) => '<p>Paragraph $i</p>').join();
+    final sections = HtmlAdapter().parseToSections(
+        '<main><article class="article" style="max-width:200px;margin:0 auto">'
+        '$content</article></main>',
+        chunkSize: 100);
+    expect(sections.length, greaterThan(1));
+    for (final section in sections) {
+      final main = section.children.single;
+      final article = main.children.single;
+      expect(main.isBlock, isTrue);
+      expect(article.parent, same(main));
+      expect(article.attributes['class'], 'article');
+      expect(article.attributes['style'], contains('max-width:200px'));
+    }
+  });
+
   group('HtmlAdapter Unit Tests', () {
     late HtmlAdapter adapter;
 

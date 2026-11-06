@@ -13,7 +13,8 @@ class HtmlSanitizer {
   /// Default allowed HTML tags (safe subset)
   static const List<String> defaultAllowedTags = [
     // Block elements
-    'p', 'div', 'section', 'article', 'header', 'footer', 'nav', 'aside',
+    'p', 'div', 'section', 'article', 'main', 'header', 'footer', 'nav',
+    'aside',
     'blockquote', 'pre', 'hr', 'br',
 
     // Headings

@@ -1,5 +1,9 @@
 # Changelog — hyper_render_html
 
+## Unreleased
+
+- Split large styled and single-child wrappers into virtualized sections while retaining ancestor attributes and parent links for CSS resolution. Semantic article containers use block defaults. Decorations and vertical spacing repeat at section boundaries.
+
 ## [1.7.0] - 2026-08-22
 
 ### 🚀 Update

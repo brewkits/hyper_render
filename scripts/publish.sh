@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# HyperRender publish helper — v1.3.3
+# HyperRender publish helper
 #
 # Usage:
 #   ./scripts/publish.sh dry-run   # verify all packages (no upload)
@@ -11,20 +11,31 @@
 #   2. hyper_render_html, hyper_render_markdown, hyper_render_highlight
 #   3. hyper_render_clipboard, hyper_render_devtools, hyper_render_math
 #   4. hyper_render (root wrapper)
+#   5. hyper_render_epub (depends on root)
 #
 # Strategy:
-#   Each pubspec.yaml already has version deps (e.g. hyper_render_core: ^1.3.2)
-#   in `dependencies:`. The `dependency_overrides:` block redirects to local
-#   paths for monorepo dev. Before publishing each package, we remove the
-#   `dependency_overrides:` block, run `dart pub publish`, then restore the
-#   pubspec from git.
+#   Stage each package outside the checkout so ancestor .pubignore rules do not
+#   exclude packages/*. Strip local overrides only in the disposable copy.
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="$(grep -E '^version:' "$ROOT/pubspec.yaml" | awk '{print $2}')"
 MODE="${1:-dry-run}"   # dry-run | publish
+case "$MODE" in
+  dry-run|publish) ;;
+  *) echo "Usage: $0 {dry-run|publish}" >&2; exit 2 ;;
+esac
+
+STAGING_ROOT=""
+_cleanup() {
+  if [[ -n "$STAGING_ROOT" ]]; then
+    rm -rf -- "$STAGING_ROOT"
+  fi
+}
+trap _cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 # Use fvm if available, otherwise fall back to system flutter
 if command -v fvm &>/dev/null; then
@@ -59,7 +70,7 @@ with open(sys.argv[1]) as fh:
     content = fh.read()
 # Remove dependency_overrides block: top-level key + all following indented/blank lines
 content = re.sub(
-    r'\ndependency_overrides:\n(?:[ \t]+[^\n]*\n|\n)*',
+    r'(?m)^dependency_overrides:[^\n]*\n(?:(?:[ \t]+[^\n]*|\s*|#[^\n]*)\n)*',
     '\n',
     content,
 )
@@ -79,87 +90,48 @@ _remove_publish_to_none() {
   fi
 }
 
-# Restore a pubspec.yaml from git (undo all local modifications)
-_restore_pubspec() {
-  local f="$1"
-  git checkout -- "$f" 2>/dev/null && echo "  ✓ Restored $f" || true
+# Copy only the requested package to a directory outside the Git checkout.
+# Keep its own ignore files; pub will apply them when building the archive.
+_stage_package() {
+  local source="$1"
+  local name="$2"
+  if [[ -z "$STAGING_ROOT" ]]; then
+    STAGING_ROOT="$(mktemp -d /tmp/hyper-render-publish.XXXXXX)"
+  fi
+  STAGED_DIR="$STAGING_ROOT/$name"
+  mkdir -p "$STAGED_DIR"
+  rsync -a --exclude='.git/' --exclude='.dart_tool/' --exclude='/build/' --exclude='/example/build/' \
+    --exclude='pubspec_overrides.yaml' --exclude='/packages/' \
+    "$source/" "$STAGED_DIR/"
+  _remove_overrides "$STAGED_DIR/pubspec.yaml"
+  _remove_publish_to_none "$STAGED_DIR/pubspec.yaml"
 }
 
 publish_package() {
   local name="$1"
-  local dir="$ROOT/packages/$name"
-  local pubspec="$dir/pubspec.yaml"
-
+  local source="${2:-$ROOT/packages/$name}"
   echo ""
-  echo "════════════════════════════════════════"
   echo "  Package: $name"
-  echo "════════════════════════════════════════"
-
-  _remove_overrides "$pubspec"
-  _remove_publish_to_none "$pubspec"
-
-  # Ensure restore even on failure
-  trap "_restore_pubspec '$pubspec'" EXIT
-
+  _stage_package "$source" "$name"
   (
-    cd "$dir"
+    cd "$STAGED_DIR"
     echo "  Running: $FLUTTER pub publish $DRY_FLAG $FORCE_FLAG"
     set +e
     output=$($FLUTTER pub publish $DRY_FLAG $FORCE_FLAG 2>&1)
     exit_code=$?
     echo "$output"
     if [[ $exit_code -ne 0 ]]; then
-      if echo "$output" | grep -q "already exists"; then
+      if [[ "$MODE" == "publish" ]] && echo "$output" | grep -q "already exists"; then
         echo "  ℹ Package $name version already published on pub.dev, continuing..."
-      elif [[ "$MODE" == "dry-run" ]] && echo "$output" | grep -q "Package has 1 warning" && echo "$output" | grep -q "modified in git"; then
-        echo "  ✓ Package validation dry-run OK (ignoring temporary pubspec override removal warning)"
-      elif [[ "$MODE" == "dry-run" ]] && echo "$output" | grep -q "doesn't match any versions"; then
-        echo "  ✓ Dry-run dependency resolution expected (upstream package v$VERSION will be published in Step 1 before this step in live mode)"
       else
-        exit $exit_code
+        exit "$exit_code"
       fi
     fi
   )
-
-  _restore_pubspec "$pubspec"
-  trap - EXIT
 }
 
 publish_root() {
-  local pubspec="$ROOT/pubspec.yaml"
-
-  echo ""
-  echo "════════════════════════════════════════"
-  echo "  Package: hyper_render (root)"
-  echo "════════════════════════════════════════"
-
-  _remove_overrides "$pubspec"
-  _remove_publish_to_none "$pubspec"
-
-  trap "_restore_pubspec '$pubspec'" EXIT
-
-  (
-    cd "$ROOT"
-    echo "  Running: $FLUTTER pub publish $DRY_FLAG $FORCE_FLAG"
-    set +e
-    output=$($FLUTTER pub publish $DRY_FLAG $FORCE_FLAG 2>&1)
-    exit_code=$?
-    echo "$output"
-    if [[ $exit_code -ne 0 ]]; then
-      if echo "$output" | grep -q "already exists"; then
-        echo "  ℹ Package hyper_render version already published on pub.dev, continuing..."
-      elif [[ "$MODE" == "dry-run" ]] && echo "$output" | grep -q "Package has 1 warning" && echo "$output" | grep -q "modified in git"; then
-        echo "  ✓ Package validation dry-run OK (ignoring temporary pubspec override removal warning)"
-      elif [[ "$MODE" == "dry-run" ]] && echo "$output" | grep -q "doesn't match any versions"; then
-        echo "  ✓ Dry-run dependency resolution expected (upstream package v$VERSION will be published in Step 1 before this step in live mode)"
-      else
-        exit $exit_code
-      fi
-    fi
-  )
-
-  _restore_pubspec "$pubspec"
-  trap - EXIT
+  publish_package "hyper_render" "$ROOT"
 }
 
 # ── Static analysis ───────────────────────────────────────────────────────────
@@ -185,7 +157,7 @@ for pkg in "${PACKAGES[@]}"; do
   echo ""
   echo "  Analyzing $pkg..."
   cd "$ROOT/packages/$pkg"
-  if $FLUTTER analyze lib/ --fatal-warnings 2>&1 | tail -3; then
+  if $FLUTTER analyze --no-pub lib/ --fatal-warnings 2>&1 | tail -3; then
     echo "  ✓ $pkg OK"
   else
     echo "  ✗ $pkg FAILED"
@@ -193,6 +165,14 @@ for pkg in "${PACKAGES[@]}"; do
   fi
 done
 cd "$ROOT"
+echo ""
+echo "  Analyzing hyper_render..."
+if $FLUTTER analyze --no-pub lib/ --fatal-warnings 2>&1 | tail -3; then
+  echo "  ✓ hyper_render OK"
+else
+  echo "  ✗ hyper_render FAILED"
+  ANALYZE_FAILED=1
+fi
 
 if [[ "$ANALYZE_FAILED" -eq 1 ]]; then
   echo ""
@@ -262,6 +242,6 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 if [[ "$MODE" == "dry-run" ]]; then
   echo "  ✓ Dry-run complete — all packages passed"
 else
-  echo "  ✓ Published all packages v${VERSION}"
+  echo "  ✓ Publish run complete (already-published versions were skipped)"
 fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

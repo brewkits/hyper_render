@@ -8,6 +8,9 @@ How HyperRender is tested, where each kind of test lives, and how to run it.
 # Everything that gates a release (root + core, goldens excluded)
 flutter test test/ packages/hyper_render_core/test/ --exclude-tags golden
 
+# Publish staging and failure handling (fake Flutter; never uploads)
+python3 scripts/tests/test_publish.py
+
 # One file / one test
 flutter test test/line_breaking_regression_test.dart
 flutter test test/html_adapter_test.dart --plain-name 'parses links'

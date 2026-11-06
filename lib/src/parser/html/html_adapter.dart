@@ -33,6 +33,13 @@ class HtmlAdapter {
         display: DisplayType.block,
         margin: const EdgeInsets.symmetric(vertical: 16)),
     'div': ComputedStyle(display: DisplayType.block),
+    'section': ComputedStyle(display: DisplayType.block),
+    'article': ComputedStyle(display: DisplayType.block),
+    'main': ComputedStyle(display: DisplayType.block),
+    'header': ComputedStyle(display: DisplayType.block),
+    'footer': ComputedStyle(display: DisplayType.block),
+    'aside': ComputedStyle(display: DisplayType.block),
+
     'b': ComputedStyle(fontWeight: FontWeight.bold),
     'strong': ComputedStyle(fontWeight: FontWeight.bold),
     'i': ComputedStyle(fontStyle: FontStyle.italic),
@@ -132,6 +139,7 @@ class HtmlAdapter {
     List<DocumentNode> sections = [];
     DocumentNode currentSection = DocumentNode(children: []);
     int currentSize = 0;
+    final wrappers = <dom.Element, UDTNode>{};
 
     // Flatten nodes - if a container is too large, extract its children
     final nodesToProcess =
@@ -142,7 +150,26 @@ class HtmlAdapter {
       final UDTNode? udtNode = _parseNode(child, baseUrl);
 
       if (udtNode != null) {
-        currentSection.children.add(udtNode);
+        // Rebuild the original ancestor chain within each chunk. CSS is
+        // resolved later, so retain attributes/classes and parent links rather
+        // than guessing which inline declarations affect horizontal layout.
+        final ancestors = <dom.Element>[];
+        for (var parent = child.parent;
+            parent != null && parent != body;
+            parent = parent.parent) {
+          ancestors.add(parent);
+        }
+        UDTNode target = currentSection;
+        for (final ancestor in ancestors.reversed) {
+          var wrapper = wrappers[ancestor];
+          if (wrapper == null) {
+            wrapper = _parseNode(ancestor.clone(false), baseUrl)!;
+            wrappers[ancestor] = wrapper;
+            target.appendChild(wrapper);
+          }
+          target = wrapper;
+        }
+        target.appendChild(udtNode);
         currentSize += _estimateNodeSize(child);
 
         if (currentSize >= chunkSize && udtNode.isBlock) {
@@ -183,6 +210,7 @@ class HtmlAdapter {
           if (!isHeading && !nextIsHeading && !currentHasFloat) {
             sections.add(currentSection);
             currentSection = DocumentNode(children: []);
+            wrappers.clear();
             currentSize = 0;
           }
         }
@@ -221,16 +249,9 @@ class HtmlAdapter {
           'aside'
         ].contains(tagName);
 
-        // NOTE: a large container is flattened even when it carries its own
-        // style/class. This is deliberate — flattening only runs on the
-        // large-document (virtualized) path, where breaking a single wrapping
-        // <div class="container"> into independently virtualized sections is
-        // the whole point. The cost is that the wrapper's own BOX styling
-        // (background/border/padding) is not preserved around the group, since
-        // one box cannot wrap chunks rendered separately without seams. See
-        // LIMITATIONS.md. (The hyper_render_html package adapter guards on
-        // style/class instead, trading virtualization for that box fidelity.)
-        if (isContainer && nodeSize > chunkSize && node.nodes.length > 1) {
+        // Split large wrappers, then reconstruct their ancestry per section.
+        // Box decorations and vertical spacing repeat at chunk boundaries.
+        if (isContainer && nodeSize > chunkSize && node.nodes.isNotEmpty) {
           // Recursively flatten children of this large container
           result
               .addAll(_flattenLargeContainers(node.nodes.toList(), chunkSize));

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Preserve styled wrapper ancestry in virtualized HTML chunks, including nested `max-width`, horizontal padding and `margin: 0 auto`. Large single-child wrappers can now split too. Semantic article containers use block defaults, and the default sanitizer preserves `<main>`. Box decorations and vertical spacing still repeat per chunk; see `doc/LIMITATIONS.md`.
+- Stage publishing outside the checkout so the root `packages/` ignore rule cannot empty sub-package archives. Local pubspecs remain untouched; dry-run validation failures are reported, and static analysis includes the root package.
+
 ## 1.14.0
 
 - **`box-sizing`** now applies ([#33](https://github.com/brewkits/hyper_render/issues/33)): `border-box` includes padding and border in `width` / `min-width` / `max-width`, including `%`, on in-flow blocks. Limits are in `doc/LIMITATIONS.md`.
