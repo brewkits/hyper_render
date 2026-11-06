@@ -1,6 +1,6 @@
 # Changelog — hyper_render_core
 
-## Unreleased
+## 1.14.1
 
 - Give `main`, `article`, `section`, `header`, `footer` and `aside` block defaults during CSS resolution, preserving their box layout without explicit `display:block`.
 
